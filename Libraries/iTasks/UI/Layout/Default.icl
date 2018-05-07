@@ -13,11 +13,11 @@ import Data.List, StdString
 import qualified Data.Map as DM
 
 import iTasks.UI.Layout.Minimal
-
+import iTasks.UI.Layout.BasicForms
 
 //Util:
 defaultSessionLayout :: LayoutRule
-defaultSessionLayout = minimalSessionLayout
+defaultSessionLayout = basicFormsSessionLayout
 /*
 defaultSessionLayout = sequenceLayouts
     [finalizeUI                                      //Finalize all remaining intermediate layouts

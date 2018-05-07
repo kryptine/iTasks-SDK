@@ -28,8 +28,8 @@ where
 
 instance tune ApplyLayout Task
 where
-	//tune (ApplyLayout l) task = task
-	tune (ApplyLayout l) task = applyLayout l task
+	tune (ApplyLayout l) task = task
+	//tune (ApplyLayout l) task = applyLayout l task
 
 applyLayout :: LayoutRule (Task a) -> Task a
 applyLayout rule task=:(Task evala) = Task eval
@@ -45,7 +45,8 @@ applyLayout rule task=:(Task evala) = Task eval
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				# (ui,state) = extractUIWithEffects (rule ruleNo (initLUI False ui, initLUIMoves))
+				# (ui,state) = extractUIWithEffects (rule ruleNo (initLUI ui, initLUIMoves))
+				//| not (trace_tn ("STATE AFTER RESET: \n"+++toString (toJSON state))) = undef
 				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)
 
@@ -53,13 +54,24 @@ applyLayout rule task=:(Task evala) = Task eval
 	        (ValueResult value info change tt,iworld) 
 				= case fromJSON json of
 					(Just state)	
-						# (change,state) = extractDownstreamChange (rule ruleNo (applyUpstreamChange change state))
+						//| not (trace_tn ("UPSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
+						//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state))) = undef
+						# state = applyUpstreamChange change state
+						//| not (trace_tn ("STATE AFTER CHANGE: \n"+++toString (toJSON state))) = undef
+						# state = rule ruleNo state
+						//| not (trace_tn ("STATE AFTER RULES: \n"+++toString (toJSON state))) = undef
+						# (change,state) = extractDownstreamChange state
+						//| not (trace_tn ("STATE AFTER EXTRACT: \n"+++toString (toJSON state))) = undef
+						//| not (trace_tn ("DOWNSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
+						//| not (trace_tn "=====") = undef
 						= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
+
+import StdDebug, StdMisc
 
 class toAttribute a where toAttribute :: a -> JSONNode
 instance toAttribute String where toAttribute s = JSONString s

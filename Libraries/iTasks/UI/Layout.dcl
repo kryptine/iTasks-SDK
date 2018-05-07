@@ -133,9 +133,9 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	}
 
 :: LUIEffects =
-	{ overwrittenType       :: LUIEffectStage UIType
-	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage JSONNode)
-	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage ())
+	{ overwrittenType       :: LUIEffectStage (LUINo,UIType)
+	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))
+	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage LUINo)
 	, additional            :: LUIEffectStage LUINo
 	, hidden                :: LUIEffectStage LUINo
 	, moved                 :: LUIEffectStage LUINo
@@ -177,7 +177,7 @@ instance toString LUINo
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
 :: LayoutRule :== LUINo (LUI,LUIMoves) -> (LUI, LUIMoves)
 
-initLUI :: Bool UI -> LUI
+initLUI :: UI -> LUI
 initLUIMoves :: LUIMoves
 
 applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
@@ -187,13 +187,15 @@ extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 
 //Helper functions (exported for unit testing)
-inUISelection_ :: UISelection UIPath UI -> Bool
 adjustIndex_ :: LUINo Int [LUI] LUIMoves -> Int
-selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
-updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+
+selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI]
+updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
+selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
+updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
 scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
-selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
-overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
-hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
+selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
+overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
+hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
 matchKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 

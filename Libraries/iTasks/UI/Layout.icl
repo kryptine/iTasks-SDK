@@ -6,6 +6,7 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
 import iTasks.Internal.Generic.Defaults 
 import StdEnum
+
 from Data.Map as DM import qualified newMap, put, get, del, toList, fromList, delList, alter, union, keys, unions, singleton, member, null
 from Data.Set as DS import qualified newSet, insert, delete, toList, fromList, null
 from Data.Tuple import appSnd
@@ -30,7 +31,6 @@ derive gLexOrd LUIEffectStage
 instance < (LUIEffectStage a) | gLexOrd{|*|} a
 where
 	(<) x y = (gLexOrd{|*|} x y) === LT
-
 
 instance < LUINo
 where
@@ -59,14 +59,11 @@ noEffects :: LUIEffects
 noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DM'.newMap, additional = ESNotApplied, hidden = ESNotApplied, moved = ESNotApplied, wrapper = ESNotApplied, unwrapped = ESNotApplied}
 
 //Initialize an LUI tree from a regular UI tree
-initLUI :: Bool UI -> LUI
-initLUI toBeInserted (UI type attr items) = LUINode type attr (map (initLUI toBeInserted) items) {noChanges & toBeInserted = toBeInserted} noEffects
+initLUI :: UI -> LUI
+initLUI (UI type attr items) = LUINode type attr (map initLUI items) noChanges noEffects
 
 initLUIMoves :: LUIMoves
 initLUIMoves = 'DM'.newMap
-
-toBeAdded :: LUINo LUI -> LUI
-toBeAdded ruleNo (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleNo}
 
 /*
 * When upstream changes 'arrive' they are tracked in the 'buffer' data structure.
@@ -91,8 +88,8 @@ applyUpstreamChange change (LUINode type attr items changes effects=:{LUIEffects
 applyUpstreamChange NoChange (lui,moves) = (lui,moves)
 applyUpstreamChange (ReplaceUI ui) (LUINode type attr items changes effects,moves)
 	| changes.toBeInserted //If it is a new node, we can replace it
-		= (initLUI True ui,moves)
-	= (LUINode type attr items {changes & toBeReplaced = Just (initLUI False ui)} effects,moves)
+		= (setToBeInserted_ (initLUI ui),moves)
+	= (LUINode type attr items {changes & toBeReplaced = Just (initLUI ui)} effects,moves)
 applyUpstreamChange (ReplaceUI ui) (lui,moves) = abort "applyUpstreamChange: can't replace an non-LUINode constructor"
 applyUpstreamChange (ChangeUI attributeChanges childChanges) (lui,moves)
 	= (foldl applyUpstreamChildChange (foldl applyUpstreamAttributeChange (lui,moves) attributeChanges) childChanges)
@@ -126,8 +123,8 @@ where
 	applyUpstreamChildChange (lui,moves) (index,InsertChild ui) = case lui of
 		(LUINode type attr items changes effects)
 			# adjustedIndex = adjustIndex_ (LUINo []) index items moves
-			| index < 0 || adjustedIndex >= length items = (lui,moves)
-			= (LUINode type attr (insertAt adjustedIndex (initLUI True ui) items) changes effects, moves)
+			| index < 0 || adjustedIndex > length items = (lui,moves)
+			= (LUINode type attr (insertAt adjustedIndex (setToBeInserted_ (initLUI ui)) items) changes effects, moves)
 		_ = (lui,moves)
 	applyUpstreamChildChange (lui,moves) (index,MoveChild destination) = case lui of
 		(LUINode type attr items changes effects)
@@ -189,85 +186,64 @@ where
 				| sourceId == shiftId = if (ai == destination) (Just (ai,x)) Nothing
 				                      = find (i + 1) ai xs
 			find i ai [x:xs]
-				| isInvisibleUpstream_ (LUINo []) x moves = find (i + 1) ai xs
-				                                          = find (i + 1) (ai + 1) xs
-nextShiftID_ :: [LUI] -> Int
-nextShiftID_ items = maximum [-1:map shiftID items] + 1
-where
-	shiftID (LUINode _ _ _ {toBeShifted=Just x} _) = x
-	shiftID (LUIShiftDestination x) = x
-	shiftID _ = -1
+				| existsAtRuleApplication_ (LUINo []) x moves = find (i + 1) (ai + 1) xs
+				                                              = find (i + 1) ai xs
 
 /*
 * Layout rules transform the 'buffered' tree and annotate the places where layout effects
 * should be applied, or should no longer be applied
 */
-
 setUIType :: UIType -> LayoutRule
 setUIType newType = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-
-	rule ruleId (lui=:(LUINode type attr items changes effects=:{overwrittenType}),moves)
-		# overwrittenType = case overwrittenType of
-			(ESNotApplied) = ESToBeApplied newType
-			(ESToBeApplied _) = ESToBeApplied newType
-			(ESApplied curType) = if (curType === newType) (ESApplied curType) (ESToBeUpdated curType newType)
-			(ESToBeUpdated curType _) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
-			(ESToBeRemoved curType) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
-		= (LUINode type attr items changes {effects & overwrittenType = overwrittenType},moves)
-	rule ruleId (lui,moves) = (lui,moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo apply (lui,moves)
+	where
+		apply (LUINode type attr items changes effects=:{overwrittenType},moves)
+			# overwrittenType = case overwrittenType of
+				(ESNotApplied) = ESToBeApplied (ruleNo,newType)
+				(ESToBeApplied _) = ESToBeApplied (ruleNo,newType)
+				(ESApplied (curRule,curType)) = if (curType === newType) (ESApplied (curRule,curType)) (ESToBeUpdated (curRule,curType) (ruleNo,newType))
+				(ESToBeUpdated (curRule,curType) _) = if (curType === newType) (ESApplied (curRule,curType)) (ESToBeUpdated (curRule,curType) (ruleNo,newType))
+				(ESToBeRemoved (curRule,curType)) = if (curType	=== newType) (ESApplied (curRule,curType)) (ESToBeUpdated (curRule,curType) (ruleNo,newType))
+			= (LUINode type attr items changes {effects & overwrittenType = overwrittenType},moves)
 
 setUIAttributes :: UIAttributes -> LayoutRule
 setUIAttributes setAttributes = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects,moves)
-	rule ruleId (lui=:(LUINode type attr items changes effects=:{overwrittenAttributes}),moves)
-		# overwrittenAttributes = foldr overwriteAttribute_ overwrittenAttributes ('DM'.toList setAttributes)
-		= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes},moves)
-	rule ruleId (lui,moves) = (lui,moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo apply (lui,moves)
+	where
+		apply (LUINode type attr items changes effects=:{overwrittenAttributes},moves)
+			# overwrittenAttributes = foldr (overwriteAttribute_ ruleNo) overwrittenAttributes ('DM'.toList setAttributes)
+			= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes},moves)
 
 delUIAttributes :: UIAttributeSelection -> LayoutRule
 delUIAttributes selection = rule 
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-
-	rule ruleId (lui=:(LUINode type attr items changes=:{setAttributes,delAttributes} effects=:{hiddenAttributes}), moves)
-		//For all attribute keys (including changes), we decide if the attribute should be hidden or not
-		# hiddenAttributes = foldr (hideAttribute_ (matchKey_ selection)) hiddenAttributes keys
-		= (LUINode type attr items changes {effects & hiddenAttributes = hiddenAttributes}, moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo apply (lui,moves)
 	where
-		keys = filter (\x -> not (isMember x ('DS'.toList delAttributes)))
-			(removeDup ('DM'.keys attr ++ 'DM'.keys setAttributes))
-
-	rule ruleId lui = lui
+		apply (lui=:(LUINode type attr items changes effects=:{hiddenAttributes}),moves)
+			# keys = 'DM'.keys (getAttributesAtRuleApplication_ ruleNo lui)
+			# hiddenAttributes = foldr (hideAttribute_ ruleNo (matchKey_ selection)) hiddenAttributes keys
+			= (LUINode type attr items changes {effects & hiddenAttributes = hiddenAttributes}, moves)
 
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
 modifyUIAttributes selection modifier = rule 
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects,moves)
-	rule ruleId (lui=:(LUINode type attr items changes effects=:{overwrittenAttributes,hiddenAttributes}),moves)
-		//1. Apply the modifier function to the current of attributes that match the selection
-		# selectedAttr = selectAttributesWithChanges_ selection lui
-		# modifiedAttr = modifier selectedAttr
-		//2. Override new attributes and hide attributes that match the selection 
-		# overwrittenAttributes = overrideModifiedAttributes modifiedAttr overwrittenAttributes
-		# hiddenAttributes = hideRemovedAttributes selectedAttr modifiedAttr hiddenAttributes
-		= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes,hiddenAttributes = hiddenAttributes}, moves)
-	rule ruleId (lui,moves) = (lui,moves)
-
-	overrideModifiedAttributes modified overwritten = foldr overwriteAttribute_ overwritten ('DM'.toList modified)
-	hideRemovedAttributes selected modified hidden = foldr (hideAttribute_ isRemoved) hidden ('DM'.keys selected)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo apply (lui,moves)
 	where
-		isRemoved key = not ('DM'.member key modified)
+		apply (lui=:(LUINode type attr items changes effects=:{overwrittenAttributes,hiddenAttributes}),moves)
+			//1. Apply the modifier function to the current of attributes that match the selection
+			# selectedAttr = selectAttributes_ selection (getAttributesAtRuleApplication_ ruleNo lui)
+			# modifiedAttr = modifier selectedAttr
+			//2. Override new attributes and hide attributes that match the selection 
+			# overwrittenAttributes = overrideModifiedAttributes ruleNo modifiedAttr overwrittenAttributes
+			# hiddenAttributes = hideRemovedAttributes ruleNo selectedAttr modifiedAttr hiddenAttributes
+			= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes, hiddenAttributes = hiddenAttributes}, moves)
+
+		overrideModifiedAttributes ruleNo modified overwritten = foldr (overwriteAttribute_ ruleNo) overwritten ('DM'.toList modified)
+		hideRemovedAttributes ruleNo selected modified hidden = foldr (hideAttribute_ ruleNo isRemoved) hidden ('DM'.keys selected)
+		where
+			isRemoved key = not ('DM'.member key modified)
 
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> LayoutRule
 copySubUIAttributes selection src dst = rule
@@ -275,30 +251,27 @@ where
 	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
 		# (replacement,moves) = rule ruleNo (replacement, moves)
 		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
+
 	rule ruleNo (lui,moves)
 		//Find the selected attributes in the source node... 
 		//Then use the setUIAttributes layout rule to copy the changes
 		= maybe (lui,moves) (withEffect (lui,moves)) (selectSource (lui,moves))
 	where
-		selectSource (lui,moves) = fmap (selectAttributesWithChanges_ selection) (selectNode_ ruleNo src (lui,moves))
-		withEffect (lui,moves) attr = updateNode_ ruleNo dst ((setUIAttributes attr) ruleNo) (lui,moves)
+		selectSource (lui,moves) = fmap (selectAttributes_ selection o getAttributesAtRuleApplication_ ruleNo) (selectSubNode_ ruleNo src (lui,moves))
+		withEffect (lui,moves) attr = updateSubNode_ ruleNo dst ((setUIAttributes attr) ruleNo) (lui,moves)
 
 wrapUI :: UIType -> LayoutRule
 wrapUI type = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-
-	rule ruleId (lui,moves)
-		| wrappedBy ruleId lui = (lui,moves)
-		| otherwise = (wrap ruleId type lui,moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo rule` (lui,moves)
 	where
-		wrappedBy ruleId (LUINode _ _ _ _ {LUIEffects|wrapper=ESApplied matchId}) = ruleId == matchId
-		wrappedBy ruleId (LUINode _ _ _ _ {LUIEffects|wrapper=ESToBeApplied matchId}) = ruleId == matchId
-		wrappedBy _ _ = False
-
-		wrap ruleId type lui = LUINode type 'DM'.newMap [lui] noChanges {noEffects & wrapper = ESToBeApplied ruleId}
+		rule` (lui=:(LUINode _ _ _ _ {LUIEffects|wrapper}),moves)
+			//Check if we already wrapped
+			| wrapper === (ESApplied ruleNo) || wrapper === (ESToBeApplied ruleNo)
+				= (lui,moves)
+			//Not yet wrapped
+			| otherwise
+				= (LUINode type 'DM'.newMap [lui] noChanges {noEffects & wrapper = ESToBeApplied ruleNo},moves)
 
 unwrapUI :: LayoutRule
 unwrapUI = rule
@@ -319,7 +292,7 @@ where
 			ESNotApplied
 				= (if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleNo}) lui, moves)
 			_
-				= updateNode_ ruleNo [0] (rule ruleNo) (lui,moves)
+				= updateSubNode_ ruleNo [0] (rule ruleNo) (lui,moves)
 	rule ruleNo (lui,moves) = (lui,moves)
 
 insertChildUI :: Int UI -> LayoutRule
@@ -333,12 +306,12 @@ where
 		= case scanToPosition_ ruleNo position items moves of
 			(_,True,Nothing)	
 				//If the index is at the end of the range, add the item
-				= (LUINode type attr (undoAdditions ruleNo items ++ [toBeAdded ruleNo (initLUI False insertion)]) changes effects, moves)
+				= (LUINode type attr (undoAdditions ruleNo items ++ [setToBeAdded_ ruleNo (initLUI insertion)]) changes effects, moves)
 			(index,True,Just selected)
 				| getAdditional selected === ESToBeApplied ruleNo || getAdditional selected === ESApplied ruleNo
 					= (lui, moves)
 				| otherwise
-					= (LUINode type attr (insertAt index (toBeAdded ruleNo (initLUI False insertion)) (undoAdditions ruleNo items)) changes effects, moves)
+					= (LUINode type attr (insertAt index (setToBeAdded_ ruleNo (initLUI insertion)) (undoAdditions ruleNo items)) changes effects, moves)
 			_
 				= (lui,moves)
 
@@ -365,18 +338,18 @@ where
 		# (replacement,moves) = rule ruleId (replacement, moves)
 		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
 
-	rule ruleId (lui,moves) = (remove [] lui,moves)
+	rule ruleNo (lui,moves) = remove [] (lui,moves)
 	where
-		remove path lui=:(LUINode type attr items changes effects)
+		remove path (lui=:(LUINode type attr items changes effects),moves)
 			//Check if this matches the selection
-			| inLUISelection_ selection path lui
-				= LUINode type attr (map clear items) changes (hide ruleId effects)
+			| inLUISelection_ ruleNo selection path lui moves
+				= (LUINode type attr (map clear items) changes (hide ruleNo effects),moves)
 			| otherwise
-				# items = [maybe item (\i -> remove (path ++ [i]) item) mbi \\ (mbi,item) <- indicesAfterChanges_ items]
-				= LUINode type attr items changes (unhide ruleId effects)
-		remove path lui = lui
+				# (items,moves) = updateChildNodes_ ruleNo (\i (item,moves) -> remove (path ++ [i]) (item,moves)) (items,moves)
+				= (LUINode type attr items changes (unhide ruleNo effects),moves)
+		remove path (lui,moves) = (lui,moves)
 
-		clear (LUINode type attr items changes effects) = LUINode type attr (map clear items) changes (unhide ruleId effects)
+		clear (LUINode type attr items changes effects) = LUINode type attr (map clear items) changes (unhide ruleNo effects)
 		clear lui = lui
 
 	hide ruleId effects=:{hidden=ESNotApplied} = {effects & hidden = ESToBeApplied ruleId}
@@ -403,7 +376,7 @@ where
 	where
 		//1 Check if the destination position. If it does not, we can't move anything
 		destinationExists path pos (lui,moves)
-			= maybe False (positionExists pos) (selectNode_ ruleNo path (lui,moves))
+			= maybe False (positionExists pos) (selectSubNode_ ruleNo path (lui,moves))
 		where
 			positionExists pos (LUINode _ _ items _ _)
 				= case scanToPosition_ ruleNo pos items moves of
@@ -417,7 +390,7 @@ where
 			= (length acc, lui, 'DM'.union ('DM'.fromList acc) moves) //TODO: cleanup no longer referenced items
 			where
 				collect i path acc lui=:(LUINode type attr items changes effects) moves // -> Not yet moved
-					| destinationExists && inLUISelection_ selection path lui //Node should be moved
+					| destinationExists && inLUISelection_ ruleNo selection path lui moves //Node should be moved
 					 	= (i + 1, [((ruleNo,i),mark ruleNo lui):acc], LUIMoveSource ruleNo i)
 					| otherwise //Should not be moved -> check children
 						# (i,acc,items) = foldl (collectInChild path) (i,acc,[]) (indicesAfterChanges_ items)
@@ -425,7 +398,7 @@ where
 				collect i path acc lui=:(LUIMoveSource moveTarget movePosition) moves
 					| moveTarget === ruleNo //We previously moved this node, check if it should be restored
 						# movedNode=:(LUINode type attr items changes effects) = getMovedNode_ moveTarget movePosition moves
-						| destinationExists && inLUISelection_ selection path movedNode //Still moved
+						| destinationExists && inLUISelection_ ruleNo selection path movedNode moves //Still moved
 							= (i + 1, [((ruleNo,i),movedNode):acc], LUIMoveSource ruleNo i)
 						| otherwise
 							//Check children
@@ -451,7 +424,7 @@ where
 				unmark ruleNo lui = lui
 
 		//3 Mark the destination with the correct number of moved nodes
-		updateDestination numMoved (lui,moves) = updateNode_ ruleNo path update (lui,moves)
+		updateDestination numMoved (lui,moves) = updateSubNode_ ruleNo path update (lui,moves)
 		where
 			update (lui=:(LUINode type attr items changes effects), m)
 				# items = filter (not o currentMove) items
@@ -476,21 +449,24 @@ where
 layoutSubUIs :: UISelection LayoutRule -> LayoutRule
 layoutSubUIs selection sub = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
+/*
+	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
+		# (replacement,moves) = rule ruleNo (replacement, moves)
 		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects,moves)
-
-	rule ruleId (lui,moves) = apply [] (lui,moves)
+*/
+	rule ruleNo (lui,moves) = apply [] (lui,moves)
 	where
-		apply path (lui=:(LUINode type attr items changes effects),moves)
-			//Check if this matches the selection
-			| inLUISelection_ selection path lui
-				= sub ruleId (lui,moves)
+		//Check if the layout matches (without any dereferencing or selecting wrapped nodes)
+		apply path (lui,moves)
+			| inLUISelection_ ruleNo selection path lui moves //If the layout matches, apply the rule
+				= sub ruleNo (lui,moves)
 			| otherwise
-				# (items,moves) = mapSt (\(mbi,item) m -> maybe (item,m) (\i -> apply (path ++ [i]) (item,m)) mbi) (indicesAfterChanges_ items) moves
-				= (LUINode type attr items changes (revertEffect_ ruleId effects),moves)
+				//We want to check the set of children at the time of `ruleNo`
+				= updateNode_ ruleNo (applyc path) (lui,moves)
 
-		apply path (lui,moves) = (lui,moves)
+		applyc path (lui=:(LUINode type attr items changes effects),moves)
+			# (items,moves) = updateChildNodes_ ruleNo (\i (item,moves) -> apply (path ++ [i]) (item,moves)) (items,moves)
+			= (LUINode type attr items changes (revertEffect_ ruleNo effects),moves)
 
 sequenceLayouts :: [LayoutRule] -> LayoutRule
 sequenceLayouts subs = rule
@@ -500,30 +476,100 @@ where
 		apply (i,lui) sub = (i + 1, sub (LUINo (ruleNo ++ [i])) lui)
 
 //Utility functions shared by the layout rules:
+setToBeInserted_ :: LUI -> LUI
+setToBeInserted_ (LUINode type attr items changes effects) = LUINode type attr items {noChanges & toBeInserted = True} effects
 
-//Test if a specific UI at a path is in the selection
-inUISelection_ :: UISelection UIPath UI -> Bool
-inUISelection_ (SelectByPath p) path _ = p === path
-inUISelection_ (SelectByDepth n) p _ = length p == n
-inUISelection_ (SelectDescendents) [_:_] _ = True
-inUISelection_ (SelectDescendents) _ _ = False
-inUISelection_ (SelectByType t) _ (UI type _ _) = t === type
-inUISelection_ (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
-inUISelection_ (SelectByAttribute k p) _ (UI _ attr _) = maybe False p ('DM'.get k attr)
-inUISelection_ (SelectByNumChildren num) _ (UI _ _  items) = length items == num
-inUISelection_ (SelectByContains selection) path ui=:(UI _ _ items)
-	| inUISelection_ selection path ui = True 
-			  						  = or [inUISelection_ (SelectByContains selection) (path ++ [i]) item \\ item <- items & i <- [0..]]
-inUISelection_ (SelectRelative prefix sel) absolutePath ui 
-	= maybe False (\relativePath -> inUISelection_ sel relativePath ui) (removePrefix prefix absolutePath)
+setToBeAdded_ :: LUINo LUI -> LUI
+setToBeAdded_ ruleNo (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleNo}
+
+nextShiftID_ :: [LUI] -> Int
+nextShiftID_ items = maximum [-1:map shiftID items] + 1
+where
+	shiftID (LUINode _ _ _ {toBeShifted=Just x} _) = x
+	shiftID (LUIShiftDestination x) = x
+	shiftID _ = -1
+
+//Test if a certain node exists at the time of rule application
+existsAtRuleApplication_ :: !LUINo !LUI LUIMoves -> Bool
+//Upstream nodes that no longer exist (here)
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ {toBeRemoved=True} _) moves = False
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ {toBeShifted=Just _} _) moves = False
+//Nodes that were hidden by effects
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {hidden=ESToBeApplied hiddenBy}) moves = hiddenBy >= ruleNo
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {hidden=ESApplied hiddenBy}) moves = hiddenBy >= ruleNo
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {hidden=ESToBeUpdated _ hiddenBy}) moves = hiddenBy >= ruleNo
+//Nodes that were introduced by effects
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESToBeApplied addedBy}) moves = addedBy <= ruleNo
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESApplied addedBy}) moves = addedBy <= ruleNo
+existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESToBeRemoved _}) moves = False //Marked to be removed
+existsAtRuleApplication_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeApplied wrappedBy}) moves
+	= wrappedExistsAtRuleApplication_ ruleNo items wrappedBy moves
+existsAtRuleApplication_ ruleNo (LUINode _ _ items _ {wrapper=ESApplied wrappedBy}) moves
+	= wrappedExistsAtRuleApplication_ ruleNo items wrappedBy moves
+existsAtRuleApplication_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeRemoved wrappedBy}) moves //No longer wrapped
+	= case (lookupWrappedNode_ wrappedBy items moves) of //Consider the wrapped child (that will be restored)
+		Nothing = False // The wrapped child does not exist, nothing to check
+		Just (_,wrapped) = existsAtRuleApplication_ ruleNo wrapped moves //Check the wrapped child
+//Moved nodes
+existsAtRuleApplication_ ruleNo (LUIMoveSource moveTarget movePosition) moves
+	| moveTarget <= ruleNo //The move has already been applied
+		= case getMovedNode_ moveTarget movePosition moves of
+			(LUINode _ _ _ {toBeRemoved=True} _) = False
+			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = False
+			(LUINode _ _ _ _ {moved=ESApplied _}) = False
+			//If the moved node is about to be restored it, we consider it as existing here
+			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = True
+	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it as existing
+		= True
+existsAtRuleApplication_ ruleNo (LUIMoveDestination moveTarget movePosition) moves
+	| moveTarget <= ruleNo //The move has already been applied
+		= case getMovedNode_ moveTarget movePosition moves of
+			(LUINode _ _ _ {toBeRemoved=True} _) = False
+			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = False
+			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = True
+			(LUINode _ _ _ _ {moved=ESApplied _}) = True
+	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it not yet existing
+		= False
+existsAtRuleApplication_ _ _ _ = True
+
+wrappedExistsAtRuleApplication_ ruleNo items wrappedBy moves
+	| wrappedBy <= ruleNo = True //Already wrapped, (the wrapper counts as an existing child)
+	| otherwise = case (lookupWrappedNode_ wrappedBy items moves) of //Not yet wrapped, consider the wrapped child
+		Nothing = False // The wrapped child does not exist, nothing to check
+		Just (_,wrapped) = existsAtRuleApplication_ ruleNo wrapped moves //Check the wrapped child
+
+//Test if a node matches a selection UI at a path is in the selection
+inLUISelection_ :: LUINo UISelection UIPath LUI LUIMoves -> Bool
+inLUISelection_ ruleNo (SelectByPath p) path _ moves = p === path
+inLUISelection_ ruleNo (SelectByDepth n) p _ moves = length p == n
+inLUISelection_ ruleNo (SelectDescendents) [_:_] _ moves = True
+inLUISelection_ ruleNo (SelectDescendents) _ _ moves = False
+inLUISelection_ ruleNo (SelectByType t) _ lui moves
+	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> getTypeAtRuleApplication_ ruleNo x === t) (lui,moves))
+inLUISelection_ ruleNo (SelectByHasAttribute k) _ lui moves
+	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> isJust ('DM'.get k (getAttributesAtRuleApplication_ ruleNo x))) (lui,moves))
+inLUISelection_ ruleNo (SelectByAttribute k p) _ lui moves
+	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> maybe False p ('DM'.get k (getAttributesAtRuleApplication_ ruleNo x))) (lui,moves))
+inLUISelection_ ruleNo (SelectByNumChildren num) _ lui moves
+	= fromMaybe False (selectNode_ ruleNo (\(LUINode _ _ items _ _,m) -> length (selectChildNodes_ ruleNo (items,m)) == num) (lui,moves))
+inLUISelection_ ruleNo (SelectByContains selection) path lui moves
+	= fromMaybe False (selectNode_ ruleNo
+		(\(x=:LUINode _ _ items _ _,m) = inLUISelection_ ruleNo selection path x m
+	                                  || or [inLUISelection_ ruleNo (SelectByContains selection) (path ++ [i]) item m
+	                                        \\ item <- selectChildNodes_ ruleNo (items,m) & i <- [0..]])
+		(lui,moves))
+
+inLUISelection_ ruleNo (SelectRelative prefix sel) absolutePath lui moves
+	= maybe False (\relativePath -> inLUISelection_ ruleNo sel relativePath lui moves) (removePrefix prefix absolutePath)
 where
 	removePrefix [] psb = Just psb
 	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
 	removePrefix _ _ = Nothing
-inUISelection_ (SelectNone) _ _ = False
-inUISelection_ (SelectAND sell selr) path ui = inUISelection_ sell path ui && inUISelection_ selr path ui 
-inUISelection_ (SelectOR sell selr) path ui = inUISelection_ sell path ui || inUISelection_ selr path ui 
-inUISelection_ (SelectNOT sel) path ui = not (inUISelection_ sel path ui)
+inLUISelection_ ruleNo (SelectNone) _ _ moves = False
+inLUISelection_ ruleNo (SelectAND sell selr) path ui moves = inLUISelection_ ruleNo sell path ui moves && inLUISelection_ ruleNo selr path ui moves
+inLUISelection_ ruleNo (SelectOR sell selr) path ui moves = inLUISelection_ ruleNo sell path ui moves || inLUISelection_ ruleNo selr path ui moves
+inLUISelection_ ruleNo (SelectNOT sel) path ui moves = not (inLUISelection_ ruleNo sel path ui moves)
+inLUISelection_ ruleNo _ _ _ moves = False
 
 //Adjust the index and length for additional nodes inserted by layout rules
 //TODO: Remove applications of adjustIndex_ where the index is used to immediately lookup the list element 
@@ -547,48 +593,6 @@ where
 		| not (existsAtRuleApplication_ ruleNo x moves) = scan r (i + 1) xs //Skip
 		| r == 0 = (i,True,Just x)
 		| otherwise = scan (r - 1) (i + 1) xs
-
-existsAtRuleApplication_ :: !LUINo !LUI LUIMoves -> Bool
-existsAtRuleApplication_ ruleNo (LUINode _ _ _ {toBeRemoved=True} _) moves = False
-existsAtRuleApplication_ ruleNo (LUINode _ _ _ {toBeShifted=Just _} _) moves = False
-existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESToBeApplied addedBy}) moves = addedBy <= ruleNo
-existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESApplied addedBy}) moves = addedBy <= ruleNo
-existsAtRuleApplication_ ruleNo (LUINode _ _ _ _ {additional=ESToBeRemoved _}) moves = False //Marked to be removed
-existsAtRuleApplication_ ruleNo (LUIMoveSource moveTarget movePosition) moves
-	| moveTarget < ruleNo //The move has already been applied
-		= case getMovedNode_ moveTarget movePosition moves of
-			//If the moved node is about to be restored it, we consider it as existing here
-			(LUINode _ _ _ {toBeRemoved=True} _) = False
-			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = True
-			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = False
-			(LUINode _ _ _ _ {moved=ESApplied _}) = False
-	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it as existing
-		= True
-existsAtRuleApplication_ ruleNo (LUIMoveDestination moveTarget movePosition) moves
-	| moveTarget < ruleNo //The move has already been applied
-		= case getMovedNode_ moveTarget movePosition moves of
-			(LUINode _ _ _ {toBeRemoved=True} _) = False
-			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = False
-			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = True
-			(LUINode _ _ _ _ {moved=ESApplied _}) = True
-	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it not yet existing
-		= False
-existsAtRuleApplication_ _ _ _ = True
-
-//Some nodes are not visible upstream, so we should not count them when using indexes
-isInvisibleUpstream_ :: !LUINo !LUI LUIMoves -> Bool
-isInvisibleUpstream_ ruleNo (LUINode _ _ _ {toBeRemoved=True} _) moves = True
-isInvisibleUpstream_ ruleNo (LUINode _ _ _ {toBeShifted=(Just _)} _) moves = True
-//Test if the addition exists from the perspective of the current rule
-isInvisibleUpstream_ ruleNo (LUINode _ _ _ _ {additional=ESToBeApplied addedBy}) moves = ruleNo < addedBy 
-isInvisibleUpstream_ ruleNo (LUINode _ _ _ _ {additional=ESApplied addedBy}) moves = ruleNo < addedBy
-isInvisibleUpstream_ ruleNo (LUINode _ _ _ _ {additional=ESToBeRemoved _}) moves = True
-//Moved nodes are considered to be in their source location
-//We check the dereferenced node (it could be removed or shifted)
-isInvisibleUpstream_ ruleNo (LUIMoveSource moveTarget movePosition) moves
-	= isInvisibleUpstream_ ruleNo (getMovedNode_ moveTarget movePosition moves) moves
-isInvisibleUpstream_ ruleNo (LUIMoveDestination moveTarget movePosition) moves = False
-isInvisibleUpstream_ _ _ _ = False
 
 isAddedBy_ :: LUINo LUI -> Bool
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeApplied ruleId}) = lid == ruleId
@@ -635,13 +639,24 @@ where
 	isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
 	isSource _ = False
 
+//When a node is wrapped, it is the only existing node at that time.
+//All of its siblings are created by later rules
+//However, it can happen that the wrapped item itself no longer exists because it was removed upstream
+lookupWrappedNode_ :: LUINo [LUI] LUIMoves -> Maybe (Int,LUI)
+lookupWrappedNode_ wrapId items moves = lookup 0 items 
+where
+	lookup _ [] = Nothing
+	lookup i [x:xs] = if (existsAtRuleApplication_ wrapId x moves) (Just (i,x)) (lookup (i + 1) xs)
+
 lengthAfterChanges_ :: [LUI] -> Int
 lengthAfterChanges_ items = foldr count 0 items
 where
 	count (LUINode _ _ _ {toBeRemoved = False} _) num = num + 1
 	count _ num = num //Don't count shift destinations and removed nodes
 
-indicesAfterChanges_ :: [LUI] -> [(Maybe Int,LUI)]
+//TODO: Get rid of this function, this does not behave well with active effects
+//      It should be possible to replace it by using updateChildNodes_
+indicesAfterChanges_ :: [LUI] -> [(Maybe Int,LUI)] 
 indicesAfterChanges_ items = addIndices (indexShiftDestinations items) items
 where
 	indexShiftDestinations items = snd (foldl count (0,'DM'.newMap) items)
@@ -662,130 +677,342 @@ where
 		add (i,acc) lui=:(LUIMoveDestination _ _) = (i,[(Nothing,lui):acc])
 		add (i,acc) lui=:(LUIMoveSource _ _) = (i,[(Nothing,lui):acc])
 
-getMovedNode_ :: LUINo Int LUIMoves -> LUI
-getMovedNode_ moveTarget movePosition moves = case 'DM'.get (moveTarget,movePosition) moves of
-	Nothing = abort ("Get: Unknown ruleId " +++ toString moveTarget +++ " in moved items\n")
-	Just item = item
+selectNode_ :: LUINo ((LUI,LUIMoves) -> a) (LUI,LUIMoves) -> Maybe a
+selectNode_ ruleNo apply (lui,moves) = case lui of
+	//When a move source exists (it is moved by a later rule), we update the referenced node
+	(LUIMoveSource moveTarget movePosition)
+		| moveTarget > ruleNo
+			= Just (apply (getMovedNode_ moveTarget movePosition moves,moves))
+		| moveTarget < ruleNo //Do nothing, the node has been moved somewhere else
+			= Nothing
+		| otherwise //The current rule did the moving -> update the reference
+			= Just (apply (lui,moves))
+	//When an item was moved here (by an earlier rule), we update the referenced node
+	(LUIMoveDestination moveTarget movePosition) 
+		| moveTarget > ruleNo //No nothing, the node has not been moved yet
+			= Nothing
+		| moveTarget < ruleNo //The node has been moved, Update the referenced node
+			= Just (apply (getMovedNode_ moveTarget movePosition moves,moves))
+		| otherwise //The current rule did the moving -> update the reference
+			= Just (apply (lui,moves))
+	//When an item is scheduled to be replaced, select the replacement
+	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= selectNode_ ruleNo apply (replacement,moves)
+	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper 
+	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy})
+		//Not yet wrapped, update the wrapped item
+		| wrappedBy >= ruleNo 
+			= case lookupWrappedNode_ wrappedBy items moves of
+				Just (_,wrapped) = selectNode_ ruleNo apply (wrapped,moves) 
+				Nothing = Nothing
+		| otherwise
+			= Just (apply (lui,moves))
+	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
+	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy})
+		//Not yet wrapped, update the wrapped item
+		| wrappedBy >= ruleNo
+			= case lookupWrappedNode_ wrappedBy items moves of
+				Just (_,wrapped) = selectNode_ ruleNo apply (wrapped,moves) 
+				Nothing = Nothing
+		| otherwise
+			= Just (apply (lui,moves))
+	//Similarly, when the wrapping is set to be removed, we need to update the wrapped child
+	(LUINode type attr items changes effects=:{wrapper=ESToBeRemoved wrappedBy})
+		= case lookupWrappedNode_ wrappedBy items moves of
+			Just (_,wrapped) = Just (apply (wrapped,moves))
+			Nothing = Nothing
+	//Default case: Just apply the update function
+	_ = Just (apply (lui,moves))
 
-updMovedNode_ :: LUINo Int LUI LUIMoves -> LUIMoves
-updMovedNode_ moveTarget movePosition node moves = 'DM'.alter update (moveTarget,movePosition) moves
+selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI]
+selectChildNodes_ ruleNo (items,moves) = reverse (foldl selectItem [] items)
 where
-	update Nothing = abort ("Update: Unknown ruleId " +++ toString moveTarget +++ " in moved items\n")
-	update (Just item) = Just node
+	selectItem acc item 
+		| existsAtRuleApplication_ ruleNo item moves = case item of 
+			//For shifted items we select the source
+			(LUIShiftDestination shiftId)
+				= [snd (lookupShiftSource_ shiftId items):acc]
+			//When a move source exists (it is moved by a later rule), we update the referenced node
+			(LUIMoveSource moveTarget movePosition)
+				= [getMovedNode_ moveTarget movePosition moves:acc]
+			//When an item was moved here (by an earlier rule), we update the referenced node
+			(LUIMoveDestination moveTarget movePosition) 
+				= [getMovedNode_ moveTarget movePosition moves:acc]
 
-selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI 
-selectNode_ ruleNo [] (lui,moves) = case lui of
+			//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
+			(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy}) | wrappedBy >= ruleNo
+				= case lookupWrappedNode_ wrappedBy items moves of
+					Just (_,wrapped) = [wrapped:acc]
+					Nothing          = acc
+			//Similarly, when the wrapping is set to be removed, we need to updat the wrapped child
+			(LUINode type attr items changes effects=:{wrapper=ESToBeRemoved wrappedBy})
+				= case lookupWrappedNode_ wrappedBy items moves of
+					Just (_,wrapped) = [wrapped:acc]
+					Nothing = acc
+			_   =  [item:acc]
+		| otherwise
+			= acc
+
+updateNode_ :: LUINo ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+updateNode_ ruleNo update (lui,moves) = case lui of
+	//When a move source exists (it is moved by a later rule), we update the referenced node
+	(LUIMoveSource moveTarget movePosition)
+		| moveTarget > ruleNo
+			# movedItem = getMovedNode_ moveTarget movePosition moves
+			# (movedItem,moves) = update (movedItem,moves)
+			= (lui, updMovedNode_ moveTarget movePosition movedItem moves)
+		| moveTarget < ruleNo //Do nothing, the node has been moved somewhere else
+			= (lui,moves)
+		| otherwise //The current rule did the moving -> update the reference
+			= update (lui,moves)
+	//When an item was moved here (by an earlier rule), we update the referenced node
+	(LUIMoveDestination moveTarget movePosition) 
+		| moveTarget > ruleNo //No nothing, the node has not been moved yet
+			= (lui,moves)
+		| moveTarget < ruleNo //The node has been moved, Update the referenced node
+			# movedItem = getMovedNode_ moveTarget movePosition moves
+			# (movedItem,moves) = update (movedItem,moves)
+			= (lui, updMovedNode_ moveTarget movePosition movedItem moves)
+		| otherwise //The current rule did the moving -> update the reference
+			= update (lui,moves)
+	//When an item is scheduled to be replaced, update the replacement
+	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		# (replacement,moves) = updateNode_ ruleNo update (replacement,moves)
+		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
+	//TODO: Refactor the different cases of wrapped nodes. there is some overlap
+	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper 
+	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy})
+		//Not yet wrapped, update the wrapped item
+		| wrappedBy > ruleNo
+			= case lookupWrappedNode_ wrappedBy items moves of
+				Just (index,wrapped)	
+					# (wrapped,moves) = updateNode_ ruleNo update (wrapped,moves) 
+					= (LUINode type attr (updateAt index wrapped items) changes effects, moves)
+				Nothing = (lui,moves)
+		| otherwise
+			= update (lui,moves)
+	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
+	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy})
+		//Not yet wrapped, update the wrapped item
+		| wrappedBy > ruleNo
+			= case lookupWrappedNode_ wrappedBy items moves of
+				Just (index,wrapped)	
+					# (wrapped,moves) = updateNode_ ruleNo update (wrapped,moves) 
+					= (LUINode type attr (updateAt index wrapped items) changes effects, moves)
+				Nothing = (lui,moves)
+		| otherwise
+			= update (lui,moves)
+	//Similarly, when the wrapping is set to be removed, we need to update the wrapped child
+	(LUINode type attr items changes effects=:{wrapper=ESToBeRemoved wrappedBy})
+		= case lookupWrappedNode_ wrappedBy items moves of
+			Just (index,wrapped)	
+				# (wrapped,moves) = updateNode_ ruleNo update (wrapped,moves)
+				= (LUINode type attr (updateAt index wrapped items) changes effects, moves)
+			Nothing = (lui,moves)
+	//Default case: Just apply the update function
+	_ = update (lui,moves)
+
+updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
+updateChildNodes_ ruleNo update (items,moves) = updateItems (indexShiftDestinations items moves) items moves
+where
+	indexShiftDestinations items moves = snd (foldl index (0,'DM'.newMap) items) 
+	where
+		index (i,positions) item
+			| existsAtRuleApplication_ ruleNo item moves = case item of
+				(LUIShiftDestination shiftId) = (i + 1, 'DM'.put shiftId i positions)
+				_                             = (i + 1, positions)
+			| otherwise                                  = (i, positions)
+
+	updateItems shiftDestinations items moves
+		# (_,items,moves) = foldl updateItem (0,[],moves) items
+		= (reverse items, moves)
+	where
+		updateItem (i,acc,moves) item 
+			| existsAtRuleApplication_ ruleNo item moves
+				# (item,moves) = case item of 
+					//For shifted items we update the source
+					(LUIShiftDestination shiftId) = (item,moves)
+					_                             = update i (item,moves)
+				= (i + 1, [item:acc], moves)
+			| otherwise
+				# (item,moves) = case item of
+					//For shifted items we update the source (using the index of the destination)
+					(LUINode _ _ _ {toBeShifted=Just shiftId} _)
+						//If we did not index the destination, apparently it no longer exists
+						= maybe (item,moves) (\index -> update index (item,moves)) ('DM'.get shiftId shiftDestinations)
+					_ = (item,moves)
+				= (i, [item:acc], moves)
+
+selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI 
+selectSubNode_ ruleNo [] (lui,moves) = case lui of
 	(LUINode _ _ _ {toBeRemoved=True} _)              = Nothing
-	(LUINode _ _ _ {toBeReplaced=Just replacement} _) = selectNode_ ruleNo [] (replacement,moves)
+	(LUINode _ _ _ {toBeReplaced=Just replacement} _) = selectSubNode_ ruleNo [] (replacement,moves)
 	(LUINode _ _ _ _ _)                               = Just lui
 	//Whether moved nodes still exist depends on whether the move is earlier or later than the current rule
 	lui=:(LUIMoveSource moveTarget movePosition)
-		| existsAtRuleApplication_ ruleNo lui moves = selectNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
+		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
 		| otherwise = Nothing
 	lui=:(LUIMoveDestination moveTarget movePosition)
-		| existsAtRuleApplication_ ruleNo lui moves = selectNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
+		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
 		| otherwise = Nothing
 	_                                                 = Nothing
-selectNode_ ruleNo [s:ss] (LUINode _ _ items _ _, moves)
+selectSubNode_ ruleNo [s:ss] (LUINode _ _ items _ _, moves)
 	= case scanToPosition_ ruleNo s items moves of
-		(_,_,Just (LUINode _ _ _ {toBeReplaced=Just replacement} _)) = selectNode_ ruleNo ss (replacement, moves)
-		(_,_,Just (LUIShiftDestination shiftId)) = selectNode_ ruleNo ss (snd (lookupShiftSource_ shiftId items), moves)
+		(_,_,Just (LUINode _ _ _ {toBeReplaced=Just replacement} _)) = selectSubNode_ ruleNo ss (replacement, moves)
+		(_,_,Just (LUIShiftDestination shiftId)) = selectSubNode_ ruleNo ss (snd (lookupShiftSource_ shiftId items), moves)
 		(_,_,Just (lui=: LUIMoveSource moveTarget movePosition))
-			| existsAtRuleApplication_ ruleNo lui moves = selectNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
+			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
 														= Nothing
 		(_,_,Just (lui=:LUIMoveDestination moveTarget movePosition))
-			| existsAtRuleApplication_ ruleNo lui moves = selectNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
+			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
 														= Nothing
-		(_,_,Just child) = selectNode_ ruleNo ss (child, moves)
+		(_,_,Just child) = selectSubNode_ ruleNo ss (child, moves)
 		_ = Nothing
 
-updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
-updateNode_ ruleNo [] update (lui,moves) = case lui of
+updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+updateSubNode_ ruleNo [] update (lui,moves) = case lui of
 	(LUIMoveSource moveTarget movePosition)
 		= (lui, updateMovedNode_ moveTarget movePosition ruleNo [] update moves)
 	(LUIMoveDestination moveTarget movePosition)
 		= (lui, updateMovedNode_ moveTarget movePosition ruleNo [] update moves)
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
-		# (replacement,moves) = updateNode_ ruleNo [] update (replacement,moves)
+		# (replacement,moves) = updateSubNode_ ruleNo [] update (replacement,moves)
 		= (LUINode type attr items {changes & toBeReplaced = Just replacement} effects, moves)
 	_ 
 		| existsAtRuleApplication_ ruleNo lui moves || isShifted_ lui = update (lui,moves)
 		| otherwise                                                       = (lui,moves)
 
-updateNode_ ruleNo [s:ss] update (lui=:(LUINode type attr items changes effects),moves)
+updateSubNode_ ruleNo [s:ss] update (lui=:(LUINode type attr items changes effects),moves)
 	# (items,moves) = case scanToPosition_ ruleNo s items moves of
 		(index,_,Just (LUINode ctype cattr citems cchanges=:{toBeReplaced=Just replacement} ceffects))
-			# (replacement,moves) = updateNode_ ruleNo ss update (replacement,moves)
+			# (replacement,moves) = updateSubNode_ ruleNo ss update (replacement,moves)
 			= (updateAt index (LUINode ctype cattr citems {cchanges & toBeReplaced = Just replacement} ceffects) items,moves)
 		(index,_,Just (LUIShiftDestination shiftId))
 			# (sourceIndex,source) = lookupShiftSource_ shiftId items
-			# (item,moves) = updateNode_ ruleNo ss update (source,moves)
+			# (item,moves) = updateSubNode_ ruleNo ss update (source,moves)
 			= (updateAt sourceIndex item items,moves)
 		(index,_,Just (LUIMoveSource moveTarget movePosition))
 			= (items, updateMovedNode_ moveTarget movePosition ruleNo ss update moves)
 		(index,_,Just (LUIMoveDestination moveTarget movePosition))
 			= (items, updateMovedNode_ moveTarget movePosition ruleNo ss update moves)
 		(index,_,Just child) 
-			# (child,moves) = updateNode_ ruleNo ss update (child,moves)
+			# (child,moves) = updateSubNode_ ruleNo ss update (child,moves)
 			= (updateAt index child items,moves)
 		_ = (items,moves)
 	= (LUINode type attr items changes effects,moves)
 
 updateMovedNode_ moveTarget movePosition ruleNo path update moves
 	# lui = getMovedNode_ moveTarget movePosition moves
-	# (lui,moves) = updateNode_ ruleNo path update (lui,moves)
+	# (lui,moves) = updateSubNode_ ruleNo path update (lui,moves)
 	# moves = updMovedNode_ moveTarget movePosition lui moves
 	= moves
+	
+getMovedNode_ :: LUINo Int LUIMoves -> LUI
+getMovedNode_ moveTarget movePosition moves = case 'DM'.get (moveTarget,movePosition) moves of
+	Nothing = abort ("Get: Unknown ruleNo " +++ toString moveTarget +++ " in moved items\n")
+	Just item = item
 
-selectAttributesWithChanges_ :: UIAttributeSelection LUI -> UIAttributes
-selectAttributesWithChanges_ selection lui = selectAttributes_ selection True lui
+updMovedNode_ :: LUINo Int LUI LUIMoves -> LUIMoves
+updMovedNode_ moveTarget movePosition node moves = 'DM'.alter update (moveTarget,movePosition) moves
+where
+	update Nothing = abort ("Update: Unknown ruleNo " +++ toString moveTarget +++ " in moved items\n")
+	update (Just item) = Just node
 
-selectAttributesWithoutChanges_ ::UIAttributeSelection LUI -> UIAttributes
-selectAttributesWithoutChanges_ selection lui = selectAttributes_ selection False lui
+getTypeAtRuleApplication_ :: LUINo LUI -> UIType
+getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeApplied (appliedAt,type)}) | appliedAt < ruleNo = type
+getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESApplied (appliedAt,type)}) | appliedAt < ruleNo = type
+getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeUpdated _ (appliedAt,type)}) | appliedAt < ruleNo = type
+getTypeAtRuleApplication_ ruleNo (LUINode type _ _ _ _) = type 
 
-selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
-selectAttributes_ selection withChanges (LUINode _ attr _ changes _) 
-	# attr = if withChanges (applyAttributeChanges_ changes attr) attr
-	= case selection of
-		SelectAll         = attr
-		(SelectKeys keys) = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+getAttributesAtRuleApplication_ :: LUINo LUI -> UIAttributes
+getAttributesAtRuleApplication_ ruleNo (LUINode _ attr _ changes effects=:{overwrittenAttributes,hiddenAttributes})
+	//Consider upstream changes
+	# attr = applyAttributeChanges_ changes attr 
+	//Consider overwritten attributes
+	# attr = foldl overwrite attr ('DM'.toList overwrittenAttributes)
+	//Consider hidden attributes
+	# attr = foldl hide attr ('DM'.toList hiddenAttributes)
+	= attr	
+where
+	overwrite attr (key,ESToBeApplied (appliedAt,value)) | appliedAt < ruleNo = 'DM'.put key value attr
+	overwrite attr (key,ESApplied (appliedAt,value)) | appliedAt < ruleNo = 'DM'.put key value attr
+	overwrite attr (key,ESToBeUpdated _ (appliedAt,value)) | appliedAt < ruleNo = 'DM'.put key value attr
+	overwrite attr _ = attr
+
+	hide attr (key,ESToBeApplied appliedAt) | appliedAt < ruleNo = 'DM'.del key attr
+	hide attr (key,ESApplied appliedAt) | appliedAt < ruleNo = 'DM'.del key attr
+	hide attr (key,ESToBeUpdated _ appliedAt) | appliedAt < ruleNo = 'DM'.del key attr
+	hide attr _ = attr
+
+selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
+selectAttributes_ selection attr = case selection of
+	SelectAll         = attr
+	(SelectKeys keys) = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
 
 matchKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 matchKey_ (SelectAll) _ = True
 matchKey_ (SelectKeys keys) k = isMember k keys
 
+applyTypeEffect_ :: UIType LUIEffects -> (UIType,LUIEffects) 
+applyTypeEffect_ ltype effects=:{overwrittenType} = case overwrittenType of
+	ESNotApplied = (ltype,{effects & overwrittenType = ESNotApplied})
+	ESToBeApplied (appliedAt,type) = (type,{effects & overwrittenType = ESApplied (appliedAt,type)})
+	ESApplied (appliedAt,type) = (type,{effects & overwrittenType = ESApplied (appliedAt,type)})
+	ESToBeUpdated _ (appliedAt,type) = (type,{effects & overwrittenType = ESApplied (appliedAt,type)})
+	ESToBeRemoved _ = (ltype,{effects & overwrittenType = ESNotApplied})
+
 applyAttributeChanges_ :: LUIChanges UIAttributes -> UIAttributes 
 applyAttributeChanges_ {setAttributes,delAttributes} attr
 	= 'DM'.delList ('DS'.toList delAttributes) ('DM'.union setAttributes attr)
 
-overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
-overwriteAttribute_ (key,value) overwrittenAttributes
+applyAttributeEffects_ :: UIAttributes LUIEffects -> (UIAttributes,LUIEffects)
+applyAttributeEffects_ attr effects=:{overwrittenAttributes,hiddenAttributes} 
+	# (attr,overwrittenAttributes) = foldl overwrite (attr,'DM'.newMap) ('DM'.toList overwrittenAttributes)
+	# (attr,hiddenAttributes) = foldl hide (attr,'DM'.newMap) ('DM'.toList hiddenAttributes)
+	= (attr, {effects & overwrittenAttributes = overwrittenAttributes, hiddenAttributes = hiddenAttributes})
+where
+	overwrite (attr,overrides) (key,ESNotApplied) = (attr,overrides)
+	overwrite (attr,overrides) (key,ESToBeApplied (ruleNo,value)) = ('DM'.put key value attr, 'DM'.put key (ESApplied (ruleNo,value)) overrides)
+	overwrite (attr,overrides) (key,ESApplied (ruleNo,value)) = ('DM'.put key value attr, 'DM'.put key (ESApplied (ruleNo,value)) overrides)
+	overwrite (attr,overrides) (key,ESToBeUpdated _ (ruleNo,value)) = ('DM'.put key value attr, 'DM'.put key (ESApplied (ruleNo,value)) overrides)
+	overwrite (attr,overrides) (key,ESToBeRemoved _) = (attr,overrides)
+
+	hide (attr,hides) (key,ESNotApplied) = (attr,hides)
+	hide (attr,hides) (key,ESToBeApplied ruleNo) = ('DM'.del key attr,'DM'.put key (ESApplied ruleNo) hides)
+	hide (attr,hides) (key,ESApplied ruleNo) = ('DM'.del key attr,'DM'.put key (ESApplied ruleNo) hides)
+	hide (attr,hides) (key,ESToBeUpdated _ ruleNo) = ('DM'.del key attr,'DM'.put key (ESApplied ruleNo) hides)
+	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
+
+overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
+overwriteAttribute_ ruleNo (key,value) overwrittenAttributes
 	# override = case 'DM'.get key overwrittenAttributes of
 		//Not set yet
-		Nothing = ESToBeApplied value
-		Just (ESNotApplied) = ESToBeApplied value
-		Just (ESToBeApplied _) = ESToBeApplied value
+		Nothing = ESToBeApplied (ruleNo,value)
+		Just (ESNotApplied) = ESToBeApplied (ruleNo,value)
+		Just (ESToBeApplied (curRule,curValue))
+			| curValue == value = ESToBeApplied (curRule,curValue)
+			| otherwise         = ESToBeApplied (ruleNo,value)
 		//Already set,
-		Just (ESApplied curValue)
-			| curValue == value = ESApplied value 
-			| otherwise         = ESToBeUpdated curValue value
-		Just (ESToBeUpdated curValue _)
-			| curValue == value = ESApplied value 
-			| otherwise         = ESToBeUpdated curValue value
-		Just (ESToBeRemoved curValue)
-			| curValue == value = ESApplied value 
-			| otherwise         = ESToBeUpdated curValue value
+		Just (ESApplied (curRule,curValue))
+			| curValue == value = ESApplied (curRule,curValue)
+			| otherwise         = ESToBeUpdated (curRule,curValue) (ruleNo,value) 
+		Just (ESToBeUpdated (curRule,curValue) _)
+			| curValue == value = ESApplied (ruleNo, value)
+			| otherwise         = ESToBeUpdated (curRule,curValue) (ruleNo,value)
+		Just (ESToBeRemoved (curRule,curValue))
+			| curValue == value = ESApplied (ruleNo,value)
+			| otherwise         = ESToBeUpdated (curRule,curValue) (ruleNo,value)
 	= 'DM'.put key override overwrittenAttributes
 
-hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
-hideAttribute_ condition key hiddenAttributes
+hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
+hideAttribute_ ruleNo condition key hiddenAttributes
 	| isAlreadyHidden key hiddenAttributes
 		= if (condition key)
-			('DM'.put key (ESApplied ()) hiddenAttributes)
-			('DM'.put key (ESToBeRemoved ()) hiddenAttributes)
+			('DM'.put key (ESApplied ruleNo) hiddenAttributes)
+			('DM'.put key (ESToBeRemoved ruleNo) hiddenAttributes)
 	| otherwise
 		= if (condition key)
-			('DM'.put key (ESToBeApplied ()) hiddenAttributes)
+			('DM'.put key (ESToBeApplied ruleNo) hiddenAttributes)
 			hiddenAttributes
 where
 	isAlreadyHidden key attr = case 'DM'.get key attr of
@@ -794,32 +1021,8 @@ where
 		Just (ESToBeRemoved _) = True
 		_ = False
 
-inLUISelection_ :: UISelection UIPath LUI -> Bool
-inLUISelection_ (SelectByPath p) path _ = p === path
-inLUISelection_ (SelectByDepth n) p _ = length p == n
-inLUISelection_ (SelectDescendents) [_:_] _ = True
-inLUISelection_ (SelectDescendents) _ _ = False
-inLUISelection_ (SelectByType t) _ (LUINode type _ _ _ _) = t === type
-inLUISelection_ (SelectByHasAttribute k) _ (LUINode _ attr _ changes _) = isJust ('DM'.get k (applyAttributeChanges_ changes attr))
-inLUISelection_ (SelectByAttribute k p) _ (LUINode _ attr _ changes _) = maybe False p ('DM'.get k (applyAttributeChanges_ changes attr))
-inLUISelection_ (SelectByNumChildren num) _ (LUINode _ _ items changes effects) = lengthAfterChanges_ items == num
-inLUISelection_ (SelectByContains selection) path lui=:(LUINode _ _ items _ _)
-	=  inLUISelection_ selection path lui
-	|| or [inLUISelection_ (SelectByContains selection) (path ++ [i]) item \\ (Just i,item) <- indicesAfterChanges_ items]
-inLUISelection_ (SelectRelative prefix sel) absolutePath ui
-	= maybe False (\relativePath -> inLUISelection_ sel relativePath ui) (removePrefix prefix absolutePath)
-where
-	removePrefix [] psb = Just psb
-	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
-	removePrefix _ _ = Nothing
-
-inLUISelection_ (SelectNone) _ _ = False
-inLUISelection_ (SelectAND sell selr) path ui = inLUISelection_ sell path ui && inLUISelection_ selr path ui 
-inLUISelection_ (SelectOR sell selr) path ui = inLUISelection_ sell path ui || inLUISelection_ selr path ui 
-inLUISelection_ (SelectNOT sel) path ui = not (inLUISelection_ sel path ui)
-inLUISelection_ _ _ _ = False
-
-revertEffect_ :: LUINo LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
+//TODO Effects on types and attributes are not yet reverted
+revertEffect_ :: LUINo LUIEffects -> LUIEffects 
 revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,moved,wrapper,unwrapped}
 	| additional === (ESApplied ruleId) = {LUIEffects|effects & additional = ESToBeRemoved ruleId}
 	| additional === (ESToBeApplied ruleId) = {LUIEffects|effects & additional = ESNotApplied}
@@ -920,12 +1123,12 @@ where
 
 		applyOverrideAttribute attr (attrChanges, overrides) (key,ESNotApplied)
 			= (attrChanges, overrides) //Remove from overrides (they have no meaning here)
-		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeApplied value)
-			= ([SetAttribute key value:attrChanges], [(key,ESApplied value):overrides])
-		applyOverrideAttribute attr (attrChanges, overrides) (key,ESApplied value) //Already applied
-			= (attrChanges, [(key,ESApplied value):overrides])
-		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeUpdated _ value)
-			= ([SetAttribute key value:attrChanges], [(key,ESApplied value):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeApplied (ruleNo,value))
+			= ([SetAttribute key value:attrChanges], [(key,ESApplied (ruleNo,value)):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESApplied (ruleNo,value)) //Already applied
+			= (attrChanges, [(key,ESApplied (ruleNo,value)):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeUpdated _ (ruleNo,value))
+			= ([SetAttribute key value:attrChanges], [(key,ESApplied (ruleNo,value)):overrides])
 		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeRemoved _) //Either restore the original, or remove the attribute 
 			= case 'DM'.get key attr of
 				Nothing = ([DelAttribute key:attrChanges],overrides)
@@ -933,12 +1136,12 @@ where
 
 		applyHideAttribute attr (attrChanges, hidden) (key,ESNotApplied)
 			= (attrChanges,hidden)
-		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeApplied _)
-			= ([DelAttribute key:attrChanges],[(key,ESApplied ()):hidden])
-		applyHideAttribute attr (attrChanges, hidden) (key,ESApplied _)
-			= (attrChanges,[(key,ESApplied ()):hidden])
-		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeUpdated _ _)
-			= (attrChanges,[(key,ESApplied ()):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeApplied ruleNo)
+			= ([DelAttribute key:attrChanges],[(key,ESApplied ruleNo):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESApplied ruleNo)
+			= (attrChanges,[(key,ESApplied ruleNo):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeUpdated _ ruleNo)
+			= (attrChanges,[(key,ESApplied ruleNo):hidden])
 		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeRemoved _)
 			= case 'DM'.get key attr of
 				//Original attribute no longer exists, nothing to do
@@ -1152,6 +1355,8 @@ where
 					NoChange = (cs,[x:xs], moves)
 					_        = ([(i,ChangeChild c):cs],[x:xs], moves)
 
+	resetChanges changes = {changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
+
 extractDownstreamChange (lui,moves) = (NoChange,(lui,moves))
 
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
@@ -1174,15 +1379,10 @@ extractUIWithEffects (LUINode ltype lattr litems changes effects=:{wrapper=ESToB
 		_           = abort "extractUIWithEffects: Wrapped item is missing"
 extractUIWithEffects (lui=:LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType},moves)
 	//Update type
-	# (type,effects) = case overwrittenType of
-		ESNotApplied = (ltype,{effects & overwrittenType = ESNotApplied})
-		ESToBeApplied otype = (otype,{effects & overwrittenType = ESApplied otype})
-		ESApplied otype = (otype,{effects & overwrittenType = ESApplied otype})
-		ESToBeUpdated _ otype = (otype,{effects & overwrittenType = ESApplied otype})
-		ESToBeRemoved _ = (ltype,{effects & overwrittenType = ESNotApplied})
+	# (type,effects) = applyTypeEffect_ ltype effects
 	//Update attributes and apply attribute effects
 	# lattr = applyAttributeChanges_ changes lattr
-	# (attr,effects) = applyAttributeEffects_ effects lattr
+	# (attr,effects) = applyAttributeEffects_ lattr effects
 	//Remove items marked as removed
 	# litems = filter (not o remove) litems
 	//Move shifted items to their destinations
@@ -1241,22 +1441,4 @@ where
 resetToBeShifted (LUINode type attr items changes effects)
 	= LUINode type attr items {changes & toBeShifted = Nothing} effects
 
-resetChanges changes = {changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
-
-applyAttributeEffects_ effects=:{overwrittenAttributes,hiddenAttributes} attr
-	# (attr,overwrittenAttributes) = foldl overwrite (attr,'DM'.newMap) ('DM'.toList overwrittenAttributes)
-	# (attr,hiddenAttributes) = foldl hide (attr,'DM'.newMap) ('DM'.toList hiddenAttributes)
-	= (attr, {effects & overwrittenAttributes = overwrittenAttributes, hiddenAttributes = hiddenAttributes})
-where
-	overwrite (attr,overrides) (key,ESNotApplied) = (attr,overrides)
-	overwrite (attr,overrides) (key,ESToBeApplied value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
-	overwrite (attr,overrides) (key,ESApplied value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
-	overwrite (attr,overrides) (key,ESToBeUpdated _ value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
-	overwrite (attr,overrides) (key,ESToBeRemoved _) = (attr,overrides)
-
-	hide (attr,hides) (key,ESNotApplied) = (attr,hides)
-	hide (attr,hides) (key,ESToBeApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
-	hide (attr,hides) (key,ESApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
-	hide (attr,hides) (key,ESToBeUpdated _ _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
-	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
 

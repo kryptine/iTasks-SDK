@@ -2,11 +2,35 @@ implementation module iTasks.UI.Layout.ReferenceImplementations
 
 import StdList, StdTuple, StdBool, StdOverloaded, StdString, StdClass
 import Data.Maybe
+import Data.GenEq
 import qualified Data.Map as DM
 
 import iTasks.UI.Definition
 import iTasks.UI.Layout
 
+//Test if a specific UI at a path is in the selection
+inUISelection_ :: UISelection UIPath UI -> Bool
+inUISelection_ (SelectByPath p) path _ = p === path
+inUISelection_ (SelectByDepth n) p _ = length p == n
+inUISelection_ (SelectDescendents) [_:_] _ = True
+inUISelection_ (SelectDescendents) _ _ = False
+inUISelection_ (SelectByType t) _ (UI type _ _) = t === type
+inUISelection_ (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
+inUISelection_ (SelectByAttribute k p) _ (UI _ attr _) = maybe False p ('DM'.get k attr)
+inUISelection_ (SelectByNumChildren num) _ (UI _ _  items) = length items == num
+inUISelection_ (SelectByContains selection) path ui=:(UI _ _ items)
+	| inUISelection_ selection path ui = True 
+			  						  = or [inUISelection_ (SelectByContains selection) (path ++ [i]) item \\ item <- items & i <- [0..]]
+inUISelection_ (SelectRelative prefix sel) absolutePath ui 
+	= maybe False (\relativePath -> inUISelection_ sel relativePath ui) (removePrefix prefix absolutePath)
+where
+	removePrefix [] psb = Just psb
+	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
+	removePrefix _ _ = Nothing
+inUISelection_ (SelectNone) _ _ = False
+inUISelection_ (SelectAND sell selr) path ui = inUISelection_ sell path ui && inUISelection_ selr path ui 
+inUISelection_ (SelectOR sell selr) path ui = inUISelection_ sell path ui || inUISelection_ selr path ui 
+inUISelection_ (SelectNOT sel) path ui = not (inUISelection_ sel path ui)
 
 setUITypeRef_ :: UIType -> (UI -> UI)
 setUITypeRef_ type = ref
@@ -124,4 +148,4 @@ where
 	ref ui = applyLayoutRule layout2 (applyLayoutRule layout1 ui)
 
 applyLayoutRule :: LayoutRule UI -> UI 
-applyLayoutRule rule ui = fst (extractUIWithEffects (rule (LUINo [0]) (initLUI False ui,initLUIMoves)))
+applyLayoutRule rule ui = fst (extractUIWithEffects (rule (LUINo [0]) (initLUI ui,initLUIMoves)))
