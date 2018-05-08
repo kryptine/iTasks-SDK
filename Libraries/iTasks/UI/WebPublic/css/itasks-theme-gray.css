@@ -394,6 +394,9 @@ div.itasks-exception {
   position: relative;
   top: 3px; }
 
+.itasks-tab-disabled .itasks-tabicon {
+  opacity: 0.5; }
+
 .itasks-tab-disabled span {
   color: #aaa; }
 
