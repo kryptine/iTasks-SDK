@@ -13,8 +13,6 @@ import Data.List, StdString
 import iTasks.UI.Layout.Debug
 import qualified Data.Map as DM
 
-SelectParallel :== SelectOR (SelectByType UIParallel) (SelectByType UITabSet)
-
 //Util:
 sequenceAllLayouts [] = idLayout
 sequenceAllLayouts list = foldl1 sequenceLayouts list 
@@ -31,8 +29,9 @@ finalizeUI :: Layout
 finalizeUI = sequenceAllLayouts
 	[layoutSubUIs (SelectByType UIInteract) finalizeInteract
 	,layoutSubUIs (SelectByType UIStep) finalizeStep
-	,layoutSubUIs SelectParallel finalizeParallel
+	,layoutSubUIs (SelectByType UIParallel) finalizeParallel
 	,layoutSubUIs (SelectByType UIList) finalizeList
+	,layoutSubUIs (SelectByType UIAction) actionToButton
 	]
 
 finalizeList :: Layout
@@ -135,7 +134,7 @@ where
 
 finalizeParallel :: Layout
 finalizeParallel = sequenceAllLayouts
-	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND SelectParallel (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND (SelectByType UIParallel) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) layoutWithoutActions
 	,layoutSubUIs (SelectByType UIParallel) (setUIType UIContainer)
 	]
@@ -147,18 +146,17 @@ where
 		[actionsToButtonBar
 		,layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
 		//Move button bars for tabsets outside
-		,layoutSubUIs (SelectAND (SelectByType UITabSet) (SelectByContains (SelectAND SelectChildren (SelectByType UIButtonBar)))) (sequenceAllLayouts
-			[wrapUI UIContainer
-			,moveSubUIs (SelectAND (SelectByDepth 2) (SelectByType UIButtonBar)) [] 1
-			])
+//		,layoutSubUIs (SelectAND (SelectByType UITabSet) (SelectByContains (SelectAND SelectChildren (SelectByType UIButtonBar)))) (sequenceAllLayouts
+//			[wrapUI UIContainer
+//			,moveSubUIs (SelectAND (SelectByDepth 2) (SelectByType UIButtonBar)) [] 1
+//			])
 		]
 
 selectIntermediate
-	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel]]
+	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel, UIAction]]
 
 actionsToButtonBar = sequenceAllLayouts
 	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
 	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
-	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
 	]
 
