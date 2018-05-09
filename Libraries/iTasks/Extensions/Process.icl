@@ -35,4 +35,4 @@ where
     onExit (ExitCode exitCode) info _ = (Ok {ProcessInformation|info & status = CompletedProcess exitCode}, Nothing) 
 
 callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
-callInstantProcess cmd args dir = accWorldError (\world -> 'System.Process'.callProcess cmd args dir world) CallFailed 
+callInstantProcess cmd args dir = accWorldError (\world -> 'System.Process'.callProcess cmd args dir world) CallFailed

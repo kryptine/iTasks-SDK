@@ -1,5 +1,7 @@
 implementation module BasicAPIExamples
 import iTasks
+import System.Process
+import System.Time
 import iTasks.Extensions.Admin.UserAdmin
 import iTasks.Extensions.Admin.ServerAdmin
 import iTasks.Extensions.Admin.StoreAdmin
@@ -10,7 +12,7 @@ import iTasks.Extensions.Currency
 import iTasks.Extensions.Contact
 import iTasks.Extensions.DateTime
 import iTasks.Extensions.Clock
-import Text, Text.HTML, StdArray
+import Text, Text.HTML, StdArray, StdMisc
 import iTasks.Internal.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
@@ -102,10 +104,6 @@ Start world
 where
 	title = "iTasks Example Collection"
 		
-		
-//* utility functions
-undef = undef
-
 //hasValue  tf (Value v _) = Just (tf v)
 //hasValue _ _ = Nothing
 
@@ -282,7 +280,7 @@ editSharedList store
 		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
 				, OnAction (Action "Delete")   (hasValue (showAndDo delete))
 				, OnAction (Action "Edit")     (hasValue (showAndDo edit))
-				, OnAction (Action "Clear")    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Clear")    (always (showAndDo append (-1, undef)))
 				, OnAction (Action "Quit")     (always (return ()))
 				]
 where
@@ -712,21 +710,11 @@ add_cell new turn board
 
 externalProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." [] >>= \path ->
-    withShared
-        Nothing
-        ( \sds -> ( externalProcess () path [] Nothing sds handlers Nothing gEditor{|*|} <<@ ApplyLayout (removeSubUIs (SelectByPath [])) >&>
-                    viewSharedInformation "Process output" []
-                  ) -&&-
-                  forever (enterInformation "Enter data to send to StdIn" [] >>= \data -> set (Just (data +++ "\n")) sds)
-        )
-where
-    handlers = { onStartup     = \  _   -> (Ok "", Nothing, [], False)
-               , onOutData     = onData
-               , onErrData     = onData
-               , onShareChange = \  l _ -> (Ok l, Nothing, [], False)
-               , onExit        = \_ l _ -> (Ok l, Nothing)
-               }
-	onData data l mbOutput = (Ok (l +++ data +++ "\n"), Just Nothing, maybeToList mbOutput, False)
+	withShared [] \stdin->
+	withShared ([], []) \stdouterr->
+		    (externalProcess {tv_sec=0,tv_nsec=100000000} path [] Nothing stdin stdouterr (Just defaultPtyOptions) <<@ NoUserInterface)
+		-|| viewSharedInformation "Output" [] stdouterr
+	    -|| forever (enterInformation "Data to send to stdin" [] >>= \l->upd (\ls->ls ++ [l +++ "\n"]) stdin)
 
 //* Customizing interaction with views
 

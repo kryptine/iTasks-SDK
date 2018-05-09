@@ -11,7 +11,6 @@ from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
 from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime, toDate
 from iTasks.Internal.TaskEval       import :: TaskTime
 from iTasks.Engine                  import :: EngineOptions(..)
-from System.Process                 import :: ProcessHandle, :: ProcessIO
 import Data.Integer
 
 import iTasks.SDS.Combinators.Common
