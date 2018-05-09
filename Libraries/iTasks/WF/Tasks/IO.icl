@@ -18,7 +18,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 
 import System.Process
-import Text, Text.GenJSON, StdString, StdInt, StdBool, StdList, StdTuple
+import Text, Text.GenJSON, StdString, StdInt, StdBool, StdList, StdTuple, Data.Tuple, Data.Func, StdFunc
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 
@@ -38,8 +38,6 @@ import qualified Data.Set as DS
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-import StdMisc, Data.Tuple, StdFunc, Data.Func
-
 derive JSONEncode ProcessHandle, ProcessIO
 derive JSONDecode ProcessHandle, ProcessIO
 
@@ -47,8 +45,8 @@ liftOSErr f iw = case (liftIWorld f) iw of
 	(Error (_, e), iw) = (Error (exception e), iw)
 	(Ok a, iw) = (Ok a, iw)
 
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Shared [String]) !(Shared ([String], [String])) !(Maybe ProcessPtyOptions) -> Task Int
-externalProcess poll cmd args dir sdsin sdsout mopts = Task eval
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared [String]) !(Shared ([String], [String])) -> Task Int
+externalProcess poll cmd args dir mopts sdsin sdsout = Task eval
 where
 	fjson = mb2error (exception "Corrupt taskstate") o fromJSON
 
@@ -78,14 +76,20 @@ where
 					(if (stdinq =: []) (tuple (Ok ())) (write [] sdsin)) >-= \()->
 					tuple (Ok (ValueResult NoValue (info ts) (rep event) tree))
 
+	//Stable
 	eval event evalOpts tree=:(TCStable tid ts (DeferredJSONNode (JSONInt i))) iworld
 		= (ValueResult (Value i True) (info ts) (rep event) tree, iworld)
 
+	//Destroyed while the process was still running
 	eval event evalOpts (TCDestroy (TCBasic taskId ts jsonph _)) iworld
 		= apIWTransformer iworld
 		$             tuple (fjson jsonph)
 		>-= \(ph, _)->liftOSErr (terminateProcess ph)
 		>-= \_      ->tuple (Ok DestroyedResult)
+
+	//Destroyed when the task was already stable
+	eval event evalOpts (TCDestroy _) iworld
+		= (DestroyedResult, iworld)
 
 	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 

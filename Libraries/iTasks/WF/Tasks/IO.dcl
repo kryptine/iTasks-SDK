@@ -29,7 +29,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
  * @param Pseudotty settings
  * @result Task returning the exit code on termination
  */
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Shared [String]) !(Shared ([String], [String])) !(Maybe ProcessPtyOptions) -> Task Int
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared [String]) !(Shared ([String], [String])) -> Task Int
 
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed

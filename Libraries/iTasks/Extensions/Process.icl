@@ -22,8 +22,8 @@ callProcess prompt [ViewAs tof:_] executable arguments workingDirectory pty
 	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty (comapEditorValue tof gEditor{|*|})
 callProcess prompt [ViewUsing tof editor:_] executable arguments workingDirectory pty
 	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty (comapEditorValue tof editor)
-callProcess prompt _ executable arguments workingDirectory pty
-	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty gEditor{|*|}
+callProcess prompt [] executable arguments workingDirectory pty
+	= callProcess prompt [ViewAs vt100render zero] executable arguments workingDirectory pty
 
 callProcessHandlers executable arguments
 	= {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}

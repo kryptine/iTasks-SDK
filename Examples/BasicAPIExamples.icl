@@ -712,7 +712,7 @@ externalProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." [] >>= \path ->
 	withShared [] \stdin->
 	withShared ([], []) \stdouterr->
-		    (externalProcess {tv_sec=0,tv_nsec=100000000} path [] Nothing stdin stdouterr (Just defaultPtyOptions) <<@ NoUserInterface)
+		    (externalProcess {tv_sec=0,tv_nsec=100000000} path [] Nothing (Just defaultPtyOptions) stdin stdouterr <<@ NoUserInterface)
 		-|| viewSharedInformation "Output" [] stdouterr
 	    -|| forever (enterInformation "Data to send to stdin" [] >>= \l->upd (\ls->ls ++ [l +++ "\n"]) stdin)
 
