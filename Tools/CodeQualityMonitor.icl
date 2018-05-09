@@ -24,8 +24,6 @@ import iTasks.Extensions.Document
 import iTasks.Extensions.Process
 import iTasks.Extensions.FileCollection
 
-derive class iTask ExitCode
-
 UNIT_TESTS_PATH :== "../Tests/TestPrograms"
 INTERACTIVE_TESTS_PATH :== "../Tests/TestPrograms/Interactive"
 
