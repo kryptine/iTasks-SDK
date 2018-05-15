@@ -12,6 +12,7 @@ import iTasks.Extensions.Currency
 import iTasks.Extensions.Contact
 import iTasks.Extensions.DateTime
 import iTasks.Extensions.Clock
+import iTasks.Extensions.Terminal, Text.Terminal.VT100
 import Text, Text.HTML, StdArray, StdMisc
 import iTasks.Internal.Tonic
 //import ligrettoTOP
@@ -709,12 +710,8 @@ add_cell new turn board
 
 
 externalProcessExample =
-	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." [] >>= \path ->
-	withShared [] \stdin->
-	withShared ([], []) \stdouterr->
-		    (externalProcess {tv_sec=0,tv_nsec=100000000} path [] Nothing (Just defaultPtyOptions) stdin stdouterr <<@ NoUserInterface)
-		-|| viewSharedInformation "Output" [] stdouterr
-	    -|| forever (enterInformation "Data to send to stdin" [] >>= \l->upd (\ls->ls ++ [l +++ "\n"]) stdin)
+	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." []
+	>>= \path->runProcessInteractive zero path [] Nothing
 
 //* Customizing interaction with views
 
