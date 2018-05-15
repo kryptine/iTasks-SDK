@@ -77,11 +77,10 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
-    , nextConnectionId      :: !ConnectionId    
+    , nextConnectionId      :: !ConnectionId
     , port                  :: !Int
     , connectionTask        :: !ConnectionTask
     , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
@@ -96,12 +95,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
-
-:: BackgroundInstanceOpts =
-    { bgInstId              :: !BackgroundTaskId
-    }
-
-:: BackgroundTaskId         :== Int
 
 :: IOStates :== Map TaskId IOState
 :: IOState
@@ -145,6 +138,8 @@ destroyIWorld :: !*IWorld -> *World
 	}
 
 iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
+iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+
 /*
  * Calculate the next fire for the given timespec
  *
@@ -154,7 +149,7 @@ iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
  * @result time to fire next
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
-iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+
 iworldLocalDateTime    :: ReadOnlyShared DateTime
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
