@@ -67,47 +67,6 @@ itasks.Container = {
 					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
 			}
 		}
-		if(me.attributes.fullscreenable){
-			me.domEl.style.position = 'relative';
-			var fullscreener = document.createElement('a');
-			var button = document.createElement('div');
-			button.classList.add(me.cssPrefix + "button-icon");
-			button.classList.add("icon-fullscreen");
-			console.log(me);
-			fullscreener.appendChild(button);
-			fullscreener.style.position = 'absolute';
-			fullscreener.style.bottom = 0;
-			fullscreener.style.right = 0;
-			fullscreener.style.zIndex = 999;
-			fullscreener.href = '#';
-
-			me.fullscreen = false;
-			fullscreener.onclick = function () {
-				if(me.fullscreen){
-					me.domEl.classList.remove(me.cssPrefix + "panel");
-					me.domEl.style.position = 'relative';
-					me.domEl.style.top = null;
-					me.domEl.style.left = null;
-					me.domEl.style.right = null;
-					me.domEl.style.bottom = null;
-					me.domEl.style.width = null;
-					me.domEl.style.height = null;
-					me.fullscreen = false;
-				} else {
-					me.domEl.classList.add(me.cssPrefix + "panel");
-					me.domEl.style.position = 'absolute';
-					me.domEl.style.top = 0;
-					me.domEl.style.left = 0;
-					me.domEl.style.right = 0;
-					me.domEl.style.bottom = 0;
-					me.domEl.style.width = '100%';
-					me.domEl.style.height = '100%';
-					me.fullscreen = true;
-					console.log(me.oldstyle);
-				}
-			};
-			me.domEl.appendChild(fullscreener);
-		}
 	}
 };
 itasks.Panel = {
@@ -133,6 +92,47 @@ itasks.Panel = {
 		}
 		if(me.baseCls) {
 			me.domEl.classList.add(me.attributes.baseCls);
+		}
+
+		//Fullscreenable
+		if(me.attributes.fullscreenable){
+			me.domEl.style.position = 'relative';
+			var fullscreener = document.createElement('a');
+			var button = document.createElement('div');
+			button.classList.add(me.cssPrefix + "button-icon");
+			button.classList.add("icon-fullscreen");
+			fullscreener.appendChild(button);
+			fullscreener.style.position = 'absolute';
+			fullscreener.style.bottom = 0;
+			fullscreener.style.right = 0;
+			fullscreener.href = '#';
+
+			me.fullscreen = false;
+			fullscreener.onclick = function () {
+				if(me.fullscreen){
+					me.domEl.style.position = 'relative';
+					me.domEl.style.top = null;
+					me.domEl.style.left = null;
+					me.domEl.style.right = null;
+					me.domEl.style.bottom = null;
+					me.domEl.style.width = null;
+					me.domEl.style.height = null;
+					fullscreener.style.zIndex = null;
+					me.fullscreen = false;
+				} else {
+					me.domEl.style.position = 'absolute';
+					me.domEl.style.top = 0;
+					me.domEl.style.left = 0;
+					me.domEl.style.right = 0;
+					me.domEl.style.bottom = 0;
+					me.domEl.style.width = '100%';
+					me.domEl.style.height = '100%';
+					fullscreener.style.zIndex = 999;
+					me.fullscreen = true;
+					console.log(me.oldstyle);
+				}
+			};
+			me.domEl.appendChild(fullscreener);
 		}
 	}
 };

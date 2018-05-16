@@ -10,10 +10,6 @@ from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
 from iTasks.UI.Tune import class tune
 from iTasks.WF.Definition import :: Task
 
-/**
- * Wraps the ui in a panel with a fullscreen button
- */
-fullscreenable :: Layout
 
 /**
 * Create a tabset with all child items as separate tabs
@@ -74,9 +70,6 @@ beforeStep :: Layout -> Layout
 insertToolBar :: [String] -> Layout
 
 //Convenient annotatation types
-:: Fullscreenable = Fullscreenable
-instance tune Fullscreenable Task
-
 :: ArrangeWithTabs = ArrangeWithTabs Bool
 instance tune ArrangeWithTabs Task
 
@@ -98,7 +91,7 @@ instance tune ArrangeHorizontal Task
 //Changing container types
 
 toContainer ::                                   Layout
-toPanel     ::                                   Layout
+toPanel     :: Bool ->                           Layout
 toWindow    :: UIWindowType UIVAlign UIHAlign -> Layout
 toEmpty     ::                                   Layout
 
@@ -108,7 +101,7 @@ InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
 instance tune ToWindow Task
 
-:: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
+:: InPanel          = InPanel Bool      //Indicate that a task should be wrapped in a panel
 instance tune InPanel Task
 
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel

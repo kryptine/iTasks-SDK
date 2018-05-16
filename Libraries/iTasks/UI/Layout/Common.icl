@@ -17,9 +17,6 @@ from Text import class Text, instance Text String
 
 LABEL_WIDTH :== 100
 
-fullscreenable :: Layout
-fullscreenable = setUIAttributes ('DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
-
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
@@ -214,8 +211,10 @@ toEmpty = setUIType UIEmpty
 toContainer :: Layout
 toContainer = setUIType UIContainer 
 
-toPanel :: Layout
-toPanel = setUIType UIPanel
+toPanel :: Bool -> Layout
+toPanel fs = sequenceLayouts
+	(setUIType UIPanel)
+	(if fs (setUIAttributes ('DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)) idLayout)
 
 actionToButton :: Layout
 actionToButton = foldl1 sequenceLayouts
@@ -261,9 +260,6 @@ where
 		  >>= \(JSONString f) -> 'DM'.get f icons
 		  >>= \icon ->           return (iconClsAttr ("icon-" +++ icon))
 
-instance tune Fullscreenable Task
-where tune Fullscreenable t = tune (ApplyLayout fullscreenable) t
-
 instance tune ArrangeWithTabs Task
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 
@@ -293,7 +289,7 @@ where
 
 instance tune InPanel Task
 where
-	tune InPanel t =  tune (ApplyLayout toPanel) t
+	tune (InPanel fullscreenable) t =  tune (ApplyLayout (toPanel fullscreenable)) t
 
 instance tune InContainer Task
 where
