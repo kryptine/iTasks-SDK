@@ -118,6 +118,7 @@ itasks.Panel = {
 					me.domEl.style.width = null;
 					me.domEl.style.height = null;
 					fullscreener.style.zIndex = null;
+					me.domEl.style.zIndex = null;
 					me.fullscreen = false;
 				} else {
 					me.domEl.style.position = 'absolute';
@@ -128,6 +129,7 @@ itasks.Panel = {
 					me.domEl.style.width = '100%';
 					me.domEl.style.height = '100%';
 					fullscreener.style.zIndex = 999;
+					me.domEl.style.zIndex = 998;
 					me.fullscreen = true;
 					console.log(me.oldstyle);
 				}
