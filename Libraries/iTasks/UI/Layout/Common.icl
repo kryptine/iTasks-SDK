@@ -17,6 +17,9 @@ from Text import class Text, instance Text String
 
 LABEL_WIDTH :== 100
 
+fullscreenable :: Layout
+fullscreenable = setUIAttributes ('DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
+
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
@@ -257,6 +260,9 @@ where
 		$ 'DM'.get field attr
 		  >>= \(JSONString f) -> 'DM'.get f icons
 		  >>= \icon ->           return (iconClsAttr ("icon-" +++ icon))
+
+instance tune Fullscreenable Task
+where tune Fullscreenable t = tune (ApplyLayout fullscreenable) t
 
 instance tune ArrangeWithTabs Task
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t

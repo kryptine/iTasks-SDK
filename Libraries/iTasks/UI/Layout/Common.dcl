@@ -11,6 +11,11 @@ from iTasks.UI.Tune import class tune
 from iTasks.WF.Definition import :: Task
 
 /**
+ * Wraps the ui in a panel with a fullscreen button
+ */
+fullscreenable :: Layout
+
+/**
 * Create a tabset with all child items as separate tabs
 * The flag denotes whether close buttons should be lifted to the tabs
 */
@@ -69,6 +74,9 @@ beforeStep :: Layout -> Layout
 insertToolBar :: [String] -> Layout
 
 //Convenient annotatation types
+:: Fullscreenable = Fullscreenable
+instance tune Fullscreenable Task
+
 :: ArrangeWithTabs = ArrangeWithTabs Bool
 instance tune ArrangeWithTabs Task
 
