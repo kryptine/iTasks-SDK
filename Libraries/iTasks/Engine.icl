@@ -1,6 +1,8 @@
 implementation module iTasks.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
+import iTasks.WF.Combinators.Common
+import iTasks.WF.Tasks.System
 from StdFunc import o, seqList, ::St, const, id
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
@@ -150,7 +152,7 @@ runTasksWithOptions initFun runnable world
  	# iworld				= createIWorld options world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve [TaskWrapper stopOnStable:toRunnable runnable] [] (timeout options.timeout) iworld
+	# iworld				= serve (toRunnable runnable) [] (timeout options.timeout) iworld
 	= destroyIWorld iworld
 
 show :: ![String] !*World -> *World

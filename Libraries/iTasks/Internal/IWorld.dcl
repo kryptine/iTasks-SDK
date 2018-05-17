@@ -9,11 +9,10 @@ from Data.Queue             import :: Queue
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
-from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
 from iTasks.UI.Definition				import :: UI, :: UIType
 from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
+from iTasks.Internal.Task             import :: ConnectionTask, :: BackgroundTask
 from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
@@ -78,7 +77,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -97,12 +95,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
-
-:: ExternalProcessInstanceOpts =
-    { taskId                :: !TaskId              //Reference to the task that started the external process
-    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
-    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
-    }
 
 :: IOStates :== Map TaskId IOState
 :: IOState

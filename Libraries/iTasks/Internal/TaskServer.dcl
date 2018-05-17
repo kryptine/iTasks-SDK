@@ -6,11 +6,10 @@ from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
 from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
 from System.FilePath    import :: FilePath
 
-from System.Process           import :: ProcessPtyOptions
 from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId
-from iTasks.Internal.IWorld	  import :: IWorld
-from iTasks.Internal.Task     import :: ExternalProcessTask, :: ConnectionTask, :: TaskException
+from iTasks.Internal.Task     import :: ConnectionTask, :: TaskException
+from iTasks.Internal.IWorld   import :: IWorld
 from iTasks.Engine            import :: TaskWrapper
 
 //Core task server loop
@@ -21,6 +20,3 @@ addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskE
 
 //Dynamically add a connection
 addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
-
-//Dynamically add an external process
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
