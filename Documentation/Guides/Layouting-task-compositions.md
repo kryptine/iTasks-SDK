@@ -77,7 +77,7 @@ In some cases, such as when you apply a title, the user interface is automatical
 However, this can also be done manually with the option of making the panel fullscreenable.
 
 ```clean
-inPanel :: Bool -> Layout
+toPanel :: Bool -> Layout
 :: InPanel = InPanel Bool
 ```
 
