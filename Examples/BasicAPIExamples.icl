@@ -85,6 +85,7 @@ basicAPIExamples =
 
 	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
     ,workflow (miscTask +++ "External process") 		    "Starts an external process" 	    externalProcessExample
+    ,workflow (miscTask +++ "External process using callProcess") 		    "Starts an external process" 	    callProcessExample
 
 	,restrictedTransientWorkflow (adminTask +++ "Manage users") "Manage system users..." 	["admin"]		manageUsers
 	,restrictedTransientWorkflow (adminTask +++ "Manage server")				"Manage itask server..." ["admin"]			manageServer
@@ -712,6 +713,13 @@ add_cell new turn board
 externalProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." []
 	>>= \path->runProcessInteractive zero path [] Nothing
+
+import qualified iTasks.Extensions.Process as P
+callProcessExample =
+	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." []
+	>>= \path->'P'.callProcess () [] path [] Nothing Nothing
+	>>- viewInformation "Process terminated" []
+	
 
 //* Customizing interaction with views
 
