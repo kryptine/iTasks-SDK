@@ -76,10 +76,10 @@ initLUIMoves = 'DM'.newMap
 //When an upstream UI change is applied to the LUI it is recorded in the LUI tree
 //in such a way that it can easily be extracted as a downstream change later on
 applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
-applyUpstreamChange change (lui=:(LUIMoveSource moveTarget movePosition),moves)
-	# movedLui = getMovedNode_ moveTarget movePosition moves
+applyUpstreamChange change (lui=:(LUIMoveSource moveId),moves)
+	# movedLui = getMovedNode_ moveId moves
 	# (movedLui,moves) = applyUpstreamChange change (movedLui,moves)
-	# moves = updMovedNode_ moveTarget movePosition movedLui moves
+	# moves = putMovedNode_ moveId movedLui moves
 	= (lui,moves)
 //If the node is a wrapper, apply the change to the wrapped child
 applyUpstreamChange change (LUINode type attr items changes effects=:{LUIEffects|wrapper=ESApplied _},moves)
@@ -370,8 +370,8 @@ where
 		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
 
 	rule ruleNo (lui,moves)
-		# (numMoved,lui,moves) = collectNodes selection (destinationExists path pos (lui,moves)) lui moves
-		# (lui,moves) = updateDestination numMoved (lui,moves)
+		# (moved,lui,moves) = checkNodes selection (destinationExists path pos (lui,moves)) lui moves
+		# (lui,moves) = updateDestination moved (lui,moves)
 		= (lui,moves)
 	where
 		//1 Check if the destination position. If it does not, we can't move anything
@@ -379,81 +379,91 @@ where
 			= maybe False (positionExists pos) (selectSubNode_ ruleNo path (lui,moves))
 		where
 			positionExists pos (LUINode _ _ items _ _)
-				= case scanToPosition_ ruleNo pos items moves of
-					(i, True, Just (LUIMoveDestination _ _)) = True
-					(i, found, _) = found
-		
-		//2 Recursively collect/restore nodes 
-		collectNodes selection destinationExists lui moves
-			//Traverse the LUI tree
-			# (_,acc,lui) = collect 0 [] [] lui moves
-			= (length acc, lui, 'DM'.union ('DM'.fromList acc) moves) //TODO: cleanup no longer referenced items
-			where
-				collect i path acc lui=:(LUINode type attr items changes effects) moves // -> Not yet moved
-					| destinationExists && inLUISelection_ ruleNo selection path lui moves //Node should be moved
-					 	= (i + 1, [((ruleNo,i),mark ruleNo lui):acc], LUIMoveSource ruleNo i)
-					| otherwise //Should not be moved -> check children
-						# (i,acc,items) = foldl (collectInChild path) (i,acc,[]) (indicesAfterChanges_ items)
-						= (i, acc, LUINode type attr (reverse items) changes effects)
-				collect i path acc lui=:(LUIMoveSource moveTarget movePosition) moves
-					| moveTarget === ruleNo //We previously moved this node, check if it should be restored
-						# movedNode=:(LUINode type attr items changes effects) = getMovedNode_ moveTarget movePosition moves
-						| destinationExists && inLUISelection_ ruleNo selection path movedNode moves //Still moved
-							= (i + 1, [((ruleNo,i),movedNode):acc], LUIMoveSource ruleNo i)
-						| otherwise
-							//Check children
-							# (i,acc,items) = foldl (collectInChild path) (i,acc,[]) (indicesAfterChanges_ items)
-							= (i, acc, unmark ruleNo (LUINode type attr (reverse items) changes effects))
-					| otherwise //Ignore the node
-						= (i, acc, lui)
- 
-				collect i path acc lui moves = (i,acc,lui)
+				= snd3 (scanToPosition_ ruleNo pos items moves)
 
-				collectInChild path (i,acc,items) (Just n,item)
-					# (i,acc,item) = collect i (path ++ [n]) acc item moves
-					= (i,acc,[item:items])
-				collectInChild path (i,acc,items) (Nothing,item)
-					= (i,acc,[item:items])
-	
-				mark ruleNo (LUINode type attr items changes effects=:{moved=ESNotApplied})
-					= LUINode type attr items changes {effects & moved = ESToBeApplied ruleNo}
-				mark ruleNo lui = lui
-
-				unmark ruleNo (LUINode type attr items changes effects=:{moved=ESApplied _})
-				 	= LUINode type attr items changes {effects & moved = ESToBeRemoved ruleNo}
-				unmark ruleNo lui = lui
-
-		//3 Mark the destination with the correct number of moved nodes
-		updateDestination numMoved (lui,moves) = updateSubNode_ ruleNo path update (lui,moves)
+		//2 Recursively remove/restore based on the selection nodes 
+		checkNodes selection destinationExists (LUINode type attr items changes effects) moves
+			# nextId = nextMoveID_ moves
+			# ((_,acc),items,moves) = traverseChildNodes_ ruleNo (check []) ((nextId,[]),items,moves)
+			= (reverse acc, LUINode type attr items changes effects, moves)
 		where
-			update (lui=:(LUINode type attr items changes effects), m)
+			check path i ((nextId,acc),lui,moves)
+				//Check if the node should be moved
+				| destinationExists && inLUISelection_ ruleNo selection (path ++ [i]) lui moves //Node should be moved
+					= case lui of
+						(LUINode type attr items changes effects) //TODO: Check wrapper case?
+							# moves = 'DM'.put nextId (LUINode type attr items changes {effects & moved = ESToBeApplied ruleNo}) moves
+							= ((nextId + 1,[nextId:acc]), LUIMoveSource nextId, moves)
+						(LUIMoveSource moveId)
+							//If we match a source here, either this rule moved it or a later rule.
+							//If the referenced node was moved by a later rule, we update it because this rule comes first 
+							# moves = case getMovedNode_ moveId moves of
+								(LUINode type attr items changes effects=:{moved=ESApplied movedBy})
+									| movedBy == ruleNo
+										= moves //We moved it, no need to update anything
+									| otherwise
+										= putMovedNode_ moveId (LUINode type attr items changes {effects & moved = ESToBeUpdated movedBy ruleNo}) moves
+								_
+									= abort "moveSubUIs: We only expect moves to be ESApplied here"
+							= ((nextId,[moveId:acc]), LUIMoveSource moveId, moves)
+						(LUIMoveDestination moveId _)
+							//If we match a move destination here, an earlier rule moved it here
+							# moves = case getMovedNode_ moveId moves of
+								(LUINode type attr items changes effects=:{moved=ESToBeApplied _}) //It is not yet moved
+									= putMovedNode_ moveId (LUINode type attr items changes {effects & moved = ESToBeApplied ruleNo}) moves
+								(LUINode type attr items changes effects=:{moved=ESApplied movedBy}) //It was already moved
+									= putMovedNode_ moveId (LUINode type attr items changes {effects & moved = ESToBeUpdated movedBy ruleNo}) moves
+								(LUINode type attr items changes effects=:{moved=ESToBeUpdated movedBy _}) //It was already moved (twice)
+									= putMovedNode_ moveId (LUINode type attr items changes {effects & moved = ESToBeUpdated movedBy ruleNo}) moves
+							= ((nextId,[moveId:acc]),lui,moves)	
+						_
+							= abort "moveSubUIs: We don't expect shift destinations here (because we are called by traverseChildNodes_)"
+				| otherwise
+					= case lui of
+						(LUINode type attr items changes effects) //TODO: Check for wrapper case?
+							//Search in children
+							# ((nextId,acc),items,moves) = traverseChildNodes_ ruleNo (check (path ++ [i])) ((nextId,acc),items,moves)
+							= ((nextId,acc),LUINode type attr items changes effects,moves)	
+						(LUIMoveSource moveId)
+							//If we match a source here, either this rule moved it or a later rule.
+							# (LUINode type attr items changes effects=:{moved}) = getMovedNode_ moveId moves
+							//If this rule moved it here we should mark it as no longer moved
+							# effects = case moved of
+								(ESApplied movedBy) | movedBy == ruleNo
+									= {effects & moved = ESToBeRemoved ruleNo}
+								_
+									= effects
+							# ((nextId,acc),items,moves) = traverseChildNodes_ ruleNo (check (path ++ [i])) ((nextId,acc),items,moves)
+							# moves = putMovedNode_ moveId (LUINode type attr items changes effects) moves
+							= ((nextId,acc),lui,moves)	
+						(LUIMoveDestination moveId _)
+							//An earlier rule moved it here, just process the children
+							# (LUINode type attr items changes effects) = getMovedNode_ moveId moves
+							# ((nextId,acc),items,moves) = traverseChildNodes_ ruleNo (check (path ++ [i])) ((nextId,acc),items,moves)
+							# moves = putMovedNode_ moveId (LUINode type attr items changes effects) moves
+							= ((nextId,acc),lui,moves)	
+						_	
+							= ((nextId,acc),lui,moves)	
+
+		//3 Mark the destination with the moved nodes
+		updateDestination moved (lui,moves) = updateSubNode_ ruleNo path update (lui,moves)
+		where
+			update (LUINode type attr items changes effects, moves)
+				//Remove the current destination markers
 				# items = filter (not o currentMove) items
-				# destinations = [LUIMoveDestination ruleNo i \\ i <- [0 .. numMoved - 1]]
-				= case scanToPosition_ ruleNo pos items moves of
-					(index,True,_)
-						| numMoved == 0
-							= (lui, m)
-						| otherwise
-							# items = take index items ++ destinations ++ drop index items
-							= (LUINode type attr items changes effects, m)
-			update (lui,m) = (lui,m)
+				// (re)Insert the destination marker in the right place
+				# destinations = [LUIMoveDestination moveId ruleNo \\ moveId <- moved]
+				# items = case scanToPosition_ ruleNo pos items moves of
+					(index,True,_) = ( take index items ++ destinations ++ drop index items)
+					_ = items
+				= (LUINode type attr items changes effects, moves)
 
-			currentMove (LUIMoveDestination moveTarget _) = moveTarget == ruleNo
+			currentMove (LUIMoveDestination moveId _) = isMember moveId moved
 			currentMove  _ = False
-
-	move ruleNo effects=:{LUIEffects|moved=ESNotApplied} = {LUIEffects|effects & moved = ESToBeApplied ruleNo}
-	move ruleNo effects=:{LUIEffects|moved=ESToBeApplied _} = {LUIEffects|effects & moved = ESToBeApplied ruleNo}
-	move ruleNo effects=:{LUIEffects|moved=ESApplied _} = {LUIEffects|effects & moved = ESApplied ruleNo}
-	move ruleNo effects=:{LUIEffects|moved=ESToBeRemoved _} = {LUIEffects|effects & moved= ESApplied ruleNo}
 
 layoutSubUIs :: UISelection LayoutRule -> LayoutRule
 layoutSubUIs selection sub = rule
 where
-/*
-	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleNo (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects,moves)
-*/
 	rule ruleNo (lui,moves) = apply [] (lui,moves)
 	where
 		//Check if the layout matches (without any dereferencing or selecting wrapped nodes)
@@ -482,12 +492,15 @@ setToBeInserted_ (LUINode type attr items changes effects) = LUINode type attr i
 setToBeAdded_ :: LUINo LUI -> LUI
 setToBeAdded_ ruleNo (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleNo}
 
-nextShiftID_ :: [LUI] -> Int
+nextShiftID_ :: [LUI] -> LUIShiftID
 nextShiftID_ items = maximum [-1:map shiftID items] + 1
 where
 	shiftID (LUINode _ _ _ {toBeShifted=Just x} _) = x
 	shiftID (LUIShiftDestination x) = x
 	shiftID _ = -1
+
+nextMoveID_ :: LUIMoves -> LUIMoveID
+nextMoveID_ moves = (foldr max 0 ('DM'.keys moves)) + 1
 
 //Test if a certain node exists at the time of rule application
 existsAtRuleApplication_ :: !LUINo !LUI LUIMoves -> Bool
@@ -511,25 +524,26 @@ existsAtRuleApplication_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeRemoved wrap
 		Nothing = False // The wrapped child does not exist, nothing to check
 		Just (_,wrapped) = existsAtRuleApplication_ ruleNo wrapped moves //Check the wrapped child
 //Moved nodes
-existsAtRuleApplication_ ruleNo (LUIMoveSource moveTarget movePosition) moves
-	| moveTarget <= ruleNo //The move has already been applied
-		= case getMovedNode_ moveTarget movePosition moves of
-			(LUINode _ _ _ {toBeRemoved=True} _) = False
-			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = False
-			(LUINode _ _ _ _ {moved=ESApplied _}) = False
-			//If the moved node is about to be restored it, we consider it as existing here
-			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = True
-	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it as existing
-		= True
-existsAtRuleApplication_ ruleNo (LUIMoveDestination moveTarget movePosition) moves
-	| moveTarget <= ruleNo //The move has already been applied
-		= case getMovedNode_ moveTarget movePosition moves of
-			(LUINode _ _ _ {toBeRemoved=True} _) = False
-			(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = False
-			(LUINode _ _ _ _ {moved=ESToBeApplied _}) = True
-			(LUINode _ _ _ _ {moved=ESApplied _}) = True
-	| otherwise //At the moment of this rule the node is not yet considered moved, so we count it not yet existing
-		= False
+existsAtRuleApplication_ ruleNo (LUIMoveSource moveId) moves
+	= case getMovedNode_ moveId moves of
+		(LUINode _ _ _ {toBeRemoved=True} _) = False
+		(LUINode _ _ _ _ {moved=ESToBeApplied movedBy}) = movedBy >= ruleNo
+		(LUINode _ _ _ _ {moved=ESApplied movedBy}) = movedBy >= ruleNo
+		(LUINode _ _ _ _ {moved=ESToBeUpdated prevMovedBy movedBy})
+			| movedBy == ruleNo = prevMovedBy >= ruleNo//The current rule just updated the node, look at what it was instead
+			| otherwise = movedBy >= ruleNo
+		(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = True
+		(LUINode _ _ _ _ {moved=ESNotApplied}) = True
+existsAtRuleApplication_ ruleNo (LUIMoveDestination moveId moveRule) moves
+	= case getMovedNode_ moveId moves of
+		(LUINode _ _ _ {toBeRemoved=True} _) = False
+		(LUINode _ _ _ _ {moved=ESToBeApplied movedBy}) = movedBy < ruleNo
+		(LUINode _ _ _ _ {moved=ESApplied movedBy}) = movedBy < ruleNo
+		(LUINode _ _ _ _ {moved=ESToBeUpdated prevMovedBy movedBy})
+			| movedBy == ruleNo = prevMovedBy < ruleNo//The current rule just updated the node, look at what it was instead
+			| otherwise = movedBy < ruleNo
+		(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = False
+		(LUINode _ _ _ _ {moved=ESNotApplied}) = False
 existsAtRuleApplication_ _ _ _ = True
 
 wrappedExistsAtRuleApplication_ ruleNo items wrappedBy moves
@@ -620,7 +634,7 @@ isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
 isUnwrapped_ _ = False
 
 isMoved_ :: LUI -> Bool
-isMoved_ (LUIMoveSource _ _) = True
+isMoved_ (LUIMoveSource _) = True
 isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
 isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
 isMoved_ _ = False
@@ -666,7 +680,7 @@ where
 		count (i,positions) (LUINode _ _ _ {toBeShifted=Just _} _) = (i,positions)
 		count (i,positions) (LUINode _ _ _ _ _) = (i + 1, positions)
 		count (i,positions) (LUIMoveDestination _ _) = (i, positions)
-		count (i,positions) (LUIMoveSource _ _) = (i, positions)
+		count (i,positions) (LUIMoveSource _) = (i, positions)
 
 	addIndices destinations items = reverse (snd (foldl add (0,[]) items))
 	where
@@ -675,26 +689,32 @@ where
 		add (i,acc) lui=:(LUINode _ _ _ {toBeShifted=Just shiftId} _) = (i,[('DM'.get shiftId destinations,lui):acc])
 		add (i,acc) lui=:(LUINode _ _ _ _ _) = (i + 1,[(Just i,lui):acc])
 		add (i,acc) lui=:(LUIMoveDestination _ _) = (i,[(Nothing,lui):acc])
-		add (i,acc) lui=:(LUIMoveSource _ _) = (i,[(Nothing,lui):acc])
+		add (i,acc) lui=:(LUIMoveSource _) = (i,[(Nothing,lui):acc])
 
 selectNode_ :: LUINo ((LUI,LUIMoves) -> a) (LUI,LUIMoves) -> Maybe a
 selectNode_ ruleNo apply (lui,moves) = case lui of
 	//When a move source exists (it is moved by a later rule), we update the referenced node
-	(LUIMoveSource moveTarget movePosition)
-		| moveTarget > ruleNo
-			= Just (apply (getMovedNode_ moveTarget movePosition moves,moves))
-		| moveTarget < ruleNo //Do nothing, the node has been moved somewhere else
-			= Nothing
-		| otherwise //The current rule did the moving -> update the reference
-			= Just (apply (lui,moves))
+	(LUIMoveSource moveId)
+		# movedItem = getMovedNode_ moveId moves
+		= case getMovedBy_ movedItem of
+			Just movedBy 
+				| movedBy >= ruleNo
+					= Just (apply (movedItem,moves))
+				| movedBy < ruleNo //Do nothing, the node has been moved somewhere else
+					= Nothing
+			Nothing //The node is no longer moved
+				= Just (apply (movedItem,moves))
 	//When an item was moved here (by an earlier rule), we update the referenced node
-	(LUIMoveDestination moveTarget movePosition) 
-		| moveTarget > ruleNo //No nothing, the node has not been moved yet
-			= Nothing
-		| moveTarget < ruleNo //The node has been moved, Update the referenced node
-			= Just (apply (getMovedNode_ moveTarget movePosition moves,moves))
-		| otherwise //The current rule did the moving -> update the reference
-			= Just (apply (lui,moves))
+	(LUIMoveDestination moveId moveRule) 
+		# movedItem = getMovedNode_ moveId moves
+		= case getMovedBy_ movedItem of
+			Just movedBy 
+				| movedBy >= ruleNo //No nothing, the node has not been moved yet
+					= Nothing
+				| movedBy < ruleNo //The node has been moved, Update the referenced node
+					= Just (apply (movedItem,moves))
+			Nothing
+				= Nothing
 	//When an item is scheduled to be replaced, select the replacement
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
 		= selectNode_ ruleNo apply (replacement,moves)
@@ -733,12 +753,11 @@ where
 			(LUIShiftDestination shiftId)
 				= [snd (lookupShiftSource_ shiftId items):acc]
 			//When a move source exists (it is moved by a later rule), we update the referenced node
-			(LUIMoveSource moveTarget movePosition)
-				= [getMovedNode_ moveTarget movePosition moves:acc]
+			(LUIMoveSource moveId)
+				= [getMovedNode_ moveId moves:acc]
 			//When an item was moved here (by an earlier rule), we update the referenced node
-			(LUIMoveDestination moveTarget movePosition) 
-				= [getMovedNode_ moveTarget movePosition moves:acc]
-
+			(LUIMoveDestination moveId moveRule) 
+				= [getMovedNode_ moveId moves:acc]
 			//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
 			(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy}) | wrappedBy >= ruleNo
 				= case lookupWrappedNode_ wrappedBy items moves of
@@ -756,25 +775,36 @@ where
 updateNode_ :: LUINo ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
 updateNode_ ruleNo update (lui,moves) = case lui of
 	//When a move source exists (it is moved by a later rule), we update the referenced node
-	(LUIMoveSource moveTarget movePosition)
-		| moveTarget > ruleNo
-			# movedItem = getMovedNode_ moveTarget movePosition moves
-			# (movedItem,moves) = update (movedItem,moves)
-			= (lui, updMovedNode_ moveTarget movePosition movedItem moves)
-		| moveTarget < ruleNo //Do nothing, the node has been moved somewhere else
-			= (lui,moves)
-		| otherwise //The current rule did the moving -> update the reference
-			= update (lui,moves)
+	(LUIMoveSource moveId)
+		# movedItem = getMovedNode_ moveId moves
+		= case getMovedBy_ movedItem of
+			Just movedBy 
+				| movedBy > ruleNo
+					# (movedItem,moves) = update (movedItem,moves)
+					= (lui, putMovedNode_ moveId movedItem moves)
+				| movedBy < ruleNo //Do nothing, the node has been moved somewhere else
+					= (lui,moves)
+				| otherwise //The current rule did the moving -> update the reference
+					= update (lui,moves)
+			//The node is no longer moved, it will be restored to this location
+			Nothing
+				# (movedItem,moves) = update (movedItem,moves)
+				= (lui, putMovedNode_ moveId movedItem moves)
 	//When an item was moved here (by an earlier rule), we update the referenced node
-	(LUIMoveDestination moveTarget movePosition) 
-		| moveTarget > ruleNo //No nothing, the node has not been moved yet
-			= (lui,moves)
-		| moveTarget < ruleNo //The node has been moved, Update the referenced node
-			# movedItem = getMovedNode_ moveTarget movePosition moves
-			# (movedItem,moves) = update (movedItem,moves)
-			= (lui, updMovedNode_ moveTarget movePosition movedItem moves)
-		| otherwise //The current rule did the moving -> update the reference
-			= update (lui,moves)
+	(LUIMoveDestination moveId moveRule) 
+		# movedItem = getMovedNode_ moveId moves
+		= case getMovedBy_ movedItem of
+			Just movedBy 
+				| movedBy > ruleNo //No nothing, the node has not been moved yet
+					= (lui,moves)
+				| movedBy < ruleNo //The node has been moved, Update the referenced node
+					# (movedItem,moves) = update (movedItem,moves)
+					= (lui, putMovedNode_ moveId movedItem moves)
+				| otherwise //The current rule did the moving -> update the reference
+					= update (lui,moves)
+			//The node is no longer moved, it will be removed from this destination
+			Nothing
+				= (lui,moves)
 	//When an item is scheduled to be replaced, update the replacement
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
 		# (replacement,moves) = updateNode_ ruleNo update (replacement,moves)
@@ -812,8 +842,8 @@ updateNode_ ruleNo update (lui,moves) = case lui of
 	//Default case: Just apply the update function
 	_ = update (lui,moves)
 
-updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
-updateChildNodes_ ruleNo update (items,moves) = updateItems (indexShiftDestinations items moves) items moves
+traverseChildNodes_ :: LUINo (Int (a,LUI,LUIMoves) -> (a,LUI,LUIMoves)) (a,[LUI],LUIMoves) -> (a,[LUI],LUIMoves) 
+traverseChildNodes_ ruleNo fun (state,items,moves) = traverseItems (indexShiftDestinations items moves) state items moves
 where
 	indexShiftDestinations items moves = snd (foldl index (0,'DM'.newMap) items) 
 	where
@@ -823,25 +853,34 @@ where
 				_                             = (i + 1, positions)
 			| otherwise                                  = (i, positions)
 
-	updateItems shiftDestinations items moves
-		# (_,items,moves) = foldl updateItem (0,[],moves) items
-		= (reverse items, moves)
+	traverseItems shiftDestinations state items moves
+		# (_,state,items,moves) = foldl updateItem (0,state,[],moves) items
+		= (state,reverse items, moves)
 	where
-		updateItem (i,acc,moves) item 
+		updateItem (i,state,acc,moves) item 
 			| existsAtRuleApplication_ ruleNo item moves
-				# (item,moves) = case item of 
+				# (state,item,moves) = case item of 
 					//For shifted items we update the source
-					(LUIShiftDestination shiftId) = (item,moves)
-					_                             = update i (item,moves)
-				= (i + 1, [item:acc], moves)
+					(LUIShiftDestination shiftId) = (state,item,moves)
+					_                             = fun i (state,item,moves)
+				= (i + 1, state, [item:acc], moves)
 			| otherwise
-				# (item,moves) = case item of
+				# (state,item,moves) = case item of
 					//For shifted items we update the source (using the index of the destination)
 					(LUINode _ _ _ {toBeShifted=Just shiftId} _)
 						//If we did not index the destination, apparently it no longer exists
-						= maybe (item,moves) (\index -> update index (item,moves)) ('DM'.get shiftId shiftDestinations)
-					_ = (item,moves)
-				= (i, [item:acc], moves)
+						= maybe (state,item,moves) (\index -> fun index (state,item,moves)) ('DM'.get shiftId shiftDestinations)
+					_ = (state,item,moves)
+				= (i, state,[item:acc], moves)
+
+updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
+updateChildNodes_ ruleNo update (items,moves)
+	# (_,items,moves) = traverseChildNodes_ ruleNo fun ((),items,moves)
+	= (items, moves)
+where
+	fun i (s,items,moves) 
+		# (items,moves) = update i (items,moves)
+		= (s,items,moves)
 
 selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI 
 selectSubNode_ ruleNo [] (lui,moves) = case lui of
@@ -849,32 +888,32 @@ selectSubNode_ ruleNo [] (lui,moves) = case lui of
 	(LUINode _ _ _ {toBeReplaced=Just replacement} _) = selectSubNode_ ruleNo [] (replacement,moves)
 	(LUINode _ _ _ _ _)                               = Just lui
 	//Whether moved nodes still exist depends on whether the move is earlier or later than the current rule
-	lui=:(LUIMoveSource moveTarget movePosition)
-		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
+	lui=:(LUIMoveSource moveId)
+		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveId moves,moves)
 		| otherwise = Nothing
-	lui=:(LUIMoveDestination moveTarget movePosition)
-		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveTarget movePosition moves,moves)
+	lui=:(LUIMoveDestination moveId moveRule)
+		| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo [] (getMovedNode_ moveId moves,moves)
 		| otherwise = Nothing
 	_                                                 = Nothing
 selectSubNode_ ruleNo [s:ss] (LUINode _ _ items _ _, moves)
 	= case scanToPosition_ ruleNo s items moves of
 		(_,_,Just (LUINode _ _ _ {toBeReplaced=Just replacement} _)) = selectSubNode_ ruleNo ss (replacement, moves)
 		(_,_,Just (LUIShiftDestination shiftId)) = selectSubNode_ ruleNo ss (snd (lookupShiftSource_ shiftId items), moves)
-		(_,_,Just (lui=: LUIMoveSource moveTarget movePosition))
-			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
+		(_,_,Just (lui=: LUIMoveSource moveId))
+			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveId moves, moves)
 														= Nothing
-		(_,_,Just (lui=:LUIMoveDestination moveTarget movePosition))
-			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveTarget movePosition moves, moves)
+		(_,_,Just (lui=:LUIMoveDestination moveId moveRule))
+			| existsAtRuleApplication_ ruleNo lui moves = selectSubNode_ ruleNo ss (getMovedNode_ moveId moves, moves)
 														= Nothing
 		(_,_,Just child) = selectSubNode_ ruleNo ss (child, moves)
 		_ = Nothing
 
 updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
 updateSubNode_ ruleNo [] update (lui,moves) = case lui of
-	(LUIMoveSource moveTarget movePosition)
-		= (lui, updateMovedNode_ moveTarget movePosition ruleNo [] update moves)
-	(LUIMoveDestination moveTarget movePosition)
-		= (lui, updateMovedNode_ moveTarget movePosition ruleNo [] update moves)
+	(LUIMoveSource moveId)
+		= (lui, updateMovedNode_ moveId ruleNo [] update moves)
+	(LUIMoveDestination moveId moveRule)
+		= (lui, updateMovedNode_ moveId ruleNo [] update moves)
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
 		# (replacement,moves) = updateSubNode_ ruleNo [] update (replacement,moves)
 		= (LUINode type attr items {changes & toBeReplaced = Just replacement} effects, moves)
@@ -891,32 +930,35 @@ updateSubNode_ ruleNo [s:ss] update (lui=:(LUINode type attr items changes effec
 			# (sourceIndex,source) = lookupShiftSource_ shiftId items
 			# (item,moves) = updateSubNode_ ruleNo ss update (source,moves)
 			= (updateAt sourceIndex item items,moves)
-		(index,_,Just (LUIMoveSource moveTarget movePosition))
-			= (items, updateMovedNode_ moveTarget movePosition ruleNo ss update moves)
-		(index,_,Just (LUIMoveDestination moveTarget movePosition))
-			= (items, updateMovedNode_ moveTarget movePosition ruleNo ss update moves)
+		(index,_,Just (LUIMoveSource moveId))
+			= (items, updateMovedNode_ moveId ruleNo ss update moves)
+		(index,_,Just (LUIMoveDestination moveId moveRule))
+			= (items, updateMovedNode_ moveId ruleNo ss update moves)
 		(index,_,Just child) 
 			# (child,moves) = updateSubNode_ ruleNo ss update (child,moves)
 			= (updateAt index child items,moves)
 		_ = (items,moves)
 	= (LUINode type attr items changes effects,moves)
 
-updateMovedNode_ moveTarget movePosition ruleNo path update moves
-	# lui = getMovedNode_ moveTarget movePosition moves
+updateMovedNode_ moveId ruleNo path update moves
+	# lui = getMovedNode_ moveId moves
 	# (lui,moves) = updateSubNode_ ruleNo path update (lui,moves)
-	# moves = updMovedNode_ moveTarget movePosition lui moves
+	# moves = putMovedNode_ moveId lui moves
 	= moves
 	
-getMovedNode_ :: LUINo Int LUIMoves -> LUI
-getMovedNode_ moveTarget movePosition moves = case 'DM'.get (moveTarget,movePosition) moves of
-	Nothing = abort ("Get: Unknown ruleNo " +++ toString moveTarget +++ " in moved items\n")
+getMovedNode_ :: LUIMoveID LUIMoves -> LUI
+getMovedNode_ moveId moves = case 'DM'.get moveId moves of
+	Nothing = abort ("Get: Unknown id " +++ toString moveId +++ " in moved items\n")
 	Just item = item
 
-updMovedNode_ :: LUINo Int LUI LUIMoves -> LUIMoves
-updMovedNode_ moveTarget movePosition node moves = 'DM'.alter update (moveTarget,movePosition) moves
-where
-	update Nothing = abort ("Update: Unknown ruleNo " +++ toString moveTarget +++ " in moved items\n")
-	update (Just item) = Just node
+putMovedNode_ :: LUIMoveID LUI LUIMoves -> LUIMoves
+putMovedNode_ moveId node moves = 'DM'.put moveId node moves
+
+getMovedBy_ :: LUI -> Maybe LUINo
+getMovedBy_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied ruleNo}) = Just ruleNo
+getMovedBy_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied ruleNo}) = Just ruleNo
+getMovedBy_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeUpdated _ ruleNo}) = Just ruleNo
+getMovedBy_ _ = Nothing
 
 getTypeAtRuleApplication_ :: LUINo LUI -> UIType
 getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeApplied (appliedAt,type)}) | appliedAt < ruleNo = type
@@ -1276,19 +1318,19 @@ where
 				# (cs,xs,moves) = extract (i + 1) xs moves
 				= ([(i,InsertChild ui):cs],[x:xs],moves)
 
-			extract i [x=:(LUIMoveSource moveTarget movePosition):xs] moves
+			extract i [x=:(LUIMoveSource moveId):xs] moves
 				//Check if it was just moved away, or already moved earlier
-				= case getMovedNode_ moveTarget movePosition moves of
+				= case getMovedNode_ moveId moves of
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeApplied ruleId})
 						//We are removing first
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyApplied ruleId}
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract i xs moves
 						= ([(i,RemoveChild):cs],[x:xs], moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyApplied ruleId})
 						//We are removing second
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESApplied ruleId}
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract i xs moves
 						= ([(i,RemoveChild):cs],[x:xs], moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeRemoved ruleId})
@@ -1297,7 +1339,7 @@ where
 						//   It will be completely removed when processing the destination
 						// - Recursively extract changes and replace the MoveSource reference by the node (it is no longer moved)
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyRemoved ruleId}
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# x = LUINode type attr items changes {LUIEffects|effects & moved = ESNotApplied}
 						# (ui,(x,moves)) = extractUIWithEffects (x,moves)
 						# (cs,xs,moves) = extract (i + 1) xs moves
@@ -1305,7 +1347,7 @@ where
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyRemoved ruleId})
 						//We are restoring second: 
 						//- Remove the node at the destination, and check if all nodes have been removed
-						# moves = 'DM'.del (moveTarget,movePosition) moves	
+						# moves = 'DM'.del moveId moves	
 						# x = LUINode type attr items changes {LUIEffects|effects & moved = ESNotApplied}
 						# (ui,(x,moves)) = extractUIWithEffects (x,moves)
 						# (cs,xs,moves) = extract (i + 1) xs moves
@@ -1313,38 +1355,36 @@ where
 					_
 						# (cs,xs,moves) = extract i xs moves
 						= (cs,[x:xs], moves)
-			extract i [x=:(LUIMoveDestination moveTarget movePosition):xs] moves
+			extract i [x=:(LUIMoveDestination moveId moveRule):xs] moves
 				//Check if it was just moved away, or already moved earlier
-				= case getMovedNode_ moveTarget movePosition moves of
+				= case getMovedNode_ moveId moves of
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeApplied ruleId})
 						//We are inserting first..
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyApplied ruleId}
 						# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract (i + 1) xs moves
 						= ([(i,InsertChild ui):cs],[x:xs],moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyApplied ruleId})
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESApplied ruleId}
 						# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract (i + 1) xs moves
 						= ([(i,InsertChild ui):cs],[x:xs],moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESApplied ruleId})
 						# (c,(dx,moves)) = extractDownstreamChange (dx,moves)
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract (i + 1) xs moves
 						= case c of
 							NoChange = (cs,[x:xs], moves)
 							_        = ([(i,ChangeChild c):cs],[x:xs], moves)
-
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeRemoved ruleId})
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyRemoved ruleId}
-						# moves = updMovedNode_ moveTarget movePosition dx moves
+						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract i xs moves
 						= ([(i,RemoveChild):cs],xs, moves)
-
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyRemoved ruleId})
-						# moves = 'DM'.del (moveTarget,movePosition) moves	
+						# moves = 'DM'.del moveId moves	
 						# (cs,xs,moves) = extract i xs moves
 						= ([(i,RemoveChild):cs],xs, moves)
 
@@ -1360,16 +1400,16 @@ where
 extractDownstreamChange (lui,moves) = (NoChange,(lui,moves))
 
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
-extractUIWithEffects (LUIMoveSource moveTarget movePosition,moves)
-	# lui = getMovedNode_ moveTarget movePosition moves
+extractUIWithEffects (LUIMoveSource moveId, moves)
+	# lui = getMovedNode_ moveId moves
 	# (ui,(lui,moves)) = extractUIWithEffects (lui,moves)
-	# moves = updMovedNode_ moveTarget movePosition (confirmMove lui) moves
-	= (ui,(LUIMoveSource moveTarget movePosition, moves))
-extractUIWithEffects (LUIMoveDestination moveTarget movePosition,moves)
-	# lui = getMovedNode_ moveTarget movePosition moves
+	# moves = putMovedNode_ moveId (confirmMove lui) moves
+	= (ui,(LUIMoveSource moveId, moves))
+extractUIWithEffects (LUIMoveDestination moveId moveRule,moves)
+	# lui = getMovedNode_ moveId moves
 	# (ui,(lui,moves)) = extractUIWithEffects (lui,moves)
-	# moves = updMovedNode_ moveTarget movePosition (confirmMove lui) moves
-	= (ui,(LUIMoveDestination moveTarget movePosition, moves))
+	# moves = putMovedNode_ moveId (confirmMove lui) moves
+	= (ui,(LUIMoveDestination moveId moveRule, moves))
 
 extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects, moves)
 	= extractUIWithEffects (replacement,moves)

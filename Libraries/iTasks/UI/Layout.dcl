@@ -119,8 +119,8 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
 	//Placeholder nodes
 	| LUIShiftDestination LUIShiftID
-	| LUIMoveSource LUINo Int //Target, position
-	| LUIMoveDestination LUINo Int //Target, position
+	| LUIMoveSource LUIMoveID
+	| LUIMoveDestination LUIMoveID LUINo
 
 //Upstream UI changes
 :: LUIChanges =
@@ -159,7 +159,7 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 //and in their destination location (to apply further effects).
 //To make this possible, we put those nodes in a separate table and put references in the tree
 
-:: LUIMoves :== Map (LUINo,Int) LUI
+:: LUIMoves :== Map LUIMoveID LUI
 
 noChanges :: LUIChanges
 noEffects :: LUIEffects
@@ -173,6 +173,8 @@ instance toString LUINo
 
 //When shifting children, it must be tracable which source connects to which destination
 :: LUIShiftID :== Int
+
+:: LUIMoveID :== Int
 
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
 :: LayoutRule :== LUINo (LUI,LUIMoves) -> (LUI, LUIMoves)

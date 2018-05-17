@@ -225,22 +225,22 @@ applyUpstreamChangeTests =
 		)
 	,assertEqual "Set attribute in moved child"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
-			[LUIMoveSource (LUINo [0]) 0
+			[LUIMoveSource 1
 			,LUINode UIStep 'DM'.newMap 
 				[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects 
-			,LUIMoveDestination (LUINo [0]) 0
+			,LUIMoveDestination 1 (LUINo [0])
 			] noChanges noEffects
-		,'DM'.fromList [((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "changed-title")]} {noEffects & moved = ESApplied (LUINo [0])})])
+		,'DM'.fromList [(1,LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "changed-title")]} {noEffects & moved = ESApplied (LUINo [0])})])
 		(applyUpstreamChange (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "changed-title")] []))]) 
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
+				[LUIMoveSource 1
 				,LUINode UIStep 'DM'.newMap 
 					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
 					] noChanges noEffects
-				,LUIMoveDestination (LUINo [0]) 0
+				,LUIMoveDestination 1 (LUINo [0])
 				] noChanges noEffects
-			,'DM'.fromList [((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & moved = ESApplied (LUINo [0])})])
+			,'DM'.fromList [(1,LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & moved = ESApplied (LUINo [0])})])
 		)
 	]
 
@@ -653,50 +653,50 @@ extractDownstreamChangeTest_NewMovedChild =
 		 ,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [
-						LUIMoveDestination (LUINo [0]) 0
+						LUIMoveDestination 1 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects 
-		  ,'DM'.fromList [((LUINo [0],0), LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})])
+		  ,'DM'.fromList [(1, LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})])
 		)
 		(extractDownstreamChange (
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [
-						LUIMoveDestination (LUINo [0]) 0
+						LUIMoveDestination 1 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects 
-		,'DM'.fromList [((LUINo [0],0),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})]))
+		,'DM'.fromList [(1,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})]))
 
 extractDownstreamChangeTest_NewMovedChildren =
 	assertEqual "New moved children" 
 		(ChangeUI [] [(0,RemoveChild),(0,ChangeChild (ChangeUI [] [(0,InsertChild (UI UIInteract 'DM'.newMap [])),(1,InsertChild (UI UIParallel 'DM'.newMap []))])),(1,RemoveChild)]
 		 ,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
+				[LUIMoveSource 1
 				,LUINode UIStep 'DM'.newMap [
-						LUIMoveDestination (LUINo [0]) 0
-						,LUIMoveDestination (LUINo [0]) 1
+						 LUIMoveDestination 1 (LUINo [0])
+						,LUIMoveDestination 2 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 1
+				,LUIMoveSource 2
 				] noChanges noEffects
 		  ,'DM'.fromList 
-				[((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
-				,((LUINo [0],1),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
+				[(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
+				,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
 				])
 		)
 		(extractDownstreamChange (
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
+				[LUIMoveSource 1
 				,LUINode UIStep 'DM'.newMap [
-						LUIMoveDestination (LUINo [0]) 0
-						,LUIMoveDestination (LUINo [0]) 1
+						LUIMoveDestination 1 (LUINo [0])
+						,LUIMoveDestination 2 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 1
+				,LUIMoveSource 2
 				] noChanges noEffects
 		,'DM'.fromList 
-			[((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
-			,((LUINo [0],1),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
+			[(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
+			,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
 			]))
 
 extractDownstreamChangeTest_NoLongerMovedChild =
@@ -713,30 +713,30 @@ extractDownstreamChangeTest_NoLongerMovedChild =
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [
-						LUIMoveDestination (LUINo [0]) 0
+						LUIMoveDestination 1 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects
-			,'DM'.fromList [((LUINo [0],0),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeRemoved (LUINo [0])})]
+			,'DM'.fromList [(1,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeRemoved (LUINo [0])})]
 		))
 
 extractDownstreamChangeTest_ChangeInChildrenWithMoves =
 	assertEqual "Change in set of children with moved item" 
 		(ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "test")] []))]
 		 ,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
-				,LUINode UIStep 'DM'.newMap [LUIMoveDestination (LUINo [0]) 0] noChanges noEffects
+				[LUIMoveSource 1
+				,LUINode UIStep 'DM'.newMap [LUIMoveDestination 1 (LUINo [0])] noChanges noEffects
 				,LUINode UIParallel ('DM'.fromList [("title",JSONString "test")]) [] noChanges noEffects
 				] noChanges noEffects
-		  ,'DM'.fromList [((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})])
+		  ,'DM'.fromList [(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})])
 		)
 		(extractDownstreamChange (
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
-				,LUINode UIStep 'DM'.newMap [LUIMoveDestination (LUINo [0]) 0] noChanges noEffects
+				[LUIMoveSource 1
+				,LUINode UIStep 'DM'.newMap [LUIMoveDestination 1 (LUINo [0])] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")] } noEffects
 				] noChanges noEffects
-		,'DM'.fromList [((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})]))
+		,'DM'.fromList [(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})]))
 
 extractDownstreamChangeTest_NewWrappedChild =
 	assertEqual "New wrapped child" 
@@ -909,21 +909,21 @@ extractDownstreamChangeTest_MovingIntoAdditionalContainer =
 		,(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [
-					LUIMoveDestination (LUINo [3]) 0
+					LUIMoveDestination 1 (LUINo [3])
 					] noChanges {noEffects & additional = ESApplied (LUINo [1])}
-				,LUIMoveSource (LUINo [3]) 0
+				,LUIMoveSource 1 
 				] noChanges noEffects
-		 ,'DM'.fromList [((LUINo [3],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [3])})])
+		 ,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [3])})])
 	)
 	(extractDownstreamChange (
 		LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [
-					LUIMoveDestination (LUINo [3]) 0
+					LUIMoveDestination 1 (LUINo [3])
 					] noChanges {noEffects & additional = ESToBeApplied (LUINo [1])}
-				,LUIMoveSource (LUINo [3]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects
-		,'DM'.fromList [((LUINo [3],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [3])})]))
+		,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [3])})]))
 
 extractUIWithEffectsTests =
 	[assertEqual "Extract UI with newly moved items" 
@@ -934,24 +934,24 @@ extractUIWithEffectsTests =
 				]
 			]
 		,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-			[LUIMoveSource (LUINo [0]) 0
-			,LUINode UIStep 'DM'.newMap [LUIMoveDestination (LUINo [0]) 0,LUIMoveDestination (LUINo [0]) 1] noChanges noEffects
-			,LUIMoveSource (LUINo [0]) 1
+			[LUIMoveSource 1
+			,LUINode UIStep 'DM'.newMap [LUIMoveDestination 1 (LUINo [0]),LUIMoveDestination 2 (LUINo [0])] noChanges noEffects
+			,LUIMoveSource 2
 			] noChanges noEffects
 		  ,'DM'.fromList 
-				[((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
-				,((LUINo [0],1),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
+				[(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
+				,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
 				])
 		)
 		(extractUIWithEffects (
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
-				[LUIMoveSource (LUINo [0]) 0
-				,LUINode UIStep 'DM'.newMap [LUIMoveDestination (LUINo [0]) 0,LUIMoveDestination (LUINo [0]) 1] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 1
+				[LUIMoveSource 1
+				,LUINode UIStep 'DM'.newMap [LUIMoveDestination 1 (LUINo [0]),LUIMoveDestination 2 (LUINo [0])] noChanges noEffects
+				,LUIMoveSource 2
 				] noChanges noEffects
 		,'DM'.fromList 
-			[((LUINo [0],0),LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
-			,((LUINo [0],1),LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
+			[(1,LUINode UIInteract 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})
+			,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
 			]))
 	,assertEqual "Extract UI with new wrapped"
 		(UI UIContainer 'DM'.newMap [UI UIStep 'DM'.newMap []]
@@ -1170,11 +1170,11 @@ moveSubUIsTests =
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [
-					LUIMoveDestination (LUINo [0]) 0
+					LUIMoveDestination 1 (LUINo [0])
 					] noChanges noEffects
-				,LUIMoveSource (LUINo [0]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects
-		,'DM'.fromList [((LUINo [0],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})])
+		,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})])
 		(moveSubUIs (SelectByType UIStep) [1] 0 (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1187,11 +1187,11 @@ moveSubUIsTests =
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [
-					LUIMoveDestination (LUINo [3]) 0
+					LUIMoveDestination 1 (LUINo [3])
 					] noChanges {noEffects & additional = ESToBeApplied (LUINo [1])}
-				,LUIMoveSource (LUINo [3]) 0
+				,LUIMoveSource 1
 				] noChanges noEffects
-		,'DM'.fromList [((LUINo [3],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [3])})])
+		,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [3])})])
 		(moveSubUIs (SelectByType UIStep) [1] 0 (LUINo [3])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects 
@@ -1199,6 +1199,25 @@ moveSubUIsTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects
 			,initLUIMoves)
+		)
+	,assertEqual "Move children rule: Move a node that was moved by an earlier rule"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUIMoveDestination 1 (LUINo [0])
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [
+					LUIMoveDestination 1 (LUINo [1])
+					] noChanges noEffects
+				,LUIMoveSource 1
+				] noChanges noEffects
+		,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeUpdated (LUINo [0]) (LUINo [1])})])
+		(moveSubUIs (SelectByType UIStep) [2] 0 (LUINo [1])
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUIMoveDestination 1 (LUINo [0])
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUIMoveSource 1
+				] noChanges noEffects
+			,'DM'.fromList [(1,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})])
 		)
 	]
 wrapUITests =

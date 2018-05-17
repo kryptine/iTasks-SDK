@@ -10,16 +10,27 @@ basicFormsSessionLayout = layoutCombinatorContainers
 
 layoutCombinatorContainers = sequenceLayouts
 	[layoutSubUIs (SelectByType UIInteract) layoutInteract
-	,layoutSubUIs SelectCombinatorContainers layoutCombinatorContainer
+	,layoutSubUIs (SelectByType UIStep) layoutStep
+	,layoutSubUIs (SelectByType UIParallel) layoutParallel
 	,layoutSubUIs (SelectByType UIAction) layoutAsButton
 	,removeSubUIs (SelectByType UIEmpty)
 	]
-SelectCombinatorContainers = foldr1 SelectOR
-	(map SelectByType [UIStep,UIParallel])
 
-layoutCombinatorContainer = sequenceLayouts
+layoutStep = sequenceLayouts
 	[setUIType UIContainer
-	,layoutSubUIs SelectChildren layoutCombinatorContainers
+	,addButtonBar
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIStep)) layoutStep
+	]
+where
+	addButtonBar = sequenceLayouts
+		[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
+		,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
+		,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren layoutAsButton) //Transform actions to buttons
+		]
+
+layoutParallel = sequenceLayouts
+	[setUIType UIContainer
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIParallel)) layoutParallel
 	]
 
 layoutInteract = sequenceLayouts

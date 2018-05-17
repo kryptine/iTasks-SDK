@@ -2,7 +2,7 @@ definition module iTasks.WF.Combinators.Tune
 
 import iTasks.WF.Definition
 from iTasks.UI.Tune import class tune(..)
-from iTasks.UI.Layout import :: LayoutRule, :: LUI, :: LUINo, :: LUIMoves
+from iTasks.UI.Layout import :: LayoutRule, :: LUI, :: LUINo, :: LUIMoves, :: LUIMoveID
 from Text.GenJSON import :: JSONNode
 
 /**
