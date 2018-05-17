@@ -189,15 +189,13 @@ extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 
 //Helper functions (exported for unit testing)
-adjustIndex_ :: LUINo Int [LUI] LUIMoves -> Int
-
+scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI]
 updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
 selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
 updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
-scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
 overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
 hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
-matchKey_ :: UIAttributeSelection UIAttributeKey -> Bool
+matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 

@@ -71,14 +71,6 @@ applyUpstreamChangeTests =
 			] noChanges noEffects
 		,initLUIMoves)
 		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) (lui0,initLUIMoves))
-	,assertEqual "Helper function for replace adjustIndex"
-		2
-		(adjustIndex_ (LUINo []) 1 
-			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
-			,LUINode UIEmpty 'DM'.newMap [] noChanges {noEffects & additional = ESApplied (LUINo [1])}
-			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeReplaced = Just (LUINode UIEmpty 'DM'.newMap [] noChanges noEffects)} noEffects
-			] initLUIMoves
-		)
 	,assertEqual "Child replace (with additional node)" 
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -136,13 +128,6 @@ applyUpstreamChangeTests =
 			] noChanges noEffects
 		,initLUIMoves)
 		(applyUpstreamChange (ChangeUI [] [(1,InsertChild (UI UIInteract 'DM'.newMap [])),(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) (lui0,initLUIMoves))
-	,assertEqual "Helper function for shift adjustIndex"
-		2
-		(adjustIndex_ (LUINo [0]) 1 
-			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
-			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects
-			] initLUIMoves
-		)
 	,assertEqual "Child shift down" 
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[LUINode UIInteract 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects

@@ -45,7 +45,7 @@ where
 delUIAttributesRef_ :: UIAttributeSelection -> (UI -> UI)
 delUIAttributesRef_ selection = ref
 where
-	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey_ selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
+	ref (UI type attr items) = UI type (foldl (\a k -> if (matchAttributeKey_ selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
 
 modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> (UI -> UI)
 modifyUIAttributesRef_ selection modifier = ref
@@ -62,7 +62,7 @@ copySubUIAttributesRef_ selection src dst = ref
 where
 	ref ui = updDst dst (selAttr src ui) ui
 
-	selAttr [] (UI _ attr _) = [a \\ a=:(k,_) <- 'DM'.toList attr | matchKey_ selection k]
+	selAttr [] (UI _ attr _) = [a \\ a=:(k,_) <- 'DM'.toList attr | matchAttributeKey_ selection k]
 	selAttr [s:ss] (UI _ _ items) = if (s >= 0 && s < length items) (selAttr ss (items !! s)) []
 
 	updDst [] selected (UI type attr items) = UI type (foldl (\a (k,v) -> 'DM'.put k v a) attr selected) items
