@@ -24,6 +24,7 @@ timeout mt iworld = case read taskEvents iworld of
 	//No events
 	(Ok (Queue [] []),iworld=:{sdsNotifyRequests,world})
 		# (ts, world) = nsTime world
+		# to = minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		= ( minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		  , {iworld & world = world})
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
