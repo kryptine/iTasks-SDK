@@ -147,13 +147,17 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 //This desired state change can be undone by a later rule
 //Only when the downstream changes have been collected is an effect marked as 'applied'
 :: LUIEffectStage a
+	//In between events effects can only be either applied or not
 	= ESNotApplied
-	| ESToBeApplied a
-	| ESPartiallyApplied a // Extra intermediate stage for moved nodes
 	| ESApplied a
+	//While the layout rules are applied the effects can be in intermediate state
+	| ESToBeApplied a
 	| ESToBeUpdated a a
 	| ESToBeRemoved a
-	| ESPartiallyRemoved a // Extra intermediate stage for moved nodes
+	//Moving nodes happens in two steps, therefore we need additional intermediate states
+	| ESPartiallyApplied a
+	| ESPartiallyUpdated a a
+	| ESPartiallyRemoved a
 
 //Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
 //and in their destination location (to apply further effects).

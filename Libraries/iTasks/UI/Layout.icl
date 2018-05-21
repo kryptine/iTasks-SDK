@@ -627,10 +627,6 @@ isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
 isAdditional_ _ = False
 
-isRemoved_ :: LUI -> Bool
-isRemoved_ (LUINode _ _ _ {LUIChanges|toBeRemoved} _) = toBeRemoved
-isRemoved_ _ = False
-
 isShifted_ :: LUI -> Bool
 isShifted_ (LUINode _ _ _ {LUIChanges|toBeShifted} _) = isJust toBeShifted
 isShifted_ _ = False
@@ -639,12 +635,6 @@ isUnwrapped_ :: LUI -> Bool
 isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) = True
 isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
 isUnwrapped_ _ = False
-
-isMoved_ :: LUI -> Bool
-isMoved_ (LUIMoveSource _) = True
-isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
-isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
-isMoved_ _ = False
 
 isHidden_ :: LUI -> Bool
 isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
@@ -948,7 +938,6 @@ revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,moved,wrapper,unwrap
 * the ui change that has to be applied downstream, and a new version of the buffered tree that
 * in which all pending changes and effects have been applied.
 */
-//TODO: Handle updated move destinations
 extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 extractDownstreamChange (LUINode type attr items changes=:{toBeReplaced=Just replacement} effects,moves)
 	//When the UI is to be replaced, we need to determine the replacement UI with all effects applied
@@ -1079,13 +1068,13 @@ where
 		| unwrapped
 			| differentFirstChild items
 				# (_,items) = extractShifts items
-				# ([ui:_],items,moves) = extractUIsWithEffects items moves
+				# ([ui:_],items,moves) = extractChildUIsWithEffects items moves
 				= ([(0,ChangeChild (ReplaceUI ui))],items,moves)
 			| otherwise
 				# (_,[i:is]) = extractShifts items
 				//Extract the changes of the first item, and just update the rest
 				# (change,(i,moves)) = extractDownstreamChange (i,moves)
-				# (_,is,moves) = extractUIsWithEffects is moves
+				# (_,is,moves) = extractChildUIsWithEffects is moves
 				= ([(0,ChangeChild change)],[i:is],moves)
 		| otherwise
 			# (shifts,items) = extractShifts items
@@ -1185,6 +1174,7 @@ where
 				# (cs,xs,moves) = extract (i + 1) xs moves
 				= ([(i,InsertChild ui):cs],[x:xs],moves)
 
+			//TODO: Als check hidden status when removing moved items
 			extract i [x=:(LUIMoveSource moveId):xs] moves
 				//Check if it was just moved away, or already moved earlier
 				= case getMovedNode_ moveId moves of
@@ -1210,7 +1200,7 @@ where
 						# x = LUINode type attr items changes {LUIEffects|effects & moved = ESNotApplied}
 						# (ui,(x,moves)) = extractUIWithEffects (x,moves)
 						# (cs,xs,moves) = extract (i + 1) xs moves
-						= ([(i,InsertChild ui):cs],[x:xs], moves)
+						= (if (isHidden_ x) cs [(i,InsertChild ui):cs],[x:xs], moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyRemoved ruleId})
 						//We are restoring second: 
 						//- Remove the node at the destination, and check if all nodes have been removed
@@ -1218,10 +1208,11 @@ where
 						# x = LUINode type attr items changes {LUIEffects|effects & moved = ESNotApplied}
 						# (ui,(x,moves)) = extractUIWithEffects (x,moves)
 						# (cs,xs,moves) = extract (i + 1) xs moves
-						= ([(i,InsertChild ui):cs],[x:xs], moves)
+						= (if (isHidden_ x) cs [(i,InsertChild ui):cs],[x:xs], moves)
 					_
 						# (cs,xs,moves) = extract i xs moves
 						= (cs,[x:xs], moves)
+			//TODO: Here also check hidden status when removing 
 			extract i [x=:(LUIMoveDestination moveId moveRule):xs] moves
 				//Check if it was just moved away, or already moved earlier
 				= case getMovedNode_ moveId moves of
@@ -1231,13 +1222,13 @@ where
 						# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
 						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract (i + 1) xs moves
-						= ([(i,InsertChild ui):cs],[x:xs],moves)
+						= (if (isHidden_ dx) cs [(i,InsertChild ui):cs],[x:xs],moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyApplied ruleId})
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESApplied ruleId}
 						# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
 						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract (i + 1) xs moves
-						= ([(i,InsertChild ui):cs],[x:xs],moves)
+						= (if (isHidden_ dx) cs [(i,InsertChild ui):cs],[x:xs],moves)
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESApplied ruleId})
 						# (c,(dx,moves)) = extractDownstreamChange (dx,moves)
 						# moves = putMovedNode_ moveId dx moves
@@ -1245,15 +1236,45 @@ where
 						= case c of
 							NoChange = (cs,[x:xs], moves)
 							_        = ([(i,ChangeChild c):cs],[x:xs], moves)
+					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeUpdated previousId ruleId})
+						| moveRule == previousId //Old destination, remove it there
+							# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyUpdated previousId ruleId}
+							# moves = putMovedNode_ moveId dx moves
+							# (cs,xs,moves) = extract i xs moves
+							= ([(i,RemoveChild):cs], xs, moves) //TODO: check hidden status
+						| moveRule == ruleId //New destination, insert it here
+							# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyUpdated previousId ruleId}
+							# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
+							# moves = putMovedNode_ moveId dx moves
+							# (cs,xs,moves) = extract (i + 1) xs moves
+							= (if (isHidden_ dx) cs [(i,InsertChild ui):cs],[x:xs],moves)
+						| otherwise //Temporary destination, just delete the reference
+							= extract i xs moves
+					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyUpdated previousId ruleId})
+						| moveRule == previousId //Old destination, remove it there
+							# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESApplied ruleId}
+							# moves = putMovedNode_ moveId dx moves
+							# (cs,xs,moves) = extract i xs moves
+							= ([(i,RemoveChild):cs], xs, moves) //TODO: check hidden status
+						| moveRule == ruleId //New destination, insert it here
+							# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESApplied ruleId}
+							# (ui,(dx,moves)) = extractUIWithEffects (dx,moves)
+							# moves = putMovedNode_ moveId dx moves
+							# (cs,xs,moves) = extract (i + 1) xs moves
+							= (if (isHidden_ dx) cs [(i,InsertChild ui):cs],[x:xs],moves) 
+						| otherwise //Temporary destination, just delete the reference
+							= extract i xs moves
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESToBeRemoved ruleId})
 						# dx = LUINode type attr items changes {LUIEffects|effects & moved = ESPartiallyRemoved ruleId}
 						# moves = putMovedNode_ moveId dx moves
 						# (cs,xs,moves) = extract i xs moves
-						= ([(i,RemoveChild):cs],xs, moves)
+						= ([(i,RemoveChild):cs],xs, moves) //TODO: check hidden status
 					dx=:(LUINode type attr items changes effects=:{LUIEffects|moved=ESPartiallyRemoved ruleId})
 						# moves = 'DM'.del moveId moves	
 						# (cs,xs,moves) = extract i xs moves
-						= ([(i,RemoveChild):cs],xs, moves)
+						= ([(i,RemoveChild):cs],xs, moves) //TODO: check hidden status
+					dx	
+						= abort (toString (toJSON dx))
 
 			extract i [x:xs] moves
 				# (c,(x,moves)) = extractDownstreamChange (x,moves)
@@ -1267,17 +1288,6 @@ where
 extractDownstreamChange (lui,moves) = (NoChange,(lui,moves))
 
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
-extractUIWithEffects (LUIMoveSource moveId, moves)
-	# lui = getMovedNode_ moveId moves
-	# (ui,(lui,moves)) = extractUIWithEffects (lui,moves)
-	# moves = putMovedNode_ moveId (confirmMove lui) moves
-	= (ui,(LUIMoveSource moveId, moves))
-extractUIWithEffects (LUIMoveDestination moveId moveRule,moves)
-	# lui = getMovedNode_ moveId moves
-	# (ui,(lui,moves)) = extractUIWithEffects (lui,moves)
-	# moves = putMovedNode_ moveId (confirmMove lui) moves
-	= (ui,(LUIMoveDestination moveId moveRule, moves))
-
 extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects, moves)
 	= extractUIWithEffects (replacement,moves)
 extractUIWithEffects (LUINode ltype lattr litems changes effects=:{wrapper=ESToBeRemoved _}, moves)
@@ -1290,33 +1300,14 @@ extractUIWithEffects (lui=:LUINode ltype lattr litems changes=:{setAttributes,de
 	//Update attributes and apply attribute effects
 	# lattr = applyAttributeChanges_ changes lattr
 	# (attr,effects) = applyAttributeEffects_ lattr effects
-	//Remove items marked as removed
-	# litems = filter (not o remove) litems
-	//Move shifted items to their destinations
-	# (sources,litems) = collectShiftSources litems
-	# litems = replaceShiftDestinations sources litems
-	//Recursively extract all effects
-	# (items,litems,moves) = extractUIsWithEffects litems moves
+	//Recursively extract children with effects 
+	# (items,litems,moves) = extractChildUIsWithEffects litems moves
 	//Determine the ui
 	# ui = if (isHidden_ lui)
 		(UI UIEmpty 'DM'.newMap [])
 		(if (isUnwrapped_ lui) (hd items) (UI type attr items))
 	= (ui, (LUINode ltype lattr litems noChanges (confirmEffects effects),moves))
 where
-	remove (LUINode _ _ _ {toBeRemoved=True} _) = True
-	remove (LUINode _ _ _ {toBeReplaced=Nothing} {additional = ESToBeRemoved _}) = True
-	remove _ = False
-
-	collectShiftSources items = foldr collect ('DM'.newMap,[]) items
-	where
-		collect n=:(LUINode _ _ _ {toBeShifted=Just shiftID} _) (sources,items) = ('DM'.put shiftID n sources,items)
-		collect n (sources,items) = (sources,[n:items])
-
-	replaceShiftDestinations sources items = foldr replace [] items
-	where
-		replace (LUIShiftDestination shiftID) items = maybe items (\n -> [resetToBeShifted n:items]) ('DM'.get shiftID sources)
-		replace n items = [n:items]
-
 	//TODO: Consider moving confirmation out of extract function, maybe to extract state
 	confirmEffects effects=:{LUIEffects|additional=ESToBeApplied ruleId} = {LUIEffects|effects & additional=ESApplied ruleId}
 	confirmEffects effects=:{LUIEffects|hidden=ESToBeApplied ruleId} = {LUIEffects|effects & hidden=ESApplied ruleId}
@@ -1329,21 +1320,100 @@ where
 
 extractUIWithEffects _ = abort "extractUIWithEffects: can only extract UI from LUINodes"
 
-confirmMove :: LUI -> LUI
-confirmMove (LUINode type attr items changes effects=:{moved=ESToBeApplied ruleId})
-	= LUINode type attr items changes {effects & moved=ESPartiallyApplied ruleId}
-confirmMove (LUINode type attr items changes effects=:{moved=ESPartiallyApplied ruleId})
-	= LUINode type attr items changes {effects & moved=ESApplied ruleId}
-confirmMove lui = lui
-
-extractUIsWithEffects :: [LUI] LUIMoves -> ([UI],[LUI],LUIMoves)
-extractUIsWithEffects litems moves = foldr extract ([],[],moves) litems
+extractChildUIsWithEffects :: [LUI] LUIMoves -> ([UI],[LUI],LUIMoves)
+extractChildUIsWithEffects litems moves 
+	= foldr extract ([],[],moves) litems
 where
+	shiftSources = foldr collect 'DM'.newMap litems
+	where
+		collect n=:(LUINode _ _ _ {toBeShifted=Just shiftID} _) sources = 'DM'.put shiftID n sources
+		collect n sources = sources
+
+	//Move shifted items to the right place
+	extract (LUIShiftDestination shiftID) (items,litems,moves)
+		= extract (resetShifted (fromJust ('DM'.get shiftID shiftSources))) (items,litems,moves)
+	//Skip over items that still need to be shifted
+	extract litem=:(LUINode _ _ _ {toBeShifted=Just _} _) (items,litems,moves) 
+		= (items,litems,moves)
+	//Items that need to be removed
+	extract litem=:(LUINode _ _ _ {LUIChanges|toBeRemoved=True} _) (items,litems,moves)
+		= (items,litems,moves)
+	extract litem=:(LUINode _ _ _ {toBeReplaced=Nothing} {additional = ESToBeRemoved _}) (items,litems,moves)
+		= (items,litems,moves)
+	//Dealing with moved nodes
+	extract litem=:(LUIMoveSource moveId) (items,litems,moves)
+		= case getMovedNode_ moveId moves of
+			movedItem=:(LUINode _ _ _ _ {moved=ESToBeRemoved ruleId}) //Restore (destination still exists)
+				# (item,(litem,moves)) = extractUIWithEffects (movedItem,moves)
+				# moves = putMovedNode_ moveId movedItem moves
+				= ([item:items],[confirm (confirm litem):litems], moves)
+			movedItem=:(LUINode _ _ _ _ {moved=ESPartiallyRemoved ruleId}) //Restore (destination already removed)
+				# (item,(litem,moves)) = extractUIWithEffects (movedItem,moves)
+				# moves = 'DM'.del moveId moves
+				= ([item:items],[confirm litem:litems], moves)
+			movedItem
+				# moves = putMovedNode_ moveId (confirm movedItem) moves
+				= (items, [litem:litems], moves)
+
+	extract litem=:(LUIMoveDestination moveId moveRule) (items,litems,moves)
+		= case getMovedNode_ moveId moves of
+			movedItem=:(LUINode _ _ _ _ {moved=ESToBeApplied ruleId})	
+				# (item,(movedItem,moves)) = extractUIWithEffects (movedItem,moves)
+				# moves = putMovedNode_ moveId (confirm movedItem) moves
+				= (if (isHidden_ movedItem) items  [item:items],[litem:litems], moves)
+			movedItem=:(LUINode _ _ _ _ {moved=ESPartiallyApplied ruleId})	
+				# (item,(movedItem,moves)) = extractUIWithEffects (movedItem,moves)
+				# moves = putMovedNode_ moveId (confirm movedItem) moves
+				= (if (isHidden_ movedItem) items  [item:items],[litem:litems], moves)
+			movedItem=:(LUINode _ _ _ _ {moved=ESApplied ruleId})	
+				# (item,(movedItem,moves)) = extractUIWithEffects (movedItem,moves)
+				# moves = putMovedNode_ moveId (confirm movedItem) moves
+				= (if (isHidden_ movedItem) items [item:items],[litem:litems], moves)
+			movedItem=:(LUINode _ _ _ _ {moved=ESToBeUpdated previousId ruleId})	
+				| moveRule == previousId //Old destination, don't include it here
+					= (items, litems, moves)	
+				| moveRule == ruleId //New destination, include it here
+					# (item,(movedItem,moves)) = extractUIWithEffects (movedItem,moves)
+					# moves = putMovedNode_ moveId (confirm movedItem) moves
+					= (if (isHidden_ movedItem) items [item:items],[litem:litems], moves)
+				| otherwise //Temporary destination, just delete the reference
+					= (items, litems, moves)	
+			movedItem=:(LUINode _ _ _ _ {moved=ESPartiallyUpdated previousId ruleId})	
+				| moveRule == previousId //Old destination, don't include it here
+					= (items, litems, moves)	
+				| moveRule == ruleId //New destination, include it here
+					# (item,(movedItem,moves)) = extractUIWithEffects (movedItem,moves)
+					# moves = putMovedNode_ moveId (confirm movedItem) moves
+					= (if (isHidden_ movedItem) items [item:items],[litem:litems], moves)
+				| otherwise //Temporary destination, just delete the reference
+					= (items, litems, moves)	
+			movedItem=:(LUINode _ _ _ _ {moved=ESToBeRemoved ruleId}) //To be be restored
+				# moves = putMovedNode_ moveId (confirm movedItem) moves
+				= (items, litems, moves)	
+			movedItem=:(LUINode _ _ _ _ {moved=ESPartiallyRemoved ruleId}) //Already restored
+				# moves = 'DM'.del moveId moves
+				= (items, litems, moves)
+					
 	extract litem (items,litems,moves)
-		| isRemoved_ litem = (items,litems,moves)
-		| otherwise
-			# (item,(litem,moves)) = extractUIWithEffects (litem,moves)
-			= (if (isHidden_ litem || isMoved_ litem) items [item:items],[litem:litems], moves)
+		# (item,(litem,moves)) = extractUIWithEffects (litem,moves)
+		= (if (isHidden_ litem) items [item:items],[litem:litems], moves)
+
+	resetShifted (LUINode type attr items changes effects)
+		= LUINode type attr items {changes & toBeShifted = Nothing} effects
+
+	confirm (LUINode type attr items changes effects=:{moved=ESToBeApplied ruleId})
+		= LUINode type attr items changes {effects & moved=ESPartiallyApplied ruleId}
+	confirm (LUINode type attr items changes effects=:{moved=ESPartiallyApplied ruleId})
+		= LUINode type attr items changes {effects & moved=ESApplied ruleId}
+	confirm (LUINode type attr items changes effects=:{moved=ESToBeRemoved ruleId})
+		= LUINode type attr items changes {effects & moved=ESPartiallyRemoved ruleId}
+	confirm (LUINode type attr items changes effects=:{moved=ESPartiallyRemoved ruleId})
+		= LUINode type attr items changes {effects & moved=ESNotApplied}
+	confirm (LUINode type attr items changes effects=:{moved=ESToBeUpdated previousId ruleId})
+		= LUINode type attr items changes {effects & moved=ESPartiallyUpdated previousId ruleId}
+	confirm (LUINode type attr items changes effects=:{moved=ESPartiallyUpdated previousId ruleId})
+		= LUINode type attr items changes {effects & moved=ESApplied ruleId}
+	confirm lui = lui
 
 resetToBeShifted (LUINode type attr items changes effects)
 	= LUINode type attr items {changes & toBeShifted = Nothing} effects
