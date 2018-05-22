@@ -299,6 +299,18 @@ where
 				= updateSubNode_ ruleNo [0] (rule ruleNo) (lui,moves)
 	rule ruleNo (lui,moves) = (lui,moves)
 
+hideUI :: LayoutRule
+hideUI = rule
+where
+	rule ruleNo (lui,moves) = updateNode_ ruleNo (apply ruleNo) (lui,moves)
+	apply ruleNo (LUINode type attr items changes effects=:{hidden},moves)
+		# hidden = case hidden of
+			ESNotApplied = ESToBeApplied ruleNo
+			ESToBeApplied _ = ESToBeApplied ruleNo
+			ESApplied _ = ESApplied ruleNo
+			ESToBeRemoved _ = ESApplied ruleNo
+		= (LUINode type attr items changes {effects & hidden=hidden},moves)
+
 insertChildUI :: Int UI -> LayoutRule
 insertChildUI position insertion = rule
 where
@@ -334,37 +346,6 @@ where
 			| otherwise
 				= lui
 		undo lui = lui
-
-removeSubUIs :: UISelection -> LayoutRule
-removeSubUIs selection = rule
-where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-
-	rule ruleNo (lui,moves) = remove [] (lui,moves)
-	where
-		remove path (lui=:(LUINode type attr items changes effects),moves)
-			//Check if this matches the selection
-			| nodeSelected_ ruleNo selection path lui moves
-				= (LUINode type attr (map clear items) changes (hide ruleNo effects),moves)
-			| otherwise
-				# (items,moves) = updateChildNodes_ ruleNo (\i (item,moves) -> remove (path ++ [i]) (item,moves)) (items,moves)
-				= (LUINode type attr items changes (unhide ruleNo effects),moves)
-		remove path (lui,moves) = (lui,moves)
-
-		clear (LUINode type attr items changes effects) = LUINode type attr (map clear items) changes (unhide ruleNo effects)
-		clear lui = lui
-
-	hide ruleId effects=:{hidden=ESNotApplied} = {effects & hidden = ESToBeApplied ruleId}
-	hide ruleId effects=:{hidden=ESToBeApplied _} = {effects & hidden = ESToBeApplied ruleId}
-	hide ruleId effects=:{hidden=ESApplied _} = {effects & hidden = ESApplied ruleId}
-	hide ruleId effects=:{hidden=ESToBeRemoved _} = {effects & hidden = ESApplied ruleId}
-
-	unhide ruleId effects=:{hidden=ESNotApplied} = {effects & hidden = ESNotApplied}
-	unhide ruleId effects=:{hidden=ESToBeApplied _} = {effects & hidden = ESNotApplied}
-	unhide ruleId effects=:{hidden=ESApplied _} = {effects & hidden = ESToBeRemoved ruleId}
-	unhide ruleId effects=:{hidden=ESToBeRemoved _} = {effects & hidden = ESToBeRemoved ruleId}
 
 moveSubUIs :: UISelection UIPath Int -> LayoutRule
 moveSubUIs selection path pos = rule

@@ -82,16 +82,15 @@ wrapUI :: UIType -> LayoutRule
 unwrapUI :: LayoutRule
 
 /*
+* Hide a (piece of a) UI
+*/
+hideUI :: LayoutRule
+removeSubUIs selection :== layoutSubUIs selection hideUI
+
+/*
 * Insert a (static) element into a UI
 */
 insertChildUI :: Int UI -> LayoutRule
-
-/**
-* Remove all elements that match the predicate, but keep the removed elements in the state.
-* Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
-* When new elements are added dynamically they are also tested against the predicate
-*/
-removeSubUIs :: UISelection -> LayoutRule
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
@@ -102,6 +101,8 @@ moveSubUIs :: UISelection UIPath Int -> LayoutRule
 
 /**
 * Applying a rule locally to matching parts of a UI
+* When the predicate no longer holds, the elements are inserted back into the UI.
+* When new elements are added dynamically they are also tested against the predicate.
 */
 layoutSubUIs :: UISelection LayoutRule -> LayoutRule
 
