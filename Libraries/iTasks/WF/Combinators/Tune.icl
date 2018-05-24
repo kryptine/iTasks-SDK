@@ -7,7 +7,7 @@ import iTasks.UI.Layout
 
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
-import Text.GenJSON, StdString
+import Data.Maybe, Text.GenJSON, StdString
 import qualified Data.Map as DM
 
 //This type records the states of layouts applied somewhere in a ui tree
@@ -45,7 +45,8 @@ applyLayout rule task=:(Task evala) = Task eval
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				# (ui,state) = extractUIWithEffects (rule ruleNo (initLUI ui, initLUIMoves))
+				# (mbUI,state) = extractUIWithEffects (rule ruleNo (initLUI ui, initLUIMoves))
+				# ui = fromMaybe (UI UIEmpty 'DM'.newMap []) mbUI
 				//| not (trace_tn ("STATE AFTER RESET: \n"+++toString (toJSON state))) = undef
 				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)

@@ -191,7 +191,7 @@ applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
 extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
-extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
+extractUIWithEffects :: (LUI,LUIMoves) -> (!Maybe UI,!(LUI,LUIMoves))
 
 //Helper functions (exported for unit testing)
 scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)

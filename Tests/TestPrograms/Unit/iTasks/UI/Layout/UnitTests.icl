@@ -192,7 +192,7 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(0,MoveChild 2)
 		                                  ,(2,RemoveChild)
 										  ]) (lui00,initLUIMoves))
-	,assertEqual "Set attribute on wrapped child"
+	,assertEqual "Set attribute on a wrapped child"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 			,LUINode UIStep 'DM'.newMap 
@@ -206,6 +206,22 @@ applyUpstreamChangeTests =
 				,LUINode UIStep 'DM'.newMap 
 					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
 					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
+				] noChanges noEffects, initLUIMoves)
+		)
+	,assertEqual "Set attribute on an unwrapped child"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
+			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+			,LUINode UIStep 'DM'.newMap 
+				[LUINode UIDebug 'DM'.newMap [] noChanges  noEffects
+				] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "changed-title")]} {noEffects & unwrapped = ESApplied (LUINo [0])}
+			] noChanges noEffects
+		,initLUIMoves)
+		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "changed-title")] []))]) 
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap 
+					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESApplied (LUINo [0])}
 				] noChanges noEffects, initLUIMoves)
 		)
 	,assertEqual "Set attribute in moved child"
@@ -935,12 +951,12 @@ extractDownstreamChangeTest_MovingIntoAdditionalContainer =
 
 extractUIWithEffectsTests =
 	[assertEqual "Extract UI with newly moved items" 
-		(UI UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+		(Just (UI UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[UI UIStep 'DM'.newMap
 				[UI UIInteract 'DM'.newMap []
 				,UI UIParallel 'DM'.newMap []
 				]
-			]
+			])
 		,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[LUIMoveSource 1
 			,LUINode UIStep 'DM'.newMap [LUIMoveDestination 1 (LUINo [0]),LUIMoveDestination 2 (LUINo [0])] noChanges noEffects
@@ -962,12 +978,12 @@ extractUIWithEffectsTests =
 			,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESApplied (LUINo [0])})
 			]))
 	,assertEqual "Extract UI with updated moved items" 
-		(UI UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+		(Just (UI UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[UI UIParallel 'DM'.newMap []
 			,UI UIStep 'DM'.newMap
 				[UI UIInteract 'DM'.newMap []
 				]
-			]
+			])
 		,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 			[LUIMoveSource 1
 			,LUIMoveDestination 2 (LUINo [1])
@@ -991,7 +1007,7 @@ extractUIWithEffectsTests =
 			,(2,LUINode UIParallel 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeUpdated (LUINo [0]) (LUINo [1])})
 			]))
 	,assertEqual "Extract UI with new wrapped"
-		(UI UIContainer 'DM'.newMap [UI UIStep 'DM'.newMap []]
+		(Just (UI UIContainer 'DM'.newMap [UI UIStep 'DM'.newMap []])
 		,(LUINode UIContainer 'DM'.newMap
 			[LUINode UIStep 'DM'.newMap [] noChanges noEffects
 			] noChanges {noEffects & wrapper = ESApplied (LUINo [2])}

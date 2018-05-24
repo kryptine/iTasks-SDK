@@ -20,10 +20,10 @@ layoutCombinatorContainers = sequenceLayouts
 	]
 
 layoutStep = sequenceLayouts
-	[layoutSubUIs SelectNestedStep removeDisabledActions
+	[layoutSubUIs (SelectAND SelectDescendents (SelectByType UIStep)) layoutStep
+	,layoutSubUIs SelectNestedStep removeDisabledActions
 	,layoutSubUIs (SelectAND NotYetTransformed HasActions) layoutWithActions
 	,layoutSubUIs NotYetTransformed layoutWithoutActions
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIStep)) layoutStep
 	]
 where
 	SelectNestedStep =
@@ -47,13 +47,10 @@ where
 	NotYetTransformed = SelectAND (SelectByPath []) (SelectByType UIStep)
 	HasActions = SelectByContains (SelectAND SelectChildren (SelectByType UIAction))
 
-	layoutWithoutActions = setUIType UIContainer
-	/* TODO: Unwrap first needs to work
 	layoutWithoutActions = sequenceLayouts
 		[copySubUIAttributes SelectAll [] [0]
 		,unwrapUI
 		]
-	*/
 	layoutWithActions = sequenceLayouts
 		[setUIType UIPanel
 		,addButtonBar
