@@ -43,7 +43,7 @@ where
 	r_out      = 100.0
 	r_in       = 90.0
 	bandwidth  = r_in * 0.2
-	bigfont    = {arial (r_in * 0.35) & fontweight = "bolder"}
+	bigfont    = setfontweight "bolder" (arial (r_in * 0.35))
 	narrowfont = arial_narrow (r_in * 0.22)
 
 /**	star n (r_in,r_out) = image:

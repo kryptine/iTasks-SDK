@@ -47,37 +47,10 @@ TonicBlack    =: toSVGColor "#000000" // "black"
 TonicRed      =: toSVGColor "#ff4500" // "OrangeRed"
 TonicGrey     =: toSVGColor "#dcdcdc" // "Gainsboro"
 
-ArialRegular10px :== { fontfamily  = "Arial"
-                     , fontysize   = 10.0
-                     , fontstretch = "normal"
-                     , fontstyle   = "normal"
-                     , fontvariant = "normal"
-                     , fontweight  = "normal"
-                     }
-
-ArialBold6px :== { fontfamily  = "Arial"
-                 , fontysize   = 6.0
-                 , fontstretch = "normal"
-                 , fontstyle   = "normal"
-                 , fontvariant = "normal"
-                 , fontweight  = "bold"
-                 }
-
-ArialBold10px :== { fontfamily  = "Arial"
-                  , fontysize   = 10.0
-                  , fontstretch = "normal"
-                  , fontstyle   = "normal"
-                  , fontvariant = "normal"
-                  , fontweight  = "bold"
-                  }
-
-ArialItalic10px :== { fontfamily  = "Arial"
-                    , fontysize   = 10.0
-                    , fontstretch = "normal"
-                    , fontstyle   = "italic"
-                    , fontvariant = "normal"
-                    , fontweight  = "normal"
-                    }
+ArialRegular10px :== normalFontDef "Arial" 10.0
+ArialBold6px     :== normalFontDef "Arial" 6.0
+ArialBold10px    :== setfontweight "bold"  (normalFontDef "Arial" 10.0)
+ArialItalic10px  :== setfontstyle "italic" (normalFontDef "Arial" 10.0)
 
 :: InhMkImg i =
   { inh_bpinst             :: !Maybe i
@@ -310,7 +283,7 @@ tFApp inh eid fn args assoc tsrc
       , tsrc)
   | otherwise
       #! pp  = ppTExpr (TFApp eid fn args assoc)
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -358,7 +331,7 @@ tPPExpr inh pp tsrc
           }
         , tsrc)
   | otherwise
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -387,7 +360,7 @@ tVar inh eid pp ptr tsrc
           }
         , tsrc)
   | otherwise
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, txtImg] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -1206,7 +1179,7 @@ someActivity _               = False
 tTextWithGreyBackground :: !FontDef !String -> Image ModelTy
 tTextWithGreyBackground font txt
   #! textWidth = textxspan font txt + px 10.0
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (font.fontysize + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text font txt] NoHost
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (getfontysize font + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text font txt] NoHost
 
 littleman :: Image a
 littleman

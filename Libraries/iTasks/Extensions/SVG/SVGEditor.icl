@@ -23,12 +23,12 @@ import Math.Geometry
 import StdDebug
 from iTasks.Internal.Generic.Visualization import <+++
 class short a :: !a -> String
-instance short FontDef where short {FontDef | fontfamily=f,fontysize=h} = "{FontDef | " <+++ f <+++ "," <+++ h <+++ "}"
+instance short FontDef where short fontdef = "{FontDef | " <+++ getfontfamily fontdef <+++ "," <+++ getfontysize fontdef <+++ "}"
 str :: !String -> String
 str s = "\"" +++ s +++ "\""
 
-derive JSEncode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
-derive JSDecode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
+derive JSEncode ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
+derive JSDecode ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
 
 // JavaScript object attribute labels:
 // Client side state (access via jsGetCleanVal and jsPutCleanVal):
@@ -99,8 +99,8 @@ instance toString ViaImg
  = ClientHasNewModel !s                             // the new public model value
 :: ClientHasNewTextMetrics                          // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
  = ClientHasNewTextMetrics !FontSpans !TextSpans    // the new font and text-width metrics
-derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, FontDef
-derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, FontDef
+derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics
+derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics
 
 //	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
 :: ServerToClientAttr
@@ -178,25 +178,25 @@ newImgTables
 
 //	PA: this is actually redundant code and should use functions from Text.HTML and svgFontDefAttrs below
 svgFontDefAttrPairs :: !FontDef -> [(String,String)]
-svgFontDefAttrPairs {FontDef | fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight}
-	= [ ("font-family",        fontfamily)
-      , ("font-size",          toString fontysize)
-      , ("font-stretch",       fontstretch)
-      , ("font-style",         fontstyle)
-      , ("font-variant",       fontvariant)
-      , ("font-weight",        fontweight)
+svgFontDefAttrPairs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight}
+	= [ ("font-family",        (getfontfamily  fontdef))
+      , ("font-size",          toString (getfontysize fontdef))
+      , ("font-stretch",       (getfontstretch fontdef))
+      , ("font-style",         (getfontstyle   fontdef))
+      , ("font-variant",       (getfontvariant fontdef))
+      , ("font-weight",        (getfontweight  fontdef))
       , ("alignment-baseline", "auto")
       , ("dominant-baseline",  "auto")
       ]
 
 svgFontDefAttrs :: !FontDef -> [SVGAttr]
-svgFontDefAttrs {FontDef | fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight}
-	= [ FontFamilyAttr        fontfamily
-      , FontSizeAttr          (toString fontysize)
-      , FontStretchAttr       fontstretch
-      , FontStyleAttr         fontstyle
-      , FontVariantAttr       fontvariant
-      , FontWeightAttr        fontweight
+svgFontDefAttrs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight}
+	= [ FontFamilyAttr        (getfontfamily  fontdef)
+      , FontSizeAttr          (toString (getfontysize fontdef))
+      , FontStretchAttr       (getfontstretch fontdef)
+      , FontStyleAttr         (getfontstyle   fontdef)
+      , FontVariantAttr       (getfontvariant fontdef)
+      , FontWeightAttr        (getfontweight  fontdef)
       , AlignmentBaselineAttr "auto"
       , DominantBaselineAttr  "auto"
       , TextRenderingAttr     "geometricPrecision"
@@ -475,7 +475,7 @@ where
 		calcFontSpan :: !(JSVal (JSObject a)) !*(!FontSpans,!*JSWorld) !FontDef -> *(!FontSpans,!*JSWorld)
 		calcFontSpan elem (font_spans,world) fontdef
 		  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
-		  #! (fd, world) = calcFontDescent elem fontdef.fontysize world
+		  #! (fd, world) = calcFontDescent elem (getfontysize fontdef) world
 		  = ('DM'.put fontdef fd font_spans, world)
 		
 		calcFontDescent :: !(JSVal (JSObject a)) !Real !*JSWorld -> (!Real, !*JSWorld)
@@ -822,8 +822,11 @@ mkUrl ref = "url(#" +++ ref +++ ")"
 mkWH :: !ImageSpanReal -> [HtmlAttr]
 mkWH (imXSp, imYSp) = [WidthAttr (to2decString imXSp), HeightAttr (to2decString imYSp)]
 
+to2dec :: !Real -> Real
+to2dec r = toReal (toInt (r * 100.0)) / 100.0
+
 to2decString :: !Real -> String
-to2decString r = toString (toReal (toInt (r * 100.0)) / 100.0)
+to2decString r = toString (to2dec r)
 
 genSVGElts :: !Img !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 genSVGElts {Img | uniqId, transform, host, overlays, offsets} taskId es markers paths spans grids
@@ -929,7 +932,7 @@ where
 		= []
 	genSVGBasicHostImg no (TextImg fontdef txt) attrs taskId es markers paths spans grids
 		= [TextElt [XmlspaceAttr "preserve"] 
-		           (keepTransformAttrsTogether (TransformAttr [TranslateTransform (toString 0.0) (toString (fontdef.fontysize * 0.75))]) (attrs ++ svgFontDefAttrs fontdef)) txt
+		           (keepTransformAttrsTogether (TransformAttr [TranslateTransform (toString 0.0) (toString (getfontysize fontdef * 0.75))]) (attrs ++ svgFontDefAttrs fontdef)) txt
 		  ]
 	genSVGBasicHostImg no RectImg attrs taskId es markers paths spans grids
 		= [RectElt sizeAtts attrs]
