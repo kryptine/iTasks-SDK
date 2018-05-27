@@ -243,6 +243,23 @@ applyUpstreamChangeTests =
 				] noChanges noEffects
 			,'DM'.fromList [(1,LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & moved = ESApplied (LUINo [0])})])
 		)
+	,assertEqual "Set attribute after removed child"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIEmpty 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [0])}
+				,LUINode UIStep 'DM'.newMap 
+					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "changed-title")]} noEffects
+				] noChanges noEffects
+		,'DM'.newMap)
+		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "changed-title")] []))]) 
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIEmpty 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [0])}
+				,LUINode UIStep 'DM'.newMap 
+					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges noEffects
+				] noChanges noEffects
+			,'DM'.newMap)
+		)
 	]
 
 //Check if pending downstream changes are correctly extracted from the tree
@@ -277,6 +294,7 @@ extractDownstreamChangeTests =
 	,extractDownstreamChangeTest_NewUnwrappedChild
 	,extractDownstreamChangeTest_NoLongerUnwrappedChild
 	,extractDownstreamChangeTest_ChangingAnUnwrappedAttribute
+	,extractDownstreamChangeTest_ChangingAfterUnwrappedHiddenAttribute
 	,extractDownstreamChangeTest_InsertIntoUnwrappedContainer
 	,extractDownstreamChangeTest_RemovingUnwrappedContainer
 	,extractDownstreamChangeTest_ShiftingInUnwrappedContainer
@@ -868,6 +886,28 @@ extractDownstreamChangeTest_ChangingAnUnwrappedAttribute =
 					[ LUINode UIDebug 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")]} noEffects
 					] noChanges {noEffects & unwrapped = ESApplied (LUINo [0])}
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		,initLUIMoves))
+
+extractDownstreamChangeTest_ChangingAfterUnwrappedHiddenAttribute =
+	assertEqual "Changing an attribute after an unwrapped hidden child" 
+		(ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "test")] []))]
+			,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [1])}
+					] noChanges {noEffects & unwrapped = ESApplied (LUINo [0])}
+				,LUINode UIParallel ('DM'.fromList [("title",JSONString "test")]) [] noChanges noEffects
+				] noChanges noEffects
+			 ,initLUIMoves)
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [1])}
+					] noChanges {noEffects & unwrapped = ESApplied (LUINo [0])}
+				,LUINode UIParallel 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")]} noEffects
 				] noChanges noEffects
 		,initLUIMoves))
 

@@ -1007,6 +1007,7 @@ where
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = False
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESToBeUpdated _ _}) = False
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESPartiallyUpdated _ _}) = False
+	existsDownstream_ ref (LUINode _ _ [i:_] _ {LUIEffects|unwrapped=ESApplied _}) = existsDownstream_ ref i
 	existsDownstream_ _ _ = True
 
  	determineInsert_ node current moves = case extractUIWithEffects (current,moves) of
@@ -1166,34 +1167,6 @@ where
 		check [(hiddenKey,ESApplied _):_] | hiddenKey == key = True
 		check [(hiddenKey,ESToBeUpdated _ _):_] | hiddenKey == key = True
 		check [_:xs] = check xs
-
-/*
-extractChildChanges :: [LUI] LUIMoves Bool -> ([(Int,UIChildChange)],[LUI],LUIMoves)
-extractChildChanges [] moves unwrapped = ([],[],moves)
-extractChildChanges items moves unwrapped
-	# (shifts,items) = extractChildShifts items
-	| unwrapped
-		| differentFirstChild items
-			# ([ui:_],items,moves) = extractChildUIsWithEffects items moves
-			= ([(0,ChangeChild (ReplaceUI ui))],items,moves)
-		| otherwise
-			# [i:is] = items
-			//Extract the changes of the first item, and just update the rest
-			# (change,(i,moves)) = extractDownstreamChange (i,moves)
-			# (_,is,moves) = extractChildUIsWithEffects is moves
-			= ([(0,ChangeChild change)],[i:is],moves)
-	| otherwise
-		# (shifts,items) = extractChildShifts items
-		# (insertsAndRemoves,items,moves) = extractChildInsertsAndRemoves items moves
-		= (shifts ++ insertsAndRemoves, items, moves)
-where
-	//When the parent is unwrapped, we may need to update the ui if another child ends up at position 0
-	differentFirstChild [LUINode _ _ _ {toBeInserted=True} _:_]= True
-	differentFirstChild [LUINode _ _ _ {toBeRemoved=True} _:_]= True
-	differentFirstChild [LUINode _ _ _ {toBeShifted=Just _} _:_]= True
-	differentFirstChild [LUIShiftDestination _:_]= True
-	differentFirstChild items = False
-*/
 
 //Important: Shifts are done before inserts and removes
 //           so we ignore items that are not yet inserted, but still
