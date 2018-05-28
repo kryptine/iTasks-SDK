@@ -34,7 +34,7 @@ where
 			= evala event evalOpts (TCDestroy tt) iworld
 
 		eval event evalOpts tt=:(TCInit _ _) iworld
-			= eval ResetEvent evalOpts (TCLayout JSONNull tt) iworld //On initialization, we need to do a reset to be able to apply the layout
+			= eval ResetEvent evalOpts (TCLayout (DeferredJSONNode JSONNull) tt) iworld //On initialization, we need to do a reset to be able to apply the layout
 
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
@@ -43,15 +43,15 @@ where
 				# (change,state) = l.Layout.apply ui
 				//Modify the layout accorgingly
 				# ui = applyUIChange change ui
-				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
+				= (ValueResult value info (ReplaceUI ui) (TCLayout (DeferredJSON state) tt), iworld)
             (res,iworld) = (res,iworld)
 
 		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				= case fromJSON json of
+				= case fromDeferredJSON json of
 					(Just s)	
 						# (change,s) = l.Layout.adjust (change,s)
-						= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
+						= (ValueResult value info change (TCLayout (DeferredJSON s) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)

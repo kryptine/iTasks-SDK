@@ -496,7 +496,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                 = evalParallelTasks listId taskTrees event evalOpts conts completed todo iworld
 where
     encode NoValue      = NoValue
-    encode (Value v s)  = Value (toJSON v) s
+    encode (Value v s)  = Value (DeferredJSON v) s
 
     (TaskId instanceNo taskNo)   = taskId
 
@@ -538,7 +538,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
-                Value json stable = (\dec -> Value dec stable) <$> fromJSON json
+                Value json stable = (\dec -> Value dec stable) <$> fromDeferredJSON json
             //TODO: use global tasktime to be able to compare event times between instances
             # evalInfo = {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=True}
             = maybe (ExceptionResult (exception "Could not decode task value of detached task"))

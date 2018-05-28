@@ -68,7 +68,7 @@ processEvents max iworld
 						= (Ok (),{IWorld|iworld & world = world})
 
 //Evaluate a single task instance
-evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
     # iworld            = mbResetUIState instanceNo event iworld
     # (res,iworld)      = evalTaskInstance` instanceNo event iworld

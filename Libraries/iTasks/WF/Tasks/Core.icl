@@ -71,7 +71,7 @@ where
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv m)
 				//Just decode the initially stored values
-				= case (fromJSON encl, fromJSON encv) of
+				= case (fromDeferredJSON encl, fromDeferredJSON encv) of
 					(Just l,Just v) = (Ok (taskId,ts,l,v,m),iworld)
 					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
@@ -95,7 +95,7 @@ where
                 # valid     = not (containsInvalidFields m)
                 # value     = if valid (Value (l,v) False) NoValue
                 # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-                = (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
+                = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) m), iworld)
 
 initMask :: TaskId EditMode (Editor v) v !*IWorld -> (MaybeError TaskException EditMask, !*IWorld)
 initMask taskId mode editor v iworld

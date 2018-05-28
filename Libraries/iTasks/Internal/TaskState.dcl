@@ -14,6 +14,8 @@ from Data.Queue import :: Queue
 from Data.Error import :: MaybeError
 from Data.Either import :: Either
 from System.Time import :: Timestamp, :: Timespec
+from Data.GenEq import generic gEq
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -36,7 +38,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	}
 
 :: TIReduct =
-	{ task			:: !Task JSONNode                   //Main task definition
+	{ task			:: !Task DeferredJSON               //Main task definition
     , tree          :: !TaskTree                        //Main task state
     , tonicRedOpts  :: !TonicOpts                       //Tonic data
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
@@ -46,7 +48,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	}
 
 :: TIValue
-   = TIValue !(TaskValue JSONNode)
+   = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
 
 // UI State
@@ -57,16 +59,16 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
-	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !EditMask
-	| TCProject					!TaskId !JSONNode !TaskTree
+	| TCBasic		            !TaskId !TaskTime !DeferredJSON !Bool 									//Encoded value and stable indicator
+	| TCInteract	            !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditMask
+	//| TCProject					!TaskId !DeferredJSON !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
 	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
-	| TCLayout					!JSONNode !TaskTree
+	| TCLayout					!DeferredJSON !TaskTree
 	| TCNop			
 	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
 
@@ -76,15 +78,19 @@ taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
 	|		DeferredJSONNode !JSONNode
 
+instance toString DeferredJSON
+fromDeferredJSON :: !DeferredJSON -> Maybe a | TC, JSONDecode{|*|} a
 derive JSONEncode DeferredJSON
 derive JSONDecode DeferredJSON
+derive gEq        DeferredJSON
+derive gText      DeferredJSON
 	
 :: ParallelTaskState =
 	{ taskId			:: !TaskId					//Identification
     , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
     , detached          :: !Bool
     , attributes        :: !TaskAttributes
-    , value             :: !TaskValue JSONNode      //Value (only for embedded tasks)
+    , value             :: !TaskValue DeferredJSON //Value (only for embedded tasks)
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
     , lastFocus         :: !Maybe TaskTime          //Time the entry was last explicitly focused
 	, lastEvent			:: !TaskTime				//Last modified time

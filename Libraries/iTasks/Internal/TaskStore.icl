@@ -87,7 +87,7 @@ taskInstanceValue :: RWShared InstanceNo TIValue TIValue
 taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
-taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares :: RWShared InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 :: TaskOutputMessage 
@@ -186,7 +186,7 @@ where
 	toJSONTask (Task eval) = Task eval`
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
-			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
+			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap DeferredJSON val) ts rep tree, iworld)
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
@@ -353,12 +353,13 @@ localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNoti
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId shares = case 'DM'.get taskId shares of
-        Just json = case fromJSON json of
-            (Just r)    = Ok r
-            Nothing     = Error (exception ("Failed to decode json of local share " <+++ taskId))
+        Just json = case fromDeferredJSON json of
+            Just r  = Ok r
+            Nothing = Error (exception ("Failed to decode json of local share " <+++ taskId))
         Nothing
             = Error (exception ("Could not find local share " <+++ taskId))
-    write taskId shares w = Ok (Just ('DM'.put taskId (toJSON w) shares))
+
+    write taskId shares w = Ok (Just ('DM'.put taskId (DeferredJSON w) shares))
     notify taskId _ = const ((==) taskId)
 
 derive gText ParallelTaskState
@@ -449,7 +450,7 @@ where
                      } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
             decode NoValue	= NoValue
-            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
+            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
 
         write (listId,selfId,listFilter) states []                              = Ok Nothing
         write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok Nothing
