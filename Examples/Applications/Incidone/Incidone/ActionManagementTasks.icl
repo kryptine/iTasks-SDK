@@ -32,14 +32,14 @@ actionStatusesByIncident :: ROShared IncidentNo [(InstanceNo,InstanceNo,ActionSt
 actionStatusesByIncident = sdsSplit "actionStatusesByIncident" (\p -> ((),p)) read write actionStatuses
 where
     read instanceNo is = filter (filterFun instanceNo) is
-    write _ _ _ = ((),const False)
+    write _ _ _ = ((),const (const False))
     filterFun instanceNo (_,_,{ActionStatus|incidents}) = isMember instanceNo incidents
 
 actionStatusesByContact :: ROShared ContactNo [(InstanceNo,InstanceNo,ActionStatus)]
 actionStatusesByContact = sdsSplit "actionStatusesByContact" (\p -> ((),p)) read write actionStatuses
 where
     read contactNo is   = filter (filterFun contactNo) is
-    write _ _ _         = ((),const False)
+    write _ _ _         = ((),const (const False))
     filterFun contactNo (_,_,{ActionStatus|contacts}) = isMember contactNo contacts
 
 actionStatusesOfCurrentContact :: ROShared () [(InstanceNo,InstanceNo,ActionStatus)]

@@ -1,6 +1,8 @@
 implementation module iTasks.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
+import iTasks.WF.Combinators.Common
+import iTasks.WF.Tasks.System
 from StdFunc import o, seqList, ::St, const, id
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
@@ -33,8 +35,6 @@ from Sapl.Target.Flavour import :: Flavour, toFlavour
 
 from System.OS import IF_POSIX_OR_WINDOWS
 
-MAX_EVENTS 		        :== 5
-
 defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
 defaultEngineOptions world
 	# (appPath,world)    = determineAppPath world	
@@ -47,10 +47,11 @@ defaultEngineOptions world
         , appVersion        = appVersion
 		, serverPort		= IF_POSIX_OR_WINDOWS 8080 80
         , serverUrl         = "http://localhost/"
-		, keepaliveTime     = 300 // 5 minutes
-		, sessionTime       = 60 // 1 minute, (the client pings every 10 seconds by default)
+		, keepaliveTime     = {tv_sec=300,tv_nsec=0} // 5 minutes
+		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
+		, timeout			= Just 500
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
@@ -132,15 +133,10 @@ startEngineWithOptions initFun publishable world
  			# iworld				= createIWorld (fromJust mbOptions) world
  			# (res,iworld) 			= initJSCompilerState iworld
 		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks timeout iworld
+			# iworld				= serve [TaskWrapper removeOutdatedSessions] (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 			= destroyIWorld iworld
 where
 	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) taskOutput)]
-	engineTasks =
- 		[BackgroundTask updateClock
-		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask removeOutdatedSessions
-		,BackgroundTask flushWritesWhenIdle]
 
 runTasks :: a !*World -> *World | Runnable a
 runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
@@ -152,16 +148,12 @@ runTasksWithOptions initFun runnable world
 	# (mbOptions,msg)       = initFun cli options
 	# world                 = show msg world
 	| mbOptions =: Nothing  = world
- 	# iworld				= createIWorld (fromJust mbOptions) world
+	# (Just options)		= mbOptions
+ 	# iworld				= createIWorld options world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve (toRunnable runnable) [] systemTasks timeout iworld
+	# iworld				= serve (toRunnable runnable) [] (timeout options.timeout) iworld
 	= destroyIWorld iworld
-where
-	systemTasks =
- 		[BackgroundTask updateClock
-		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask stopOnStable]
 
 show :: ![String] !*World -> *World
 show lines world

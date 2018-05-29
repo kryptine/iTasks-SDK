@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.TaskState
 
-import Text.JSON, StdString
+import Text.GenJSON, StdString
 import iTasks.UI.Definition
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: AttachmentStatus

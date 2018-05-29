@@ -5,7 +5,7 @@ import Data.Maybe				// for the Maybe type
 import Math.Random				// for generating random numbers
 import iTasks.WF.Definition		// for the iTask infrastructure
 import iTasks.Extensions.User	// for the User data type
-import Data.Generics.GenEq
+import Data.GenEq
 from   iTasks.Internal.Generic.Visualization import <+++	// <+++ shouldn't be imported from here
 
 //	Make iTask infrastructure available for Ligretto model data types:

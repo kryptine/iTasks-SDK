@@ -16,8 +16,9 @@ from Data.Map import :: Map
 from Data.IntMap.Strict import :: IntMap
 from StdOverloaded import class <
 from System.FilePath import :: FilePath
+from System.Time import :: Timespec
 
-from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
+from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
 :: SDSReadProjection rs rt
     = SDSLensRead      (rs -> MaybeError TaskException rt) //Read lens-like

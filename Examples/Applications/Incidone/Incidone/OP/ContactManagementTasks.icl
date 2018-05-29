@@ -571,7 +571,7 @@ where
                 ReadWriteShared ([(Bool,ContactGeo)], Maybe (Either ContactNo MMSI), ContactMapPerspective) (Maybe (Either ContactNo MMSI), ContactMapPerspective) | iTask w
     mapState local contacts sel = sdsSequence "mapState" id (\_ r -> r) (\_ _ -> Right read) writel writer (local >+< sel) mapContacts
     where
-        mapContacts = sdsSelect "mapContacts" choose (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False)) withoutAISContacts withAISContacts
+        mapContacts = sdsSelect "mapContacts" choose (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False)) withoutAISContacts withAISContacts
         where
             choose ((withAIS,{ContactMapPerspective|bounds=Just bounds}),_) = (if withAIS (Right bounds) (Left bounds))
             choose _                                                        = (Left defaultValue)

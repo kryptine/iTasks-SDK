@@ -4,7 +4,7 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
-import Data.List, Text.JSON, Data.Maybe, StdString, Data.Generics.GenEq
+import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
 import qualified Data.Map as DM
 import StdBool, _SystemArray
 from Data.Func import $
@@ -20,8 +20,7 @@ LABEL_WIDTH :== 100
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
-	(sequenceLayouts (setUIType UITabSet)
-		(if closeable moveCloseToTab idLayout))
+	(sequenceLayouts (setUIType UITabSet) (if closeable moveCloseToTab idLayout))
 where
 	moveCloseToTab = layoutSubUIs //Only on children directly containing a clos action
 		(SelectAND
@@ -212,8 +211,10 @@ toEmpty = setUIType UIEmpty
 toContainer :: Layout
 toContainer = setUIType UIContainer 
 
-toPanel :: Layout
-toPanel = setUIType UIPanel
+toPanel :: Bool -> Layout
+toPanel fs = sequenceLayouts
+	(setUIType UIPanel)
+	(if fs (setUIAttributes ('DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)) idLayout)
 
 actionToButton :: Layout
 actionToButton = foldl1 sequenceLayouts
@@ -288,7 +289,7 @@ where
 
 instance tune InPanel Task
 where
-	tune InPanel t =  tune (ApplyLayout toPanel) t
+	tune (InPanel fullscreenable) t =  tune (ApplyLayout (toPanel fullscreenable)) t
 
 instance tune InContainer Task
 where

@@ -2,7 +2,7 @@ implementation module iTasks.Internal.HtmlUtil
 
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Text.HTML, Text.JSON, Text, Internet.HTTP, System.OS
+import Text.HTML, Text.GenJSON, Text, Internet.HTTP, System.OS
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag

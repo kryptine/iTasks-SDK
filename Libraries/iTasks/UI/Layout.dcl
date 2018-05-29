@@ -12,7 +12,7 @@ from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
 from Data.Either import :: Either
 
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure

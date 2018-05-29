@@ -14,7 +14,7 @@ from Data.Queue as DQ import qualified newQueue, dequeue
 
 import iTasks.Extensions.DateTime
 import System.Time, Math.Random
-import Text.JSON
+import Text.GenJSON
 
 :: TaskState a = 
 			{ instanceNo :: !InstanceNo
@@ -119,7 +119,7 @@ where
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
         # world = newWorld
-        # (timestamp=:(Timestamp seed),world) = time world
+        # (timestamp=:{tv_sec=seed},world) = nsTime world
 		= {IWorld
 		  |options =  { appName = "application"
 	                    , appPath = locundef "appDirectory"
@@ -130,6 +130,7 @@ createClientIWorld serverURL currentInstance
                         , sessionTime = locundef "sessionTime"
                         , persistTasks = False
 						, autoLayout = True
+						, timeout = Just 100
 	                    , webDirPath  = locundef "webDirectory"
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"

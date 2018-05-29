@@ -1,0 +1,10 @@
+initServerSideUI of task with taskId = 1-0
+initServerSideUI of task with taskId = 1-0
+serverHandleEditFromClient ClientNeedsSVG
+attributesToUIChange: attributes to set = [height,svgPart,width]
+serverHandleEditFromClient (ClientHasNewTextMetrics [{FontDef | Times New Roman,100}] ["  0","0"]
+attributesToUIChange: attributes to set = [height,svgPart,width]
+serverHandleEditFromClient (ClientHasNewModel 1)
+attributesToUIChange: attributes to set = [height,svgPart,width]
+serverHandleEditFromClient (ClientHasNewTextMetrics [] ["  1","1"]
+attributesToUIChange: attributes to set = [height,svgPart,width]

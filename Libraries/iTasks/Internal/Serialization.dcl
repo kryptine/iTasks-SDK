@@ -1,6 +1,6 @@
 definition module iTasks.Internal.Serialization
 
-from Text.JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, ::JSONNode
 from Data.Error import ::MaybeError, ::MaybeErrorString
 from Data.Maybe import ::Maybe
 

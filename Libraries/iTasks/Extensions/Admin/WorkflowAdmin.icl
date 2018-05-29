@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Admin.WorkflowAdmin
 
 import iTasks
-import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
+import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor, Data.Func
 import iTasks.Internal.SDS
 import iTasks.Internal.Serialization
 import iTasks.Internal.Store
@@ -202,9 +202,11 @@ where
 
 	layoutManageWork = foldl1 sequenceLayouts
 		//Split the screen space
-		[arrangeWithSideBar 0 TopSide 200 True
-		//Layout all dynamically added tasks as tabs
-		,layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
+		[ arrangeWithSideBar 0 TopSide 200 True
+		  //Layout all dynamically added tasks as tabs
+		, layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
+		, layoutSubUIs (SelectByPath [1]) $
+			layoutSubUIs (SelectByDepth 1) (setUIAttributes $ 'DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
 		]
 
 addNewTask :: !(SharedTaskList ()) -> Task ()

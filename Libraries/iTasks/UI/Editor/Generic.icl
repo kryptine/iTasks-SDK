@@ -8,10 +8,10 @@ import iTasks.UI.Editor.Common
 
 import qualified Data.Map as DM
 import StdArray, StdBool, StdFunc, StdList, Data.Maybe, StdString
-import Text.JSON
+import Text.GenJSON
 import Text.Language
 import System.Time
-import Data.Generics.GenEq
+import Data.GenEq
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,),(,,),(,,,), MaybeError

@@ -17,7 +17,7 @@ import iTasks.UI.Editor.Modifiers
 
 import StdBool, StdArray, StdEnum, StdList, StdString
 
-import Text, Text.JSON, System.Time
+import Text, Text.GenJSON, System.Time
 import Data.Maybe, Data.Error 
 import qualified Data.Map as DM
 

@@ -64,6 +64,8 @@
     background-image: url("/css/icons/cog.png") !important; }
   *.itasks-viewport .icon-finish {
     background-image: url("/css/icons/flag.png") !important; }
+  *.itasks-viewport .icon-fullscreen {
+    background-image: url("/css/icons/fullscreen.png") !important; }
   *.itasks-viewport [tooltip] {
     position: relative;
     display: inline-block; }

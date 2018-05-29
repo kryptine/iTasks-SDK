@@ -4,7 +4,7 @@ definition module iTasks.SDS.Sources.Store
 * itasks applications store their data by default
 */
 from iTasks.SDS.Definition import :: SDS
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from System.FilePath import :: FilePath
 from Data.Maybe import :: Maybe
 

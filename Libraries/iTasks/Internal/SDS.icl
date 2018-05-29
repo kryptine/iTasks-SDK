@@ -4,7 +4,7 @@ from StdFunc import const
 import StdString, StdTuple, StdMisc, StdList, StdBool
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.GenJSON
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -32,7 +32,7 @@ createReadOnlySDSError ::
 	->
 	ROShared p r
 createReadOnlySDSError read
-	= createSDS "readonly" "readonly" read (\_ _ env -> (Ok (const True), env))
+	= createSDS "readonly" "readonly" read (\_ _ env -> (Ok (const (const True)), env))
 
 createSDS ::
 	!String
@@ -75,9 +75,10 @@ readRegister taskId sds env = read` () (Just taskId) (sdsIdentity sds) sds env
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
-mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
-    # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
-    = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
+mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests,world}
+	# (ts, world) = nsTime world
+    # req = {SDSNotifyRequest|reqTimespec=ts,reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
+    = {iworld & world=world, sdsNotifyRequests = [req:sdsNotifyRequests]}
 
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p & TC r
 read` p mbNotify reqSDSId sds=:(SDSSource {SDSSource|read}) env
@@ -209,7 +210,7 @@ write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
             	(Ok r1, env)    = case write` p1 w sds1 env of
                		(Error e, env) = (Error e, env)
 	                (Ok notify, env)
-   		                # npred = (\pq -> case select pq of Right p2 = f p1 r1 w p2; _ = False)
+   		                # npred = (\ts pq -> case select pq of Right p2 = f p1 r1 w ts p2; _ = False)
 						# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
 						//Add the matching registrations for the 'other' SDS
 						# notify = 'Set'.union notify match
@@ -217,7 +218,7 @@ write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
 			(SDSNotifyConst f) = case write` p1 w sds1 env of
 				(Error e, env) = (Error e, env)
 				(Ok notify, env)
-   		        	# npred = (\pq -> case select pq of Right p2 = f p1 w p2; _ = False)
+   		        	# npred = (\ts pq -> case select pq of Right p2 = f p1 w ts p2; _ = False)
 					# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
 					# notify = 'Set'.union notify match
    		            = (Ok notify, env)
@@ -227,7 +228,7 @@ write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
             	(Ok r2, env)    = case write` p2 w sds2 env of
                		(Error e, env) = (Error e,env)
                 	(Ok notify, env)
-                    	# npred = (\pq -> case select pq of Left p1 = f p2 r2 w p1 ; _ = False)
+                    	# npred = (\ts pq -> case select pq of Left p1 = f p2 r2 w ts p1 ; _ = False)
 						# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
 						//Add the matching registrations for the 'other' SDS
 						# notify = 'Set'.union notify match
@@ -236,7 +237,7 @@ write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
 			(SDSNotifyConst f) = case write` p2 w sds2 env of
 				(Error e, env) = (Error e,env)
                	(Ok notify, env)
-                	# npred = (\pq -> case select pq of Left p1 = f p2 w p1 ; _ = False)
+                	# npred = (\ts pq -> case select pq of Left p1 = f p2 w ts p1 ; _ = False)
 					# (match,nomatch,env) = checkRegistrations (sdsIdentity sds) npred env
 					//Add the matching registrations for the 'other' SDS
 					# notify = 'Set'.union notify match
@@ -332,7 +333,7 @@ write` p w sds=:(SDSDynamic f) env
 
 //Check the registrations and find the set of id's for which the current predicate holds
 //and for which id's it doesn't
-checkRegistrations :: !SDSIdentity (p -> Bool) !*IWorld -> (Set TaskId, Set TaskId,!*IWorld) | TC p
+checkRegistrations :: !SDSIdentity (SDSNotifyPred p) !*IWorld -> (Set TaskId, Set TaskId,!*IWorld) | TC p
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
@@ -345,10 +346,10 @@ where
 	//Match the notify requests against the predicate to determine two sets:
 	//The registrations that matched the predicate, and those that did not match the predicate
 	matchRegistrations pred [] = ('Set'.newSet,'Set'.newSet)
-	matchRegistrations pred [{SDSNotifyRequest|reqTaskId,cmpParam}:regs]
+	matchRegistrations pred [{SDSNotifyRequest|reqTimespec,reqTaskId,cmpParam}:regs]
 		# (match,nomatch) = matchRegistrations pred regs
     	= case cmpParam of
-            (p :: p^) = if (pred p)
+            (p :: p^) = if (pred reqTimespec p)
 							('Set'.insert reqTaskId match,nomatch)
 							(match, 'Set'.insert reqTaskId nomatch)
 			//In case of a type mismatch, just ignore (should not happen)
@@ -408,7 +409,7 @@ where
     write _ w = case fromJSON w of
         (Just ws)   = (Ok (Just ws))
         Nothing     = Error (exception "Shared type mismatch in toJSONShared")
-    notify _ _      = const True
+    notify _ _      = const (const True)
 
 fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 fromJSONShared sds = SDSLens sds {SDSLens|name="fromJSONShared",param=param,read=SDSRead read,write=SDSWriteConst write,notify=SDSNotifyConst notify}
@@ -418,7 +419,7 @@ where
         (Just r)    = Ok r
         Nothing     = Error (exception "Shared type mismatch in fromJSONShared")
     write _ w       = Ok (Just (toJSON w))
-    notify _ _      = const True
+    notify _ _      = const (const True)
 
 newSDSId :: !*IWorld -> (!String, !*IWorld)
 newSDSId iworld=:{IWorld|random}

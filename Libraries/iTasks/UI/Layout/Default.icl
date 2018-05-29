@@ -3,22 +3,24 @@ implementation module iTasks.UI.Layout.Default
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
-import Text.JSON
-import Data.Generics.GenEq
+import Text.GenJSON
+import Data.GenEq
 
 from Data.Func import $
 from StdFunc import id, o, const
 import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor, Data.Maybe
 import Data.List, StdString
+import iTasks.UI.Layout.Debug
 import qualified Data.Map as DM
+
+SelectParallel :== SelectOR (SelectByType UIParallel) (SelectByType UITabSet)
 
 //Util:
 sequenceAllLayouts [] = idLayout
 sequenceAllLayouts list = foldl1 sequenceLayouts list 
 
 defaultSessionLayout :: Layout
-//defaultSessionLayout = idLayout
-defaultSessionLayout = sequenceAllLayouts 
+defaultSessionLayout = sequenceAllLayouts
     [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
 	,setUIAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
@@ -29,7 +31,7 @@ finalizeUI :: Layout
 finalizeUI = sequenceAllLayouts
 	[layoutSubUIs (SelectByType UIInteract) finalizeInteract
 	,layoutSubUIs (SelectByType UIStep) finalizeStep
-	,layoutSubUIs (SelectByType UIParallel) finalizeParallel
+	,layoutSubUIs SelectParallel finalizeParallel
 	,layoutSubUIs (SelectByType UIList) finalizeList
 	]
 
@@ -133,18 +135,22 @@ where
 
 finalizeParallel :: Layout
 finalizeParallel = sequenceAllLayouts
-	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND (SelectByType UIParallel) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND SelectParallel (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) layoutWithoutActions
+	,layoutSubUIs (SelectByType UIParallel) (setUIType UIContainer)
 	]
 where
 	layoutWithoutActions = sequenceAllLayouts
 		[layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
-		,setUIType UIContainer
 		]
 	layoutWithActions = sequenceAllLayouts
 		[actionsToButtonBar
 		,layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
-		,setUIType UIPanel
+		//Move button bars for tabsets outside
+		,layoutSubUIs (SelectAND (SelectByType UITabSet) (SelectByContains (SelectAND SelectChildren (SelectByType UIButtonBar)))) (sequenceAllLayouts
+			[wrapUI UIContainer
+			,moveSubUIs (SelectAND (SelectByDepth 2) (SelectByType UIButtonBar)) [] 1
+			])
 		]
 
 selectIntermediate

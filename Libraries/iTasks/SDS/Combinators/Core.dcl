@@ -6,7 +6,8 @@ from iTasks.SDS.Definition import :: SDS, :: SDSLensRead, :: SDSLensWrite, :: SD
 from iTasks.Internal.IWorld import :: IWorld
 from Data.Either import :: Either
 from Data.Maybe import :: Maybe
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
+from System.Time import :: Timespec
 
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Definition import generic gEditor, generic gEq, generic gDefault, generic gText, generic JSONEncode, generic JSONDecode
