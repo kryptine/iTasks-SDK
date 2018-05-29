@@ -9,7 +9,7 @@ from iTasks.WF.Combinators.Core import :: TaskList, :: SharedTaskList, :: TaskLi
 from iTasks.Extensions.DateTime import :: DateTime, :: Date, :: Time 
 from iTasks.Engine import :: EngineOptions
 
-from System.Time import :: Timestamp
+from System.Time import :: Timespec, :: Timestamp
 from System.FilePath import :: FilePath
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
@@ -21,11 +21,11 @@ from Data.Maybe import :: Maybe
     , session           :: !Bool                //* Is this a session
 	, listId            :: !TaskId              //* Reference to parent tasklist
     , build             :: !String              //* Application build version when the instance was created
-    , issuedAt			:: !Timestamp           //* When was the task created
+    , issuedAt			:: !Timespec           //* When was the task created
 	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
 	, value             :: !ValueStatus         //* Status of the task value
-	, firstEvent		:: !Maybe Timestamp     //*When was the first work done on this task
-	, lastEvent		    :: !Maybe Timestamp     //* When was the last event on this task	
+	, firstEvent		:: !Maybe Timespec     //*When was the first work done on this task
+	, lastEvent		    :: !Maybe Timespec     //* When was the last event on this task	
 	}
 
 // Date & time (in task server's local timezone)
@@ -40,6 +40,7 @@ currentUTCDate          :: SDS () Date ()
 
 //Unix timestamp
 currentTimestamp 		:: SDS () Timestamp ()
+currentTimespec 		:: SDS () Timespec ()
 
 // Processes
 topLevelTasks 			:: SharedTaskList () 

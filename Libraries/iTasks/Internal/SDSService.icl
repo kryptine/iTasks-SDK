@@ -19,7 +19,7 @@ import StdString, StdList
 from Data.Map import qualified get, fromList
 from Data.Map import fromList
 import Data.Maybe, Data.Error
-import Text.JSON, Text.URI
+import Text.GenJSON, Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue, Data.Functor
 
@@ -138,7 +138,7 @@ where
             (Error msg, iworld) = (Error (exception msg), iworld)
 	rwrite jsonp jsonw iworld
 		= case writeRemoteSDS jsonp jsonw url iworld of
-			(Ok (), iworld) = (Ok (const False), iworld)
+			(Ok (), iworld) = (Ok (const (const False)), iworld)
 			(Error msg, iworld) = (Error (exception msg), iworld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w

@@ -8,7 +8,7 @@ from iTasks.Internal.IWorld import :: IWorld
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
-import Data.Generics.GenEq
+import Data.GenEq
 
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
@@ -39,7 +39,7 @@ from Data.Maybe import :: Maybe
 
 //For notification we need a predicate that can determine whether
 //some registered parameter of type p needs to be notified.
-:: SDSNotifyPred p          :== p -> Bool
+:: SDSNotifyPred p          :== Timespec p -> Bool
 
 //Sources provide direct access to a data source
 :: SDSSource p r w =

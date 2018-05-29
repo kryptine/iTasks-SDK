@@ -1,12 +1,11 @@
 itasks.Container = {
 	cssCls: 'container',
 	initDOMEl: function() {
-		if(this.baseCls) {
-			this.domEl.classList.add(this.baseCls);
+		var me = this;
+		if(me.baseCls) {
+			me.domEl.classList.add(me.baseCls);
 		}
-		if(this.attributes.resizable){
-			var me = this;
-
+		if(me.attributes.resizable){
 			me.domEl.style.position = 'relative';
 
 			function resizer(me, c, w, h, l, r, t, b, rw, rh){
@@ -93,6 +92,49 @@ itasks.Panel = {
 		}
 		if(me.baseCls) {
 			me.domEl.classList.add(me.attributes.baseCls);
+		}
+
+		//Fullscreenable
+		if(me.attributes.fullscreenable){
+			me.domEl.style.position = 'relative';
+			var fullscreener = document.createElement('a');
+			var button = document.createElement('div');
+			button.classList.add(me.cssPrefix + "button-icon");
+			button.classList.add("icon-fullscreen");
+			fullscreener.appendChild(button);
+			fullscreener.style.position = 'absolute';
+			fullscreener.style.bottom = 0;
+			fullscreener.style.right = 0;
+			fullscreener.href = '#';
+
+			me.fullscreen = false;
+			fullscreener.onclick = function () {
+				if(me.fullscreen){
+					me.domEl.style.position = 'relative';
+					me.domEl.style.top = null;
+					me.domEl.style.left = null;
+					me.domEl.style.right = null;
+					me.domEl.style.bottom = null;
+					me.domEl.style.width = null;
+					me.domEl.style.height = null;
+					fullscreener.style.zIndex = null;
+					me.domEl.style.zIndex = null;
+					me.fullscreen = false;
+				} else {
+					me.domEl.style.position = 'absolute';
+					me.domEl.style.top = 0;
+					me.domEl.style.left = 0;
+					me.domEl.style.right = 0;
+					me.domEl.style.bottom = 0;
+					me.domEl.style.width = '100%';
+					me.domEl.style.height = '100%';
+					fullscreener.style.zIndex = 999;
+					me.domEl.style.zIndex = 998;
+					me.fullscreen = true;
+					console.log(me.oldstyle);
+				}
+			};
+			me.domEl.appendChild(fullscreener);
 		}
 	}
 };

@@ -1,7 +1,7 @@
 implementation module iTasks.UI.JS.Encoding
 
 import iTasks.UI.JS.Interface
-import Text.JSON
+import Text.GenJSON
 import Text.Encodings.Base64
 import StdMisc, StdArray, StdTuple, StdList
 import dynamic_string

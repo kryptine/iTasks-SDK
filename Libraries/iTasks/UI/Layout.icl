@@ -7,14 +7,14 @@ import iTasks.Internal.Generic.Defaults
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 from Data.Tuple import appSnd
-import Text.JSON
+import Text.GenJSON
 
 from StdFunc import o, const, id, flip
 from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
-import Data.Generics.GenEq
+import Data.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild

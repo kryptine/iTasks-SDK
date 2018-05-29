@@ -8,7 +8,7 @@ definition module iTasks.UI.Definition
 * This representation seeks a middle ground between being fine grained enough
 * to describe rich user interfaces and being abstract enough to leave rendering details to the client framework.
 */
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Functor import class Functor
 from iTasks.Internal.Task	import :: TaskId
@@ -22,8 +22,8 @@ from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 
 from iTasks.UI.Editor.Generic import generic gEditor
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
 derive class iTask UI, UIType
@@ -236,6 +236,7 @@ resizableAttr     :: ![UISide]                            -> UIAttributes
 maxlengthAttr     :: !Int                                 -> UIAttributes
 minlengthAttr     :: !Int                                 -> UIAttributes
 boundedlengthAttr :: !Int !Int                            -> UIAttributes
+eventTimeoutAttr  :: !(Maybe Int)                          -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

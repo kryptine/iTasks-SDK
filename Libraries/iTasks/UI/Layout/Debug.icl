@@ -7,8 +7,8 @@ import StdMisc
 from Data.Map import toList, toAscList, foldrWithKey
 from Text import class Text(join), instance Text String
 
-import Data.Generics.GenPrint
-derive gPrint UIType, JSONNode, (,), Map
+import Text.GenPrint
+derive gPrint JSONNode, UIType
 
 traceLayout :: String -> Layout
 traceLayout m =

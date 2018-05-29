@@ -2,8 +2,8 @@ definition module iTasks.Internal.Tonic.AbsSyn
 
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenEq import generic gEq
 from StdOverloaded import class ==
 
 derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit

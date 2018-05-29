@@ -33,7 +33,7 @@ indexedStore :: String v -> RWShared k v v | Eq k & Ord k & iTask k & iTask v
 indexedStore name def = sdsSplit "indexedStore" (\p -> ((),p)) read write (sharedStore name 'DM'.newMap)
 where
     read p mapping = fromMaybe def ('DM'.get p mapping)
-    write p mapping v = ('DM'.put p v mapping,(==) p)
+    write p mapping v = ('DM'.put p v mapping,const ((==) p))
 
 sdsDeref :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a]) | iTask p & TC a & TC b & TC c & TC x
 sdsDeref sds1 toRef sds2 merge = sdsSequence "sdsDeref" paraml paramr (\_ _ -> Right read) writel writer sds1 sds2
@@ -56,7 +56,7 @@ where
         writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
     valueShare :: (RWShared i c c) -> RWShared (Maybe i) (Maybe c) () | iTask i & iTask c
-    valueShare target = sdsSelect "viewDetailsValue" param (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False))
+    valueShare target = sdsSelect "viewDetailsValue" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
 		(constShare Nothing) (mapRead Just (toReadOnly target))
 	where
     	param Nothing = Left ()

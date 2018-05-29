@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.TaskEval
 
 import StdList, StdBool, StdTuple, StdMisc, StdString
-import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.GenJSON
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState
 import iTasks.Internal.Store, iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.UI.Layout

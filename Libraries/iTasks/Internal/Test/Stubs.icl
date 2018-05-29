@@ -12,9 +12,9 @@ import qualified Data.Map as DM
 toStubIWorld :: *World -> *IWorld
 toStubIWorld world
   = {IWorld
-  |options = {EngineOptions|appName="STUB",appPath="./",appVersion="STUB",serverPort=80,serverUrl="/127.0.0.1:80/",keepaliveTime=0,sessionTime=0
-             ,persistTasks=False,autoLayout=False,webDirPath="./STUB/",storeDirPath="./STUB/",tempDirPath="./STUB/",saplDirPath="./STUB"}
-  ,clock = Timestamp 0
+  |options = {EngineOptions|appName="STUB",appPath="./",appVersion="STUB",serverPort=80,serverUrl="/127.0.0.1:80/",keepaliveTime={tv_sec=0,tv_nsec=0},sessionTime={tv_sec=0,tv_nsec=0}
+             ,persistTasks=False,autoLayout=False,webDirPath="./STUB/",storeDirPath="./STUB/",tempDirPath="./STUB/",saplDirPath="./STUB",timeout=Nothing}
+  ,clock = {tv_sec=0,tv_nsec=0}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, readCache = 'DM'.newMap, writeCache = 'DM'.newMap, exposedShares = 'DM'.newMap
   ,jsCompilerState = Nothing ,shutdown = Nothing ,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap

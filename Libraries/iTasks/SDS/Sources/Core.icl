@@ -5,7 +5,7 @@ import iTasks.Internal.SDS
 import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import System.FilePath, System.Directory, System.File
-import Text, Text.JSON
+import Text, Text.GenJSON
 import StdFile, StdTuple, StdArray, StdBool, StdList, StdString
 import qualified Data.Map as DM
 
@@ -16,12 +16,12 @@ constShare :: !a -> SDS p a ()
 constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 nullShare :: SDS p () a
-nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const False), env))
+nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const (const False)), env))
 
 unitShare :: SDS () () ()
 unitShare = nullShare
 
-worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDS p r w 
+worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDS p r w
 worldShare read write = createReadWriteSDS "_core_" "worldShare" read` write`
 where
 	read` p iworld=:{IWorld|world} = case read p world of
@@ -29,7 +29,7 @@ where
 		(Error e,world) = (Error (exception e), {IWorld|iworld & world = world})
 
 	write` p w iworld=:{IWorld|world} = case write p w world of
-		(Ok (),world) = (Ok (const False), {IWorld|iworld & world = world})
+		(Ok (),world) = (Ok (const (const False)), {IWorld|iworld & world = world})
 		(Error e,world) = (Error (exception e), {IWorld|iworld & world = world})
 
 // Random source
@@ -49,9 +49,9 @@ where
 			(Just _)            = (Error (exception ("Read shared memory with incorrect type " +++ key)), iworld)
 
 	write key (Just val) iworld=:{IWorld|memoryShares}
-       = (Ok ((===) key),{IWorld|iworld & memoryShares = 'DM'.put key (dynamic val :: a^) memoryShares})
+       = (Ok (const ((===) key)),{IWorld|iworld & memoryShares = 'DM'.put key (dynamic val :: a^) memoryShares})
 	write key Nothing iworld=:{IWorld|memoryShares}
-       = (Ok ((===) key),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
+       = (Ok (const ((===) key)),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
 
 fileShare :: SDS FilePath (Maybe String) (Maybe String)
 fileShare = createReadWriteSDS "_core_" "fileShare" (fileRead fromFile) (fileWrite toFile)
@@ -110,7 +110,7 @@ fileWrite toFile path (Just content) iworld=:{IWorld|world}
 			# file						= fwrites (toFile path content) file
 			# (ok,world)				= fclose file world
 			| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
-			= (Ok ((==) path), {IWorld|iworld & world = world})
+			= (Ok (const ((==) path)), {IWorld|iworld & world = world})
 
 fileWrite toFile path Nothing iworld
 	= (Error (exception "Removing files through fileShare SDS not yet supported"),iworld)

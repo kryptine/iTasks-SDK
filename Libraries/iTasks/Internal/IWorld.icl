@@ -4,14 +4,16 @@ from System.FilePath				import :: FilePath
 from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
 from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
-from System.Time					import :: Timestamp, time
-from Text.JSON						import :: JSONNode
+from System.Time					import :: Timestamp, time, :: Timespec
+from Text.GenJSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
 from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime, toDate
 from iTasks.Internal.TaskEval       import :: TaskTime
 from iTasks.Engine                  import :: EngineOptions(..)
-from System.Process                 import :: ProcessHandle, :: ProcessIO
+import Data.Integer
+
+import iTasks.SDS.Combinators.Common
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
@@ -21,7 +23,7 @@ from StdOrdList import sortBy
 
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
-import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Math.Random
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.GenJSON, Data.Error, Math.Random
 import iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.Internal.Serialization
 import iTasks.Internal.SDS
@@ -57,10 +59,10 @@ JS_COMPILER_EXCLUDES :==
 
 createIWorld :: !EngineOptions !*World -> *IWorld
 createIWorld options world
-	# (timestamp=:(Timestamp seed), world)	= time world
+	# (ts=:{tv_nsec=seed}, world)	= nsTime world
 	= {IWorld
 	  |options = options 
-      ,clock = timestamp
+      ,clock = ts
       ,current =
 	    {TaskEvalState
         |taskTime				= 0
@@ -113,14 +115,34 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimestamp :: Shared Timestamp
-iworldTimestamp = createReadWriteSDS "IWorld" "timestamp" read write
+iworldTimespec :: SDS (ClockParameter Timespec) Timespec Timespec
+iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
-    write _ timestamp iworld = (Ok (const True), {iworld & clock = timestamp})
+    write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
+	where
+		pred reg p=:{start,interval}
+			| timestamp < start = False // Start time has not passed
+			= timestamp > iworldTimespecNextFire timestamp reg p
+
+iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+iworldTimespecNextFire now reg {start,interval}
+	| interval == zero = now
+	# start = toI start
+	  interval = toI interval
+	  reg = toI reg
+	  passed = reg - start
+	= toT (start + ((passed / interval + one) * interval))
+where
+	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
+	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
+
+iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
+	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) iworldTimestamp sdsPar
+iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallel
@@ -132,8 +154,8 @@ where
              }
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
-iworldLocalDateTime` iworld=:{clock, world}
-    # (tm, world) = toLocalTime clock world
+iworldLocalDateTime` iworld=:{clock={tv_sec}, world}
+    # (tm, world) = toLocalTime (Timestamp tv_sec) world
     = (tmToDateTime tm, {iworld & world = world})
 
 iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
@@ -146,7 +168,6 @@ where
 	# (ok, r) = f r
 	| ok = let (ms, xs) = splitWithUnique f rs in ([r:ms], xs)
 	= let (ms, xs) = splitWithUnique f rs in (ms, [r:xs])
-
 
 //Wrapper instance for file access
 instance FileSystem IWorld
