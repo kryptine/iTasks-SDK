@@ -1,7 +1,7 @@
 definition module iTasks.Extensions.SVG.SVGEditor
 
-import Graphics.Scalable.Internal.Image`
-from iTasks.UI.Editor import :: Editor
+import Graphics.Scalable.Image
+from   iTasks.UI.Editor import :: Editor
 import iTasks.UI.JS.Encoding
 
 // An SVGEditor let's you specify an editor as an interactive SVG image (Graphics.Scalable.Image)

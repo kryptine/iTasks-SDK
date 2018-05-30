@@ -81,9 +81,9 @@ initDragState
                    , svgDragTarget   = Nothing
      }
 
-:: MouseCallbackData                                // information required for dealing with mouse events:
- = MouseOnClickData !Int                            // mouse has been clicked n times
- | MouseNoData                                      // no additional data
+:: MouseCallbackData                                      // information required for dealing with mouse events:
+ = MouseOnClickData !Int                                  // mouse has been clicked n times
+ | MouseNoData                                            // no additional data
 // only for debugging:
 instance toString MouseCallbackData
    where toString (MouseOnClickData n) = "(MouseOnClickData " +++ toString n +++ ")"
@@ -93,21 +93,26 @@ instance toString ViaImg
          toString ViaHost      = "ViaHost"
          toString ViaAttr      = "ViaAttr"
 
-:: ClientNeedsSVG                                   // client is ready to receive SVG
- = ClientNeedsSVG                                   // no additional data
-:: ClientHasNewModel  s                             // client has created a new public model value
- = ClientHasNewModel !s                             // the new public model value
-:: ClientHasNewTextMetrics                          // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
- = ClientHasNewTextMetrics !FontSpans !TextSpans    // the new font and text-width metrics
+:: FontSpans` :== Map FontDef` FontDescent                // of each font, the font descent
+:: TextSpans` :== Map FontDef` (Map String TextSpan)      // of each font, of each text of that font, the width
+:: ImgFonts`  :== Set FontDef`                            // the collection of fonts used in the image for which no metrics are available
+:: ImgTexts`  :== Map FontDef` (Set String)               // of each font, the collection of texts
+
+:: ClientNeedsSVG                                         // client is ready to receive SVG
+ = ClientNeedsSVG                                         // no additional data
+:: ClientHasNewModel  s                                   // client has created a new public model value
+ = ClientHasNewModel !s                                   // the new public model value
+:: ClientHasNewTextMetrics                                // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
+ = ClientHasNewTextMetrics !FontSpans` !TextSpans`        // the new font and text-width metrics
 derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics
 derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics
 
 //	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
 :: ServerToClientAttr
- = ServerNeedsTextMetrics !ImgFonts !ImgTexts
+ = ServerNeedsTextMetrics !ImgFonts` !ImgTexts`
  | ServerHasSVG           !String !ImgEventhandlers`
-derive JSEncode ServerToClientAttr, Set
-derive JSDecode ServerToClientAttr, Set
+derive JSEncode ServerToClientAttr, Set, FontDef`
+derive JSDecode ServerToClientAttr, Set, FontDef`
 
 toUIAttributes :: !ServerToClientAttr -> UIAttributes
 toUIAttributes attr
@@ -821,9 +826,6 @@ mkUrl ref = "url(#" +++ ref +++ ")"
 
 mkWH :: !ImageSpanReal -> [HtmlAttr]
 mkWH (imXSp, imYSp) = [WidthAttr (to2decString imXSp), HeightAttr (to2decString imYSp)]
-
-to2dec :: !Real -> Real
-to2dec r = toReal (toInt (r * 100.0)) / 100.0
 
 to2decString :: !Real -> String
 to2decString r = toString (to2dec r)
