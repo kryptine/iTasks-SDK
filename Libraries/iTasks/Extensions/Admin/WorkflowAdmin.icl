@@ -150,7 +150,7 @@ manageWorkInSession
 where
 	layout = sequenceLayouts
 		[unwrapUI //Get rid of the step
-		,arrangeWithSideBar 0 TopSide 50 True
+		,arrangeWithSideBar 0 TopSide 50 False
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
 		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
 		//Use maximal screen space

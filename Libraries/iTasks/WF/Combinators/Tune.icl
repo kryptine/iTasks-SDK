@@ -28,8 +28,7 @@ where
 
 instance tune ApplyLayout Task
 where
-	tune (ApplyLayout l) task = task
-	//tune (ApplyLayout l) task = applyLayout l task
+	tune (ApplyLayout l) task = applyLayout l task
 
 applyLayout :: LayoutRule (Task a) -> Task a
 applyLayout rule task=:(Task evala) = Task eval

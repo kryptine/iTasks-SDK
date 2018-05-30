@@ -25,7 +25,7 @@ arrangeWithTabs closeable = layoutSubUIs
 		:if closeable [moveCloseToTab] []
 		])
 where
-	moveCloseToTab = layoutSubUIs //Only on children directly containing a clos action
+	moveCloseToTab = layoutSubUIs //Only on children directly containing a close action
 		(SelectAND
 			SelectChildren
 			(SelectByContains
@@ -53,12 +53,10 @@ where
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> LayoutRule
 arrangeWithSideBar index side size resize = sequenceLayouts
-	[wrapUI UIPanel 			//Push the current container down a level
+	[wrapUI UIPanel //Push the current container down a level
 	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
 	,setUIAttributes (directionAttr direction)
-	,insertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
-	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
-	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
+	,moveSubUIs (SelectByPath [0,index]) [] sidePanelIndex
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
 		[setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)
 		:if resize
@@ -69,7 +67,6 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
-	mainPanelIndex = if (sidePanelIndex === 0) 1 0
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	padders TopSide = bottomPaddingAttr 5

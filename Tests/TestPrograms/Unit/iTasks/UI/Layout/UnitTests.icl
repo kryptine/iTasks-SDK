@@ -79,6 +79,21 @@ applyUpstreamChangeTests =
 			] noChanges noEffects
 		,initLUIMoves)
 		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) (lui1,initLUIMoves))
+	,assertEqual "Moved child replace" 
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+			[LUIMoveDestination 2 (LUINo [0])
+			,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+			,LUIMoveSource 2
+			] noChanges noEffects
+		,'DM'.fromList [(2,LUINode UIStep 'DM'.newMap [] {noChanges & toBeReplaced = Just (LUINode UIEmpty 'DM'.newMap [] noChanges noEffects)} {noEffects & moved = ESApplied (LUINo [0])})])
+
+		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))])
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUIMoveDestination 2 (LUINo [0])
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUIMoveSource 2
+				] noChanges noEffects
+			,'DM'.fromList [(2,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & moved = ESApplied (LUINo [0])})]))
 
 	,assertEqual "Child remove" 
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
@@ -294,6 +309,7 @@ extractDownstreamChangeTests =
 	,extractDownstreamChangeTest_NewUnwrappedChild
 	,extractDownstreamChangeTest_NoLongerUnwrappedChild
 	,extractDownstreamChangeTest_ChangingAnUnwrappedAttribute
+	,extractDownstreamChangeTest_ChangingAnUnwrappedAttributeNotZero 
 	,extractDownstreamChangeTest_ChangingAfterUnwrappedHiddenAttribute
 	,extractDownstreamChangeTest_InsertIntoUnwrappedContainer
 	,extractDownstreamChangeTest_RemovingUnwrappedContainer
@@ -889,6 +905,30 @@ extractDownstreamChangeTest_ChangingAnUnwrappedAttribute =
 				] noChanges noEffects
 		,initLUIMoves))
 
+extractDownstreamChangeTest_ChangingAnUnwrappedAttributeNotZero =
+	assertEqual "Changing an attribute on an unwrapped child that is not the first child" 
+		(ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "test")] []))]
+			,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [0])}
+					,LUINode UIDebug ('DM'.fromList [("title",JSONString "test")]) [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESApplied (LUINo [1])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			 ,initLUIMoves)
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [0])}
+ 					,LUINode UIDebug 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")]} noEffects
+					] noChanges {noEffects & unwrapped = ESApplied (LUINo [1])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		,initLUIMoves))
+
 extractDownstreamChangeTest_ChangingAfterUnwrappedHiddenAttribute =
 	assertEqual "Changing an attribute after an unwrapped hidden child" 
 		(ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "test")] []))]
@@ -1137,7 +1177,16 @@ scanToPosition_Tests =
 			initLUIMoves
 		)
 	]
-
+nodeExists_Tests =
+	[assertEqual "Node exists: unwrapped hidden node"
+		False
+		(nodeExists_  (LUINo [2])
+			(LUINode UIStep 'DM'.newMap [
+				LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied (LUINo [1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0])})
+			'DM'.newMap
+		)
+	]
 compareLUINoTests =
 	[assertEqual "Comparison of ruleNumbers: 1 < 1.2" True (LUINo [1] < LUINo [1,2]) 
 	,assertEqual "Comparison of ruleNumbers: 1.2 < 3" True (LUINo [1,2] < LUINo [3]) 
@@ -1444,6 +1493,95 @@ layoutSubUIsTests =
 			,initLUIMoves)
 		)
 	]
+combinationTests =
+	//Applying the first change
+	[assertEqual "Combination rule: wrapping after unwrapping -> first rule"
+		(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [
+					 	 LUINode UIEmpty 'DM'.newMap [] noChanges noEffects
+						,LUINode UITextField 'DM'.newMap [] noChanges noEffects
+						] noChanges noEffects
+				] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESToBeApplied (LUINo [0,0])}
+		,'DM'.newMap)
+		((sequenceLayouts [unwrapUI,wrapUI UIDebug]) (LUINo [0])
+			(LUINode UIStep 'DM'.newMap
+				[LUINode UIInteract 'DM'.newMap [
+					 LUINode UIEmpty 'DM'.newMap [] noChanges noEffects
+					,LUINode UITextField 'DM'.newMap [] noChanges noEffects
+					] noChanges noEffects
+				] noChanges noEffects
+			,'DM'.newMap)
+		)
+	//Extract the initial ui
+	,assertEqual "Combination rule: wrapping after unwrapping -> initial ui"
+		(Just (UI UIDebug 'DM'.newMap [UI UIInteract 'DM'.newMap []])
+		,(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [
+					] noChanges noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap))
+
+		(extractUIWithEffects 
+			(LUINode UIStep 'DM'.newMap
+				[LUINode UIDebug 'DM'.newMap [
+						LUINode UIInteract 'DM'.newMap [
+						] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,1])}
+				] noChanges {noEffects & unwrapped = ESToBeApplied (LUINo [0,0])}
+			,'DM'.newMap)
+		)
+	//Apply a change 
+	,assertEqual "Combination rule: wrapping after unwrapping -> new event"
+		(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("test",JSONString "x")]} noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap)
+		(applyUpstreamChange (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "test" (JSONString "x")] []))])
+			(LUINode UIStep 'DM'.newMap
+				[LUINode UIDebug 'DM'.newMap [
+						LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("test",JSONString "x")]} noEffects
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+				] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+			,'DM'.newMap)
+		)
+	//Reapply the rule
+	,assertEqual "Combination rule: wrapping after unwrapping -> reapply rule"
+		(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("test",JSONString "x")]} noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap)
+		((sequenceLayouts [unwrapUI,wrapUI UIDebug]) (LUINo [0])
+			(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("test",JSONString "x")]} noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap)
+		)
+	//Extract the downstream change
+	,assertEqual "Combination rule: wrapping after unwrapping -> downstream"
+		(ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "test" (JSONString "x")] []))]
+		,(LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract ('DM'.fromList [("test",JSONString "x")]) [] noChanges noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap))
+		(extractDownstreamChange (LUINode UIStep 'DM'.newMap
+			[LUINode UIDebug 'DM'.newMap [
+					LUINode UIInteract 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("test",JSONString "x")]} noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0,1])}
+			] noChanges {noEffects & unwrapped = ESApplied (LUINo [0,0])}
+		,'DM'.newMap))
+	]
 
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
@@ -1452,6 +1590,7 @@ tests =  applyUpstreamChangeTests
 	  ++ selectSubNode_Tests
 	  ++ updateSubNode_Tests
 	  ++ scanToPosition_Tests
+	  ++ nodeExists_Tests
 	  ++ compareLUINoTests
 	  ++ setUITypeTests
 	  ++ setUIAttributesTests
@@ -1464,6 +1603,6 @@ tests =  applyUpstreamChangeTests
 	  ++ wrapUITests
 	  ++ unwrapUITests
 	  ++ layoutSubUIsTests
-	
+	  ++ combinationTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

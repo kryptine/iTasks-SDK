@@ -195,6 +195,7 @@ extractUIWithEffects :: (LUI,LUIMoves) -> (!Maybe UI,!(LUI,LUIMoves))
 
 //Helper functions (exported for unit testing)
 scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
+nodeExists_ :: !LUINo !LUI LUIMoves -> Bool
 selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI]
 updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
 selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI

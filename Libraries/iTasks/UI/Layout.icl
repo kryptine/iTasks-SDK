@@ -345,11 +345,9 @@ where
 moveSubUIs :: UISelection UIPath Int -> LayoutRule
 moveSubUIs selection path pos = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
 
-	rule ruleNo (lui,moves)
+	rule` ruleNo (lui,moves)
 		# (moved,lui,moves) = checkNodes selection (destinationExists path pos (lui,moves)) lui moves
 		# (lui,moves) = updateDestination moved (lui,moves)
 		= (lui,moves)
@@ -495,15 +493,27 @@ nodeExists_ ruleNo (LUINode _ _ _ _ {hidden=ESToBeUpdated _ hiddenBy}) moves = h
 nodeExists_ ruleNo (LUINode _ _ _ _ {additional=ESToBeApplied addedBy}) moves = addedBy <= ruleNo
 nodeExists_ ruleNo (LUINode _ _ _ _ {additional=ESApplied addedBy}) moves = addedBy <= ruleNo
 nodeExists_ ruleNo (LUINode _ _ _ _ {additional=ESToBeRemoved _}) moves = False //Marked to be removed
-nodeExists_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeApplied wrappedBy}) moves
-	= wrappedNodeExists_ ruleNo items wrappedBy moves
-nodeExists_ ruleNo (LUINode _ _ items _ {wrapper=ESApplied wrappedBy}) moves
-	= wrappedNodeExists_ ruleNo items wrappedBy moves
+
+nodeExists_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeApplied wrappedBy}) moves | wrappedBy > ruleNo 
+	= case scanToPosition_ wrappedBy 0 items moves of
+		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
+		_ = False // The wrapped child does not exist, nothing to check
+nodeExists_ ruleNo (LUINode _ _ items _ {wrapper=ESApplied wrappedBy}) moves | wrappedBy > ruleNo 
+	= case scanToPosition_ wrappedBy 0 items moves of
+		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
+		_ = False // The wrapped child does not exist, nothing to check
 nodeExists_ ruleNo (LUINode _ _ items _ {wrapper=ESToBeRemoved wrappedBy}) moves //No longer wrapped
 	= case scanToPosition_ wrappedBy 0 items moves of //Consider the wrapped child (that will be restored)
 		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
 		_ = False // The wrapped child does not exist, nothing to check
-//TODO: Handle unwrapped case
+nodeExists_ ruleNo (LUINode _ _ items _ {unwrapped=ESToBeApplied unwrappedBy}) moves | unwrappedBy <= ruleNo
+	= case scanToPosition_ unwrappedBy 0 items moves of
+		(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
+		_ = False
+nodeExists_ ruleNo (LUINode _ _ items _ {unwrapped=ESApplied unwrappedBy}) moves | unwrappedBy <= ruleNo
+	= case scanToPosition_ unwrappedBy 0 items moves of
+		(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
+		_ = False
 //Moved nodes
 nodeExists_ ruleNo (LUIMoveSource moveId) moves
 	= case getMovedNode_ moveId moves of
@@ -515,6 +525,7 @@ nodeExists_ ruleNo (LUIMoveSource moveId) moves
 			| otherwise = movedBy >= ruleNo
 		(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = True
 		(LUINode _ _ _ _ {moved=ESNotApplied}) = True
+		//TODO: HANDLE ALL CASES
 nodeExists_ ruleNo (LUIMoveDestination moveId moveRule) moves
 	= case getMovedNode_ moveId moves of
 		(LUINode _ _ _ {toBeRemoved=True} _) = False
@@ -525,13 +536,8 @@ nodeExists_ ruleNo (LUIMoveDestination moveId moveRule) moves
 			| otherwise = movedBy < ruleNo
 		(LUINode _ _ _ _ {moved=ESToBeRemoved _}) = False
 		(LUINode _ _ _ _ {moved=ESNotApplied}) = False
+		//TODO: HANDLE ALL CASES
 nodeExists_ _ _ _ = True
-
-wrappedNodeExists_ ruleNo items wrappedBy moves
-	| wrappedBy <= ruleNo = True //Already wrapped, (the wrapper counts as an existing child)
-	| otherwise = case scanToPosition_ wrappedBy 0 items moves of //Not yet wrapped, consider the wrapped child
-		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
-		_ = False // The wrapped child does not exist, nothing to check
 
 //Test if a node matches a selection UI at a path is in the selection
 nodeSelected_ :: LUINo UISelection UIPath LUI LUIMoves -> Bool
@@ -592,16 +598,11 @@ where
 		| r == 0 = (i,True,Just x)
 		| otherwise = scan (r - 1) (i + 1) xs
 
-isAddedBy_ :: LUINo LUI -> Bool
-isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeApplied ruleId}) = lid == ruleId
-isAddedBy_ lid (LUINode _ _ _ _ {additional=ESApplied ruleId}) = lid == ruleId
-isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeRemoved ruleId}) = lid == ruleId
-isAddedBy_ _ _ = False
-
 isAdditional_ :: LUI -> Bool
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
+isAdditional_ (LUIMoveDestination _ _) = True  //TODO: Create a test for this case
 isAdditional_ _ = False
 
 isShifted_ :: LUI -> Bool
@@ -751,7 +752,7 @@ processNode_ ruleNo fun (lui,moves) = case lui of
 			_
 				= (Nothing,lui,moves)					
 	//TODO: Refactor to reduce overlap in cases
-	(LUINode type attr items changes effects=:{unwrapped=ESToBeApplied unwrappedBy}) | unwrappedBy < ruleNo
+	(LUINode type attr items changes effects=:{unwrapped=ESApplied unwrappedBy}) | unwrappedBy < ruleNo
 		 //Already wrapped, process the inner node
 		= case scanToPosition_ ruleNo 0 items moves of
 			(index,True,Just item) 
@@ -933,10 +934,10 @@ extractDownstreamChange (lui,moves) = case extractDownstreamChildChange lui move
 	_                                            = (NoChange,(lui,moves)) //TODO: This case should not really happen
 	
 //For each node we need to extract one of the following changes:
-// 1. Just (InsertChild x)        - The node did not exist previously, but does now
+// 1. Just (InsertChild x)        - The node did not exist client-side, but does now
 // 2. Just (RemoveChild)          - The node existed previously but should not
 // 3. Just (ChangeChild x)        - The node existed previously and still does
-// 4. Nothing                     - The node does not exist client side and still does not...
+// 4. Nothing                     - The node did not exist client-side and still does not...
 extractDownstreamChildChange :: LUI LUIMoves -> (!Maybe UIChildChange,!Maybe LUI,!LUIMoves)
 extractDownstreamChildChange lui moves
 	# (mbMoveId,mbDestinationRule,current=:LUINode _ _ items changes effects=:{moved}) = case lui of
@@ -1002,12 +1003,16 @@ where
 	differentFirstChild [LUIShiftDestination _:_]= True
 	differentFirstChild items = False
 
+	//TODO: make 'moves' an explicit argument
 	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = False
 	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeRemoved _}) = False
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = False
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESToBeUpdated _ _}) = False
 	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ {LUIEffects|moved=ESPartiallyUpdated _ _}) = False
-	existsDownstream_ ref (LUINode _ _ [i:_] _ {LUIEffects|unwrapped=ESApplied _}) = existsDownstream_ ref i
+	existsDownstream_ ref (LUINode _ _ items _ {LUIEffects|unwrapped=ESApplied unwrappedBy})
+		= case scanToPosition_ unwrappedBy 0 items moves of
+			(_,_,Just item) = existsDownstream_ ref item
+			_                    = False
 	existsDownstream_ _ _ = True
 
  	determineInsert_ node current moves = case extractUIWithEffects (current,moves) of
