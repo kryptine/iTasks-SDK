@@ -4,7 +4,7 @@ import iTasks.Internal.Test.Definition
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options}
 from iTasks.Internal.TaskStore import createTaskInstance
-from iTasks.Internal.TaskEval import evalTaskInstance
+from iTasks.Internal.TaskEval import evalTaskInstance, :: DeferredJSON
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
 import iTasks.Internal.Serialization

@@ -69,7 +69,7 @@ taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (Instan
 // === Evaluation state of instances: ===
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
-taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares      :: RWShared InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 
 //Filtered views on evaluation state of instances:
 
