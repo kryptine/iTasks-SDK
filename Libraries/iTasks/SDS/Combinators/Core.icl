@@ -18,8 +18,8 @@ sdsSelect name select notifyl notifyr sds1 sds2 = SDSSelect sds1 sds2 {SDSSelect
 sdsParallel :: !String !(p -> (p1,p2)) !((r1,r2) -> r) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(SDSReducer p (w1, w2) w) !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) -> SDSParallel p r w | gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds1 & RWShared sds2
 sdsParallel name param read write1 write2 reducer sds1 sds2 = SDSParallel sds1 sds2 {SDSParallelOptions|name=name,param=param,read=read,writel=write1,writer=write2, reducer = reducer}
 
-sdsSequence :: !String !(p -> p1) !(p r1 -> p2) (p r1 -> Either r ((r1,r2) -> r)) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(SDSReducer p (w1, w2) w) !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) -> SDSSequence p r w | gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds1 & RWShared sds2
-sdsSequence name paraml paramr read write1 write2 reducer sds1 sds2 = SDSSequence sds1 sds2 {SDSSequenceOptions|name=name,paraml=paraml,paramr=paramr,read=read,writel=write1,writer=write2, reducer = reducer}
+sdsSequence :: !String !(p -> p1) !(p r1 -> p2) (p r1 -> Either r ((r1,r2) -> r)) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) -> SDSSequence p r w | gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds1 & RWShared sds2
+sdsSequence name paraml paramr read write1 write2 sds1 sds2 = SDSSequence sds1 sds2 {SDSSequenceOptions|name=name,paraml=paraml,paramr=paramr,read=read,writel=write1,writer=write2}
 
 sdsCache:: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDSSource p r w) -> SDSCache p r w | iTask p & TC r & TC w
 sdsCache write sds = SDSCache sds {SDSCacheOptions|write=write}

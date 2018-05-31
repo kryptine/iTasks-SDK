@@ -66,7 +66,7 @@ where
 				(Ok (WriteResult notify), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ModifyResult v), iworld)				= trace_n "Got modify"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+				(Ok (ModifyResult r w), iworld)				= trace_n "Got modify"(base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
 		(SDSRefreshRequest taskId sdsId)
 			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	

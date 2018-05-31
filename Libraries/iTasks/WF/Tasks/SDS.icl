@@ -45,7 +45,7 @@ where
 
 		// Remote read not necessary, return result directly.
 		(Ok (ReadResult val), iworld)
-			= trace_n ("Read from " +++ sdsIdentity shared) (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), iworld)
+			= (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 		(Error e, iworld) 				= (ExceptionResult e, iworld)
 
@@ -111,7 +111,7 @@ where
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
 	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of 
 		(Error e, iworld) 						= (ExceptionResult e, iworld)
-		(Ok (ModifyResult written), iworld)		= (ValueResult (Value written True) evalInfo  (rep event) (TCStable taskId ts (DeferredJSON written)), iworld)
+		(Ok (ModifyResult r w), iworld)		= (ValueResult (Value w True) evalInfo  (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
 		(Ok (AsyncModify sds _), iworld) 			
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
 			# tree = TCAwait Modify taskId ts (TCInit taskId ts)
@@ -123,7 +123,7 @@ where
 		(Just val) 				= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
-				(ModifyResult val) = (ValueResult (Value val True) {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} (ReplaceUI (ui UIEmpty)) tree, iworld)
+				(ModifyResult r w) = (ValueResult (Value w True) {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} (ReplaceUI (ui UIEmpty)) tree, iworld)
 				(AsyncModify sds f) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () ('SDS'.TaskContext taskId))) sdsEvalStates})
 
 	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of

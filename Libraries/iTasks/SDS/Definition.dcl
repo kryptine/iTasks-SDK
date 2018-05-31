@@ -35,7 +35,7 @@ from Data.Set import :: Set
      */  
     | E. sds: AsyncWrite (sds p r w) & RWShared sds & TC r & TC w
 
-:: ModifyResult p r w = ModifyResult w
+:: ModifyResult p r w = ModifyResult r w
     // We include the modify function so that async operations can be resumed later.
     // TODO: f should be removed, as it is not the responsibility of the modify function to return the modifier function
     | E. sds: AsyncModify (sds p r w) (r -> MaybeError TaskException w) & RWShared sds
@@ -178,7 +178,6 @@ instance toString (WebServiceShareOptions r)
 	, read          :: p r1 -> Either r ((r1,r2) -> r)
     , writel        :: SDSLensWrite p w r1 w1
     , writer        :: SDSLensWrite p w r2 w2
-    , reducer       :: SDSReducer p (w1, w2) w
     }
 
 // TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writeable for SDSCache. iTask p seems to solve this for unknown reasons.

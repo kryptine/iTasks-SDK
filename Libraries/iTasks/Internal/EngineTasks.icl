@@ -28,7 +28,7 @@ timeout mt iworld = case read taskEvents EmptyContext iworld of
 		# to = minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		= ( minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		  , {iworld & world = world})
-	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
+	(Ok (ReadResult (Queue _ _)), iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 where
 	lesser (Just x) (Just y) = x < y

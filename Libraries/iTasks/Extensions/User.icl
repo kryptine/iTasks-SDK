@@ -198,7 +198,10 @@ taskInstancesForCurrentUser
 		id
 		(\() u -> u)
 		(\_ _ -> Right snd)
-		(SDSWrite (\_ u _ -> Ok (DoNotWrite u))) (SDSWriteConst (\_ _ -> Ok (DoNotWrite ()))) (\_ _ -> Ok ()) currentUser taskInstancesForUser
+		(SDSWrite (\_ u _ -> Ok (DoNotWrite u)))
+		(SDSWriteConst (\_ _ -> Ok (DoNotWrite ()))) 
+		currentUser
+		taskInstancesForUser
 
 workOn :: !t -> Task AttachmentStatus | toInstanceNo t
 workOn t 

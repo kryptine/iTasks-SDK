@@ -78,9 +78,8 @@ currentTaskInstanceAttributes
 		id
 		(\_ no -> no) 
 		(\_ _ -> Right snd)
-		(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))  
-    (SDSWrite (\no w _ -> (Ok (DoWrite w))))
-    (\p ws -> Ok (snd ws)) 
+		(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
+    (SDSWrite (\no r w -> (Ok (DoWrite w))))
 		currentTaskInstanceNo
 		taskInstanceAttributes
 

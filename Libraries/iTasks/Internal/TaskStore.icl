@@ -221,7 +221,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     = (Ok (),iworld)
   where
-    toME (Ok ('SDS'.ModifyResult r)) = Ok ()
+    toME (Ok ('SDS'.ModifyResult _ _)) = Ok ()
     toMe (Error e) = (Error e)
 
 
@@ -446,10 +446,10 @@ where
     notify taskId _ = const ((==) taskId)
     reducer p reduct = read p reduct 
 
-import StdMisc
+import StdMisc, StdDebug
 parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
-    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) reducer filteredTaskStates filteredInstanceIndex
+    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
     filteredTaskStates
         = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) lensReducer taskInstanceParallelTaskList
@@ -467,15 +467,17 @@ where
             decode NoValue	= NoValue
             decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
 
-        write (listId,selfId,listFilter) states []                              = Ok (DoNotWrite [])
-        write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok (DoNotWrite [])
+        write (listId,selfId,listFilter) states []                              = Ok (DoNotWrite states)
+        write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok (DoNotWrite states)
         write (listId,selfId,listFilter) states [(t,a):updates]
             # states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
             = write (listId,selfId,listFilter) states updates
 
         notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
-        lensReducer (listId, selfId, listFilter) ws = Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask])
+        lensReducer (listId, selfId, listFilter) ws 
+        | not (trace_tn "Lens reducer PTL") = undef
+        = (Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
 
     param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
                      ,onlySession=Nothing, matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
@@ -490,9 +492,6 @@ where
     write1 p w = Ok (DoWrite w)
     write2 p w = Ok (DoNotWrite []) //TODO: Write attributes of detached instances
 
-    // TODO: Fix.
-    // SDSReducer (TaskId,TaskId,TaskListFilter) (v49,InstanceFilter) (v43,[InstanceData]) (v48,[InstanceData]) [(TaskId,TaskAttributes)]
-    reducer p ws = abort "whoops"
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify

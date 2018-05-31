@@ -147,3 +147,17 @@ where
             (Left _)                                    = Right Nothing
             (Right val)                                 = (Right (Just val))
         (Just _)= Left "Dynamic not of the correct type"
+
+getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe (r,w)) | TC w & TC r
+getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
+        Nothing                             = Left "No iostate for this task"
+        (Just ioState)                      = case ioState of
+            (IOException exc)                   = Left exc
+            (IOActive connectionMap)            = getValue connectionId connectionMap
+            (IODestroyed connectionMap)         = getValue connectionId connectionMap
+where
+    getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
+        (Just (value :: Either [String] (r^, w^), _)) = case value of
+            (Left _)                                    = Right Nothing
+            (Right val)                                 = (Right (Just val))
+        (Just _)= Left "Dynamic not of the correct type"

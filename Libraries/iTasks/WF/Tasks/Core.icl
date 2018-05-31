@@ -96,7 +96,7 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
 				// We already have the result from executing the modify function, it happened on this machine.
-				ModifyResult _
+				ModifyResult _ _
 					# value = (Value ((fromJust (fromJSON encl)), (fromJust (fromJSON encv))) False) 
 					= (ValueResult value evalInfo NoChange (TCInteract taskId ts encl encv m), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates })
 				AsyncModify sds f 
@@ -179,7 +179,7 @@ applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworl
             # valid     = not (containsInvalidFields m)
 	        = case mbf of
 		        Just f | valid = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-			        (Ok ('SDS'.ModifyResult _),iworld) = (Ok (Left (l,v,change,m,taskTime)),iworld)
+			        (Ok ('SDS'.ModifyResult _ _),iworld) = (Ok (Left (l,v,change,m,taskTime)),iworld)
 			        (Ok ('SDS'.AsyncModify sds _), iworld) = trace_n "Editing async" (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change)),iworld)
 			        (Error e,iworld) = (Error e,iworld)
 		        _ = (Ok (Left (l,v,change,m,taskTime)),iworld)
@@ -202,7 +202,7 @@ refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 					//Update the share if necessary
 					= case mbf of
 						Just f = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-							(Ok ('SDS'.ModifyResult w),iworld) = (Ok (Left (l,v,change,m,taskTime)), iworld)
+							(Ok ('SDS'.ModifyResult _ _),iworld) = (Ok (Left (l,v,change,m,taskTime)), iworld)
 							(Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change) ), iworld)
 							(Error e,iworld) = (Error e,iworld)
 						Nothing	= (Ok (Left (l,v,change,m,taskTime)), iworld)

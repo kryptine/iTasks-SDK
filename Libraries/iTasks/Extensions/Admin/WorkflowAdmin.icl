@@ -111,9 +111,9 @@ import StdDebug
 installInitialWorkflows ::[Workflow] -> Task ()
 installInitialWorkflows [] = return ()
 installInitialWorkflows iflows
-	=   try (get workflows) (\(StoreReadBuildVersionError _) -> trace_n "Error installing flows" (return []))
+	=   try (get workflows) (\(StoreReadBuildVersionError _) -> return [])
 	>>= \flows -> case flows of
-		[]	= trace_n ("Setting flows: " +++ toString (length iflows))  (set iflows workflows @! ())
+		[]	= set iflows workflows @! ()
 		_	= return ()
 		
 loginAndManageWorkList :: !String ![Workflow] -> Task ()
@@ -186,12 +186,12 @@ where
 	manageList taskList
 		= get currentUser @ userRoles
 		>>- \roles -> 
-			 forever
+			forever
 			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
 				>>* (continuations roles taskList)
 			)
 
-	worklist roles = if (isMember "admin" roles) allWork myWork
+	worklist roles = if (isMember "admin" roles) allWork  myWork
 	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
 	where
 		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))

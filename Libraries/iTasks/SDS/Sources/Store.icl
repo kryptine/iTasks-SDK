@@ -60,7 +60,6 @@ storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
 	(SDSWriteConst (\_ w -> Ok (DoWrite w)))
-	(\p ws -> Ok (snd ws))
 	applicationOptions
 	(storageLocation defaultV)
 
@@ -71,7 +70,6 @@ blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
 	(SDSWriteConst (\_ w -> Ok (DoWrite w)))
-	(\p ws -> Ok (snd ws))
 	applicationOptions
 	(removeMaybe defaultV fileShare)
 
