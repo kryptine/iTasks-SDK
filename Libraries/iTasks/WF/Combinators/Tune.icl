@@ -44,34 +44,45 @@ applyLayout rule task=:(Task evala) = Task eval
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				# (mbUI,state) = extractUIWithEffects (rule ruleNo (initLUI ui, initLUIMoves))
-				# ui = fromMaybe (UI UIEmpty 'DM'.newMap []) mbUI
+				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
 				//| not (trace_tn ("STATE AFTER RESET: \n"+++toString (toJSON state))) = undef
-				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
+				= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)
 
 		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
 				= case fromJSON json of
-					(Just state)	
+					(Just state1)	
 						//| not (trace_tn ("UPSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
-						//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state))) = undef
-						# state = applyUpstreamChange change state
-						//| not (trace_tn ("STATE AFTER CHANGE: \n"+++toString (toJSON state))) = undef
-						# state = rule ruleNo state
-						//| not (trace_tn ("STATE AFTER RULES: \n"+++toString (toJSON state))) = undef
-						# (change,state) = extractDownstreamChange state
-						//| not (trace_tn ("STATE AFTER EXTRACT: \n"+++toString (toJSON state))) = undef
+						//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state1))) = undef
+						# state2 = applyUpstreamChange change state1
+						//| not (trace_tn ("STATE AFTER CHANGE: \n"+++toString (toJSON state2))) = undef
+						# state3 = rule ruleNo state2
+						//| not (trace_tn ("STATE AFTER RULES: \n"+++toString (toJSON state3))) = undef
+						# (change,state4) = extractDownstreamChange state3
+						//| not (trace_tn ("STATE AFTER EXTRACT: \n"+++toString (toJSON state4))) = undef
 						//| not (trace_tn ("DOWNSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
 						//| not (trace_tn "=====") = undef
-						= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)
+						| not (fullyApplied_ state4)
+							# iworld = traceState "state-before-change.txt" state1 iworld
+							# iworld = traceState "state-after-change.txt" state2 iworld
+							# iworld = traceState "state-after-rules.txt" state3 iworld
+							# iworld = traceState "state-after-extract.txt" state4 iworld
+							= (ExceptionResult (exception ("Corrupt layout state")), iworld)
+						= (ValueResult value info change (TCLayout (toJSON state4) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
-import StdDebug, StdMisc
+traceState filename state iworld
+	# {IWorld|world} = iworld
+	# (_,world) = writeFile filename (jsonPrettyPrint (toJSON state)) world
+	= {IWorld|iworld & world = world}
+
+import StdDebug, StdMisc, System.File, StdFile
+import iTasks.Internal.IWorld
 
 class toAttribute a where toAttribute :: a -> JSONNode
 instance toAttribute String where toAttribute s = JSONString s

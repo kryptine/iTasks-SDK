@@ -149,4 +149,4 @@ where
 
 applyLayoutRule :: LayoutRule UI -> UI 
 applyLayoutRule rule ui = fromMaybe (UI UIEmpty 'DM'.newMap []) 
-	(fst (extractUIWithEffects (rule (LUINo [0]) (initLUI ui,initLUIMoves))))
+	(extractUIWithEffects_ (rule (LUINo [0]) (initLUI ui,initLUIMoves)))

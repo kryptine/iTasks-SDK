@@ -155,10 +155,6 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	| ESToBeApplied a
 	| ESToBeUpdated a a
 	| ESToBeRemoved a
-	//Moving nodes happens in two steps, therefore we need additional intermediate states
-	| ESPartiallyApplied a
-	| ESPartiallyUpdated a a
-	| ESPartiallyRemoved a
 
 //Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
 //and in their destination location (to apply further effects).
@@ -187,11 +183,12 @@ instance toString LUINo
 initLUI :: UI -> LUI
 initLUIMoves :: LUIMoves
 
+extractResetChange :: (LUI,LUIMoves) -> (UIChange,(LUI,LUIMoves))
+
 applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
 extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
-extractUIWithEffects :: (LUI,LUIMoves) -> (!Maybe UI,!(LUI,LUIMoves))
 
 //Helper functions (exported for unit testing)
 scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
@@ -204,4 +201,5 @@ selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
 overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
 hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
 matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
-
+extractUIWithEffects_ :: (LUI,LUIMoves) -> Maybe UI
+fullyApplied_ :: (LUI,LUIMoves) -> Bool
