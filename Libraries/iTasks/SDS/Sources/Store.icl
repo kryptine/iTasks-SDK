@@ -73,13 +73,13 @@ blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 
 storageLocation :: !(Maybe a) -> SDS (FilePath,StorageType) a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 storageLocation defaultV = sdsSelect "storageLocation" choice
-	(SDSNotifyConst (\_ _ -> const False)) (SDSNotifyConst (\_ _ -> const False))
+	(SDSNotifyConst (\_ _ -> const (const False))) (SDSNotifyConst (\_ _ -> const (const False)))
 	(memoryLoc defaultV) (fileLoc defaultV)
 where
 	choice (path,InMemory) = (Left path)
 	choice (path,type)     = (Right (path,type))
 
-	fileLoc defaultV = sdsSelect "fileLoc" choice (SDSNotifyConst (\ _ _ -> const False)) (SDSNotifyConst (\_ _ -> const False))
+	fileLoc defaultV = sdsSelect "fileLoc" choice (SDSNotifyConst (\ _ _ -> const (const False))) (SDSNotifyConst (\_ _->const (const False)))
 		(jsonLoc defaultV) (graphLoc defaultV)
 	where
 		choice (path,InJSONFile) = Left (addExtension path "json")

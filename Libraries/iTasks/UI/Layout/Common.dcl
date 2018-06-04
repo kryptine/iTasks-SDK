@@ -10,6 +10,7 @@ from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
 from iTasks.UI.Tune import class tune
 from iTasks.WF.Definition import :: Task
 
+
 /**
 * Create a tabset with all child items as separate tabs
 * The flag denotes whether close buttons should be lifted to the tabs
@@ -90,7 +91,7 @@ instance tune ArrangeHorizontal Task
 //Changing container types
 
 toContainer ::                                   LayoutRule
-toPanel     ::                                   LayoutRule
+toPanel     :: Bool ->                           LayoutRule
 toWindow    :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toEmpty     ::                                   LayoutRule
 
@@ -100,7 +101,7 @@ InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
 instance tune ToWindow Task
 
-:: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
+:: InPanel          = InPanel Bool      //Indicate that a task should be wrapped in a panel
 instance tune InPanel Task
 
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel

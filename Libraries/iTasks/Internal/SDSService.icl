@@ -138,7 +138,7 @@ where
             (Error msg, iworld) = (Error (exception msg), iworld)
 	rwrite jsonp jsonw iworld
 		= case writeRemoteSDS jsonp jsonw url iworld of
-			(Ok (), iworld) = (Ok (const False), iworld)
+			(Ok (), iworld) = (Ok (const (const False)), iworld)
 			(Error msg, iworld) = (Error (exception msg), iworld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w

@@ -58,8 +58,8 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
-taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
-allInstanceIO           :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
+taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
+allInstanceIO           :: RWShared () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec)) 
 
 //=== Task instance input: ===
 
@@ -69,7 +69,7 @@ taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (Instan
 // === Evaluation state of instances: ===
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
-taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares      :: RWShared InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 
 //Filtered views on evaluation state of instances:
 

@@ -35,10 +35,10 @@ where
 	html (URL url) = ATag [HrefAttr url] [Text url]
 
 
-KEEPALIVE_TIME :== 5
+KEEPALIVE_TIME :== {tv_sec=5, tv_nsec=0}
 
 :: HttpConnState
-    = Idle String Timestamp
+    = Idle String Timespec
     | ReadingRequest HttpReqState
 	| AwaitingResponse String Int Bool
 
@@ -60,7 +60,7 @@ serveWebService port handler
     @! ()
 where
 	manageConnections io
-		= tcplisten port False (currentTimestamp |+< io)
+		= tcplisten port False (currentTimespec |+< io)
 			{ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
 
     onConnect client_name (now,io)
@@ -85,7 +85,7 @@ where
 				# reply		= encodeResponse True response
 				= (Ok (Idle client_name now), Just io, [reply], keepalive)
 
-	onShareChange l=:(Idle client_name (Timestamp last)) (Timestamp now,_) //Close idle connections if the keepalive time passed
+	onShareChange l=:(Idle client_name last) (now,_) //Close idle connections if the keepalive time passed
 		= (Ok l, Nothing, [], now - last > KEEPALIVE_TIME)
 
     onShareChange l (now,io)

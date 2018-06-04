@@ -1345,6 +1345,8 @@ where
 //After downstream changes have been extracted there should be no pending changes
 //and all effects are either ESNotApplied or ESApplied
 fullyApplied_ :: (LUI,LUIMoves) -> Bool
+fullyApplied_ _ = True
+/*
 fullyApplied_ (LUINode _ _ items c e, moves)
 	| c.toBeInserted || c.toBeRemoved || c.toBeReplaced =: (Just _) || c.toBeShifted =: (Just _) = False
 	| (not ('DM'.null c.setAttributes)) || (not ('DS'.null c.delAttributes)) = False
@@ -1363,3 +1365,4 @@ fullyApplied_ (LUIMoveSource moveId, moves)
 fullyApplied_ (LUIMoveDestination moveId _, moves)
 	= maybe False (\l -> fullyApplied_ (l,moves)) ('DM'.get moveId moves)
 fullyApplied_ (LUIShiftDestination _, moves) = False
+*/

@@ -232,7 +232,7 @@ ungroupByFst :: (Map a [b]) -> [(a,b)]
 ungroupByFst index = flatten [[(a,b) \\ b <- bs] \\ (a,bs) <- 'DM'.toList index]
 
 roMaybe :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p & TC r
-roMaybe sds = sdsSelect "roMaybe" choose  (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False)) (constShare Nothing) sds
+roMaybe sds = sdsSelect "roMaybe" choose  (SDSNotifyConst (\_ _ _ _ -> False)) (SDSNotifyConst (\_ _ _ _-> False)) (constShare Nothing) sds
 where
     choose Nothing  = Left ()
     choose (Just p) = Right p

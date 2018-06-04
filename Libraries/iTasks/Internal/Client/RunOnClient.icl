@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.Client.RunOnClient
 
-import StdMisc
+import StdMisc, Data.Func
 import iTasks
 import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
@@ -21,7 +21,7 @@ import Text.GenJSON
 			, sessionId  :: !String
 			, taskId     :: !Maybe TaskId
 			, task		 :: !Task a			
-			, value		 :: !Maybe (TaskValue JSONNode)
+			, value		 :: !Maybe (TaskValue DeferredJSON)
 			}
 
 runOnClient :: !(Task m) -> Task m | iTask m
@@ -38,7 +38,7 @@ runOnClient task = task
 */
 gen_res {TaskState|value=Nothing} = NoValue
 gen_res {TaskState|value=Just NoValue} = NoValue
-gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
+gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromDeferredJSON json)) stability
 
 /*
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
@@ -119,7 +119,7 @@ where
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
         # world = newWorld
-        # (timestamp=:(Timestamp seed),world) = time world
+        # (timestamp=:{tv_sec=seed},world) = nsTime world
 		= {IWorld
 		  |options =  { appName = "application"
 	                    , appPath = locundef "appDirectory"
@@ -130,6 +130,7 @@ createClientIWorld serverURL currentInstance
                         , sessionTime = locundef "sessionTime"
                         , persistTasks = False
 						, autoLayout = True
+						, timeout = Just 100
 	                    , webDirPath  = locundef "webDirectory"
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"

@@ -15,6 +15,7 @@ from iTasks.WF.Definition	        import :: InstanceNo
 from Data.Queue 					import :: Queue
 from Data.Maybe                     import :: Maybe
 from Data.Map                       import :: Map
+from System.Time                    import :: Timespec
 
 :: ConnectionState :== (String, WebSockState,[(InstanceNo,String)])
 
@@ -40,7 +41,7 @@ from Data.Map                       import :: Map
     , onDisconnect    :: !(HTTPRequest r ConnectionState        *IWorld -> *(!Maybe w, !*IWorld))                                       // is called on disconnect
     }
 
-httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
+httpServer :: !Int !Timespec ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 
 :: OutputQueues :== Map InstanceNo TaskOutput
 

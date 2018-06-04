@@ -39,19 +39,19 @@ applyLayout rule task=:(Task evala) = Task eval
 			= evala event evalOpts (TCDestroy tt) iworld
 
 		eval event evalOpts tt=:(TCInit _ _) iworld
-			= eval ResetEvent evalOpts (TCLayout JSONNull tt) iworld //On initialization, we need to do a reset to be able to apply the layout
+			= eval ResetEvent evalOpts (TCLayout (DeferredJSONNode JSONNull) tt) iworld //On initialization, we need to do a reset to be able to apply the layout
 
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
 				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
 				//| not (trace_tn ("STATE AFTER RESET: \n"+++toString (toJSON state))) = undef
-				= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)		
+				= (ValueResult value info change (TCLayout (DeferredJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)
 
 		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				= case fromJSON json of
+				= case fromDeferredJSON json of
 					(Just state1)	
 						//| not (trace_tn ("UPSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
 						//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state1))) = undef
@@ -69,7 +69,7 @@ applyLayout rule task=:(Task evala) = Task eval
 							# iworld = traceState "state-after-rules.txt" state3 iworld
 							# iworld = traceState "state-after-extract.txt" state4 iworld
 							= (ExceptionResult (exception ("Corrupt layout state")), iworld)
-						= (ValueResult value info change (TCLayout (toJSON state4) tt), iworld)
+						= (ValueResult value info change (TCLayout (DeferredJSON state4) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)

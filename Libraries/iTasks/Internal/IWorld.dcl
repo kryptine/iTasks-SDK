@@ -7,13 +7,12 @@ from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from Data.Queue             import :: Queue
 from StdFile			                import class FileSystem		
-from System.Time				        import :: Timestamp
+from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
-from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
 from iTasks.UI.Definition				import :: UI, :: UIType
 from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
+from iTasks.Internal.Task             import :: ConnectionTask, :: BackgroundTask
 from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
@@ -31,7 +30,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timestamp                                   // Server side clock
+                    , clock                 :: !Timespec                                    // Server side clock
                     , current               :: !TaskEvalState                               // Shared state during task evaluation
 
                     , random                :: [Int]                                        // Infinite random stream
@@ -78,12 +77,10 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
-    | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
-    , nextConnectionId      :: !ConnectionId    
+    , nextConnectionId      :: !ConnectionId
     , port                  :: !Int
     , connectionTask        :: !ConnectionTask
     , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
@@ -98,18 +95,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
-
-:: ExternalProcessInstanceOpts =
-    { taskId                :: !TaskId              //Reference to the task that started the external process
-    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
-    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
-    }
-
-:: BackgroundInstanceOpts =
-    { bgInstId              :: !BackgroundTaskId
-    }
-
-:: BackgroundTaskId         :== Int
 
 :: IOStates :== Map TaskId IOState
 :: IOState
@@ -147,8 +132,25 @@ destroyIWorld :: !*IWorld -> *World
 
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
-iworldTimestamp     :: Shared Timestamp
-iworldLocalDateTime :: ReadOnlyShared DateTime
+:: ClockParameter a =
+	{ start :: a
+	, interval :: a
+	}
+
+iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
+iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+
+/*
+ * Calculate the next fire for the given timespec
+ *
+ * @param now
+ * @param registration time
+ * @param clock parameter
+ * @result time to fire next
+ */
+iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+
+iworldLocalDateTime    :: ReadOnlyShared DateTime
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

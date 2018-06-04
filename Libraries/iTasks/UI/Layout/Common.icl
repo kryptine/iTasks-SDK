@@ -211,8 +211,11 @@ toEmpty = setUIType UIEmpty
 toContainer :: LayoutRule
 toContainer = setUIType UIContainer 
 
-toPanel :: LayoutRule
-toPanel = setUIType UIPanel
+toPanel :: Bool -> LayoutRule
+toPanel fs = sequenceLayouts
+	[setUIType UIPanel
+	:if fs [setUIAttributes ('DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)] [] 
+	]
 
 actionToButton :: LayoutRule
 actionToButton = sequenceLayouts
@@ -288,7 +291,7 @@ where
 
 instance tune InPanel Task
 where
-	tune InPanel t =  tune (ApplyLayout toPanel) t
+	tune (InPanel fullscreenable) t =  tune (ApplyLayout (toPanel fullscreenable)) t
 
 instance tune InContainer Task
 where

@@ -1,10 +1,9 @@
 implementation module iTasks.Extensions.Development.Testing
 import iTasks
+import System.Time
 import iTasks.Extensions.Development.Tools
 import iTasks.Internal.Test.Definition
 import Text, Data.Tuple, Data.Error, System.FilePath, System.OS
-
-derive class iTask ExitCode
 
 TESTS_PATH :== "../Tests/TestPrograms"
 
@@ -14,10 +13,8 @@ compileTestModule :: FilePath -> Task TestResult
 compileTestModule path 
 	= 	get cpmExecutable 
 	>>- \cpm ->
-	    withShared [] ( \io -> (
-			 runWithOutput cpm [prj] Nothing io //Build the test
-		@ \(ExitCode c,o) -> if (passed c o) Passed (Failed (Just ("Failed to build " +++ prj +++ "\n" +++ join "" o)))
-       ))
+		runWithOutput cpm [prj] Nothing //Build the test
+		@ \(c,o) -> if (passed c o) Passed (Failed (Just ("Failed to build " +++ prj +++ "\n" +++ join "" o)))
 where
     //Cpm still returns exitcode 0 on failure, so we have to check the output
 	passed 0 o = let lines = split OS_NEWLINE (join "" o) in not (any isErrorLine lines) 
@@ -34,7 +31,7 @@ runTestModule :: FilePath -> Task SuiteResult
 runTestModule path
 	= compileTestModule path
 	>>- \res -> case res of
-		Passed = withShared [] (\io -> ( runWithOutput exe [] Nothing io @ (parseSuiteResult o appSnd (join "")))) //Run the test
+		Passed = runWithOutput exe [] Nothing @ (parseSuiteResult o appSnd (join "")) //Run the test
 	    _      = return {SuiteResult|suiteName=path,testResults=[("build",res)]}
 where
 	baseDir = takeDirectory path
@@ -42,8 +39,8 @@ where
 	exe = addExtension base "exe"
 	prj = addExtension base "prj"
 
-	parseSuiteResult :: (ExitCode,String) -> SuiteResult //QUICK AND DIRTY PARSER
-	parseSuiteResult (ExitCode ecode,output)
+	parseSuiteResult :: (Int,String) -> SuiteResult //QUICK AND DIRTY PARSER
+	parseSuiteResult (ecode,output)
 		# lines = split "\n" output
 		| length lines < 2 = fallback ecode output
 		# suiteName = trim ((split ":" (lines !! 0)) !! 1)
@@ -69,12 +66,7 @@ where
 		fallback 0 _ = {SuiteResult|suiteName="Unknown",testResults=[("executable",Passed)]}
 		fallback _ output = {SuiteResult|suiteName="Unknown",testResults=[("executable",Failed (Just output))]}
 
-runWithOutput :: FilePath [String] (Maybe FilePath) (Shared [String]) -> Task (ExitCode,[String])
-runWithOutput prog args dir out
-   = externalProcess () prog args dir out {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} Nothing gEditor{|*|}
-	where
-		onStartup r = (Ok (ExitCode 0,[]), Nothing, [], False) 
-		onOutData data (e,o) r = (Ok (e,o ++ [data]), Just (r ++ [data]), [], False)
-		onErrData data l r = (Ok l, Nothing, [], False)
-		onShareChange  l r = (Ok l, Nothing, [], False)
-		onExit ecode (_,o) r =  (Ok (ecode,o), Nothing)
+runWithOutput :: FilePath [String] (Maybe FilePath) -> Task (Int,[String])
+runWithOutput prog args dir = withShared ([], []) \out->withShared [] \stdin->
+	externalProcess {tv_sec=0,tv_nsec=100000000} prog args dir Nothing stdin out
+	>>- \c->get out @ tuple c o fst

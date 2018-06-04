@@ -63,15 +63,15 @@ taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 nextInstanceNo :: RWShared () Int Int
 nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
-taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
+taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
 where
 	read instanceNo m = Ok ('DM'.get instanceNo m)
 	write instanceNo m (Just io) = Ok (Just ('DM'.put instanceNo io m))
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
-	notify instanceNo _ 	= (==) instanceNo
+	notify instanceNo _ 	= const ((==) instanceNo)
 
-allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
+allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec)) 
 allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances
@@ -87,7 +87,7 @@ taskInstanceValue :: RWShared InstanceNo TIValue TIValue
 taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
-taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares :: RWShared InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 :: TaskOutputMessage 
@@ -105,7 +105,7 @@ taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDS
 where
 	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs)) 
 	write instanceNo outputs output = Ok (Just ('DM'.put instanceNo output outputs))
-	notify instanceNo _ = (==) instanceNo
+	notify instanceNo _ = const ((==) instanceNo)
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
@@ -186,7 +186,7 @@ where
 	toJSONTask (Task eval) = Task eval`
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
-			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
+			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap DeferredJSON val) ts rep tree, iworld)
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
@@ -237,7 +237,7 @@ where
             | filterPredicate p i   = write` p is [w:ws]    //If w is not the next element, it may be because it is outside the filter, if it isn't it is apparently deleted
                                     = [i:write` p is [w:ws]] //I was outside the filter, just leave it unchanged
 
-    notify wfilter rs ws qfilter 
+    notify wfilter rs ws ts qfilter
 	    | not (overlappingColumns wfilter qfilter)      = False //If there are no overlapping columns, we definitely don't need to notify
 	    | overlappingRows qfilter wfilter rs            = True  //If there are records that match both filters, we need to notify
         | matchingRows qfilter (newRows rs wfilter ws)  = True  //If there are new rows that the registered filter we need to notify
@@ -288,7 +288,7 @@ where
     read no [data]  = Ok data
     read no _       = Error (exception ("Could not find task instance "<+++ no))
     write no data   = Ok (Just [data])
-    notify no _     = (==) no
+    notify no _     = const ((==) no)
 
 taskInstanceConstants :: ROShared InstanceNo InstanceConstants
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
@@ -298,7 +298,7 @@ where
     read no [(_,Just c,_,_)]    = Ok c
     read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
     write _ _                   = Ok Nothing
-    notify _ _                  = const False
+    notify _ _                  = const (const False)
 
 taskInstanceProgress :: RWShared InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
@@ -309,7 +309,7 @@ where
     read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
     write no [(n,c,_,a)] p      = Ok (Just [(n,c,Just p,a)])
     write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
-    notify no _                 = (==) no
+    notify no _                 = const ((==) no)
 
 taskInstanceAttributes :: RWShared InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
@@ -320,7 +320,7 @@ where
     read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
     write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
     write no _ _                = Error (exception ("Could not find attributes for task instance "<+++ no))
-    notify no _                 = (==) no
+    notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic
 topLevelTaskList :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
@@ -345,7 +345,7 @@ where
             updateAttributes (TaskId targetNo 0,attrNew) attrOld = if (targetNo == instanceNo) (Just attrNew) attrOld
             updateAttributes _ attrOld = attrOld
 
-    notify _ _ _ = True
+    notify _ _ _ _ = True
 
 //Evaluation state of instances
 localShare :: RWShared TaskId a a | iTask a
@@ -353,13 +353,14 @@ localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNoti
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId shares = case 'DM'.get taskId shares of
-        Just json = case fromJSON json of
-            (Just r)    = Ok r
-            Nothing     = Error (exception ("Failed to decode json of local share " <+++ taskId))
+        Just json = case fromDeferredJSON json of
+            Just r  = Ok r
+            Nothing = Error (exception ("Failed to decode json of local share " <+++ taskId))
         Nothing
             = Error (exception ("Could not find local share " <+++ taskId))
-    write taskId shares w = Ok (Just ('DM'.put taskId (toJSON w) shares))
-    notify taskId _ = (==) taskId
+
+    write taskId shares w = Ok (Just ('DM'.put taskId (DeferredJSON w) shares))
+    notify taskId _ = const ((==) taskId)
 
 derive gText ParallelTaskState
 
@@ -373,7 +374,7 @@ where
     write (taskId,listFilter) lists w
 		= Ok (Just ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
 
-    notify (taskId,listFilter) states (regTaskId,regListFilter)
+    notify (taskId,listFilter) states ts (regTaskId,regListFilter)
         # states = filter (inFilter listFilter) states //Ignore the states outside our filter
         //Different list, so eliminate
         | taskId <> regTaskId = False
@@ -419,7 +420,7 @@ where
     read p=:(listId,taskId,_) [] = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
     read p=:(_,taskId,_) [x:xs] = if (x.ParallelTaskState.taskId == taskId) (Ok x) (read p xs)
     write (_,taskId,_) list pts = Ok (Just [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
-    notify (listId,taskId,_) _ = (==) taskId o snd3
+    notify (listId,taskId,_) _ = const ((==) taskId o snd3)
 
 taskInstanceEmbeddedTask :: RWShared TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceReduct
@@ -429,7 +430,7 @@ where
         Just task = Ok task
         _         = Error (exception ("Could not find embedded task " <+++ taskId))
     write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
-    notify taskId _ = (==) taskId
+    notify taskId _ = const ((==) taskId)
 
 parallelTaskList :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
@@ -449,7 +450,7 @@ where
                      } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
             decode NoValue	= NoValue
-            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
+            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
 
         write (listId,selfId,listFilter) states []                              = Ok Nothing
         write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok Nothing
@@ -457,7 +458,7 @@ where
             # states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
             = write (listId,selfId,listFilter) states updates
 
-        notify (listId,_,_) states (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
+        notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 
     param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
@@ -598,7 +599,7 @@ where
 	
 	rwrite p val iworld
         = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
-            (Ok _,iworld)       = (Ok (const True),iworld)
+            (Ok _,iworld)       = (Ok (const (const True)),iworld)
             (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
 							
     mismatchError = "Exposed share type mismatch: " +++ url

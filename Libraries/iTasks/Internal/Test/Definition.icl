@@ -22,7 +22,7 @@ from Data.Queue import :: Queue(..)
 import System.OS
 import iTasks.Util.Trace
 
-derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult, ExitCode
+derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
 
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = emptyEditor 

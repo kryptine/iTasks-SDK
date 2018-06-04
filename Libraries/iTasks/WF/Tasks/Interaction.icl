@@ -3,7 +3,6 @@ implementation module iTasks.WF.Tasks.Interaction
 from StdFunc import id, const, o, flip
 from Data.Tuple import appSnd
 from Data.List import isMemberGen, findIndex, instance Functor [], getItems
-from System.Time import :: Timestamp(..)
 from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor

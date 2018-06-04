@@ -72,6 +72,18 @@ where
 	choices = ["string" +++ toString i\\i<-[0..20]]
 ```
 
+## Panels
+In some cases, such as when you apply a title, the user interface is automatically lifted to a panel.
+However, this can also be done manually with the option of making the panel fullscreenable.
+
+```clean
+toPanel :: Bool -> Layout
+:: InPanel = InPanel Bool
+```
+
+If the boolean flag is set to true, the panel includes a small icon (![](Libraries/iTasks/UI/WebPublic/css/icons/fullscreen.png)) on the bottom right that, when clicked, makes the panel full screen.
+If the small icon is clicked again, the panel shrinks back to the original size again.
+
 ## Conclusion
 
 In this guide we have shown how you how to decorate tasks with layout combinators so that you can change the way they appear in the client.
