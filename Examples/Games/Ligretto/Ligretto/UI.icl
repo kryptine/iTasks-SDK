@@ -117,7 +117,7 @@ name_image {Player | name,color}
  # width  = card_height *. 1.8
  # height = card_width  *. 0.4
  = overlay [(AtMiddleX,AtMiddleY)] []
-     [text {FontDef | cardfont 16.0 & fontweight = "bold"} name <@< { FillAttr | fill = if (color === Yellow) black white}]
+     [text (setfontweight "bold" (cardfont 16.0)) name <@< { FillAttr | fill = if (color === Yellow) black white}]
      (Host (rect width height <@< { FillAttr | fill = toSVGColor color}))
      <@< { MaskAttr | mask = rect width height <@< { FillAttr | fill = white} <@< { StrokeAttr | stroke = white}}
 
