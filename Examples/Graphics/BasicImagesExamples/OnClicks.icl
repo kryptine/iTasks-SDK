@@ -5,11 +5,10 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.SDS
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import StdInt, StdReal, StdTuple
 from   StdList import repeat
-from   StdFunc import id, const
+from   StdFunc import id
 
 //	shorthand definitions for the used fonts in these examples
 times			= normalFontDef "Times New Roman"

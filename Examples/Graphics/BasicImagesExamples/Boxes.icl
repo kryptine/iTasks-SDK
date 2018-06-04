@@ -4,10 +4,9 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-from   StdFunc import id, o, const
-import StdInt, StdReal
+from   StdFunc import id, const
+import StdReal
 from   StdList import repeat, repeatn
 
 Start :: *World -> *World

@@ -6,7 +6,6 @@ import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import Text.GenPrint
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const

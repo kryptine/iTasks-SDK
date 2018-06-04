@@ -3,12 +3,10 @@ module Transformations
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
-import Text.GenPrint
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdArray, StdEnum, StdList, StdTuple
-from   StdFunc import id, o, const
+import StdList
+from   StdFunc import id, o
 
 //	shorthand definitions for the used fonts in these examples
 lucida			= normalFontDef "Lucida Console"

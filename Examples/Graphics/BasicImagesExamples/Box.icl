@@ -5,9 +5,7 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdReal
 from   StdFunc import id
 
 //	shorthand definitions for the used colours in these examples
@@ -29,11 +27,11 @@ Start world
 box2 :: m *TagSource -> Image m
 box2 _ tags = pair (arrow, arrow`) tags
 where
-	arrow  = polygon [(px zero,px -10.0),(px 55.0,px -10.0),(px 50.0,px -30.0),(px 85.0,px zero)
-	                 ,(px 50.0,px  30.0),(px 55.0,px  10.0),(px zero,px  10.0)
+	arrow  = polygon [(px  0.0,px -10.0),(px 55.0,px -10.0),(px 50.0,px -30.0),(px 85.0,px 0.0)
+	                 ,(px 50.0,px  30.0),(px 55.0,px  10.0),(px  0.0,px  10.0)
 	                 ]
-	arrow` = polygon [(px -10.0,px zero),(px -10.0,px 55.0),(px -30.0,px 50.0),(px zero,px 85.0)
-	                 ,(px  30.0,px 50.0),(px  10.0,px 55.0),(px  10.0,px zero)
+	arrow` = polygon [(px -10.0,px  0.0),(px -10.0,px 55.0),(px -30.0,px 50.0),(px 0.0,px 85.0)
+	                 ,(px  30.0,px 50.0),(px  10.0,px 55.0),(px  10.0,px  0.0)
 	                 ]
 
 /**	pair (img1,img2) tags = image:
