@@ -7,6 +7,7 @@ from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgr
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditMask
+from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
@@ -67,7 +68,8 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
 	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
-	| TCLayout					!DeferredJSON !TaskTree
+	//| TCLayout					!DeferredJSON !TaskTree
+	| TCLayout					!(!LUI,!LUIMoves) !TaskTree
 	| TCNop			
 	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
 

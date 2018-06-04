@@ -31,6 +31,7 @@ where
 	tune (ApplyLayout l) task = applyLayout l task
 
 applyLayout :: LayoutRule (Task a) -> Task a
+//applyLayout rule task=:(Task evala) = task
 applyLayout rule task=:(Task evala) = Task eval
 	where
 		ruleNo = LUINo [0]
@@ -39,39 +40,37 @@ applyLayout rule task=:(Task evala) = Task eval
 			= evala event evalOpts (TCDestroy tt) iworld
 
 		eval event evalOpts tt=:(TCInit _ _) iworld
-			= eval ResetEvent evalOpts (TCLayout (DeferredJSONNode JSONNull) tt) iworld //On initialization, we need to do a reset to be able to apply the layout
+			//On initialization, we need to do a reset to be able to apply the layout
+			= eval ResetEvent evalOpts (TCLayout (initLUI (ui UIEmpty),initLUIMoves) tt) iworld 
 
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
 				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
 				//| not (trace_tn ("STATE AFTER RESET: \n"+++toString (toJSON state))) = undef
-				= (ValueResult value info change (TCLayout (DeferredJSON state) tt), iworld)		
+				= (ValueResult value info change (TCLayout state tt), iworld)		
             (res,iworld) = (res,iworld)
 
-		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
+		eval event evalOpts (TCLayout state1 tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				= case fromDeferredJSON json of
-					(Just state1)	
-						//| not (trace_tn ("UPSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
-						//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state1))) = undef
-						# state2 = applyUpstreamChange change state1
-						//| not (trace_tn ("STATE AFTER CHANGE: \n"+++toString (toJSON state2))) = undef
-						# state3 = rule ruleNo state2
-						//| not (trace_tn ("STATE AFTER RULES: \n"+++toString (toJSON state3))) = undef
-						# (change,state4) = extractDownstreamChange state3
-						//| not (trace_tn ("STATE AFTER EXTRACT: \n"+++toString (toJSON state4))) = undef
-						//| not (trace_tn ("DOWNSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
-						//| not (trace_tn "=====") = undef
-						| not (fullyApplied_ state4)
-							# iworld = traceState "state-before-change.txt" state1 iworld
-							# iworld = traceState "state-after-change.txt" state2 iworld
-							# iworld = traceState "state-after-rules.txt" state3 iworld
-							# iworld = traceState "state-after-extract.txt" state4 iworld
-							= (ExceptionResult (exception ("Corrupt layout state")), iworld)
-						= (ValueResult value info change (TCLayout (DeferredJSON state4) tt), iworld)
-					Nothing	
-						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
+				//| not (trace_tn ("UPSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
+				//| not (trace_tn ("STATE BEFORE CHANGE: \n"+++toString (toJSON state1))) = undef
+				# state2 = applyUpstreamChange change state1
+				//| not (trace_tn ("STATE AFTER CHANGE: \n"+++toString (toJSON state2))) = undef
+				# state3 = rule ruleNo state2
+				//| not (trace_tn ("STATE AFTER RULES: \n"+++toString (toJSON state3))) = undef
+				# (change,state4) = extractDownstreamChange state3
+				//| not (trace_tn ("STATE AFTER EXTRACT: \n"+++toString (toJSON state4))) = undef
+				//| not (trace_tn ("DOWNSTREAM CHANGE: \n"+++toString (toJSON change))) = undef
+				//| not (trace_tn "=====") = undef
+				| not (fullyApplied_ state4)
+					# iworld = traceState "state-before-change.txt" state1 iworld
+					# iworld = traceState "state-after-change.txt" state2 iworld
+					# iworld = traceState "state-after-rules.txt" state3 iworld
+					# iworld = traceState "state-after-extract.txt" state4 iworld
+					= (ExceptionResult (exception ("Corrupt layout state")), iworld)
+				| otherwise
+					= (ValueResult value info change (TCLayout state4 tt), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall

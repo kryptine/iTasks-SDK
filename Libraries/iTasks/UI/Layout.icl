@@ -20,12 +20,7 @@ from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
 import Data.GenEq
 
-//This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-
 derive gEq LUIEffectStage, LUINo
-
 derive gLexOrd LUIEffectStage
 
 instance < (LUIEffectStage a) | gLexOrd{|*|} a
