@@ -184,10 +184,10 @@ mandatory_moves :: !Trax !Coordinate -> Trax
 
 
 :: TraxSt
- = { trax   :: Trax              // the current set of placed tiles
-   , names  :: [User]            // the current two players
-   , turn   :: Bool
-   , choice :: Maybe Coordinate
+ = { trax   :: !Trax              // the current set of placed tiles
+   , names  :: ![User]            // the current two players
+   , turn   :: !Bool
+   , choice :: !Maybe Coordinate
    }
 
 game_over :: TraxSt -> Bool

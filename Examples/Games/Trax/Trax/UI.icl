@@ -4,7 +4,6 @@ import StdBool, StdList
 from   StdFunc import const, flip, id
 import Data.List
 import iTasks.WF.Tasks.Interaction
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
@@ -99,12 +98,5 @@ where
 tileShape :: Span -> Image a
 tileShape d						= square d <@< {xradius = d /. 10} <@< {yradius = d /. 10}
 
-font							= { fontfamily  = "Arial"
-							      , fontysize   = 14.0
-							      , fontstretch = ""
-							      , fontstyle   = ""
-							      , fontvariant = ""
-							      , fontweight  = ""
-							      }
-
+font							= normalFontDef "Arial" 14.0
 tileSize						= px 50.0
