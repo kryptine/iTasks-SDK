@@ -14,7 +14,7 @@ import iTasks.Internal.AsyncSDS
 import iTasks.Internal.IWorld
 
 from StdFunc import o
-import StdString, StdList
+import StdString, StdList, StdArray
 import qualified Data.Map as DM
 import Data.Maybe, Data.Error
 import Text.GenJSON, Text.URI
@@ -51,33 +51,32 @@ where
 
 	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)	
 	reqFun req=:{req_data, server_name} _ iworld
-	| not (trace_tn (printToString req)) = undef
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadResult symbols), iworld) = (readSymbols symbols, iworld)
 	= case deserializeFromBase64 req_data symbols of
 		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v), iworld)					= trace_n "Got read"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+				(Ok (ReadResult v), iworld)					= trace_n ("Got read") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
 		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId server_name port) (Just taskId) reqSDSId iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v), iworld)					= trace_n "Got register"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+				(Ok (ReadResult v), iworld)					= trace_n ("Got register") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
 		(SDSWriteRequest sds p val)						= case writeSDS sds p EmptyContext val iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
 				(Ok (WriteResult notify), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ModifyResult r w), iworld)				= trace_n "Got modify"(base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
+				(Ok (ModifyResult r w), iworld)				= trace_n ("Got modify") (base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
 		(SDSRefreshRequest taskId sdsId)
-			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
+			//# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	
 
 	plainResponse string
-		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}
+		= {okResponse & rsp_headers = [("Content-Type","text/plain"), ("Content-Length", toString (size string))], rsp_data = string}
 
-	base64Response string = {okResponse & rsp_headers = [("Content-Type","text/plain;base64")], rsp_data = string}
+	base64Response string = {okResponse & rsp_headers = [("Content-Type","text/plain;base64"), ("Content-Length", toString (size string))], rsp_data = string}
 				
     dataFun req _ data instanceNo iworld =  ([], True, instanceNo, Nothing, iworld)
 
     onShareChange _ _ s iworld = ([], True, s, Nothing, iworld)
-    onTick _ _ instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
+    onTick _ _ instanceNo iworld =([], True, instanceNo, Nothing, iworld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)

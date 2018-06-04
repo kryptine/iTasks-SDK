@@ -29,17 +29,22 @@ intShare = sharedStore "intShare" 15
 simpleShare = remoteShare intShare {domain="TEST", port=8080}
 projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (DoWrite (r - 2)))) (\_ ws. Ok (ws + 2))  simpleShare
 
-Start world	= startEngine [publish "/" (\_ ->  loginAndManageWorkList "Hello!" flows)] world
+Start world	= startEngineWithOptions opts [publish "/" (\_ ->  loginAndManageWorkList "Hello!" flows)] world
 where
+	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
+	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
+	opts [a:as] = opts as
+
 	title = "Remote share test"
 
-	flows = [ workflow "Tests/1" "Test 1" case1
-			, workflow "Tests/2" "Test 2" case2
-			, workflow "Tests/3" "Test 3" case3
-			, workflow "Tests/4" "Test 4" case4
-			, workflow "Tests/5" "Test 5" case5
-			, workflow "Tests/6" "Test 6" case6
-			, workflow "Tests/7" "Test 7" case7]
+	flows = [ workflow "Tests/1" "Test 1: Get remote share" case1
+			, workflow "Tests/2" "Test 2: Get and set remote share" case2
+			, workflow "Tests/3" "Test 3: Update remote share (updateSharedInformation)" case3
+			, workflow "Tests/4" "Test 4: Update parallel with left remote (updateSharedInformation)" case4
+			, workflow "Tests/5" "Test 5: Update parallel with right remote (updateSharedInformation)" case5
+			, workflow "Tests/6" "Test 6: Update parallel with left remote in parallel (updateSharedInformation)" case6
+			, workflow "Tests/7" "Test 7: Update lens with remote sds (updateSharedInformation)" case7
+			, workflow "View" "View local shares" localSdss]
 
 	// 1. We can read from a remote share
 	localSdss =  (viewSharedInformation "sharedStoreNamebla" [] testShare 

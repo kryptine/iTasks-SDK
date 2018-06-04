@@ -180,7 +180,7 @@ applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworl
 	        = case mbf of
 		        Just f | valid = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
 			        (Ok ('SDS'.ModifyResult _ _),iworld) = (Ok (Left (l,v,change,m,taskTime)),iworld)
-			        (Ok ('SDS'.AsyncModify sds _), iworld) = trace_n "Editing async" (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change)),iworld)
+			        (Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change)),iworld)
 			        (Error e,iworld) = (Error e,iworld)
 		        _ = (Ok (Left (l,v,change,m,taskTime)),iworld)
         (Error e,_,{VSt|iworld}) = (Error (exception e),iworld)

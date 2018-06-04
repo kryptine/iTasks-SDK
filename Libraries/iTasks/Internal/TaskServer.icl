@@ -76,8 +76,9 @@ where
 		= (ListenerInstance opts (fromJust mbListener),world)
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
-loop determineTimeout iworld
-    # (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout iworld
+loop determineTimeout iworld=:{ioTasks}
+    // Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
+    # (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
     //Check which mainloop tasks have data available
     # (todo,chList,world) = select mbTimeout todo world
 	//Write the clock
@@ -260,7 +261,7 @@ process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     }
 :: IOData data closeInfo = IODClosed closeInfo
                          | IODNoData
-                         | IODData !data
+                         | IODData !data & TC data
 
 tcpConnectionIOOps :: IOTaskOperations *TCP_DuplexChannel String ()
 tcpConnectionIOOps = {readData = readData, writeData = writeData, closeIO = closeIO}
@@ -492,11 +493,11 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             | isError mbr = (liftError mbr, iworld)
             // Evaluate onInit handler
             # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (directResult (fromOk mbr)) iworld
-			// Check initialization of local state 
-			= case mbl of	
-				Error e = (Error (exception e), iworld)
-				Ok l
-            		// write output
+            // Check initialization of local state 
+            = case mbl of   
+                Error e = (Error (exception e), iworld)
+                Ok l
+                    // write output
             		# (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
             		//Close or add to queue
             		| close
@@ -510,7 +511,7 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
                             (Just (IOActive connectionMap))    = let key = inc ('DL'.maximum ('DM'.keys connectionMap)) in (key, IOActive ('DM'.put key (l, False) connectionMap))
             			# ioStates = 'DM'.put taskId connectionMap ioStates
             			# {done, todo} = iworld.ioTasks
-            			= (Ok (connectionId, l), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}})
+                        = (Ok (connectionId, l), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}})
 
 checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)

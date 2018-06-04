@@ -57,7 +57,7 @@ where
 			(Ok (res :: ReadResult () a^ w^), iworld)
 			# evalInfo = {TaskEvalInfo|lastEvent=time,removedTasks=[], refreshSensitive=False}
 			= case res of
-				(ReadResult val) = trace_n ("Read from " +++ sdsIdentity shared) (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) subtree, iworld)
+				(ReadResult val) = (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) subtree, iworld)
 				(AsyncRead sds) 
 				# ui = NoChange
 				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.read sds ('SDS'.TaskContext taskId))) sdsEvalStates
@@ -96,7 +96,7 @@ where
 			# tree = TCAwait Write taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates
 			= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-		(Ok Done, iworld) 			= trace_n ("Wrote to " +++ sdsIdentity shared) (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
+		(Ok Done, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)

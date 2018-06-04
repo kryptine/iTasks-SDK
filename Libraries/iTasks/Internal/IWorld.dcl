@@ -85,7 +85,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , connectionTask        :: !ConnectionTask
     , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
     }
-
 :: ConnectionInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the connection
     , connectionId          :: !ConnectionId    //Unique connection id (per listener/outgoing connection)

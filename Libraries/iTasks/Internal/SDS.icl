@@ -15,8 +15,6 @@ import iTasks.WF.Tasks.IO
 import Text.GenJSON
 import iTasks.Internal.AsyncSDS
 
-import StdDebug
-
 createReadWriteSDS ::
 	!String
 	!String
@@ -192,7 +190,7 @@ where
 
     writeSDS (SDSValue mrv sds) p c w iworld = case writeSDS sds p c w iworld of
         (Error e, iworld) = (Error e, iworld)
-        (Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSValue mrv sds)), iworld)
+        (Ok (AsyncWrite sds), iworld) = trace_n "Writing to original SDS" (Ok (AsyncWrite (SDSValue mrv sds)), iworld)
         (Ok (WriteResult notify), iworld) = (Ok (WriteResult notify), iworld)
 
 instance Modifiable SDSSource where
@@ -278,7 +276,7 @@ where
 
 instance Modifiable SDSLens where
     modifySDS f sds=:(SDSLens sds1 opts=:{SDSLensOptions|param, read, write, reducer, notify, name}) p context iworld
-    = case modifySDS sf sds1  (param p) context iworld of
+    = case modifySDS sf sds1 (param p) context iworld of
         (Error e, iworld)                           = (Error e, iworld)
         (Ok (AsyncModify sds _), iworld)            = (Ok (AsyncModify (SDSLens sds opts) f), iworld)
         (Ok (ModifyResult rs ws), iworld)           = case reducer p ws of
@@ -522,8 +520,9 @@ instance Identifiable SDSParallel where
     nameSDS (SDSParallel sds1 sds2 {SDSParallelOptions|name}) acc = ["|",name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
     nameSDS _ _ = abort "SDSParallel not matching"
 
+import StdDebug
 instance Readable SDSParallel where
-    readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read}) p c mbNotify reqSDSId iworld
+    readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read, name}) p c mbNotify reqSDSId iworld
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     # (p1,p2) = param p
     # (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
@@ -532,14 +531,14 @@ instance Readable SDSParallel where
     # (res2, iworld) = readSDS sds2 p2 c mbNotify reqSDSId iworld
     | res2 =:(Error _)
         = (liftError res2, iworld)
-    = case (res1, res2) of
-        (Ok (ReadResult r1), Ok (ReadResult r2)) = (Ok (ReadResult (read (r1, r2))), iworld)
-        (Ok (AsyncRead sds1), Ok (ReadResult r2)) = (Ok (AsyncRead (SDSParallel sds1 (SDSValue r2 sds2) opts)), iworld)
-        (Ok (ReadResult r1), Ok (AsyncRead sds2)) = (Ok (AsyncRead (SDSParallel (SDSValue r1 sds1) sds2 opts)), iworld)
-        (Ok (AsyncRead sds1), Ok (AsyncRead sds2)) = (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+    = case (fromOk res1, fromOk res2) of
+        (ReadResult r1, ReadResult r2) = (Ok (ReadResult (read (r1, r2))), iworld)
+        (AsyncRead sds1, ReadResult r2) = trace_n ("Reading from async SDSParallel left " +++ name) (Ok (AsyncRead (SDSParallel sds1 (SDSValue r2 sds2) opts)), iworld)
+        (ReadResult r1, AsyncRead sds2) = trace_n ("Reading from async SDSParallel right " +++ name) (Ok (AsyncRead (SDSParallel (SDSValue r1 sds1) sds2 opts)), iworld)
+        (AsyncRead sds1, AsyncRead sds2) = trace_n ("Reading from async SDSParallel both " +++ name) (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
 
 instance Writeable SDSParallel where
-    writeSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,writel,writer}) p c w iworld
+    writeSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,writel,writer, name}) p c w iworld
     # (p1,p2) = param p
     //Read/write sds1
     # (npreds1,iworld) = case writel of
@@ -571,21 +570,22 @@ instance Writeable SDSParallel where
     | npreds2 =:(Error _) = (liftError npreds2, iworld)
     = case (npreds1, npreds2) of 
         (Ok (WriteResult n1), Ok (WriteResult n2)) = (Ok (WriteResult ('Set'.union n1 n2)), iworld)
-        (Ok (WriteResult n1), Ok (AsyncWrite sds2)) = (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds1) n1 iworld)
-        (Ok (AsyncWrite sds1), Ok (WriteResult n2)) = (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds2) n2 iworld)
-        (Ok (AsyncWrite sds1), Ok (AsyncWrite sds2)) = (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), iworld)
+        (Ok (WriteResult n1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel right " +++ name) (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds1) n1 iworld)
+        (Ok (AsyncWrite sds1), Ok (WriteResult n2)) = trace_n ("Writing to async SDSParallel left " +++ name) (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds2) n2 iworld)
+        (Ok (AsyncWrite sds1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel both " +++ name)(Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), iworld)
 
 instance Modifiable SDSParallel where
     modifySDS f sds p context iworld 
+    | not (trace_tn "Modify SDSParallel " ) = undef
     = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
         (Error e, iworld)               = (Error e, iworld)
-        (Ok (AsyncRead sds), iworld)    = (Ok (AsyncModify sds f), iworld)
-        (Ok (ReadResult r), iworld)     = case f r of
+        (Ok (AsyncRead sds), iworld)    = trace_n "Modify async read SDSParallel" (Ok (AsyncModify sds f), iworld)
+        (Ok (ReadResult r), iworld)     = trace_n "Modify direct read SDSParallel" (case f r of
             Error e                         = (Error e, iworld)
             Ok w                            = case writeSDS sds p context w iworld of
                 (Error e, iworld)                   = (Error e, iworld)
-                (Ok (AsyncWrite sds), iworld)       = (Ok (AsyncModify (SDSValue r sds) f), iworld)
-                (Ok (WriteResult notify), iworld)   = (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) notify iworld)
+                (Ok (AsyncWrite sds), iworld)       = trace_n "Modify async write SDSParallel" (Ok (AsyncModify (SDSValue r sds) f), iworld)
+                (Ok (WriteResult notify), iworld)   = trace_n "Modify direct write SDSParallel" (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) notify iworld))
 
 instance Registrable SDSParallel where
     readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld

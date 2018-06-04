@@ -768,13 +768,13 @@ where
 		# curStatus = case progress of
 			(Ok (ReadResult progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
 			    | build <> appVersion    = ASIncompatible
-				| value =: (Exception _) = ASExcepted
+				| value =:(Exception _) = case value of (Exception s) = ASExcepted s
 				| attachedId <> taskId   = ASInUse attachedId	
 									 	 = ASAttached (value =: Stable)
 			_                            = ASDeleted
 		//Determine UI change
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
-		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted)
+		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted _)
 		= (ValueResult (Value curStatus stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} change (TCAttach taskId ts curStatus build instanceKey), iworld)
 
 	eval event evalOpts (TCDestroy (TCAttach taskId _ _ _ _)) iworld
@@ -789,7 +789,7 @@ where
 	determineUIChange event curStatus prevStatus instanceNo instanceKey
 		| curStatus === prevStatus && not (event =: ResetEvent) = NoChange
 		| curStatus =: (ASInUse _)    = ReplaceUI inuse
-		| curStatus =: ASExcepted     = ReplaceUI exception
+		| curStatus =: ASExcepted _     = ReplaceUI exception
 		| curStatus =: ASIncompatible = ReplaceUI incompatible
 		| otherwise     		      = ReplaceUI viewport
 	where

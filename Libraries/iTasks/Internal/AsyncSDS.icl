@@ -19,9 +19,19 @@ from iTasks.Internal.TaskServer import addConnection
 from iTasks.SDS.Sources.Core import unitShare
 
 import qualified Data.Map as DM
-import StdDebug
 
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
+
+createRequestString req  host port
+# data = serializeToBase64 req
+# headers = 'DM'.fromList [("Connection", "Close"), ("Content-Length", toString (size data))]
+= toString {newHTTPRequest & req_method = HTTP_POST, server_name = host, server_port = port, req_path =  "/sds/", req_version = "HTTP/1.1", req_data = data, req_headers = headers}
+
+onConnect reqq host port _ _  = (Ok (Left []), Nothing, [createRequestString reqq host port], False) 
+
+onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
+
+onShareChange acc _ = (Ok acc, Nothing, [], False)
 
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env = case addConnection taskId host port connectionTask env of
@@ -30,29 +40,40 @@ queueSDSRequest req host port taskId symbols env = case addConnection taskId hos
 where
     connectionTask = wrapConnectionTask (handlers req) unitShare
 
-    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] r) () ()
-    handlers _ = {ConnectionHandlers| onConnect = onConnect,
+    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] r) () () | TC r
+    handlers _ = {ConnectionHandlers| onConnect = onConnect req host port,
         onData = onData,
         onShareChange = onShareChange,
         onDisconnect = onDisconnect}
-
-    headers = 'DM'.fromList [("Connection", "Close"), ("Content-Length", toString (size data))]
-    data = serializeToBase64 req
-    request = toString {newHTTPRequest & server_name = host, server_port = port, req_path =  "/sds/", req_version = "HTTP/1.1", req_data = data, req_headers = headers}
-
-    onConnect _ _ 
-    | not (trace_tn ("Do request:====================\n" +++ request +++ "\n====================")) = undef
-    = (Ok (Left []), Nothing, [request], False) 
-
-    onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
-
-    onShareChange acc _ = (Ok acc, Nothing, [], False)
 
     onDisconnect (Left acc) _
     # rawResponse = concat acc
     = case parseResponse rawResponse of
         Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
-        (Just parsed) = (Ok (Right (deserializeFromBase64 parsed.rsp_data symbols)), Nothing)
+        (Just parsed)
+        # r = deserializeFromBase64 parsed.rsp_data symbols
+        = (Ok (Right r), Nothing)
+
+queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
+queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
+    (Error e, env)          = (Error e, env)
+    (Ok (id, _), env)       = (Ok id, env)
+where
+    connectionTask = wrapConnectionTask (handlers req) unitShare
+
+    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (r, w)) () () | TC r
+    handlers _ = {ConnectionHandlers| onConnect = onConnect req host port,
+        onData = onData,
+        onShareChange = onShareChange,
+        onDisconnect = onDisconnect}
+
+    onDisconnect (Left acc) _
+    # rawResponse = concat acc
+    = case parseResponse rawResponse of
+        Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
+        (Just parsed)
+        # r = deserializeFromBase64 parsed.rsp_data symbols
+        = (Ok (Right r), Nothing)
 
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
@@ -66,7 +87,7 @@ where
         onShareChange = onShareChange,
         onDisconnect = onDisconnect}
 
-    onConnect _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Keep-Alive" req.HTTPRequest.req_headers}], False) 
+    onConnect _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Close" req.HTTPRequest.req_headers}], False) 
 
     onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
@@ -118,7 +139,7 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 # (symbols, env) = case read symbolsShare EmptyContext env of
     (Ok (ReadResult r), env) = (readSymbols r, env)
 # request = SDSModifyRequest sds p f
-= queueSDSRequest request domain port taskId symbols env
+= queueModifyRequest request domain port taskId symbols env
 
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
 getAsyncReadValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of        
@@ -132,7 +153,7 @@ where
         (Just (value :: Either [String] r^, _)) = case value of
             (Left _)                                    = Right Nothing
             (Right val)                                 = (Right (Just val))
-        (Just _)= Left "Dynamic not of the correct type"
+        (Just _)= Left "Dynamic not of the correct read type"
 
 getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe w) | TC w
 getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
@@ -146,7 +167,7 @@ where
         (Just (value :: Either [String] w^, _)) = case value of
             (Left _)                                    = Right Nothing
             (Right val)                                 = (Right (Just val))
-        (Just _)= Left "Dynamic not of the correct type"
+        (Just _)= Left "Dynamic not of the correct write type"
 
 getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe (r,w)) | TC w & TC r
 getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
@@ -156,8 +177,9 @@ getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioSta
             (IOActive connectionMap)            = getValue connectionId connectionMap
             (IODestroyed connectionMap)         = getValue connectionId connectionMap
 where
-    getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
+    getValue connectionId connectionMap 
+    = case 'DM'.get connectionId connectionMap of
         (Just (value :: Either [String] (r^, w^), _)) = case value of
             (Left _)                                    = Right Nothing
             (Right val)                                 = (Right (Just val))
-        (Just _)= Left "Dynamic not of the correct type"
+        (Just (dyn, _))= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))

@@ -86,7 +86,6 @@ where
      * @param parameter
      * @param The context in which to read/write to the SDS
      */
-     // TODO: This should not be necessary. This approach still uses the old read -> write method, while it should apply the function to every sub-sds
     modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> *(!MaybeError TaskException !(ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
@@ -107,7 +106,7 @@ instance toString (WebServiceShareOptions r)
 :: SDSNotifyPred p          :== Timespec p -> Bool
 
 //Sources provide direct access to a data source
-:: SDSSource p r w = SDSSource (SDSSourceOptions p r w)
+:: SDSSource p r w = SDSSource (SDSSourceOptions p r w) 
 
     // Allows for some keeping of local state. Writing to a SDS may require reading from that SDS. 
     // In the case that this reading is asynchronous, writing could also be asynchronous. This
