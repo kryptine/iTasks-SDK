@@ -74,9 +74,11 @@ where
     	| not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
     	# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
 		= (ListenerInstance opts (fromJust mbListener),world)
-
+ 
+import StdDebug
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks}
+    | not (trace_tn "Start loop") = undef
     // Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
     # (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
     //Check which mainloop tasks have data available
@@ -84,29 +86,34 @@ loop determineTimeout iworld=:{ioTasks}
 	//Write the clock
 	# (timespec, world) = nsTime world
     # (mbe, iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext {iworld & world=world, ioTasks = {done=[],todo=todo}}
-	| mbe =:(Error _) = iworld
+    | mbe =:(Error _) = iworld
     //Process the select result
+    | not(trace_tn "Processing selects") = undef
     # iworld =:{shutdown,ioTasks={done}} = process 0 chList iworld
     //Move everything from the done list back to the todo list and process events
+    | not(trace_tn "Processing events") = undef
     # (mbe, iworld) = processEvents MAX_EVENTS {iworld & ioTasks={todo = reverse done,done=[]}}
 	| mbe =:(Error _) = abort "Error in event processing"
+    | not (trace_tn "looping") = undef
     //Everything needs to be re-evaluated
 	= case shutdown of
     	(Just exitCode) = halt exitCode iworld
         _               = loop determineTimeout iworld
 
-processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
+processEvents :: !Int !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 processEvents max iworld
+    | not (trace_tn "Processing events") = undef
 	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of 
-			(Nothing,iworld) = (Ok (),iworld)
+			(Nothing,iworld) 
+            | not (trace_tn "No events") = undef
+            = (Ok (),iworld)
 			(Just (instanceNo,event),iworld)
-				= case evalTaskInstance instanceNo event iworld of 
-					(Ok taskValue,iworld)
-						= processEvents (max - 1) iworld
-					(Error msg,iworld=:{IWorld|world})
-						= (Ok (),{IWorld|iworld & world = world})
+            | not (trace_tn ("Evaluate task " <+++ instanceNo)) = undef
+			= case evalTaskInstance instanceNo event iworld of 
+				(Ok taskValue,iworld) = processEvents (max - 1) iworld
+				(Error msg,iworld=:{IWorld|world}) = (Ok (),{IWorld|iworld & world = world})
 
 select :: (Maybe Timeout) *[IOTaskInstance] *World -> (!*[IOTaskInstance],![(Int,SelectResult)],!*World)
 select mbTimeout mlInstances world
@@ -169,9 +176,10 @@ where
         = (n + 1,[x:xs])
 
 //TODO: Use share notification to trigger task re-evaluation based on io events
-process :: !Int [(!Int,!SelectResult)] !*IWorld -> *IWorld
-process i chList iworld=:{ioTasks={done,todo=[]}} = iworld
+process :: !Int [(!Int,!SelectResult)] !*IWorld -> !*IWorld
+process i chList iworld=:{ioTasks={done,todo=[]}} = trace_n "End of processing" iworld
 process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:todo]},ioStates,world}
+    | not (trace_tn ("Process listener instance " <+++ i)) = undef
     # taskId=:(TaskId instanceNo _) = lopts.ListenerInstanceOpts.taskId
     = case 'DM'.get lopts.ListenerInstanceOpts.taskId ioStates of
         //Active listener:
@@ -240,17 +248,19 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
 
 process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexChannel:todo]}}
     # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+    | not (trace_tn (("Process connectionInstance no " <+++ i) +++ (", taskId: " <+++ opts.ConnectionInstanceOpts.taskId) +++ (", remoteHost " +++ toString opts.ConnectionInstanceOpts.remoteHost))) = undef
     # iworld = processIOTask
         i chList opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
         opts.ConnectionInstanceOpts.removeOnClose sds tcpConnectionIOOps
         (\_ -> handlers.ConnectionHandlersIWorld.onDisconnect) handlers.ConnectionHandlersIWorld.onData
         handlers.ConnectionHandlersIWorld.onShareChange handlers.ConnectionHandlersIWorld.onTick (ConnectionInstance opts) duplexChannel iworld
+    | not (trace_tn ("Done process connectionInstance no " <+++ i)) = undef
     = process (i+1) chList iworld
 where
     (ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
 
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
-    = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
+    = trace_n "Other task" (process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}})
 
 // Definitions of IO tasks (tcp connections)
 
@@ -308,8 +318,10 @@ processIOTask :: !Int
               -> *IWorld
 processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandler onDataHandler
               onShareChangeHandler onTickHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+    | not (trace_tn ("Processing IO task " <+++ i)) = undef
     = case 'DM'.get taskId ioStates of
         Just (IOActive taskStates)
+            | not (trace_tn ("Active " <+++ i)) = undef
             # (TaskId instanceNo _) = taskId
             // get task state
             # mbTaskState = 'DM'.get connectionId taskStates
@@ -321,6 +333,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onTick handler ***
             // read sds
+            | not (trace_tn ("OnTick " <+++ i)) = undef
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = directResult (fromOk mbr)
@@ -335,6 +348,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onShareChange handler ***
             // read sds
+            | not (trace_tn ("onShareChange " <+++ i)) = undef
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = directResult (fromOk mbr)
@@ -352,14 +366,17 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // ** onData handler ***
             // read sds
+            | not (trace_tn ("OnData " <+++ i)) = undef
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = directResult (fromOk mbr)
             # taskState = fromOk mbTaskState
             // try to read data
             # (mbData, ioChannels, iworld) = ioOps.readData i chList (ioChannels, iworld)
+            | not (trace_tn ("Got mbData " <+++ i)) = undef
             = case mbData of
                 IODClosed closeInfo
+                    | not (trace_tn ("Closed " <+++ i)) = undef
                     # (mbTaskState, mbw, iworld) = onCloseHandler closeInfo taskState r iworld
                     # ioStates = case mbTaskState of
                         Ok state
@@ -375,9 +392,11 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                     = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
                 IODNoData
                     // persist connection
+                    | not (trace_tn ("NoData " <+++ i)) = undef
                     # {done, todo} = iworld.ioTasks
-                    = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
+                    = trace_n "Returning NoData" {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
                 IODData data
+                    | not (trace_tn ("Data " <+++ i)) = undef
                     # (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
@@ -392,6 +411,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                         # {done, todo} = iworld.ioTasks
                         = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
         Just (IODestroyed taskStates)
+            | not (trace_tn ("Destroyed " <+++ i)) = undef
             # iworld = ioOps.closeIO (ioChannels, iworld)
             //Remove the state for this connection
             # taskStates = 'DM'.del connectionId taskStates

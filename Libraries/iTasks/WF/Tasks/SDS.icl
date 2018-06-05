@@ -35,6 +35,7 @@ where
 	eval :: (sds () a w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult a, !*IWorld) | TC w & TC a & Readable sds & iTask a
 	eval shared event opts tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
 	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False}
+	| not (trace_tn "Eval get TCInit") = undef
 	= case 'SDS'.read shared ('SDS'.TaskContext taskId) iworld of
 		// Remote read is queued, enter AwaitRead state and show loading UI.
 		(Ok (AsyncRead sds), iworld)
@@ -45,12 +46,15 @@ where
 
 		// Remote read not necessary, return result directly.
 		(Ok (ReadResult val _), iworld)
+		| not (trace_tn "Got value") = undef
 			= (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 		(Error e, iworld) 				= (ExceptionResult e, iworld)
 
 	// The task is awaiting the result of a read operation 
-	eval shared event opts tree=:(TCAwait Read taskId time subtree) iworld=:{IWorld|sdsEvalStates}  = case 'DM'.get taskId sdsEvalStates of
+	eval shared event opts tree=:(TCAwait Read taskId time subtree) iworld=:{IWorld|sdsEvalStates}  
+	| not (trace_tn "Eval get TCAwait Read") = undef
+	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 				= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
@@ -63,11 +67,13 @@ where
 				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.read sds ('SDS'.TaskContext taskId))) sdsEvalStates
 				= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval _ event opts s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+	eval _ event opts s=:(TCStable taskId ts enc) iworld 
+	| not (trace_tn "Eval get TCStable") = undef
+	= case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
-	eval _ event opts tree=:(TCDestroy _) w = (DestroyedResult, w)
+	eval _ event opts tree=:(TCDestroy _) w = trace_n "Eval get TCDestroy" (DestroyedResult, w)
 
 	eval _ _ _ _ _ = abort "get does not match!"
 

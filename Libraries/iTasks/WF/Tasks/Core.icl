@@ -20,6 +20,7 @@ import qualified Data.Map as DM
 import StdDebug, StdMisc
 
 derive JSONEncode Event,Set
+derive gText Event, Set
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -64,10 +65,11 @@ interact prompt mode shared handlers editor
 =  Task (eval prompt mode shared handlers editor)
 where
 	eval :: !d !EditMode (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-	eval _ _ _ _ _ event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+	eval _ _ _ _ _ event evalOpts (TCDestroy _) iworld = trace_n "Destroyed" (DestroyedResult,iworld)
 
 	eval prompt mode shared handlers editor  (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld=:{sdsEvalStates, current={taskTime}} 
 	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+	| not (trace_tn "TCAwait read refresh") = undef
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 
@@ -91,6 +93,7 @@ where
 
     eval prompt mode shared handlers editor  (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ _ (TCInteract taskId ts encl encv m)) iworld=:{sdsEvalStates, current={taskTime}}
 	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+	| not (trace_tn "TCAwait modify refresh") = undef
 	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
@@ -109,23 +112,29 @@ where
 
     // Ignore all other events when waiting on an async operation.
 	eval _ _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld 
-		= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+	| not (trace_tn "TCAwait _ other") = undef
+	= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
 
 	// Handle all other events normally
-	eval prompt mode shared handlers editor  event evalOpts tree iworld=:{current={taskTime}, sdsEvalStates}
+	eval prompt mode shared handlers editor event evalOpts tree iworld=:{current={taskTime}, sdsEvalStates}
+		| not (trace_tn ("other event " <+++ event)) = undef 
 		//Decode or initialize state
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok ('SDS'.ReadResult r _),iworld)
+						| not (trace_tn "Got read result") = undef
 						# (l,v) = handlers.onInit r
 						= case initMask taskId mode editor v iworld of
 							(Ok m,iworld) = (Ok (Left (taskId,ts,l,v,m)),iworld)
 							(Error e,iworld) = (Error e,iworld)
-					(Ok ('SDS'.AsyncRead sds), iworld) =(Ok (Right (taskId, ts, sds)),{iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
+					(Ok ('SDS'.AsyncRead sds), iworld) 
+					| not (trace_tn "Async read result") = undef
+					= (Ok (Right (taskId, ts, sds)),{iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv m)
 				//Just decode the initially stored values
+				| not (trace_tn "TCInteract") = undef
 				= case (fromJSON encl, fromJSON encv) of
 					(Just l,Just v) = (Ok (Left (taskId,ts,l,v,m)),iworld)
 					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
@@ -133,6 +142,7 @@ where
 		| mbd =:(Ok (Right _)) = case mbd of 
 			(Ok (Right (taskId, ts, sds))) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (uia UIProgressBar (textAttr "Getting data"))) (TCAwait Read taskId taskTime tree), iworld)
 		# (Left (taskId,ts,l,v,m)) = fromOk mbd
+		| not (trace_tn "applying event") = undef
         # (mbRes, iworld) = case event of
             EditEvent eTaskId name edit | eTaskId == taskId
 	            = applyEditEvent_ name edit taskId mode editor taskTime shared handlers.InteractionHandlers.onEdit l v m iworld
@@ -146,6 +156,7 @@ where
             FocusEvent fTaskId | fTaskId == taskId
 	            = (Ok (Left (l,v,NoChange,m,taskTime)),iworld)
             _ = (Ok (Left (l,v,NoChange,m,ts)),iworld)
+        | not (trace_tn "Applied event ") = undef
         = case mbRes of
 		   Error e = (ExceptionResult e, iworld)
 		   // An EditEvent can lead to an asynchronous update of a share. However, we do not 
@@ -175,6 +186,7 @@ applyEditEvent_ :: String JSONNode TaskId EditMode (Editor v) TaskTime (sds () r
                 | TC r & TC w & RWShared sds
 applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworld
 	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+	| not (trace_tn "Apply edit event") = undef
 	= case editor.Editor.onEdit [] (s2dp name,edit) ov m vst of
         (Ok (change,m),v,{VSt|iworld})
 	        # (l,v,mbf) = onEdit v l ov
@@ -193,6 +205,7 @@ refreshView_ :: TaskId EditMode (Editor v) (sds () r w) (r l v -> (l, v, Maybe (
              | TC r & TC w & RWShared sds
 refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 	//Read the shared source and refresh the editor
+	| not (trace_tn "Apply refresh event") = undef
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
 		(Ok ('SDS'.AsyncRead sds), iworld) = trace_n "Refresh event async read"(Ok (Right (Read, dynamicResult ('SDS'.readRegister taskId sds), l, ov, m, NoChange)), iworld)

@@ -531,12 +531,13 @@ queueRefresh tasks iworld
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
-    (Error e, iworld)               = (Nothing, iworld)
+    (Error e, iworld)               = trace_n "Error while reading events" (Nothing, iworld)
     (Ok ('SDS'.ReadResult queue _), iworld)
+    | not (trace_tn "Got result from events") = undef
     # (val, queue) = 'DQ'.dequeue queue
     = case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
-      (Error e, iworld) = (Nothing, iworld)
-      (Ok Done, iworld) = (val, iworld)
+      (Error e, iworld) = trace_n "Error while writing to events"(Nothing, iworld)
+      (Ok Done, iworld) = trace_n "Written to events" (val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld

@@ -545,10 +545,13 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                                     _                                        -> (new_parent_instance, False)
                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
                          # (mchild_bpr, iworld)                 = if (isVar fn)
-                                                                    ('DSDS'.read (sdsFocus childTaskId allTonicInstances) EmptyContext iworld)
-                                                                    (Ok (ReadResult [] (sdsFocus childTaskId allTonicInstances)), iworld)
+                                                                    (case 'DSDS'.read (sdsFocus childTaskId allTonicInstances) EmptyContext iworld of 
+                                                                        (Error e, iworld) = (Nothing, iworld)
+                                                                        (Ok (ReadResult r _), iworld) = (Just (r), iworld)
+                                                                    )
+                                                                    (Just [], iworld)
                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
-                                                                    Ok (ReadResult bprefs=:[_ : _] _)
+                                                                    Just bprefs=:[_ : _]
                                                                       = case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- bprefs | bpi_taskId > parentBPInst.bpi_taskId || (bpi_taskId == parentBPInst.bpi_taskId && bpi_index > parentBPInst.bpi_index)] of
                                                                           [{bpi_bpref} : _]
                                                                             # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
@@ -564,7 +567,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                                                 = (parent_bpr, True, iworld)
                                                                             | otherwise = (new_parent_instance, False, iworld)
                                                                           _ = (new_parent_instance, False, iworld)
-                                                                    _ = (new_parent_instance, False, iworld)
+                                                                    Nothing = (new_parent_instance, False, iworld)
                          | chng || chng` = snd ('DSDS'.write new_parent_instance (sdsFocus (new_parent_instance.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) EmptyContext iworld)
                          | otherwise     = iworld
                        _ = iworld

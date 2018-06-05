@@ -68,6 +68,7 @@ processEvents max iworld
 						= (Ok (),{IWorld|iworld & world = world})
 
 //Evaluate a single task instance
+import StdDebug
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 evalTaskInstance instanceNo event iworld
     # iworld            = mbResetUIState instanceNo event iworld
@@ -103,7 +104,7 @@ where
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
+	# (newResult,iworld=:{current})	= trace_n "eval func" (eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld)
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
         _                            = tree
@@ -112,14 +113,14 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError (read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld)
     // Write the updated progress
+    | not (trace_tn "Writing progress") = undef
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed
    		(case (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of 
           (Error e, iworld) = (Error e, iworld)
           (Ok _, iworld) = (Ok (), iworld) )
     = case mbErr of
-        Error (e,description)          
-			= exitWithException instanceNo description iworld
+        Error (e,description)           = exitWithException instanceNo description iworld
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld

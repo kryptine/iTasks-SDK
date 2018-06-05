@@ -85,8 +85,10 @@ removeDupBy :: (a a -> Bool) [a] -> [a]
 removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
 removeDupBy _ [] = []
 
+import StdDebug, StdMisc
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
 step task fun c
+| not (trace_tn "Stepping") = undef
 = if (length conts <> length c)
 	(step` (traceValue "Duplicate actions in step") (\_->Nothing) [OnValue (ifStable \_->step` task fun conts)])
 	(step` task fun conts)
@@ -100,6 +102,7 @@ step` :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC
 step` (Task evala) lhsValFun conts = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld
+
 		# (taskIda,iworld)	= getNextTaskId iworld
 		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts,[]))) iworld
 
