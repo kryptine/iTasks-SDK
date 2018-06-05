@@ -59,7 +59,7 @@ where
 	eval event evalOpts tree=:(TCBasic taskId ts jsonph _) iworld
 		= apIWTransformer iworld $
 			tuple (fjson jsonph)                        >-= \(ph, pio)->
-			read sdsout EmptyContext                    >-= \(ReadResult (stdoutq, stderrq))->
+			read sdsout EmptyContext                    >-= \(ReadResult (stdoutq, stderrq) _)->
 			liftOSErr (readPipeNonBlocking pio.stdOut)  >-= \stdoutData->
 			liftOSErr (readPipeNonBlocking pio.stdErr)  >-= \stderrData->
 			(if (stdoutData == "" && stderrData == "")
@@ -71,7 +71,7 @@ where
 				(Just i) = tuple (Ok (ValueResult (Value i True) (info ts) (rep event) (TCStable taskId ts (DeferredJSONNode (JSONInt i)))))
 				Nothing =
 					readRegister taskId clock                            >-= \_->
-					readRegister taskId sdsin                            >-= \(ReadResult stdinq)->
+					readRegister taskId sdsin                            >-= \(ReadResult stdinq _)->
 					liftOSErr (writePipe (concat stdinq) pio.stdIn)      >-= \_->
 					(if (stdinq =: []) (tuple (Ok Done)) (write [] sdsin EmptyContext)) >-= \Done ->
 					tuple (Ok (ValueResult NoValue (info ts) (rep event) tree))

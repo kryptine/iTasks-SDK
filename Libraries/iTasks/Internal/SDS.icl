@@ -61,7 +61,9 @@ iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p iworld = (npred p, iworld)
 
 read            :: !(sds () r w)            !TaskContext !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
-read sds c iworld = readSDS sds () c Nothing (sdsIdentity sds) iworld
+read sds c iworld 
+| not (trace_tn "Reading") = undef 
+= readSDS sds () c Nothing (sdsIdentity sds) iworld
 
 readRegister    :: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
 readRegister taskId sds iworld = readRegisterSDS sds () (TaskContext taskId) taskId iworld
@@ -81,12 +83,12 @@ mbRegister p originalSds (Just taskId) _ reqSDSId iworld=:{IWorld|sdsNotifyReque
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite () r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld = case writeSDS sds () c w iworld of
-        (Ok (WriteResult notify), iworld) = (Ok Done, queueNotifyEvents (sdsIdentity sds) notify iworld)
+        (Ok (WriteResult notify _), iworld) = (Ok Done, queueNotifyEvents (sdsIdentity sds) notify iworld)
         (Ok (AsyncWrite sds), iworld) = (Ok (Writing sds), iworld)
         (Error e,iworld)    = (Error e,iworld)
 
 directResult :: (ReadResult p r w) -> r
-directResult (ReadResult a) = a
+directResult (ReadResult a _) = a
 directResult _ = abort "No direct result!"
 
 //Check the registrations and find the set of id's for which the current predicate holds
@@ -152,7 +154,7 @@ where
 	flushAll [] iworld = ([],iworld)
 	flushAll [(_,(_,DeferredWrite p w sds)):rest] iworld
 		= case writeSDS sds p EmptyContext w iworld of
-			(Ok (WriteResult notify),iworld)
+			(Ok (WriteResult notify _),iworld)
 				# iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
 				= flushAll rest iworld
 			(Error e,iworld)
@@ -173,40 +175,33 @@ where
 instance Readable SDSSource
 where
     readSDS sds=:(SDSSource {SDSSourceOptions|read}) p c mbNotify reqSDSId iworld
+    | not (trace_tn "SDSSource") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     = case read p iworld of 
         (Error e, iworld) = (Error e, iworld)
-        (Ok r, iworld) = (Ok (ReadResult r), iworld)
+        (Ok r, iworld) = (Ok (ReadResult r sds), iworld)
 
-    readSDS sds=:(SDSValue v _) p c mbNotify reqSDSId iworld = (Ok (ReadResult v), iworld)
+    readSDS sds=:(SDSValue v _) p c mbNotify reqSDSId iworld = (Ok (ReadResult v sds), iworld)
 
 instance Writeable SDSSource
 where
-    writeSDS sds=:(SDSSource {SDSSourceOptions|write}) p _ w iworld = case write p w iworld of
+    writeSDS sds=:(SDSSource {SDSSourceOptions|write}) p _ w iworld 
+    | not (trace_tn "Write SDSParallel") = undef 
+    = case write p w iworld of
         (Error e, iworld)   = (Error e, iworld)
         (Ok npred, iworld)  
             # (match,nomatch, iworld) = checkRegistrations (sdsIdentity sds) npred iworld
-            = (Ok (WriteResult match), iworld)
-
-    writeSDS (SDSValue mrv sds) p c w iworld = case writeSDS sds p c w iworld of
-        (Error e, iworld) = (Error e, iworld)
-        (Ok (AsyncWrite sds), iworld) = trace_n "Writing to original SDS" (Ok (AsyncWrite (SDSValue mrv sds)), iworld)
-        (Ok (WriteResult notify), iworld) = (Ok (WriteResult notify), iworld)
+            = (Ok (WriteResult match sds), iworld)
 
 instance Modifiable SDSSource where
-    modifySDS f (SDSValue val sds) p context iworld 
-    = case f val of
-        Error e = (Error e, iworld)
-        Ok w = (Ok (ModifyResult val w), iworld)
-
     modifySDS f sds p context iworld
     = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
         (Error e, iworld)               = (Error e, iworld)
-        (Ok (ReadResult r), iworld)     =  case f r of
+        (Ok (ReadResult r ssds), iworld)     =  case f r of
             Error e                         = (Error e, iworld)
-            Ok w                            = case writeSDS sds p context w iworld of
+            Ok w                            = case writeSDS ssds p context w iworld of
                 (Error e, iworld)               = (Error e, iworld)
-                (Ok (WriteResult n), iworld)    = (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) n iworld)
+                (Ok (WriteResult n ssds), iworld)    = (Ok (ModifyResult r w ssds), queueNotifyEvents (sdsIdentity sds) n iworld)
 
 instance Registrable SDSSource
 where
@@ -219,19 +214,21 @@ where
 instance Readable SDSLens
 where
     readSDS sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify reqSDSId iworld
+    | not (trace_tn "SDSLens") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     = case read of
         SDSRead f = case readSDS sds1 (param p) c mbNotify reqSDSId iworld of
             (Error e, iworld)  = (Error e, iworld)
-            (Ok (ReadResult r), iworld)     = case f p r of
+            (Ok (ReadResult r ssds), iworld)     = case f p r of
                 Error e = (Error e, iworld)
-                Ok r = (Ok (ReadResult r), iworld)
+                Ok r = (Ok (ReadResult r (SDSLens ssds opts)), iworld)
             (Ok (AsyncRead sds), iworld) = (Ok (AsyncRead (SDSLens sds opts)), iworld)
-        SDSReadConst f = (Ok (ReadResult (f p)), iworld)
+        SDSReadConst f = (Ok (ReadResult (f p) sds), iworld)
 
 instance Writeable SDSLens
 where
     writeSDS sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,write,notify}) p c w iworld
+    | not (trace_tn "Write SDSLens") = undef 
     # ps = param p
     = case (write,notify) of
         //Special case: we don't need to read the base SDS
@@ -242,19 +239,19 @@ where
                 (Error e) = (Error e, iworld)
                 (Ok (DoNotWrite _))
                     //We need to decide based on the current parameter if we need to notify or not
-                    = (Ok (WriteResult match), iworld)
+                    = (Ok (WriteResult match sds), iworld)
                 (Ok (DoWrite ws)) = case writeSDS sds1 ps c ws iworld of
                     (Error e, iworld) = (Error e, iworld)
                     (Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
-                    (Ok (WriteResult notify), iworld) 
+                    (Ok (WriteResult notify ssds), iworld) 
                         //Remove the registrations that we can eliminate based on the current parameter
                         # notify = 'Set'.difference notify ('Set'.difference nomatch match)
-                        = (Ok (WriteResult ('Set'.union match notify)), iworld)
+                        = (Ok (WriteResult ('Set'.union match notify) (SDSLens ssds opts)), iworld)
         //General case: read base SDS before writing
         _ = case readSDS sds1 ps c Nothing (sdsIdentity sds1) iworld of
                 (Error e, iworld) = (Error e, iworld)
                 (Ok (AsyncRead sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
-                (Ok (ReadResult rs), iworld)
+                (Ok (ReadResult rs ssds), iworld)
                     # ws = case write of
                         SDSWrite writef = writef p rs w
                         SDSWriteConst writef = writef p w
@@ -265,21 +262,21 @@ where
                     # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) notifyf iworld 
                     = case ws of
                         (Error e) = (Error e, iworld)
-                        (Ok (DoNotWrite ws)) = (Ok (WriteResult match), iworld)
-                        (Ok (DoWrite ws)) = case writeSDS sds1 ps c ws iworld of
+                        (Ok (DoNotWrite ws)) = (Ok (WriteResult match (SDSLens ssds opts)), iworld)
+                        (Ok (DoWrite ws)) = case writeSDS ssds ps c ws iworld of
                             (Error e, iworld) = (Error e, iworld)
                             (Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens (SDSValue rs sds) opts)), iworld)
-                            (Ok (WriteResult notify), iworld)
+                            (Ok (WriteResult notify ssds), iworld)
                                 //Remove the registrations that we can eliminate based on the current parameter
                                 # notify = 'Set'.difference notify ('Set'.difference nomatch match)
-                                = (Ok (WriteResult ('Set'.union match notify)), iworld)
+                                = (Ok (WriteResult ('Set'.union match notify) (SDSLens ssds opts)), iworld)
 
 instance Modifiable SDSLens where
     modifySDS f sds=:(SDSLens sds1 opts=:{SDSLensOptions|param, read, write, reducer, notify, name}) p context iworld
     = case modifySDS sf sds1 (param p) context iworld of
         (Error e, iworld)                           = (Error e, iworld)
         (Ok (AsyncModify sds _), iworld)            = (Ok (AsyncModify (SDSLens sds opts) f), iworld)
-        (Ok (ModifyResult rs ws), iworld)           = case reducer p ws of
+        (Ok (ModifyResult rs ws ssds), iworld)           = case reducer p ws of
             Error e                                     = (Error e, iworld)
             Ok w
             # notf = case notify of
@@ -288,7 +285,7 @@ instance Modifiable SDSLens where
             # (m, nm, iworld)   = checkRegistrations (sdsIdentity sds) notf iworld
             = case doRead read p rs of 
                 Error e = (Error e, iworld)
-                Ok r = (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) m iworld)
+                Ok r = (Ok (ModifyResult r w (SDSLens ssds opts)), queueNotifyEvents (sdsIdentity sds) m iworld)
     where
         sf rs 
         # readV = doRead read p rs
@@ -319,20 +316,22 @@ instance Identifiable SDSCache where
 
 instance Readable SDSCache where
     readSDS sds=:(SDSCache sds1 opts) p c mbNotify reqSDSId iworld=:{readCache}
+    | not (trace_tn "SDSCache") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld    
     # key = (sdsIdentity sds,toSingleLineText p)
     //First check cache
     = case 'DM'.get key readCache of
-        Just (val :: r^) = (Ok (ReadResult val),iworld)
+        Just (val :: r^) = (Ok (ReadResult val sds),iworld)
         Just _           = (Error (exception "Cached value of wrong type"), iworld)
         Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
             (Error e,iworld) = (Error e, iworld)
             //Read and add to cache
-            (Ok (ReadResult val),iworld)  = (Ok (ReadResult val), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
+            (Ok (ReadResult val ssds),iworld)  = (Ok (ReadResult val (SDSCache ssds opts)), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
             (Ok (AsyncRead sds), iworld) = (Ok (AsyncRead (SDSCache sds opts)), iworld)
 
 instance Writeable SDSCache where
-    writeSDS sds=:(SDSCache sds1 {SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
+    writeSDS sds=:(SDSCache sds1 opts=:{SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
+    | not (trace_tn "Write SDSCache") = undef 
     # key = (sdsIdentity sds, toSingleLineText p)
     //Check cache
     # mbr = case 'DM'.get key readCache of
@@ -348,23 +347,25 @@ instance Writeable SDSCache where
         Just r = 'DM'.put key (dynamic r :: r^) readCache
         Nothing  = 'DM'.del key readCache
     = case policy of
-        NoWrite = (Ok (WriteResult'Set'.newSet), {iworld & readCache = readCache})
-        WriteNow = writeSDS sds1 p c w {iworld & readCache = readCache}
+        NoWrite = (Ok (WriteResult'Set'.newSet sds), {iworld & readCache = readCache})
+        WriteNow = case writeSDS sds1 p c w {iworld & readCache = readCache} of
+            (Error e, iworld) = (Error e, iworld)
+            (Ok (WriteResult r ssds), iworld) = (Ok (WriteResult r (SDSCache ssds opts)), iworld)
         WriteDelayed
             # writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
-            = (Ok (WriteResult 'Set'.newSet), {iworld & readCache = readCache, writeCache = writeCache})
+            = (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache, writeCache = writeCache})
 
 instance Modifiable SDSCache where
-    modifySDS f sds p context iworld 
+    modifySDS f sds=:(SDSCache _ opts) p context iworld 
     = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
         (Error e, iworld)               = (Error e, iworld)
         (Ok (AsyncRead sds), iworld)    = (Ok (AsyncModify sds f), iworld)
-        (Ok (ReadResult r), iworld)     = case f r of 
+        (Ok (ReadResult r ssds), iworld)     = case f r of 
             (Error e)   = (Error e, iworld) 
-            (Ok w)      = case writeSDS sds p context w iworld of
+            (Ok w)      = case writeSDS ssds p context w iworld of
                 (Error e, iworld)   = (Error e, iworld)
                 // TODO: Async
-                (Ok (WriteResult notify), iworld) = (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) notify iworld)
+                (Ok (WriteResult notify ssds), iworld) = (Ok (ModifyResult r w (SDSCache ssds opts)), queueNotifyEvents (sdsIdentity sds) notify iworld)
 
 instance Registrable SDSCache where
     readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
@@ -375,62 +376,64 @@ instance Identifiable SDSSequence where
 
 instance Readable SDSSequence where
     readSDS sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,paramr,read}) p c mbNotify reqSDSId iworld
+    | not (trace_tn "SDSSequence") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     = case readSDS sds1 (paraml p) c mbNotify reqSDSId iworld of
         (Error e, iworld) = (Error e, iworld)
         (Ok (AsyncRead sds), iworld) = (Ok (AsyncRead (SDSSequence sds sds2 opts)), iworld)
-        (Ok (ReadResult r1), iworld) = case read p r1 of
-            Left r = (Ok (ReadResult r), iworld)
+        (Ok (ReadResult r1 ssds1), iworld) = case read p r1 of
+            Left r = (Ok (ReadResult r (SDSSequence ssds1 sds2 opts)), iworld)
             Right read2 = case readSDS sds2 (paramr p r1) c mbNotify reqSDSId iworld of
                     (Error e, iworld) = (Error e, iworld)
-                    (Ok (ReadResult r2), iworld) = (Ok (ReadResult (read2 (r1,r2))), iworld)
+                    (Ok (ReadResult r2 ssds2), iworld) = (Ok (ReadResult (read2 (r1,r2)) (SDSSequence ssds1 ssds2 opts)), iworld)
                     (Ok (AsyncRead sds2), iworld) = (Ok (AsyncRead (SDSSequence (SDSValue r1 sds1) sds2 opts)), iworld) 
 
 instance Writeable SDSSequence where
     writeSDS sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,paramr,writel,writer}) p c w iworld=:{IWorld|readCache,writeCache}
+    | not (trace_tn "Write SDSSequence") = undef 
     = case readSDS sds1 (paraml p) c Nothing (sdsIdentity sds1) iworld of
         (Error e, iworld)  = (Error e, iworld)
         (Ok (AsyncRead asds), iworld)  = (Ok (AsyncWrite (SDSSequence asds sds2 opts)), iworld)
-        (Ok (ReadResult r1), iworld)
+        (Ok (ReadResult r1 ssds), iworld)
             //Write sds1 if necessary
             # (npreds1,iworld) = case writel of
                 (SDSWrite f)  = case f p r1 w of
                     Error e             = (Error e, iworld)
-                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet), iworld)
-                    Ok (DoWrite w1)     = writeSDS sds1 (paraml p) c w1 iworld
+                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                    Ok (DoWrite w1)     = writeSDS ssds (paraml p) c w1 iworld
                 (SDSWriteConst f) = case f p w of
                     Error e             = (Error e, iworld)
-                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet), iworld)
-                    Ok (DoWrite w1)     = writeSDS sds1 (paraml p) c w1 iworld
+                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                    Ok (DoWrite w1)     = writeSDS ssds (paraml p) c w1 iworld
             | npreds1 =:(Error _) = (liftError npreds1, iworld)
             //Read/write sds2 if necessary
             # (npreds2,iworld) = case writer of
                 (SDSWrite f)                    = case readSDS sds2 (paramr p r1) c Nothing (sdsIdentity sds2) iworld of //Also read sds2
                     (Error e, iworld)               = (Error e, iworld)
-                    (Ok (ReadResult r2),iworld)     = case f p r2 w of
+                    (Ok (ReadResult r2 ssds),iworld)     = case f p r2 w of
                         Error e                         = (Error e, iworld)
-                        Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet), iworld)
+                        Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet ssds), iworld)
                         Ok (DoWrite w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
                 (SDSWriteConst f)               = case f p w of
                     Error e                         = (Error e, iworld)
-                    Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet), iworld)
+                    Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet sds2), iworld)
                     Ok (DoWrite w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
             | npreds2 =:(Error _) = (liftError npreds2, iworld)
             = case (npreds1, npreds2) of
-                (Ok (WriteResult notify1), Ok (WriteResult notify2))        = (Ok (WriteResult ('Set'.union notify1 notify2)), iworld)
-                (Ok (WriteResult notify1), Ok (AsyncWrite sds2))            = (Ok (AsyncWrite (SDSSequence (SDSValue r1 sds1) sds2 opts)), queueNotifyEvents (sdsIdentity sds1) notify1 iworld)
+                (Ok (WriteResult notify1 ssds1), Ok (WriteResult notify2 ssds2))        = (Ok (WriteResult ('Set'.union notify1 notify2) (SDSSequence ssds1 ssds2 opts)), iworld)
+                (Ok (WriteResult notify1 ssds1), Ok (AsyncWrite sds2))            = (Ok (AsyncWrite (SDSSequence ssds sds2 opts)), queueNotifyEvents (sdsIdentity sds1) notify1 iworld)
 
 instance Modifiable SDSSequence where
-    modifySDS f sds p context iworld 
+    modifySDS f sds=:(SDSSequence _ _ opts) p context iworld 
     = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
         (Error e, iworld)               = (Error e, iworld)
         (Ok (AsyncRead sds), iworld)    = (Error (exception "SDSSequence cannot be modified asynchronously"), iworld)
-        (Ok (ReadResult r), iworld)     = case f r of
+        (Ok (ReadResult r ssds), iworld)     = case f r of
             Error e                         = (Error e, iworld)
             Ok w                            = case writeSDS sds p context w iworld of
                 (Error e, iworld)                   = (Error e, iworld)
                 (Ok (AsyncWrite _), iworld)         = (Error (exception "SDSSequence cannot be modified asynchronously"), iworld)
-                (Ok (WriteResult notify), iworld)   = (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) notify iworld)
+                (Ok (WriteResult notify ssds), iworld)   = (Ok (ModifyResult r w ssds), queueNotifyEvents (sdsIdentity sds) notify iworld)
 
 instance Registrable SDSSequence where
     readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
@@ -442,63 +445,65 @@ instance Identifiable SDSSelect where
 // TODO: Check whether this results in the desired asynchronous behaviour.
 instance Readable SDSSelect where
     readSDS sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select}) p c mbNotify reqSDSId iworld
+    | not (trace_tn "SDSSelect") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     = case select p of
         Left p1     = case readSDS sds1 p1 c mbNotify reqSDSId iworld of
-            (Error e, iworld)               = (Error e, iworld)
-            (Ok (ReadResult r), iworld)     = (Ok (ReadResult r), iworld)
-            (Ok (AsyncRead sds), iworld)    = (Ok (AsyncRead (SDSSelect sds sds2 opts)), iworld)
+            (Error e, iworld)                   = (Error e, iworld)
+            (Ok (ReadResult r ssds), iworld)    = (Ok (ReadResult r (SDSSelect ssds sds2 opts)), iworld)
+            (Ok (AsyncRead sds), iworld)        = (Ok (AsyncRead (SDSSelect sds sds2 opts)), iworld)
         Right p2    = case readSDS sds2 p2 c mbNotify reqSDSId iworld of 
-            (Error e, iworld)               = (Error e, iworld)
-            (Ok (ReadResult r), iworld)     = (Ok (ReadResult r), iworld)
-            (Ok (AsyncRead sds), iworld)    = (Ok (AsyncRead (SDSSelect sds1 sds opts)), iworld)
+            (Error e, iworld)                   = (Error e, iworld)
+            (Ok (ReadResult r ssds), iworld)    = (Ok (ReadResult r (SDSSelect sds1 ssds opts)), iworld)
+            (Ok (AsyncRead sds), iworld)        = (Ok (AsyncRead (SDSSelect sds1 sds opts)), iworld)
 
 instance Writeable SDSSelect where
-    writeSDS sds=:(SDSSelect sds1 sds2 {SDSSelectOptions|select,notifyl,notifyr}) p c w iworld=:{IWorld|readCache,writeCache}
+    writeSDS sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,notifyl,notifyr}) p c w iworld=:{IWorld|readCache,writeCache}
+    | not (trace_tn "Write SDSSelect") = undef 
     = case select p of
         Left p1 = case notifyl of
             (SDSNotify f)  = case readSDS sds1 p1 c Nothing (sdsIdentity sds1) iworld of
                 (Error e, iworld)  = (Error e, iworld)
-                (Ok (ReadResult r1), iworld)    = case writeSDS sds1 p1 c w iworld of
+                (Ok (ReadResult r1 ssds), iworld)    = case writeSDS ssds p1 c w iworld of
                     (Error e, iworld) = (Error e, iworld)
                     // TODO: Async
-                    (Ok (WriteResult notify), iworld)
+                    (Ok (WriteResult notify ssds), iworld)
                         # npred = (\ts pq -> case select pq of Right p2 = f p1 r1 w ts p2; _ = False)
                         # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
                         //Add the matching registrations for the 'other' SDS
                         # notify = 'Set'.union notify match
-                        = (Ok (WriteResult notify), iworld)
+                        = (Ok (WriteResult notify (SDSSelect ssds sds2 opts)), iworld)
             (SDSNotifyConst f) = case writeSDS sds1 p1 c w iworld of
                 (Error e, iworld) = (Error e, iworld)
                 // TODO: Async
-                (Ok (WriteResult notify), iworld)
+                (Ok (WriteResult notify ssds), iworld)
                     # npred = (\ts pq -> case select pq of Right p2 = f p1 w ts p2; _ = False)
                     # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
                     # notify = 'Set'.union notify match
-                    = (Ok (WriteResult notify), iworld)
+                    = (Ok (WriteResult notify (SDSSelect ssds sds2 opts)), iworld)
         Right p2 = case notifyr of
             (SDSNotify f) = case readSDS sds2 p2 c Nothing (sdsIdentity sds2) iworld of
                 (Error e, iworld)  = (Error e, iworld)
                 // TODO: Async
-                (Ok (ReadResult r2), iworld)    = case writeSDS sds2 p2 c w iworld of
+                (Ok (ReadResult r2 ssds), iworld)    = case writeSDS ssds p2 c w iworld of
                     (Error e, iworld) = (Error e,iworld)
                     // TODO: Async
-                    (Ok (WriteResult notify), iworld)
+                    (Ok (WriteResult notify ssds), iworld)
                         # npred = (\ts pq -> case select pq of Left p1 = f p2 r2 w ts p1 ; _ = False)
                         # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
                         //Add the matching registrations for the 'other' SDS
                         # notify = 'Set'.union notify match
-                        = (Ok (WriteResult notify), iworld)
+                        = (Ok (WriteResult notify (SDSSelect sds1 ssds opts)), iworld)
 
             (SDSNotifyConst f) = case writeSDS sds2 p2 c w iworld of
                 (Error e, iworld) = (Error e,iworld)
                 // TODO: Async
-                (Ok (WriteResult notify), iworld)
+                (Ok (WriteResult notify ssds), iworld)
                     # npred = (\ts pq -> case select pq of Left p1 = f p2 w ts p1 ; _ = False)
                     # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
                     //Add the matching registrations for the 'other' SDS
                     # notify = 'Set'.union notify match
-                    = (Ok (WriteResult notify), iworld)
+                    = (Ok (WriteResult notify (SDSSelect sds1 ssds opts)), iworld)
 
 instance Modifiable SDSSelect where
     modifySDS f sds=:(SDSSelect sds1 sds2 opts=:{select}) p context iworld 
@@ -506,11 +511,11 @@ instance Modifiable SDSSelect where
         (Left p1)       = case modifySDS f sds1 p1 context iworld of
             (Error e, iworld)                   = (Error e, iworld)
             (Ok (AsyncModify sds f), iworld)    = (Ok (AsyncModify (SDSSelect sds sds2 opts) f), iworld)
-            (Ok (ModifyResult r w), iworld)       = (Ok (ModifyResult r w), iworld)
+            (Ok (ModifyResult r w ssds), iworld)       = (Ok (ModifyResult r w (SDSSelect ssds sds2 opts)), iworld)
         (Right p2)      = case modifySDS f sds2 p2 context iworld of
             (Error e, iworld)                   = (Error e, iworld)
             (Ok (AsyncModify sds f), iworld)    = (Ok (AsyncModify (SDSSelect sds1 sds opts) f), iworld)
-            (Ok (ModifyResult r w), iworld)       = (Ok (ModifyResult r w), iworld)
+            (Ok (ModifyResult r w ssds), iworld)       = (Ok (ModifyResult r w (SDSSelect sds1 ssds opts)), iworld)
 
 instance Registrable SDSSelect where
     readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
@@ -523,6 +528,7 @@ instance Identifiable SDSParallel where
 import StdDebug
 instance Readable SDSParallel where
     readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read, name}) p c mbNotify reqSDSId iworld
+    | not (trace_tn "SDSParallel") = undef 
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld
     # (p1,p2) = param p
     # (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
@@ -532,60 +538,61 @@ instance Readable SDSParallel where
     | res2 =:(Error _)
         = (liftError res2, iworld)
     = case (fromOk res1, fromOk res2) of
-        (ReadResult r1, ReadResult r2) = (Ok (ReadResult (read (r1, r2))), iworld)
-        (AsyncRead sds1, ReadResult r2) = trace_n ("Reading from async SDSParallel left " +++ name) (Ok (AsyncRead (SDSParallel sds1 (SDSValue r2 sds2) opts)), iworld)
-        (ReadResult r1, AsyncRead sds2) = trace_n ("Reading from async SDSParallel right " +++ name) (Ok (AsyncRead (SDSParallel (SDSValue r1 sds1) sds2 opts)), iworld)
+        (ReadResult r1 ssds1, ReadResult r2 ssds2) = (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
+        (AsyncRead sds1, ReadResult r2 ssds2) = trace_n ("Reading from async SDSParallel left " +++ name) (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
+        (ReadResult r1 ssds1, AsyncRead sds2) = trace_n ("Reading from async SDSParallel right " +++ name) (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
         (AsyncRead sds1, AsyncRead sds2) = trace_n ("Reading from async SDSParallel both " +++ name) (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
 
 instance Writeable SDSParallel where
     writeSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,writel,writer, name}) p c w iworld
+    | not (trace_tn "Write SDSParallel") = undef 
     # (p1,p2) = param p
     //Read/write sds1
     # (npreds1,iworld) = case writel of
         (SDSWrite f) = case readSDS sds1 p1 c Nothing (sdsIdentity sds1) iworld of
             (Error e, iworld)  = (Error e, iworld)
             // TODO: Async
-            (Ok (ReadResult r1),iworld)     = case f p r1 w of
-                Error e         = (Error e, iworld)
-                Ok (DoNotWrite _)    = (Ok (WriteResult 'Set'.newSet), iworld)
-                Ok (DoWrite w1)    = writeSDS sds1 p1 c w1 iworld
+            (Ok (ReadResult r1 ssds),iworld)     = case f p r1 w of
+                Error e                 = (Error e, iworld)
+                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                Ok (DoWrite w1)         = writeSDS ssds p1 c w1 iworld
         (SDSWriteConst f) = case f p w of
-                Error e             = (Error e,iworld)
-                Ok (DoNotWrite _)        = (Ok (WriteResult 'Set'.newSet),iworld)
-                Ok (DoWrite w1)        = writeSDS sds1 p1 c w1 iworld
+                Error e                 = (Error e,iworld)
+                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet sds1),iworld)
+                Ok (DoWrite w1)         = writeSDS sds1 p1 c w1 iworld
     | npreds1 =:(Error _) = (liftError npreds1, iworld)
     //Read/write sds2
     # (npreds2,iworld) = case writer of
         (SDSWrite f) = case readSDS sds2 p2 c Nothing (sdsIdentity sds2) iworld of
             (Error e, iworld)  = (Error e, iworld)
             // TODO: Async
-            (Ok (ReadResult r2),iworld)     = case f p r2 w of
-                Error e         = (Error e, iworld)
-                Ok (DoNotWrite _)    = (Ok (WriteResult 'Set'.newSet), iworld)
-                Ok (DoWrite w2)    = writeSDS sds2 p2 c w2 iworld
+            (Ok (ReadResult r2 ssds),iworld)     = case f p r2 w of
+                Error e                 = (Error e, iworld)
+                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                Ok (DoWrite w2)         = writeSDS ssds p2 c w2 iworld
         (SDSWriteConst f) = case f p w of
-                Error e             = (Error e,iworld)
-                Ok (DoNotWrite _)        = (Ok (WriteResult 'Set'.newSet), iworld)
-                Ok (DoWrite w2)        = writeSDS sds2 p2 c w2 iworld
+                Error e                 = (Error e,iworld)
+                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet sds2), iworld)
+                Ok (DoWrite w2)         = writeSDS sds2 p2 c w2 iworld
     | npreds2 =:(Error _) = (liftError npreds2, iworld)
     = case (npreds1, npreds2) of 
-        (Ok (WriteResult n1), Ok (WriteResult n2)) = (Ok (WriteResult ('Set'.union n1 n2)), iworld)
-        (Ok (WriteResult n1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel right " +++ name) (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds1) n1 iworld)
-        (Ok (AsyncWrite sds1), Ok (WriteResult n2)) = trace_n ("Writing to async SDSParallel left " +++ name) (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds2) n2 iworld)
-        (Ok (AsyncWrite sds1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel both " +++ name)(Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), iworld)
+        (Ok (WriteResult n1 ssds1), Ok (WriteResult n2 ssds2)) = (Ok (WriteResult ('Set'.union n1 n2) (SDSParallel ssds1 ssds2 opts)), iworld)
+        (Ok (WriteResult n1 ssds1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel right " +++ name) (Ok (AsyncWrite (SDSParallel ssds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds1) n1 iworld)
+        (Ok (AsyncWrite sds1), Ok (WriteResult n2 ssds2)) = trace_n ("Writing to async SDSParallel left " +++ name) (Ok (AsyncWrite (SDSParallel sds1 ssds2 opts)), queueNotifyEvents (sdsIdentity sds2) n2 iworld)
+        (Ok (AsyncWrite sds1), Ok (AsyncWrite sds2)) = trace_n ("Writing to async SDSParallel both " +++ name) (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), iworld)
 
 instance Modifiable SDSParallel where
-    modifySDS f sds p context iworld 
+    modifySDS f sds=:(SDSParallel sds1 sds2 opts) p context iworld 
     | not (trace_tn "Modify SDSParallel " ) = undef
     = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
         (Error e, iworld)               = (Error e, iworld)
         (Ok (AsyncRead sds), iworld)    = trace_n "Modify async read SDSParallel" (Ok (AsyncModify sds f), iworld)
-        (Ok (ReadResult r), iworld)     = trace_n "Modify direct read SDSParallel" (case f r of
+        (Ok (ReadResult r ssds), iworld)     = trace_n "Modify direct read SDSParallel" (case f r of
             Error e                         = (Error e, iworld)
-            Ok w                            = case writeSDS sds p context w iworld of
+            Ok w                            = case writeSDS ssds p context w iworld of
                 (Error e, iworld)                   = (Error e, iworld)
                 (Ok (AsyncWrite sds), iworld)       = trace_n "Modify async write SDSParallel" (Ok (AsyncModify (SDSValue r sds) f), iworld)
-                (Ok (WriteResult notify), iworld)   = trace_n "Modify direct write SDSParallel" (Ok (ModifyResult r w), queueNotifyEvents (sdsIdentity sds) notify iworld))
+                (Ok (WriteResult notify ssds), iworld)   = trace_n "Modify direct write SDSParallel" (Ok (ModifyResult r w ssds), queueNotifyEvents (sdsIdentity sds) notify iworld))
 
 instance Registrable SDSParallel where
     readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
@@ -593,43 +600,48 @@ instance Registrable SDSParallel where
 // Remote shares: For now, we implement the classes to satisfy the overloading requirement.
 instance Identifiable SDSRemoteSource where
     nameSDS (SDSRemoteSource sds options) acc = [ "REMOTE%" : nameSDS sds ["%" : acc]]
-    nameSDS (SDSRemoteSourceQueued connectionId sds) acc = ["RQ%" : nameSDS sds ["%" : acc]]
+    nameSDS (SDSRemoteSourceQueued connectionId sds opts) acc = ["RQ%" : nameSDS sds ["%" : acc]]
 
 instance Readable SDSRemoteSource where
     readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote SDS without task id"), iworld)
 
-    readSDS (SDSRemoteSourceQueued connectionId sds) p (TaskContext taskId) register reqSDSId iworld=:{ioStates}
+    readSDS (SDSRemoteSourceQueued connectionId sds opts) p (TaskContext taskId) register reqSDSId iworld=:{ioStates}
     = case getAsyncReadValue sds taskId connectionId ioStates of
         Left error          = (Error (exception error), iworld)
-        Right Nothing       = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds)), iworld) 
-        Right (Just value)  = (Ok (ReadResult value), iworld)
+        Right Nothing       = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld) 
+        Right (Just value)  = (Ok (ReadResult value (SDSValue value sds)), iworld)
 
-    readSDS sds p (TaskContext taskId) register reqSDSId iworld 
+    readSDS sds=:(SDSRemoteSource _ opts) p (TaskContext taskId) register reqSDSId iworld 
+    | not(trace_tn "Queue remote read") = undef
     = case queueRead sds p taskId (isJust register) reqSDSId iworld of
         (Error e, iworld)                  = (Error e, iworld)
-        (Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds)), iworld)
+        (Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld)
 
 instance Writeable SDSRemoteSource where
     writeSDS sds p EmptyContext value iworld = (Error (exception "cannot write remote SDS without task id"), iworld)
-    writeSDS (SDSRemoteSourceQueued connectionId sds1) p (TaskContext taskId) value iworld=:{ioStates} = case getAsyncWriteValue sds1 taskId connectionId ioStates of
+    writeSDS (SDSRemoteSourceQueued connectionId sds opts) p (TaskContext taskId) value iworld=:{ioStates} 
+    | not (trace_tn "Write SDSRemoteSourceQueued") = undef 
+    = case getAsyncWriteValue sds taskId connectionId ioStates of
         Left error = (Error (exception error), iworld)
-        Right Nothing = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds1)), iworld)
-        Right (Just v) = (Ok (WriteResult 'Set'.newSet), iworld)
-    writeSDS sds p (TaskContext taskId) value iworld = case queueWrite value sds p taskId iworld of
+        Right Nothing = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds opts)), iworld)
+        Right (Just v) = (Ok (WriteResult 'Set'.newSet (SDSRemoteSource sds opts)), iworld)
+    writeSDS sds=:(SDSRemoteSource _ opts) p (TaskContext taskId) value iworld 
+    | not (trace_tn "Write SDSRemoteSource") = undef 
+    = case queueWrite value sds p taskId iworld of
         (Error e, iworld)           = (Error e, iworld)
-        (Ok connectionId, iworld)              = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds)), iworld)
+        (Ok connectionId, iworld)              = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds opts)), iworld)
 
 instance Modifiable SDSRemoteSource where
-    modifySDS f sds=:(SDSRemoteSource subsds options) p (TaskContext taskId) iworld 
+    modifySDS f sds=:(SDSRemoteSource subsds opts) p (TaskContext taskId) iworld 
     = case queueModify f sds p taskId iworld of
         (Error exception, iworld) = (Error exception, iworld)
-        (Ok connectionId, iworld) = (Ok (AsyncModify (SDSRemoteSourceQueued connectionId sds) f), iworld)  
+        (Ok connectionId, iworld) = (Ok (AsyncModify (SDSRemoteSourceQueued connectionId sds opts) f), iworld)  
 
-    modifySDS f sds=:(SDSRemoteSourceQueued connectionId subsds) p (TaskContext taskId) iworld=:{ioStates}
+    modifySDS f sds=:(SDSRemoteSourceQueued connectionId subsds opts) p (TaskContext taskId) iworld=:{ioStates}
     = case getAsyncModifyValue subsds taskId connectionId ioStates of
         Left error = (Error (exception error), iworld)
         Right Nothing = (Ok (AsyncModify sds f), iworld)
-        Right (Just (r, w)) = (Ok (ModifyResult r w), iworld)
+        Right (Just (r, w)) = (Ok (ModifyResult r w (SDSRemoteSource subsds opts)), iworld)
 
 instance Registrable SDSRemoteSource where
     readRegisterSDS sds p context taskId iworld
@@ -643,10 +655,10 @@ instance Identifiable SDSRemoteService where
 
 instance Readable SDSRemoteService where
     readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote service without task id"), iworld)
-    readSDS sds=:(SDSRemoteServiceQueued connectionId _) p (TaskContext taskId) _ _ iworld=:{ioStates} = case getAsyncReadValue sds taskId connectionId ioStates of
+    readSDS sds=:(SDSRemoteServiceQueued connectionId rsds) p (TaskContext taskId) _ _ iworld=:{ioStates} = case getAsyncReadValue sds taskId connectionId ioStates of
         Left error          = (Error (exception error), iworld)
         Right Nothing       = (Ok (AsyncRead sds), iworld)
-        Right (Just value)  = (Ok (ReadResult value), iworld)
+        Right (Just value)  = (Ok (ReadResult value (SDSValue value rsds)), iworld)
     readSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) _ _ iworld = case queueServiceRequest sds p taskId iworld of
         (Error e, iworld)                  = (Error e, iworld)
         (Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteServiceQueued connectionId sds)), iworld)

@@ -14,7 +14,7 @@ sdsUnsafeRead :: (sds () a b) *IWorld -> *(a, *IWorld) | TC a & RWShared sds & T
 sdsUnsafeRead focus iworld
   # (res, iworld) = 'DSDS'.read focus 'DSDS'.EmptyContext iworld
   = case res of
-      Ok ('DSDS'.ReadResult x) -> (x, iworld)
+      Ok ('DSDS'.ReadResult x _) -> (x, iworld)
 
 selectedBlueprint :: SDSLens () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)

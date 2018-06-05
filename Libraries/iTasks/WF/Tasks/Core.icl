@@ -17,7 +17,7 @@ import StdString, StdBool, StdInt
 import qualified Data.Set as DS
 import qualified Data.Map as DM
 
-import StdDebug
+import StdDebug, StdMisc
 
 derive JSONEncode Event,Set
 
@@ -70,10 +70,12 @@ where
 	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		(Just val) = case val iworld of
+		(Just val) 
+		| not (trace_tn "Await read step") = undef
+		= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: ReadResult () r^ w^), iworld) = case res of
-				ReadResult r
+				ReadResult r _
 					# (l, v) = handlers.onInit r
 					# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 					= case editor.Editor.genUI [] v vst of
@@ -92,11 +94,13 @@ where
 	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		(Just val) 				= case val iworld of
+		(Just val) 				
+		| not (trace_tn "Await modify step") = undef
+		= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
 				// We already have the result from executing the modify function, it happened on this machine.
-				ModifyResult _ _
+				ModifyResult _ _ _
 					# value = (Value ((fromJust (fromJSON encl)), (fromJust (fromJSON encv))) False) 
 					= (ValueResult value evalInfo NoChange (TCInteract taskId ts encl encv m), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates })
 				AsyncModify sds f 
@@ -104,7 +108,6 @@ where
 			(_, iworld)							= (ExceptionResult (exception "Dynamic type mismatch"), iworld)
 
     // Ignore all other events when waiting on an async operation.
-    // TODO: handle Focus event with correct task time.
 	eval _ _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld 
 		= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
 
@@ -114,7 +117,7 @@ where
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
-					(Ok ('SDS'.ReadResult r),iworld)
+					(Ok ('SDS'.ReadResult r _),iworld)
 						# (l,v) = handlers.onInit r
 						= case initMask taskId mode editor v iworld of
 							(Ok m,iworld) = (Ok (Left (taskId,ts,l,v,m)),iworld)
@@ -179,8 +182,8 @@ applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworl
             # valid     = not (containsInvalidFields m)
 	        = case mbf of
 		        Just f | valid = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-			        (Ok ('SDS'.ModifyResult _ _),iworld) = (Ok (Left (l,v,change,m,taskTime)),iworld)
-			        (Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change)),iworld)
+			        (Ok ('SDS'.ModifyResult _ _ _),iworld) = trace_n "Edit event result modify " (Ok (Left (l,v,change,m,taskTime)),iworld)
+			        (Ok ('SDS'.AsyncModify sds _), iworld) = trace_n "Edit event async modify" (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change)),iworld)
 			        (Error e,iworld) = (Error e,iworld)
 		        _ = (Ok (Left (l,v,change,m,taskTime)),iworld)
         (Error e,_,{VSt|iworld}) = (Error (exception e),iworld)
@@ -192,8 +195,8 @@ refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
-		(Ok ('SDS'.AsyncRead sds), iworld) = (Ok (Right (Read, dynamicResult ('SDS'.readRegister taskId sds), l, ov, m, NoChange)), iworld)
-		(Ok ('SDS'.ReadResult r),iworld)
+		(Ok ('SDS'.AsyncRead sds), iworld) = trace_n "Refresh event async read"(Ok (Right (Read, dynamicResult ('SDS'.readRegister taskId sds), l, ov, m, NoChange)), iworld)
+		(Ok ('SDS'.ReadResult r _),iworld)
 			# (l,v,mbf) = onRefresh r l ov
 			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 			= case editor.Editor.onRefresh [] v ov m vst of
@@ -202,8 +205,8 @@ refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 					//Update the share if necessary
 					= case mbf of
 						Just f = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-							(Ok ('SDS'.ModifyResult _ _),iworld) = (Ok (Left (l,v,change,m,taskTime)), iworld)
-							(Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change) ), iworld)
+							(Ok ('SDS'.ModifyResult _ _ _),iworld) = trace_n "Refresh event result read " (Ok (Left (l,v,change,m,taskTime)), iworld)
+							(Ok ('SDS'.AsyncModify sds _), iworld) = trace_n "Refresh event async read" (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, v, m, change) ), iworld)
 							(Error e,iworld) = (Error e,iworld)
 						Nothing	= (Ok (Left (l,v,change,m,taskTime)), iworld)
 				(Error e,_,vst=:{VSt|iworld}) = (Error (exception e),iworld)

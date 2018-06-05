@@ -522,9 +522,9 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # result = case mbValue of
         Error e
             = ExceptionResult e
-        Ok (ReadResult (TIException dyn msg))
+        Ok (ReadResult (TIException dyn msg) _)
             = ExceptionResult (dyn,msg)
-        Ok (ReadResult (TIValue encValue))
+        Ok (ReadResult (TIValue encValue) _)
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
@@ -746,8 +746,8 @@ where
 		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
 		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		# (Ok (ReadResult {InstanceConstants|build})) = mbConstants
-		# (Ok (ReadResult progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
+		# (Ok (ReadResult {InstanceConstants|build} _)) = mbConstants
+		# (Ok (ReadResult progress=:{InstanceProgress|instanceKey,value,attachedTo} _)) = mbProgress
 		//Check if the task is already in use
 		| (not (attachedTo =: [])) && (not steal)
 			= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
@@ -766,7 +766,7 @@ where
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok (ReadResult progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
+			(Ok (ReadResult progress=:{InstanceProgress|attachedTo=[attachedId:_],value} _))
 			    | build <> appVersion    = ASIncompatible
 				| value =:(Exception _) = case value of (Exception s) = ASExcepted s
 				| attachedId <> taskId   = ASInUse attachedId	

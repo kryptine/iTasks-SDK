@@ -21,10 +21,10 @@ from Data.Set import :: Set
     | TaskContext TaskId // Used when a local task is reading from a share
     | RemoteTaskContext TaskId String Int // Used when a remote task is reading from a share locally
 
-:: ReadResult p r w = ReadResult r 
+:: ReadResult p r w = E. sds: ReadResult r (sds p r w) & RWShared sds & TC r & TC w
     | E. sds: AsyncRead (sds p r w) & RWShared sds & TC r & TC w
 
-:: WriteResult p r w = WriteResult (Set SDSNotifyRequest)
+:: WriteResult p r w = E. sds: WriteResult (Set SDSNotifyRequest) (sds p r w) & TC r & TC w & RWShared sds
     /**
      * Denotes that writing to a SDS had lead to some asynchronous action. A set of notify requests is also returned,  
      * because it could be the case that a part of the operation has completed (yielding tasks to be notified), 
@@ -35,7 +35,7 @@ from Data.Set import :: Set
      */  
     | E. sds: AsyncWrite (sds p r w) & RWShared sds & TC r & TC w
 
-:: ModifyResult p r w = ModifyResult r w
+:: ModifyResult p r w = E.sds: ModifyResult r w (sds p r w) & TC r & TC w & RWShared sds
     // We include the modify function so that async operations can be resumed later.
     // TODO: f should be removed, as it is not the responsibility of the modify function to return the modifier function
     | E. sds: AsyncModify (sds p r w) (r -> MaybeError TaskException w) & RWShared sds
@@ -92,7 +92,8 @@ class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
 class ROShared sds | Readable sds
 class WOShared sds | Writeable sds
 
-:: SDSShareOptions = { domain :: String
+:: SDSShareOptions = 
+    { domain :: String
     , port :: Int
     }    
 
@@ -192,7 +193,7 @@ instance toString (WebServiceShareOptions r)
     // When evaluating an SDS has to be done asynchronously, the connection id can be used to query
     // the IO states in IWorld for a result. It is not guaranteed that this result is available, as the asynchronous
     // operation may not have been completed yet.
-    | SDSRemoteSourceQueued ConnectionId (SDSRemoteSource p r w)
+    | SDSRemoteSourceQueued ConnectionId (SDSRemoteSource p r w) SDSShareOptions
 
 :: SDSRemoteService p r w = SDSRemoteService (WebServiceShareOptions r)
     | SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w)

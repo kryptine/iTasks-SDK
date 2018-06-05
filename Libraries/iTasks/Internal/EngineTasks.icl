@@ -23,12 +23,12 @@ import Text
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout mt iworld = case read taskEvents EmptyContext iworld of
 	//No events
-	(Ok (ReadResult (Queue [] [])),iworld=:{sdsNotifyRequests,world})
+	(Ok (ReadResult (Queue [] []) _),iworld=:{sdsNotifyRequests,world})
 		# (ts, world) = nsTime world
 		# to = minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		= ( minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		  , {iworld & world = world})
-	(Ok (ReadResult (Queue _ _)), iworld)               = (Just 0,iworld)   //There are still events, don't wait
+	(Ok (ReadResult (Queue _ _) _), iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 where
 	lesser (Just x) (Just y) = x < y
@@ -59,12 +59,12 @@ where
     removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion,sessionTime},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
-			(Ok (ReadResult (Just (client,tInstance))),iworld) //No IO for too long, clean up
+			(Ok (ReadResult (Just (client,tInstance)) _),iworld) //No IO for too long, clean up
 				= (Ok ((tNow - tInstance) > sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
-			(Ok (ReadResult Nothing),iworld)
+			(Ok (ReadResult Nothing _),iworld)
 				= case read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld of
-					(Ok (ReadResult {InstanceConstants|build,issuedAt=tInstance}),iworld)
+					(Ok (ReadResult {InstanceConstants|build,issuedAt=tInstance} _),iworld)
 						| build <> appVersion = (Ok True,iworld)
 						| (tNow - tInstance) > sessionTime = (Ok True,iworld)
 						= (Ok False,iworld)
@@ -88,7 +88,7 @@ where
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 flushWritesWhenIdle iworld = case read taskEvents EmptyContext iworld of
 		(Error e,iworld)          = (Error e,iworld)
-		(Ok (ReadResult (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
+		(Ok (ReadResult (Queue [] []) _),iworld) = flushDeferredSDSWrites iworld
 		(Ok _,iworld)             = (Ok (),iworld)
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop

@@ -52,20 +52,20 @@ where
 	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)	
 	reqFun req=:{req_data, server_name} _ iworld
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-		(Ok (ReadResult symbols), iworld) = (readSymbols symbols, iworld)
+		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
 	= case deserializeFromBase64 req_data symbols of
 		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v), iworld)					= trace_n ("Got read") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n ("Got read") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
 		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId server_name port) (Just taskId) reqSDSId iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v), iworld)					= trace_n ("Got register") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n ("Got register") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
 		(SDSWriteRequest sds p val)						= case writeSDS sds p EmptyContext val iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (WriteResult notify), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
+				(Ok (WriteResult notify _), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ModifyResult r w), iworld)				= trace_n ("Got modify") (base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
+				(Ok (ModifyResult r w _), iworld)			= trace_n ("Got modify") (base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
 		(SDSRefreshRequest taskId sdsId)
 			//# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	

@@ -113,8 +113,10 @@ where
 	# (deleted,iworld) = appFst isError (read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld)
     // Write the updated progress
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
-		(Ok (ModifyResult oldProgress oldProgress),iworld)	//Only update progress when something changed
-   		(modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld)
+		(Ok (),iworld)	//Only update progress when something changed
+   		(case (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of 
+          (Error e, iworld) = (Error e, iworld)
+          (Ok _, iworld) = (Ok (), iworld) )
     = case mbErr of
         Error (e,description)          
 			= exitWithException instanceNo description iworld
@@ -178,7 +180,7 @@ updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (),
 updateInstanceLastIO [] iworld = (Ok (),iworld)
 updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clock}
     = case modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-    	(Ok (ModifyResult _ _),iworld) = updateInstanceLastIO instanceNos iworld
+    	(Ok (ModifyResult _ _ _),iworld) = updateInstanceLastIO instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
@@ -192,7 +194,7 @@ updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskExceptio
 updateInstanceDisconnect [] iworld = (Ok (),iworld)
 updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clock}
     = case modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-		(Ok (ModifyResult _ _),iworld) = updateInstanceDisconnect instanceNos iworld
+		(Ok (ModifyResult _ _ _),iworld) = updateInstanceDisconnect instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 currentInstanceShare :: SDSSource () InstanceNo ()

@@ -117,7 +117,7 @@ newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo 'SDS'.EmptyContext iworld
 	= case mbNewInstanceNo of
-		Ok ('SDS'.ReadResult instanceNo)
+		Ok ('SDS'.ReadResult instanceNo _)
 			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo 'SDS'.EmptyContext iworld
             = case mbError of
                 Ok _    = (Ok instanceNo,iworld)
@@ -221,7 +221,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     = (Ok (),iworld)
   where
-    toME (Ok ('SDS'.ModifyResult _ _)) = Ok ()
+    toME (Ok ('SDS'.ModifyResult _ _ _)) = Ok ()
     toMe (Error e) = (Error e)
 
 
@@ -532,7 +532,7 @@ dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
     (Error e, iworld)               = (Nothing, iworld)
-    (Ok ('SDS'.ReadResult queue), iworld)
+    (Ok ('SDS'.ReadResult queue _), iworld)
     # (val, queue) = 'DQ'.dequeue queue
     = case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
       (Error e, iworld) = (Nothing, iworld)
@@ -588,13 +588,13 @@ createDocument name mime content iworld
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
 	= case 'SDS'.read (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld of
-        (Ok ('SDS'.ReadResult content),iworld) = (Just content,iworld)
+        (Ok ('SDS'.ReadResult content _),iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
 	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) 'SDS'.EmptyContext iworld) of
-        (Ok ('SDS'.ReadResult doc),iworld)     = (Just doc,iworld)
+        (Ok ('SDS'.ReadResult doc _),iworld)     = (Just doc,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

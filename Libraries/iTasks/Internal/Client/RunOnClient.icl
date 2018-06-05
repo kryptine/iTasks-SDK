@@ -102,7 +102,7 @@ newWorld = abort "newWorld"
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
 	= case 'SDS'.read taskOutput EmptyContext iworld of
-		(Ok (ReadResult output),iworld)
+		(Ok (ReadResult output _),iworld)
 			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
 				output

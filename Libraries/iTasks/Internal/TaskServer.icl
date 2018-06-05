@@ -44,7 +44,7 @@ where
 	createInitialInstances :: [TaskWrapper] !*IWorld -> *IWorld
 	createInitialInstances its iworld
 		# (mbNextNo,iworld) = read nextInstanceNo EmptyContext iworld
-		| (mbNextNo =: (Ok (ReadResult 1))) = createAll its iworld //This way we check if it is the initial run of the program
+		| (mbNextNo =: (Ok (ReadResult 1 _))) = createAll its iworld //This way we check if it is the initial run of the program
                                = iworld
 
 	createAll :: [TaskWrapper] !*IWorld -> *IWorld
@@ -58,7 +58,7 @@ where
 	queueAll iworld
 		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
 		= case mbIndex of
-			Ok (ReadResult index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadResult index _)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
