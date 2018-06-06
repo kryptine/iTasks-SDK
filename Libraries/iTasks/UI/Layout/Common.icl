@@ -58,21 +58,17 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 	,setUIAttributes (directionAttr direction)
 	,moveSubUIs (SelectByPath [0,index]) [] sidePanelIndex
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
-		[setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)
-		:if resize
-			[setUIAttributes (resizableAttr (resizers side))
-			,setUIAttributes (padders side)
-			] []
-		])
+		(if resize
+		[wrapUI UIPanel
+		,setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)
+		,setUIAttributes (resizableAttr (resizers side))
+		]
+		[setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)]
+	))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
-
-	padders TopSide = bottomPaddingAttr 5
-	padders BottomSide = topPaddingAttr 5
-	padders LeftSide = rightPaddingAttr 5
-	padders RightSide = leftPaddingAttr 5
 
 	resizers TopSide = [BottomSide]
 	resizers BottomSide = [TopSide]
