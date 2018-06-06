@@ -7,7 +7,7 @@ from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgr
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditMask
-from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID
+from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUINo, :: LUIEffectStage
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe

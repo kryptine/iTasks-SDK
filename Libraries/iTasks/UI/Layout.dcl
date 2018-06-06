@@ -139,7 +139,7 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage LUINo)
 	, additional            :: LUIEffectStage LUINo
 	, hidden                :: LUIEffectStage LUINo
-	, moved                 :: LUIEffectStage LUINo
+//	, moved                 :: LUIEffectStage LUINo
 	, wrapper               :: LUIEffectStage LUINo
 	, unwrapped             :: LUIEffectStage LUINo
 	}
@@ -160,7 +160,7 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 //and in their destination location (to apply further effects).
 //To make this possible, we put those nodes in a separate table and put references in the tree
 
-:: LUIMoves :== Map LUIMoveID LUI
+:: LUIMoves :== Map LUIMoveID (LUIEffectStage LUINo, LUI)
 
 noChanges :: LUIChanges
 noEffects :: LUIEffects
