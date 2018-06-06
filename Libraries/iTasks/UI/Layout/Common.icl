@@ -175,9 +175,10 @@ frameCompact = sequenceLayouts
 	,setUIAttributes (halignAttr AlignCenter)
 	]
 
-//TODO: Explicitly detect if we are before or after a step
 beforeStep :: LayoutRule -> LayoutRule
-beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) layout
+beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) SelectNotStepped) layout
+where
+	SelectNotStepped = SelectByAttribute "stepped" (\a -> a === (JSONBool False))
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts

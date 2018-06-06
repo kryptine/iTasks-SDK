@@ -175,6 +175,7 @@ LABEL_ATTRIBUTE			:== "label"
 PREFIX_ATTRIBUTE		:== "prefix"
 POSTFIX_ATTRIBUTE		:== "postfix"
 ICON_ATTRIBUTE			:== "icon"
+STEPPED_ATTRIBUTE       :== "stepped"
 
 
 //Construction functions
@@ -239,7 +240,8 @@ resizableAttr     :: ![UISide]                            -> UIAttributes
 maxlengthAttr     :: !Int                                 -> UIAttributes
 minlengthAttr     :: !Int                                 -> UIAttributes
 boundedlengthAttr :: !Int !Int                            -> UIAttributes
-eventTimeoutAttr  :: !(Maybe Int)                          -> UIAttributes
+eventTimeoutAttr  :: !(Maybe Int)                         -> UIAttributes
+steppedAttr       :: !Bool                                -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

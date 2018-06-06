@@ -112,7 +112,7 @@ where
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 					# actions = contActions taskId val conts
 					# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-					= Left (ValueResult value info (doStepLayout taskId evalOpts event actions prevEnabledActions rep val)
+					= Left (ValueResult value info (doBeforeStepLayout taskId evalOpts event actions prevEnabledActions rep val)
 								(TCStep taskId info.TaskEvalInfo.lastEvent (Left (ntreea,curEnabledActions))))
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
 			ExceptionResult e = case searchContException e conts of
@@ -128,10 +128,10 @@ where
 				# (taskIdb,iworld)	= getNextTaskId iworld
 				# (resb,iworld)		= evalb ResetEvent (extendCallTrace taskId evalOpts) (TCInit taskIdb lastEvent) iworld
 				= case resb of
-					ValueResult val info (ReplaceUI ui) nstateb	
+					ValueResult val info change nstateb
 						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
-						= (ValueResult val info (ReplaceUI ui) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
-					ValueResult val info change nstateb	
+						= (ValueResult val info (doAfterStepLayout ResetEvent change) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+					ValueResult val info change nstateb
 						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld) 
 					ExceptionResult e = (ExceptionResult e, iworld)
 	//Eval right-hand side
@@ -140,9 +140,9 @@ where
 			Just (Task evalb)
 				# (resb, iworld)	= evalb event (extendCallTrace taskId evalOpts) treeb iworld
 				= case resb of
-					ValueResult val info rep ntreeb
+					ValueResult val info change ntreeb
 						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-						= (ValueResult val info rep (TCStep taskId info.TaskEvalInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+						= (ValueResult val info (doAfterStepLayout event change) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
 			Nothing
 				= (ExceptionResult (exception "Corrupt task value in step"), iworld)	
@@ -172,11 +172,11 @@ where
 		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId evalOpts event actions prevEnabled change val
+	doBeforeStepLayout taskId evalOpts event actions prevEnabled change val
 		= case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI rui)  
-				= ReplaceUI (uic UIStep [rui:contActions taskId val conts])
+				= ReplaceUI (uiac UIStep (steppedAttr False) [rui:contActions taskId val conts])
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [(0,ChangeChild change):actionChanges]
@@ -185,6 +185,10 @@ where
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
+
+	doAfterStepLayout event change = case (event,change) of
+		(ResetEvent,ReplaceUI rui) = ReplaceUI (uiac UIStep (steppedAttr True) [rui])
+		_ = ChangeUI [] [(0,ChangeChild change)]
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
