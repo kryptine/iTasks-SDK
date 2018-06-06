@@ -25,7 +25,9 @@ derive  JSEncode Int, Real, Char, Bool, String, UNIT, [],
 JSEncode{|CONS of {gcd_name,gcd_index}|} fx (CONS x) = [JSONArray [JSONInt gcd_index, JSONString gcd_name : fx x]]
 JSEncode{|RECORD of {grd_name}|} fx (RECORD x) = [JSONArray [JSONInt 0, JSONString ("_" +++ grd_name) : fx x]]
 
-JSEncode{|FIELD|} fx (FIELD x) = fx x
+JSEncode{|FIELD|} fx (FIELD x) = case fx x of
+	[JSONArray [arr]] -> [arr]
+	arr               -> arr
 
 JSEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
 where
