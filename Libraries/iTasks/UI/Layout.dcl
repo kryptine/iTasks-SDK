@@ -203,3 +203,4 @@ hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttribute
 matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 extractUIWithEffects_ :: (LUI,LUIMoves) -> Maybe UI
 fullyApplied_ :: (LUI,LUIMoves) -> Bool
+isPartOf_ :: LUINo LUINo -> Bool

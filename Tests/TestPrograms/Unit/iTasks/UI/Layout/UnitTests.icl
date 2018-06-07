@@ -1223,6 +1223,14 @@ nodeExists_Tests =
 			'DM'.newMap
 		)
 	]
+
+isPartOf_Tests = 
+	[assertEqual "Is part of ruleNumbers: 1.1.3 1" True (isPartOf_ (LUINo [1,1,3]) (LUINo [1]))
+	,assertEqual "Is part of ruleNumbers: 1 2" False (isPartOf_ (LUINo [1]) (LUINo [2]))
+	,assertEqual "Is part of ruleNumbers: 1 2.4" False (isPartOf_ (LUINo [1]) (LUINo [2,4]))
+	,assertEqual "Is part of ruleNumbers: 3 3" True (isPartOf_ (LUINo [3]) (LUINo [3]))
+	]
+
 compareLUINoTests =
 	[assertEqual "Comparison of ruleNumbers: 1 < 1.2" True (LUINo [1] < LUINo [1,2]) 
 	,assertEqual "Comparison of ruleNumbers: 1.2 < 3" True (LUINo [1,2] < LUINo [3]) 
@@ -1528,6 +1536,23 @@ layoutSubUIsTests =
 				] noChanges noEffects
 			,initLUIMoves)
 		)
+		,assertEqual "Layout sub-uis rule: resetting when a selection no-longer holds"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIContainer 'DM'.newMap []
+					noChanges {noEffects & overwrittenAttributes = 'DM'.fromList [("help", ESToBeRemoved (LUINo [2,0],JSONString "Title"))]}
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects 
+				] {noChanges & delAttributes = 'DS'.fromList ["title"]} noEffects
+		,initLUIMoves)
+		(layoutSubUIs (SelectByHasAttribute "title") (layoutSubUIs (SelectByPath [1]) (setUIAttributes ('DM'.fromList [("help",JSONString "Title")]))) (LUINo [2])
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIContainer 'DM'.newMap [] noChanges
+					{noEffects & overwrittenAttributes = 'DM'.fromList [("help",ESApplied (LUINo [2,0],JSONString "Title"))]}
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects 
+				] {noChanges & delAttributes = 'DS'.fromList ["title"]} noEffects
+			,initLUIMoves)
+		)
 	]
 combinationTests =
 	//Applying the first change
@@ -1619,6 +1644,7 @@ tests =  applyUpstreamChangeTests
 	  ++ updateSubNode_Tests
 	  ++ scanToPosition_Tests
 	  ++ nodeExists_Tests
+      ++ isPartOf_Tests
 	  ++ compareLUINoTests
 	  ++ setUITypeTests
 	  ++ setUIAttributesTests

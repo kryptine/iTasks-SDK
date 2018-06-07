@@ -10,6 +10,7 @@ import StdEnum
 from Data.Map as DM import qualified newMap, put, get, del, toList, fromList, delList, alter, union, keys, unions, singleton, member, null
 from Data.Set as DS import qualified newSet, insert, delete, toList, fromList, null
 from Data.Tuple import appSnd
+from Data.Map import instance Functor (Map k)
 
 import Text.GenJSON
 
@@ -38,6 +39,7 @@ where
 instance toString LUINo
 where
 	toString (LUINo steps) = join "." (map toString steps)
+
 
 /*
 * The first thing we need for rule-based layouts is a datastructure that can keep track
@@ -444,7 +446,6 @@ where
 
 			currentMove (LUIMoveDestination moveId _) = isMember moveId moved
 			currentMove  _ = False
-import StdDebug
 
 layoutSubUIs :: UISelection LayoutRule -> LayoutRule
 layoutSubUIs selection sub = rule
@@ -454,14 +455,16 @@ where
 		//Check if the layout matches (without any dereferencing or selecting wrapped nodes)
 		apply path (lui,moves)
 			| nodeSelected_ ruleNo selection path lui moves //If the layout matches, apply the rule
-				= sub ruleNo (lui,moves)
+				= (sub ruleNo (lui,moves))
 			| otherwise
+				//We first undo effects previously applied by 
+				# (lui,moves) = undoEffects_ ruleNo (lui,moves)
 				//We want to check the set of children at the time of `ruleNo`
 				= updateNode_ ruleNo (applyc path) (lui,moves)
 
 		applyc path (lui=:(LUINode type attr items changes effects),moves)
 			# (items,moves) = updateChildNodes_ ruleNo (\i (item,moves) -> apply (path ++ [i]) (item,moves)) (items,moves)
-			= (LUINode type attr items changes (revertEffect_ ruleNo effects),moves)
+			= (LUINode type attr items changes effects,moves)
 
 sequenceLayouts :: [LayoutRule] -> LayoutRule
 sequenceLayouts subs = rule
@@ -907,18 +910,50 @@ where
 		Just (ESToBeRemoved _) = True
 		_ = False
 
-//TODO Effects on types and attributes are not yet reverted
-revertEffect_ :: LUINo LUIEffects -> LUIEffects 
-revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,wrapper,unwrapped}
-	| additional === (ESApplied ruleId) = {LUIEffects|effects & additional = ESToBeRemoved ruleId}
-	| additional === (ESToBeApplied ruleId) = {LUIEffects|effects & additional = ESNotApplied}
-	| hidden === (ESApplied ruleId) = {LUIEffects|effects & hidden = ESToBeRemoved ruleId}
-	| hidden === (ESToBeApplied ruleId) = {LUIEffects|effects & hidden = ESNotApplied}
-	| wrapper === (ESApplied ruleId) = {LUIEffects|effects & wrapper = ESToBeRemoved ruleId}
-	| wrapper === (ESToBeApplied ruleId) = {LUIEffects|effects & wrapper = ESNotApplied}
-	| unwrapped === (ESApplied ruleId) = {LUIEffects|effects & unwrapped = ESToBeRemoved ruleId}
-	| unwrapped === (ESToBeApplied ruleId) = {LUIEffects|effects & unwrapped = ESNotApplied}
-	= effects
+//Undo the effects of a previously applied rule for a single node
+undoEffects_ :: LUINo (LUI,LUIMoves) -> (LUI,LUIMoves)
+undoEffects_ ruleNo (LUINode type attr items changes effects,moves)
+	= (LUINode type attr items changes (undo ruleNo effects), moves)
+where 
+	undo ruleNo {overwrittenType,overwrittenAttributes,hiddenAttributes,additional,hidden,wrapper,unwrapped}
+		= {overwrittenType = undoEffect_ ruleNo fst overwrittenType
+		  ,overwrittenAttributes = fmap (undoEffect_ ruleNo fst) overwrittenAttributes
+		  ,hiddenAttributes = fmap (undoEffect_ ruleNo id) hiddenAttributes
+		  ,additional = undoEffect_ ruleNo id additional
+		  ,hidden = undoEffect_ ruleNo id hidden
+		  ,wrapper = undoEffect_ ruleNo id wrapper
+		  ,unwrapped = undoEffect_ ruleNo id unwrapped
+		  }
+
+undoEffects_ ruleNo (ref=:(LUIMoveSource moveId),moves) = case 'DM'.get moveId moves of
+	Nothing = (ref,moves)
+	Just (moveStage,lui)
+		# moveStage = undoEffect_ ruleNo id moveStage
+		# (lui,moves) = undoEffects_ ruleNo (lui,moves)
+		= (ref,'DM'.put moveId (moveStage,lui) moves)
+
+undoEffects_ ruleNo (ref=:LUIMoveDestination moveId moveRule,moves) = case 'DM'.get moveId moves of
+	Nothing = (ref,moves)
+	Just (moveStage,lui)
+		# moveStage = undoEffect_ ruleNo id moveStage
+		# (lui,moves) = undoEffects_ ruleNo (lui,moves)
+		= (ref,'DM'.put moveId (moveStage,lui) moves)
+
+undoEffects_ ruleNo (LUIShiftDestination shiftId,moves) = (LUIShiftDestination shiftId,moves)
+
+undoEffect_ :: LUINo (a -> LUINo) (LUIEffectStage a) -> LUIEffectStage a
+undoEffect_ ruleNo f (ESToBeApplied x) | isPartOf_ (f x) ruleNo = ESNotApplied
+undoEffect_ ruleNo f (ESApplied x) | isPartOf_ (f x) ruleNo = ESToBeRemoved x
+undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f c) ruleNo = ESToBeRemoved c
+undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f x) ruleNo = ESApplied c
+undoEffect_ _ _ es = es
+
+isPartOf_ :: LUINo LUINo -> Bool
+isPartOf_ (LUINo x) (LUINo y) = check x y
+where
+	check _ [] = True
+	check [] _ = False
+	check [x:xs] [y:ys] = if (x == y) (check xs ys) False
 
 /*
 * Once layout rules have annotated their effects, the change that has to be applied downstream
@@ -1372,3 +1407,4 @@ fullyApplied_ (LUIMoveDestination moveId _, moves)
 	= maybe False (\l -> fullyApplied_ (l,moves)) ('DM'.get moveId moves)
 fullyApplied_ (LUIShiftDestination _, moves) = False
 */
+
