@@ -311,24 +311,26 @@ where
 insertChildUI :: Int UI -> LayoutRule
 insertChildUI position insertion = rule
 where
-	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleNo (replacement, moves)
-		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-
-	rule ruleNo (lui=:(LUINode type attr items changes effects),moves)
+	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
+	rule` ruleNo (lui=:(LUINode type attr items changes effects),moves)
 		= case scanToPosition_ ruleNo position items moves of
 			(_,True,Nothing)	
 				//If the index is at the end of the range, add the item
-				= (LUINode type attr (undoAdditions ruleNo items ++ [setToBeAdded_ ruleNo (initLUI insertion)]) changes effects, moves)
+				# items = undoAdditions ruleNo items ++ [setToBeAdded_ ruleNo (initLUI insertion)]
+				= (LUINode type attr items changes effects, moves)
 			(index,True,Just selected)
-				| getAdditional selected === ESToBeApplied ruleNo || getAdditional selected === ESApplied ruleNo
+				# additional = getAdditional selected
+				//Already inserted
+				| additional === ESToBeApplied ruleNo || additional === ESApplied ruleNo
 					= (lui, moves)
 				| otherwise
-					= (LUINode type attr (insertAt index (setToBeAdded_ ruleNo (initLUI insertion)) (undoAdditions ruleNo items)) changes effects, moves)
+					//Not yet inserted, or at the wrong position
+					# item = setToBeAdded_ ruleNo (initLUI insertion)
+					# items = insertAt index item (undoAdditions ruleNo items)
+					= (LUINode type attr items changes effects, moves)
 			_
-				= (lui,moves)
-
-	rule ruleNo (lui,moves) = (lui,moves)
+				# items = undoAdditions ruleNo items
+				= (LUINode type attr items changes effects, moves)
 
 	getAdditional (LUINode _ _ _ _ {additional}) = additional
 	getAdditional _ = ESNotApplied
@@ -336,12 +338,7 @@ where
 	undoAdditions ruleNo items = map undo items
 	where
 		undo lui=:(LUINode type attr items changes effects=:{additional})
-			| additional === (ESToBeApplied ruleNo)
-				= LUINode type attr items changes {effects & additional = ESNotApplied}
-			| additional === (ESApplied ruleNo)
-				= LUINode type attr items changes {effects & additional = ESToBeRemoved ruleNo}
-			| otherwise
-				= lui
+			= LUINode type attr items changes {effects & additional = undoEffect_ ruleNo id additional}
 		undo lui = lui
 
 moveSubUIs :: UISelection UIPath Int -> LayoutRule
@@ -1219,6 +1216,9 @@ where
 			visible (LUINode _ _ _ {toBeInserted=True} _) = False
 			visible _ = True
 
+	resetToBeShifted (LUINode type attr items changes effects)
+		= LUINode type attr items {changes & toBeShifted = Nothing} effects
+
 extractChildInsertsAndRemoves :: [LUI] LUIMoves -> [(Int,UIChildChange)]
 extractChildInsertsAndRemoves items moves = extract 0 items moves
 where
@@ -1300,15 +1300,10 @@ where
 					= items
 			(ESToBeRemoved ruleId,movedItem=:(LUINode _ _ _ _ _)) //To be be restored
 				= items
-			movedItem //FIXME: This can happen if a moved item is wrapped
-				= abort (toString (toJSON movedItem))
 				
 	extract litem items
 		# mbItem = extractUIWithEffects_ (litem,moves)
 		= maybe items (\item -> [item:items]) mbItem
-
-resetToBeShifted (LUINode type attr items changes effects)
-	= LUINode type attr items {changes & toBeShifted = Nothing} effects
 
 derive JSONEncode LUI, LUINo, LUIEffects, LUIChanges, LUIEffectStage, Set
 

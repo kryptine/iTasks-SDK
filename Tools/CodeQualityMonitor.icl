@@ -160,7 +160,7 @@ where
 			,viewSharedInformation (Title "Implementation") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
 			] <<@ ArrangeWithTabs False
 
-	toCodeTag lines = PreTag [] [CodeTag [] [RawText (join "\n" lines)]]
+	toCodeTag lines = PreTag [] [CodeTag [] [Html (join "\n" lines)]]
 
 //Inspecting individual programs 
 :: InspectState
