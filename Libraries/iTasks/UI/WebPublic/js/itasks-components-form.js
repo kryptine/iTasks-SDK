@@ -2,6 +2,7 @@ itasks.TextField = {
 	domTag: 'input',
 	attributes: {
 		eventTimeout: 500,
+		height: 'wrap'
 	},
 	initDOMEl: function() {
 		var me = this,
@@ -86,6 +87,10 @@ itasks.TextArea = {
 };
 itasks.PasswordField = {
 	domTag: 'input',
+	attributes: {
+		eventTimeout: 500,
+		height: 'wrap'
+	},
 	initDOMEl: function() {
 		var me = this,
 			el = this.domEl;
@@ -126,7 +131,8 @@ itasks.NumberField = {
 	domTag: 'input',
     allowDecimal: false,
 	attributes: {
-		width: 150
+		width: 150,
+		height: 'wrap'
 	},
     initDOMEl: function() {
         var me = this,
