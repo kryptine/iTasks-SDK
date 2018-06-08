@@ -138,6 +138,9 @@ where
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} {genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh} _ _ _ _
 	= withEditModeAttr {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
+	gcd_names   = [gcd_name  \\ {GenericConsDescriptor | gcd_name}  <- gtd_conses]  // preselect cons names   to circumvent cyclic dependencies
+	gcd_arities = [gcd_arity \\ {GenericConsDescriptor | gcd_arity} <- gtd_conses]  // preselect cons arities to circumvent cyclic dependencies
+	
 	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,optional,selectedConsIndex}
 		= case mode of
 			Enter
@@ -150,7 +153,7 @@ where
 							= (Error e, {vst & selectedConsIndex = selectedConsIndex})
 				//If there are multiple constructors, we only generate a UI to select the constructor
 				| otherwise
-					# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gtd_conses Nothing
+					# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gcd_names Nothing
 					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [consChooseMask]),{vst & selectedConsIndex = selectedConsIndex})
 			Update
 				//Generate the ui for the current value
@@ -161,7 +164,7 @@ where
 							= (Ok (consUI, consMask),{vst & selectedConsIndex = selectedConsIndex})
 						//If there are multiple constructors, we add the UI to select the constructor and change the type to UIVarCons	
 						| otherwise
-							# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gtd_conses (Just vst.selectedConsIndex)
+							# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gcd_names (Just vst.selectedConsIndex)
 							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [consChooseMask:fields])
 								,{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
@@ -172,19 +175,19 @@ where
 						| gtd_num_conses == 1
 							= (Ok (consUI, consMask),{vst & selectedConsIndex = selectedConsIndex})
 						| otherwise
-							# (consViewUI,consViewMask) = genConsViewUI gtd_conses vst.selectedConsIndex
+							# (consViewUI,consViewMask) = genConsViewUI gcd_names vst.selectedConsIndex
 							= (Ok (UI UIVarCons attr [consViewUI:items],CompoundMask [consViewMask:fields])
 								,{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
-	genConsChooseUI taskId dp optional gtd_conses mbSelectedCons = (consChooseUI,consChooseMask)
+	genConsChooseUI taskId dp optional gcd_names mbSelectedCons = (consChooseUI,consChooseMask)
 	where
-		consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gdc.gcd_name)] \\ gdc <- gtd_conses & i <- [0..]]
+		consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gcd_name)] \\ gcd_name <- gcd_names & i <- [0..]]
 		consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) (maybe [] (\x -> [x]) mbSelectedCons) consOptions)
 		consChooseMask = FieldMask {touched=False,valid=optional || isJust mbSelectedCons,state=maybe JSONNull (\x -> JSONInt x) mbSelectedCons}
 
-	genConsViewUI gtd_conses selectedCons
-		= (uia UITextView (valueAttr (JSONString (gtd_conses !! selectedCons).gcd_name)), newFieldMask)
+	genConsViewUI gcd_names selectedCons
+		= (uia UITextView (valueAttr (JSONString (gcd_names !! selectedCons))), newFieldMask)
 
 	//Update is a constructor switch
 	onEdit dp ([],JSONArray [JSONInt consIdx]) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} 
@@ -200,7 +203,7 @@ where
 				//Construct a UI change that does the following: 
 				//1: If necessary remove the fields of the previously selected constructor
 				# removals = case state of
-					(JSONInt prevConsIdx) = repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild)
+					(JSONInt prevConsIdx) = repeatn (gcd_arities !! prevConsIdx) (1,RemoveChild)
 					_                 = []
 				//2: Inserts the fields of the newly created ui
 				# inserts = [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
@@ -215,7 +218,7 @@ where
 		| e =: JSONNull || e =: (JSONArray []) // A null or an empty array are accepted as a reset events
 			//If necessary remove the fields of the previously selected constructor
 			# change = case state of
-				(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
+				(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gcd_arities !! prevConsIdx) (1,RemoveChild))
 				_                     = NoChange		
 			# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
 			= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val, vst)	
@@ -264,8 +267,8 @@ where
 						(ReplaceUI ui=:(UI type attr items))
 							//Add the constructor selection/view ui
 							# (consUI,_) = if (mode =: View) 
-												(genConsViewUI gtd_conses consIndex)
-												(genConsChooseUI taskId dp optional gtd_conses (Just consIndex))
+												(genConsViewUI gcd_names consIndex)
+												(genConsChooseUI taskId dp optional gcd_names (Just consIndex))
 							= ReplaceUI (UI type attr [consUI:items])
 					| otherwise
 						= (Ok (change, CompoundMask [consChooseMask:fields]), OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
