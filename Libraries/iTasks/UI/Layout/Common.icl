@@ -328,6 +328,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 		,optAddLabel
 		//If there is hint attribute, create an extra icon 
 		,optAddIcon
+		,removeLabelAttribute
 		]
 	)
 where
@@ -374,3 +375,7 @@ where
 			| c == '_'			= [' ':addspace cs]
 			| isUpper c			= [' ',toLower c:addspace cs]
 			| otherwise			= [c:addspace cs]
+
+	removeLabelAttribute = layoutSubUIs (SelectAND SelectChildren (SelectByHasAttribute "label"))
+	                                    (delUIAttributes (SelectKeys ["label"]))
+

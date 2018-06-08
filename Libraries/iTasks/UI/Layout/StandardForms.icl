@@ -78,13 +78,17 @@ where
 	setTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
 
 	layoutEditor = layoutSubUIs (SelectByPath [1]) (sequenceLayouts
-		[layoutSubUIs SelectFormElement toFormItem
+		[layoutSubUIs SelectFormElement layoutFormItem
 		,layoutSubUIs (SelectByType UIRecord) layoutRecord
 		,layoutSubUIs (SelectByType UICons) layoutCons
 		,layoutSubUIs (SelectByType UIVarCons) layoutVarCons
 		,layoutSubUIs (SelectByType UIList) layoutList
 		,layoutSubUIs (SelectByType UIPair) layoutPair
 		])
+	layoutFormItem = sequenceLayouts
+		[toFormItem
+		,layoutSubUIs (SelectAND SelectDescendents SelectFormElement) layoutFormItem
+		]
 
 	removePromptIfEmpty = layoutSubUIs withEmptyPrompt removePrompt
 	where
