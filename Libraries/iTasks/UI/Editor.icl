@@ -56,20 +56,26 @@ checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 checkMaskValue (FieldMask {FieldMask|touched,state}) _ = if touched (Just state) Nothing
 checkMaskValue _ _                       = Nothing
 
+import StdDebug
+
 withClientSideInit ::
 	((JSObj ()) *JSWorld -> *JSWorld)
 	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
-	DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
+	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
 withClientSideInit initUI genUI dp val vst=:{VSt|taskId} = case genUI dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
+    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = trace_n ("withClientSideInit genUI succeeded")
+                                                       case editorLinker initUI iworld of
         (Ok (saplDeps, saplInit),iworld)
-			# extraAttr = 'DM'.fromList [("taskId",JSONString taskId)
-                                         ,("editorId",JSONString (editorId dp))
-                                         ,("saplDeps",JSONString saplDeps)
-                                         ,("saplInit",JSONString saplInit)
+			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
+                                        ,("editorId",JSONString (editorId dp))
+                                        ,("saplDeps",JSONString saplDeps)
+                                        ,("saplInit",JSONString saplInit)
                                         ]
-            = (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
+            = trace_n ("withClientSideInit editorLinker succeeded")
+              (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
         (Error e,iworld)
-            = (Error e, {VSt|vst & iworld = iworld})
-    (Error e,vst) = (Error e,vst)
+            = trace_n ("withClientSideInit editorLinker failed with Error " +++ toString e)
+              (Error e, {VSt|vst & iworld = iworld})
+    (Error e,vst) = trace_n ("withClientSideInit genUI failed with Error " +++ toString e)
+                    (Error e,vst)
 
