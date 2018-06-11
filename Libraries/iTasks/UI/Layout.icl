@@ -603,7 +603,7 @@ isAdditional_ :: LUI -> Bool
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
-isAdditional_ (LUIMoveDestination _ _) = True  //TODO: Create a test for this case
+isAdditional_ (LUIMoveDestination _ _) = True
 isAdditional_ _ = False
 
 isShifted_ :: LUI -> Bool
@@ -689,7 +689,7 @@ processNode_ ruleNo fun (lui,moves) = case lui of
 				| movedBy >= ruleNo
 					# (result,movedItem,moves) = fun (movedItem,moves)
 					= (Just result,lui, putMovedNode_ moveId (movedStage,movedItem) moves)
-				| movedBy < ruleNo //Do nothing, the node has been moved somewhere else
+				| otherwise //Do nothing, the node has been moved somewhere else
 					= (Nothing,lui,moves)
 			//The node is no longer moved, it will be restored to this location
 			Nothing
@@ -700,71 +700,42 @@ processNode_ ruleNo fun (lui,moves) = case lui of
 		# (movedStage,movedItem) = getMovedNode_ moveId moves
 		= case getMovedBy_ movedStage of
 			Just movedBy 
-				| movedBy >= ruleNo //No nothing, the node has not been moved yet
-					= (Nothing,lui,moves)
 				| movedBy < ruleNo //The node has been moved, Update the referenced node
 					# (result,movedItem,moves) = fun (movedItem,moves)
 					= (Just result, lui, putMovedNode_ moveId (movedStage,movedItem) moves)
+				| otherwise //No nothing, the node has not been moved yet
+					= (Nothing,lui,moves)
 			//The node is no longer moved, it will be removed from this destination
-			Nothing
-				= (Nothing,lui,moves)
+			Nothing = (Nothing,lui,moves)
 	//When an item is scheduled to be replaced, update the replacement
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
 		# (result,replacement,moves) = processNode_ ruleNo fun (replacement,moves)
 		= (result, LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
-	//TODO: Refactor the different cases of wrapped nodes. there is some overlap
 	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper 
-	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy})
-		//Not yet wrapped, process the wrapped item
-		| wrappedBy > ruleNo
-			= case scanToPosition_ wrappedBy 0 items moves of
-				(index,True,Just wrapped)	
-					# (result,wrapped,moves) = processNode_ ruleNo fun (wrapped,moves) 
-					= (result,LUINode type attr (updateAt index wrapped items) changes effects, moves)
-				_ = (Nothing,lui,moves)
-		| otherwise
-			# (result,lui,moves) = fun (lui,moves)
-			= (Just result,lui,moves)
+	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy}) | wrappedBy > ruleNo
+		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
 	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
-	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy})
-		//Not yet wrapped, process the wrapped item
-		| wrappedBy > ruleNo
-			= case scanToPosition_ wrappedBy 0 items moves of
-				(index,True,Just wrapped)
-					# (result,wrapped,moves) = processNode_ ruleNo fun (wrapped,moves) 
-					= (result, LUINode type attr (updateAt index wrapped items) changes effects, moves)
-				_ = (Nothing,lui,moves)
-		| otherwise
-			# (result,lui,moves) = fun (lui,moves)
-			= (Just result,lui,moves)
+	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy}) | wrappedBy > ruleNo
+		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
 	//Similarly, when the wrapping is set to be removed, we need to update the wrapped child
 	(LUINode type attr items changes effects=:{wrapper=ESToBeRemoved wrappedBy})
-		= case scanToPosition_ wrappedBy 0 items moves of
-			(index,True,Just wrapped)	
-				# (result,wrapped,moves) = processNode_ ruleNo fun (wrapped,moves)
-				= (result,LUINode type attr (updateAt index wrapped items) changes effects, moves)
-			_ = (Nothing,lui,moves)
+		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
 	//When a node is unwrapped, we have to process the first inner node (if it exists...)
 	(LUINode type attr items changes effects=:{unwrapped=ESToBeApplied unwrappedBy}) | unwrappedBy < ruleNo 
-		= case scanToPosition_ ruleNo 0 items moves of
-			(index,True,Just item) 
-				# (result,item,moves) = processNode_ ruleNo fun (item,moves)
-				= (result,LUINode type attr (updateAt index item items) changes effects, moves)
-			_
-				= (Nothing,lui,moves)					
-	//TODO: Refactor to reduce overlap in cases
+		= processFirstChild_ ruleNo ruleNo fun (lui,moves)
 	(LUINode type attr items changes effects=:{unwrapped=ESApplied unwrappedBy}) | unwrappedBy < ruleNo
-		 //Already wrapped, process the inner node
-		= case scanToPosition_ ruleNo 0 items moves of
-			(index,True,Just item) 
-				# (result,item,moves) = processNode_ ruleNo fun (item,moves)
-				= (result,LUINode type attr (updateAt index item items) changes effects, moves)
-			_
-				= (Nothing,lui,moves)					
+		= processFirstChild_ ruleNo ruleNo fun (lui,moves)
 	//Default case: Just apply the update function
 	_ 
 		# (result,lui,moves) = fun (lui,moves)
 		= (Just result,lui,moves)
+where
+	processFirstChild_ atRuleNo ruleNo fun (lui=:(LUINode type attr items changes effects),moves)
+		= case scanToPosition_ atRuleNo 0 items moves of
+			(index,True,Just wrapped)
+				# (result,wrapped,moves) = processNode_ ruleNo fun (wrapped,moves) 
+				= (result, LUINode type attr (updateAt index wrapped items) changes effects, moves)
+			_ = (Nothing,lui,moves)
 
 processChildNodes_ :: LUINo (Int (a,LUI,LUIMoves) -> (a,LUI,LUIMoves)) (a,[LUI],LUIMoves) -> (a,[LUI],LUIMoves) 
 processChildNodes_ ruleNo fun (state,items,moves) = processItems (indexShiftDestinations items moves) state items moves
@@ -966,7 +937,7 @@ extractDownstreamChange (lui,moves)
 		(Just (InsertChild ui), Just lui)     = (ReplaceUI ui,(lui,moves))
 		(Just RemoveChild, Just lui)          = (ReplaceUI (UI UIEmpty 'DM'.newMap []),(lui,moves))
 		(Just (ChangeChild change), Just lui) = (change,(lui,moves))
-		_                                     = (NoChange,(lui,moves)) //TODO: This case should not really happen
+		_ = abort "extractDownstreamChange: at the top-level, an lui should always be returned"
 
 //For each node we need to extract one of the following changes:
 // 1. Just (InsertChild x)        - The node did not exist client-side, but does now
@@ -1033,35 +1004,34 @@ where
 	differentFirstChild [LUIShiftDestination _:_]= True
 	differentFirstChild items = False
 
-	//TODO: make 'moves' an explicit argument
-	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) _ = False
-	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeRemoved _}) _ = False
-	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ _) (Just (ESApplied _)) = False
-	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ _) (Just (ESToBeUpdated _ _)) = False
-	existsDownstream_ ref (LUINode _ _ items _ {LUIEffects|unwrapped=ESApplied unwrappedBy}) mbMovedStage
+	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) _ _ = False
+	existsDownstream_ _ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeRemoved _}) _ _ = False
+	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ _) (Just (ESApplied _)) _ = False
+	existsDownstream_ (LUIMoveSource _) (LUINode _ _ _ _ _) (Just (ESToBeUpdated _ _)) _ = False
+	existsDownstream_ ref (LUINode _ _ items _ {LUIEffects|unwrapped=ESApplied unwrappedBy}) mbMovedStage moves 
 		= case scanToPosition_ unwrappedBy 0 items moves of
-			(_,_,Just item) = existsDownstream_ ref item mbMovedStage
+			(_,_,Just item) = existsDownstream_ ref item mbMovedStage moves
 			_                    = False
-	existsDownstream_ _ _ _ = True
+	existsDownstream_ _ _ _ _ = True
 
  	determineInsert_ node current moves = fmap InsertChild (extractUIWithEffects_ (current,moves))
 
 	determineRemove_ node current=:(LUINode _ _ _ changes effects) mbMovedStage moves	
-		| existsDownstream_ node current mbMovedStage = Just RemoveChild
+		| existsDownstream_ node current mbMovedStage moves = Just RemoveChild
 		| otherwise = Nothing
 
 	determineReplace_ node current mbMovedStage moves
 		= case extractUIWithEffects_ (current,moves) of
 			(Just ui)
-				| existsDownstream_ node current mbMovedStage = Just (ChangeChild (ReplaceUI ui))
+				| existsDownstream_ node current mbMovedStage moves = Just (ChangeChild (ReplaceUI ui))
 				| otherwise                 = Just (InsertChild ui)
 			(Nothing)
-				| existsDownstream_ node current mbMovedStage = Just RemoveChild
+				| existsDownstream_ node current mbMovedStage moves = Just RemoveChild
 				| otherwise = Nothing
 
 	determineChange_ node current=:(LUINode type attr items changes effects=:{unwrapped}) mbMovedStage moves
 		//Determine changes to attributes
-		# (attributeChanges,_,_,_) = extractAttributeChanges attr changes effects
+		# attributeChanges = extractAttributeChanges attr changes effects
 		//Determine changes to children
 		# (childShifts,items) = extractChildShifts items
 		# childUpdates = extractChildInsertsAndRemoves items moves
@@ -1076,73 +1046,47 @@ where
 				([],[],[]) = NoChange
 				_          = ChangeUI attributeChanges (childShifts ++ childUpdates)
 			)
-		| existsDownstream_ node current mbMovedStage
+		| existsDownstream_ node current mbMovedStage moves
 			= Just (ChangeChild change)
 		| otherwise
 			= Nothing
 
-//TODO REMOVE CONFIRMING
-extractAttributeChanges :: UIAttributes LUIChanges LUIEffects -> ([UIAttributeChange],UIAttributes,LUIChanges,LUIEffects)
+extractAttributeChanges :: UIAttributes LUIChanges LUIEffects -> [UIAttributeChange]
 extractAttributeChanges attr changes=:{setAttributes,delAttributes} effects=:{overwrittenAttributes,hiddenAttributes}
 	//Apply changes to the attributes
-	# (attr,attrChanges)
-		= foldl (applySetAttribute overwrittenAttributes hiddenAttributes) (attr,[]) ('DM'.toList setAttributes)
-	# (attr,attrChanges)
-		= foldl (applyDelAttribute overwrittenAttributes hiddenAttributes) (attr,attrChanges) ('DS'.toList delAttributes)
+	# changes = foldl (applySetAttribute overwrittenAttributes hiddenAttributes) [] ('DM'.toList setAttributes)
+	# changes = foldl (applyDelAttribute overwrittenAttributes hiddenAttributes) changes ('DS'.toList delAttributes)
 	//Apply remaining effects (these no longer affect the stored attributes)
-	# (attrChanges,overwrittenAttributesList) = foldl (applyOverrideAttribute attr) (attrChanges,[]) ('DM'.toList overwrittenAttributes)
-	# (attrChanges,hiddenAttributesList) = foldl (applyHideAttribute attr) (attrChanges,[]) ('DM'.toList hiddenAttributes)
-	= (reverse attrChanges
-	  ,attr
-	  ,{changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
-	  ,{effects
-	   & overwrittenAttributes = 'DM'.fromList overwrittenAttributesList
-	   , hiddenAttributes = 'DM'.fromList hiddenAttributesList
-	   })
+	# changes = foldl (applyOverrideAttribute attr) changes ('DM'.toList overwrittenAttributes)
+	# changes = foldl (applyHideAttribute attr) changes ('DM'.toList hiddenAttributes)
+	= reverse changes
 where
-	applySetAttribute overwrittenAttributes hiddenAttributes (attr,changes) (key,value)
+	applySetAttribute overwrittenAttributes hiddenAttributes changes (key,value)
 		//If an attribute has an effect applied, we don't want to change it downstream
-		| isOverwritten key overwrittenAttributes || isHidden key hiddenAttributes
-			= ('DM'.put key value attr,changes)
-		| otherwise
-			= ('DM'.put key value attr,[SetAttribute key value:changes])
-	applyDelAttribute overwrittenAttributes hiddenAttributes (attr,changes) key
+		| isOverwritten key overwrittenAttributes || isHidden key hiddenAttributes = changes
+		| otherwise = [SetAttribute key value:changes]
+	applyDelAttribute overwrittenAttributes hiddenAttributes changes key
 		//If an attribute was overwritten, we don't want to delete it downstream
-		| isOverwritten key overwrittenAttributes
-			= ('DM'.del key attr,changes)
 		//If an attribute is hidden we don't need to delete it downstream (it is not shown there)
-		| isHidden key hiddenAttributes
-			= ('DM'.del key attr,changes)
-		| otherwise
-			= ('DM'.del key attr,[DelAttribute key:changes])
+		| isOverwritten key overwrittenAttributes || isHidden key hiddenAttributes = changes
+		| otherwise = [DelAttribute key:changes]
 
-	applyOverrideAttribute attr (attrChanges, overrides) (key,ESNotApplied)
-		= (attrChanges, overrides) //Remove from overrides (they have no meaning here)
-	applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeApplied (ruleNo,value))
-		= ([SetAttribute key value:attrChanges], [(key,ESApplied (ruleNo,value)):overrides])
-	applyOverrideAttribute attr (attrChanges, overrides) (key,ESApplied (ruleNo,value)) //Already applied
-		= (attrChanges, [(key,ESApplied (ruleNo,value)):overrides])
-	applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeUpdated _ (ruleNo,value))
-		= ([SetAttribute key value:attrChanges], [(key,ESApplied (ruleNo,value)):overrides])
-	applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeRemoved _) //Either restore the original, or remove the attribute 
-		= case 'DM'.get key attr of
-			Nothing = ([DelAttribute key:attrChanges],overrides)
-			Just value = ([SetAttribute key value:attrChanges],overrides)
+	applyOverrideAttribute attr changes (key,ESNotApplied) = changes 
+	applyOverrideAttribute attr changes (key,ESToBeApplied (ruleNo,value))
+		= [SetAttribute key value:changes]
+	applyOverrideAttribute attr changes (key,ESApplied (ruleNo,value)) = changes //Already applied
+	applyOverrideAttribute attr changes (key,ESToBeUpdated _ (ruleNo,value))
+		= [SetAttribute key value:changes]
+	applyOverrideAttribute attr changes (key,ESToBeRemoved _) //Either restore the original, or remove the attribute 
+		= maybe [DelAttribute key:changes] (\value -> [SetAttribute key value:changes]) ('DM'.get key attr)
 
-	applyHideAttribute attr (attrChanges, hidden) (key,ESNotApplied)
-		= (attrChanges,hidden)
-	applyHideAttribute attr (attrChanges, hidden) (key,ESToBeApplied ruleNo)
-		= ([DelAttribute key:attrChanges],[(key,ESApplied ruleNo):hidden])
-	applyHideAttribute attr (attrChanges, hidden) (key,ESApplied ruleNo)
-		= (attrChanges,[(key,ESApplied ruleNo):hidden])
-	applyHideAttribute attr (attrChanges, hidden) (key,ESToBeUpdated _ ruleNo)
-		= (attrChanges,[(key,ESApplied ruleNo):hidden])
-	applyHideAttribute attr (attrChanges, hidden) (key,ESToBeRemoved _)
-		= case 'DM'.get key attr of
-			//Original attribute no longer exists, nothing to do
-			Nothing = (attrChanges,hidden)
-			//Original attribute still exists, restore its value
-			Just value = ([SetAttribute key value:attrChanges],hidden)
+	applyHideAttribute attr changes (key,ESNotApplied) = changes
+	applyHideAttribute attr changes (key,ESToBeApplied ruleNo)
+		= [DelAttribute key:changes]
+	applyHideAttribute attr changes (key,ESApplied ruleNo) = changes
+	applyHideAttribute attr changes (key,ESToBeUpdated _ ruleNo) = changes
+	applyHideAttribute attr changes (key,ESToBeRemoved _)
+		= maybe changes (\value -> [SetAttribute key value:changes]) ('DM'.get key attr)
 
 	isHidden key hiddenAttributes = check ('DM'.toList hiddenAttributes)
 	where
