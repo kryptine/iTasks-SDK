@@ -3,4 +3,4 @@ test:
         - install_clean.sh bundle-complete && apt-get update -qq && apt-get install -y -qq build-essential
     image: "camilstaps/clean:nightly"
     script:
-        - cd Examples && clm -dynamics -h 200m -s 10m -IL Dynamics -IL GraphCopy -IL Sapl -IL TCPIP -IL Platform -IL Platform/Deprecated/StdLib -I ../Libraries BasicAPIExamples
+        - bash Tests/ci-tests.bash
