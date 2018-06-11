@@ -1,0 +1,6 @@
+test:
+    before_script:
+        - install_clean.sh bundle-complete && apt-get update -qq && apt-get install -y -qq build-essential
+    image: "camilstaps/clean:nightly"
+    script:
+        - bash Tests/ci-tests.bash
