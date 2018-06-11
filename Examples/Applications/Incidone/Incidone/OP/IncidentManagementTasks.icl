@@ -120,7 +120,7 @@ manageIncidentWeather incidentNo
 where
     weather = sdsFocus incidentNo incidentWeather
     log     = logIncidentWeatherUpdated incidentNo
-    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (RawText widgets)
+    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (Html widgets)
 
 manageIncidentLog :: IncidentNo -> Task ()
 manageIncidentLog incidentNo
