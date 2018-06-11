@@ -139,7 +139,7 @@ where
 	browse workflows Nothing
 		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorklist workflows)
 		
-	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
+	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
 		
 manageWorkInSession:: Task ()
 manageWorkInSession
@@ -148,22 +148,22 @@ manageWorkInSession
 		)
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
-	layout = foldl1 sequenceLayouts
+	layout = sequenceLayouts
 		[unwrapUI //Get rid of the step
-		,arrangeWithSideBar 0 TopSide 50 True
+		,arrangeWithSideBar 0 TopSide 50 False
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
-		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutWhatToDo)
+		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
 		//Use maximal screen space
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
-	layoutManageSession = foldl1 sequenceLayouts 
+	layoutManageSession = sequenceLayouts
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	layoutWhatToDo = sequenceLayouts (arrangeWithSideBar 0 LeftSide 150 True) (layoutSubUIs (SelectByPath [1]) unwrapUI)
+	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide 150 True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
 manageSession :: Task ()
 manageSession =
@@ -200,7 +200,7 @@ where
 	userRoles (AuthenticatedUser _ roles _)  = roles
 	userRoles _ = []
 
-	layoutManageWork = foldl1 sequenceLayouts
+	layoutManageWork = sequenceLayouts
 		//Split the screen space
 		[ arrangeWithSideBar 0 TopSide 200 True
 		  //Layout all dynamically added tasks as tabs

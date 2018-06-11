@@ -719,7 +719,6 @@ callProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." []
 	>>= \path->'P'.callProcess () [] path [] Nothing Nothing
 	>>- viewInformation "Process terminated" []
-	
 
 //* Customizing interaction with views
 

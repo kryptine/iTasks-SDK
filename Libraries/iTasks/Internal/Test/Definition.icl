@@ -199,6 +199,7 @@ runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
 	# (console,world)	       = stdio world
 	# (report,(console,world)) = foldl runSuite ([],(console,world)) suites
+	# console                  = showStats report console
 	# (_,world)			       = fclose console world
 	# world 			       = setReturnCode (if (noneFailed report) 0 1) world
     = world
@@ -225,6 +226,15 @@ where
 				# console = fwrites (yellow "SKIPPED\n") console
 				= (console,world)
 		= ([(name,result):results],(console,world))
+
+	showStats report console
+		# console = fwrites ("Tests executed: "+++ toString (countTests (const True)) +++ ", ") console
+		# console = fwrites ("Passed: "+++ green (toString (countTests (\r -> r =: Passed))) +++ ", ") console
+		# console = fwrites ("Skipped: "+++ yellow (toString (countTests (\r -> r =: Skipped))) +++ ", ") console
+		# console = fwrites ("Failed: " +++ red (toString (countTests (\r -> r =: (Failed _)))) +++ "\n") console
+		= console
+	where
+		countTests condition  = sum (map (\{testResults} -> length (filter (condition o snd) testResults)) report)
 
 	//ANSI COLOR CODES -> TODO: Create a library in clean-platform for ANSI colored output
 	red s = toString [toChar 27,'[','3','1','m'] +++ s +++ toString [toChar 27,'[','0','m']

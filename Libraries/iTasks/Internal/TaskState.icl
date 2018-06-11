@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.TaskState
 
 import Text.GenJSON, StdString, Data.Func, Data.GenEq, Data.Maybe, Data.Functor
-import iTasks.UI.Definition
+import iTasks.UI.Definition, iTasks.UI.Layout
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 
@@ -14,6 +14,10 @@ import Data.Error, Data.Either
 
 derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
 derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+
+derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+
 
 instance toString DeferredJSON where
     toString (DeferredJSON x)        = toString $ toJSON x
