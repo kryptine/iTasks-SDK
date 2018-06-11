@@ -10,10 +10,13 @@ TESTS_PATH :== "../Tests/TestPrograms"
 //:: CompileError = CompileError !Int
 
 compileTestModule :: FilePath -> Task TestResult
-compileTestModule path 
-	= 	get cpmExecutable 
-	>>- \cpm ->
-		runWithOutput cpm [prj] Nothing //Build the test
+compileTestModule path
+	= 	traceValue path >>| get cpmExecutable
+	>>- \cpm ->runWithOutput cpm ["project", base, "create"] (Just baseDir)
+	>>- \_   ->runWithOutput cpm ["project", prj, "target", "iTasks"] (Just baseDir)
+	>>- \_   ->runWithOutput cpm ["project", prj, "exec", base +++ ".exe"] (Just baseDir)
+	>>- \_   ->runWithOutput cpm ["project", prj, "set", "-h", "200M", "-s", "2M", "-dynamics"] (Just baseDir)
+	>>- \_   ->runWithOutput cpm [prj] (Just baseDir) //Build the test
 		@ \(c,o) -> if (passed c o) Passed (Failed (Just ("Failed to build " +++ prj +++ "\n" +++ join "" o)))
 where
     //Cpm still returns exitcode 0 on failure, so we have to check the output
@@ -23,8 +26,8 @@ where
  	isErrorLine l = startsWith "Error" l || startsWith "Type error" l || startsWith "Parse error" l
 
 	baseDir = takeDirectory path
-	base = dropExtension path
-	prj = addExtension base "prj"
+	base = takeFileName (dropExtension path)
+	prj = takeFileName (addExtension base "prj")
 
 //Copy-paste.. should be in library
 runTestModule :: FilePath -> Task SuiteResult
@@ -37,7 +40,6 @@ where
 	baseDir = takeDirectory path
 	base = dropExtension path
 	exe = addExtension base "exe"
-	prj = addExtension base "prj"
 
 	parseSuiteResult :: (Int,String) -> SuiteResult //QUICK AND DIRTY PARSER
 	parseSuiteResult (ecode,output)
