@@ -11,5 +11,5 @@ CLM="clm $CLMFLAGS $CLMLIBS"
 ( cd Examples/GIS; $CLM LeafletMapExample; )
 ( cd Examples/Graphics/BasicImagesExamples; for i in *.prj.default; do $CLM -I .. $(basename -s .prj.default $i); done; )
 ( cd Examples/Applications/TheTaxMan; $CLM TheTaxMan; )
-( cd Examples/Applications/Incidone; $CLM -l -l sqlite3 -l -l mysqlclient IncidoneCCC; )
+( cd Examples/Applications/Incidone; $CLM -l -lsqlite3 -l -lmysqlclient IncidoneCCC; )
 #( cd Examples/Applications/ShipAdventure; $CLM main; )
