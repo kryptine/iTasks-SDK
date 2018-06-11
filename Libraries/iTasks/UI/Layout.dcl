@@ -139,7 +139,6 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage LUINo)
 	, additional            :: LUIEffectStage LUINo
 	, hidden                :: LUIEffectStage LUINo
-//	, moved                 :: LUIEffectStage LUINo
 	, wrapper               :: LUIEffectStage LUINo
 	, unwrapped             :: LUIEffectStage LUINo
 	}
@@ -189,7 +188,6 @@ applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
 extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
-
 //Helper functions (exported for unit testing)
 scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 nodeExists_ :: !LUINo !LUI LUIMoves -> Bool
@@ -202,5 +200,4 @@ overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LU
 hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
 matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 extractUIWithEffects_ :: (LUI,LUIMoves) -> Maybe UI
-fullyApplied_ :: (LUI,LUIMoves) -> Bool
 isPartOf_ :: LUINo LUINo -> Bool

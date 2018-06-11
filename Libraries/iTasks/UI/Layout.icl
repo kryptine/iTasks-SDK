@@ -1320,30 +1320,3 @@ confirmEffect_ (ESToBeApplied x) = ESApplied x
 confirmEffect_ (ESToBeUpdated _ x) = ESApplied x
 confirmEffect_ (ESToBeRemoved x) = ESNotApplied
 confirmEffect_ es = es
-
-
-//After downstream changes have been extracted there should be no pending changes
-//and all effects are either ESNotApplied or ESApplied
-fullyApplied_ :: (LUI,LUIMoves) -> Bool
-fullyApplied_ _ = True
-/*
-fullyApplied_ (LUINode _ _ items c e, moves)
-	| c.toBeInserted || c.toBeRemoved || c.toBeReplaced =: (Just _) || c.toBeShifted =: (Just _) = False
-	| (not ('DM'.null c.setAttributes)) || (not ('DS'.null c.delAttributes)) = False
-	| not (all (\(_,a) -> (a =: (ESApplied _) || a =: (ESNotApplied))) ('DM'.toList e.overwrittenAttributes)) = False
-	| not (all (\(_,a) -> (a =: (ESApplied _) || a =: (ESNotApplied))) ('DM'.toList e.hiddenAttributes)) = False
-	| not (e.overwrittenType =: (ESApplied _) || e.overwrittenType =: (ESNotApplied)) = False
-	| not (e.additional =: (ESApplied _) || e.additional =: (ESNotApplied)) = False
-	| not (e.hidden =: (ESApplied _) || e.hidden =: (ESNotApplied)) = False
-	| not (e.moved =: (ESApplied _) || e.moved =: (ESNotApplied)) = False
-	| not (e.wrapper =: (ESApplied _) || e.wrapper =: (ESNotApplied)) = False
-	| not (e.unwrapped =: (ESApplied _) || e.unwrapped =: (ESNotApplied)) = False
-	| otherwise
-		= all (\l -> fullyApplied_ (l,moves)) items
-fullyApplied_ (LUIMoveSource moveId, moves)
-	= maybe False (\l -> fullyApplied_ (l,moves)) ('DM'.get moveId moves)
-fullyApplied_ (LUIMoveDestination moveId _, moves)
-	= maybe False (\l -> fullyApplied_ (l,moves)) ('DM'.get moveId moves)
-fullyApplied_ (LUIShiftDestination _, moves) = False
-*/
-
