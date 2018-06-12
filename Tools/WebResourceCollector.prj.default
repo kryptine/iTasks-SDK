@@ -1,7 +1,7 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks-git
+	Target:	iTasks
 	Exec:	{Project}/WebResourceCollector
 	CodeGen
 		CheckStacks:	False
