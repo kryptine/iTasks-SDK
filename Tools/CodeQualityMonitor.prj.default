@@ -2,12 +2,12 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Project}/OnClick.exe
+	Exec:	{Project}/CodeQualityMonitor
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	134217728
+		HeapSize:	209715200
 		StackSize:	512000
 		ExtraMemory:	8192
 		IntialHeapSize:	204800
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	OnClick
+	Name:	CodeQualityMonitor
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

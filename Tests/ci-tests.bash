@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
+trap 'mv -v /opt/clean/etc/IDEEnvs{.bak,}' EXIT
+cp -v /opt/clean/etc/IDEEnvs{,.bak}
+sed -i "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" /opt/clean/etc/IDEEnvs
 
-CLMFLAGS="-dynamics -h 200m -s 10m"
-CLMLIBS="-IL Dynamics -IL GraphCopy -IL Sapl -IL TCPIP -IL Platform -IL Platform/Deprecated/StdLib -I $(pwd)/Libraries"
-CLM="clm $CLMFLAGS $CLMLIBS"
+#Try to compile everything
+find . -name "*.prj.default" | while read f; do
+		mv "$f" "$(dirname $f)/$(basename -s .prj.default $f)".prj
+	done
+find . -name "*.prj" | xargs dirname | sort -u | xargs -I{} sh -c "cd {}; cpm make"
 
-( cd Examples; $CLM BasicAPIExamples; )
-( cd Examples/Games/Ligretto; $CLM -I .. -I ../../Graphics Ligretto; )
-( cd Examples/Games/Trax; $CLM -I .. Trax; )
-( cd Examples/GIS; $CLM LeafletMapExample; )
-( cd Examples/Graphics/BasicImagesExamples; for i in *.prj.default; do $CLM -I .. $(basename -s .prj.default $i); done; )
-( cd Examples/Applications/TheTaxMan; $CLM TheTaxMan; )
-#( cd Examples/Applications/Incidone; $CLM IncidoneCCC; )
-#( cd Examples/Applications/ShipAdventure; $CLM main; )
+#Run the tests
+( cd Tools; ./RunUnitTestsForCI; )
