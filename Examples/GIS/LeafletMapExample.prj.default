@@ -2,14 +2,14 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Project}/OnClick.exe
+	Exec:	{Project}/LeafletMapExample
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	134217728
-		StackSize:	512000
-		ExtraMemory:	8192
+		HeapSize:	167772160
+		StackSize:	1048576
+		ExtraMemory:	81920
 		IntialHeapSize:	204800
 		HeapSizeMultiplier:	4096
 		ShowExecutionTime:	False
@@ -24,11 +24,11 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
-			GenericFusion:	False
+			GenericFusion:	True
 			DescExL:	False
 		Output
 			Output:	ShowConstructors
-			Font:	Monaco
+			Font:	Courier
 			FontSize:	9
 			WriteStdErr:	False
 	Link
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	OnClick
+	Name:	LeafletMapExample
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
@@ -55,6 +55,6 @@ MainModule
 		ListAttributes:	True
 		Warnings:	True
 		Verbose:	True
-		ReadableABC:	False
+		ReadableABC:	True
 		ReuseUniqueNodes:	True
 		Fusion:	False

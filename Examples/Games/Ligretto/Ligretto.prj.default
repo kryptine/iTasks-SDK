@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}\Ligretto.exe
+	Exec:	{Project}/Games/Ligretto/Ligretto.exe
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -24,6 +24,7 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
+			GenericFusion:	False
 			DescExL:	False
 		Output
 			Output:	ShowConstructors
@@ -40,14 +41,14 @@ Global
 		GenerateDLL:	False
 		ExportedNames:	
 	Paths
-		Path:	{Project}
-		Path:	{Application}\Examples\iTasks\Games
-		Path:	{Application}\Examples\iTasks\Graphics
+		Path:	{Project}*Games*Ligretto
+		Path:	{Project}*Games
+		Path:	{Project}*Graphics
 	Precompile:	
 	Postlink:	
 MainModule
 	Name:	Ligretto
-	Dir:	{Project}
+	Dir:	{Project}*Games*Ligretto
 	Compiler
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False
