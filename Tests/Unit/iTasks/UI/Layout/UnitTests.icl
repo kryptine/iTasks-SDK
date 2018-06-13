@@ -1,10 +1,9 @@
 module iTasks.UI.Layout.UnitTests
 
-import iTasks.Util.Testing
-
 import iTasks.UI.Layout
 import iTasks.UI.Layout.ReferenceImplementations
 
+import iTasks.Util.Testing
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import Data.Maybe

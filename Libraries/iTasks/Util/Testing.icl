@@ -109,9 +109,8 @@ testCommonInteractions typeName
 				  )
 		 )
 
-/*
-testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> TestResult) -> Test | iTask a
-testTaskOutput name task events exp comparison = utest name test
+testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> EndEventType) -> UnitTest | iTask a
+testTaskOutput name task events exp comparison = {UnitTest|name=name,test=test}
 where
 	test world 
 		# (options,world) = defaultEngineOptions world
@@ -119,7 +118,7 @@ where
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
-			= (Failed (Just (fromError res)),destroyIWorld iworld)
+			= (Failed (Just Crashed),destroyIWorld iworld)
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level
@@ -136,14 +135,14 @@ where
 						//Compare result
 						# verdict = case res of
 							Ok queue = comparison exp (toList queue)
-							(Error (_,e)) = Failed (Just e)
+							(Error (_,e)) = Failed (Just Crashed)
 						= (verdict,world)
 					(Error e)
 						# world = destroyIWorld iworld
-						= (Failed (Just e),world)
+						= (Failed (Just Crashed),world)
 			(Error (_,e)) 	
 				# world = destroyIWorld iworld
-				= (Failed (Just e),world)
+				= (Failed (Just Crashed),world)
 
 	applyEvents _ [] iworld = (Ok (),iworld)
 	applyEvents instanceNo [Left e:es] iworld
@@ -169,7 +168,6 @@ where
        sleep` secs = code {
           ccall sleep "I:I"
        }
-*/
 
 allPassed :: TestReport -> Bool
 allPassed report = checkSuiteResult (\r -> r =: Passed) report

@@ -45,6 +45,11 @@ fail :: String -> UnitTest
 skip :: UnitTest -> UnitTest
 
 /**
+* Create a task instance and evaluate it to verify its output
+*/
+testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> EndEventType) -> UnitTest | iTask a
+
+/**
 * Filter test suites based on the name of a test
 */
 filterTestsByName :: String [UnitTest] -> [UnitTest]
@@ -67,7 +72,6 @@ testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 */
 testCommonInteractions :: String -> Task a | iTask a
 
-//testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> TestResult) -> Test | iTask a
 
 /**
 * Test if all tests have passed
