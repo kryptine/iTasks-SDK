@@ -1,16 +1,16 @@
 module iTasks.UI.Layout.UnitTests
 
+import iTasks.Util.Testing
+
+import iTasks.UI.Layout
 import iTasks.UI.Layout.ReferenceImplementations
 
-import iTasks.Internal.Test.Definition
-import iTasks.UI.Layout
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import Data.Maybe
 
 derive gEq LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo
-derive gPrettyTrace LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, JSONNode, Set, Maybe
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType
+derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
 
 import Data.GenLexOrd
 derive gLexOrd LUIEffectStage
@@ -1659,4 +1659,4 @@ tests =  applyUpstreamChangeTests
 	  ++ layoutSubUIsTests
 	  ++ combinationTests
 
-Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w
+Start w = runUnitTests tests w
