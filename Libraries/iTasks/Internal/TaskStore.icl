@@ -57,7 +57,7 @@ rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM
 
 //Master instance index 
 taskInstanceIndex :: SDSLens () [TIMeta] [TIMeta]
-taskInstanceIndex = sdsFocus "instances" rawTaskIndex
+taskInstanceIndex = sdsFocus "UNIQUEinstances" rawTaskIndex
 
 //Next instance no counter
 nextInstanceNo :: SDSLens () Int Int
@@ -162,11 +162,11 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
-    # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+  # task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
+  # (instanceKey,iworld) = newInstanceKey iworld
+  # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+  # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
+  =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
@@ -227,7 +227,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
-filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (\filter metas -> read filter metas) taskInstanceIndex
+filteredInstanceIndex = sdsLens "filteredInstanceIndexUnique" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (\filter metas -> read filter metas) taskInstanceIndex
 where
     param tfilter = ()
 
@@ -297,7 +297,7 @@ where
     notify no _     = const ((==) no)
 
 taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
-taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> Ok ())  filteredInstanceIndex
+taskInstanceConstants = sdsLens "taskInstanceConstantsUnique" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> Ok ())  filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
                ,includeConstants=True,includeProgress=False,includeAttributes=False}
@@ -531,13 +531,12 @@ queueRefresh tasks iworld
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
-    (Error e, iworld)               = trace_n "Error while reading events" (Nothing, iworld)
+    (Error e, iworld)               = (Nothing, iworld)
     (Ok ('SDS'.ReadResult queue _), iworld)
-    | not (trace_tn "Got result from events") = undef
     # (val, queue) = 'DQ'.dequeue queue
     = case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
-      (Error e, iworld) = trace_n "Error while writing to events"(Nothing, iworld)
-      (Ok Done, iworld) = trace_n "Written to events" (val, iworld)
+      (Error e, iworld) = (Nothing, iworld)
+      (Ok Done, iworld) = (val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld

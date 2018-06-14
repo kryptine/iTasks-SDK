@@ -104,7 +104,7 @@ where
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= trace_n "eval func" (eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld)
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
         _                            = tree
@@ -113,7 +113,6 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError (read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld)
     // Write the updated progress
-    | not (trace_tn "Writing progress") = undef
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed
    		(case (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of 

@@ -28,53 +28,158 @@ parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "TEST"
 intShare = sharedStore "intShare" 15
 simpleShare = remoteShare intShare {domain="TEST", port=8080}
 projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (DoWrite (r - 2)))) (\_ ws. Ok (ws + 2))  simpleShare
+projectedLocal = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (DoWrite (r - 2)))) (\_ ws. Ok (ws + 2))  intShare
 
-Start world	= startEngineWithOptions opts [publish "/" (\_ ->  loginAndManageWorkList "Hello!" flows)] world
+selectShare = sdsSelect "testSelect" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
+		(remoteShare leftShare {domain="TEST", port=8080}) rightShare
+where
+	param i
+	| i == 0 = Left ()
+	= Right ()
+
+Start world	= startEngineWithOptions opts tests world
 where
 	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
 	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
 	opts [a:as] = opts as
 
-	title = "Remote share test"
+	tests = [ publish "/SDSSource" (const sdsSourceTest) 
+			, publish "/SDSRemote" (const sdsRemoteTest)
+			, publish "/SDSLens"  (const sdsLensTest)
+			, publish "/SDSLens/remote"  (const sdsLensRemoteTest)
+			, publish "/SDSParallel"  (const sdsParallelTest)
+			, publish "/SDSParallel/remoteleft"  (const sdsParallelRemoteLeftTest)
+			, publish "/SDSParallel/remoteright"  (const sdsParallelRemoteRightTest)
+			, publish "/SDSRemoteService"  (const sdsRemoteServiceTest)
+			, publish "/SDSSelect"  (const sdsSelectTest)
+			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
+			, publish "/all" (\_. viewAll)]
 
-	flows = [ workflow "Tests/1" "Test 1: Get remote share" case1
-			, workflow "Tests/2" "Test 2: Get and set remote share" case2
-			, workflow "Tests/3" "Test 3: Update remote share (updateSharedInformation)" case3
-			, workflow "Tests/4" "Test 4: Update parallel with left remote (updateSharedInformation)" case4
-			, workflow "Tests/5" "Test 5: Update parallel with right remote (updateSharedInformation)" case5
-			, workflow "Tests/6" "Test 6: Update parallel with left remote in parallel (updateSharedInformation)" case6
-			, workflow "Tests/7" "Test 7: Update lens with remote sds (updateSharedInformation)" case7
-			, workflow "View" "View local shares" localSdss]
+	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
+		-&&-
+		(get (sdsFocus 0 selectShare) >>= viewInformation "View the value gotten for SDSSelect by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) (sdsFocus 0 selectShare))
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] (sdsFocus 0 selectShare)))
+		@! ()
 
-	// 1. We can read from a remote share
-	localSdss =  (viewSharedInformation "sharedStoreNamebla" [] testShare 
-		-&&- viewSharedInformation "leftShare" [] leftShare
-		-&&- viewSharedInformation "rightShare" [] rightShare
-		-&&- viewSharedInformation "intShare" [] intShare) >>| return ()
+	sdsSelectTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 1 selectShare))
+		-&&-
+		(get  (sdsFocus 1 selectShare) >>= viewInformation "View the value gotten for SDSSelect by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n)  (sdsFocus 1 selectShare))
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" []  (sdsFocus 1 selectShare)))
+		@! ()
 
-	case1 = get simpleShare
-		>>= viewInformation "Remote int share" []
-		>>| return ()
+	sdsRemoteServiceTest = get weatherService >>= viewInformation "Current weather" []
 
-	// 2. We can write to a remote share and retrieve the result, which should be the same
-	case2 = enterInformation "Enter the new remote state" [] 
-		>>= \i. set i remoteTestShare
-		>>| get remoteTestShare
-		>>= viewInformation "Retrieved remote state" []
-		>>| return ()
+	sdsParallelRemoteRightTest = ((enterInformation "Enter the value to be SET for SDSParallelRemoteRight" [] >>= \v. set v parallelWithRightRemote)
+		-&&-
+		(get parallelWithRightRemote >>= viewInformation "View the value gotten for SDSParallelRemoteRight by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelWithRightRemote)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] parallelWithRightRemote))
+		@! ()
 
-	// 3. We can update a remote share
-	case3 = updateSharedInformation "Updating remote state" [] remoteTestShare >>| return ()
+	sdsParallelRemoteLeftTest = ((enterInformation "Enter the value to be SET for SDSParallelRemoteLeft" [] >>= \v. set v parallelWithLeftRemote)
+		-&&-
+		(get parallelWithLeftRemote >>= viewInformation "View the value gotten for SDSParallelRemoteLeft by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelWithLeftRemote)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] parallelWithLeftRemote))
+		@! ()
 
-	// 4. We can update a parallel share with a left remote part
-	case4 = updateSharedInformation "Update share with left remote part" [] parallelWithLeftRemote >>| return ()
+	sdsParallelTest = ((enterInformation "Enter the value to be SET for SDSParallel" [] >>= \v. set v parallelShare)
+		-&&-
+		(get parallelShare >>= viewInformation "View the value gotten for SDSParallel by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelShare)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] parallelShare))
+		@! ()
 
-	// 5. We can update a parallel share with a right remote part 
-	case5 = updateSharedInformation "Update share with right remote part" []  parallelWithRightRemote >>| return ()
+	sdsLensTest = ((enterInformation "Enter the value to be SET for SDSLensLocal" [] >>= \v. set v projectedLocal)
+		-&&-
+		(get projectedLocal >>= viewInformation "View the value gotten for SDSLensLocal by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) projectedLocal)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] projectedLocal))
+		@! ()
 
-	// 6. We can update the share at the same time and see the changes
-	case6 = (updateSharedInformation "Update share with left remote part" [] parallelWithLeftRemote -||- updateSharedInformation "Update share with left remote part" [] parallelWithLeftRemote)
-		>>| return ()
-	// 7. We can translate a remote share
-	case7 = updateSharedInformation "Update a translated remote share" [] projectedRemote >>| return ()
+	sdsLensRemoteTest = ((enterInformation "Enter the value to be SET for SDSLensRemote" [] >>= \v. set v projectedRemote)
+		-&&-
+		(get projectedRemote >>= viewInformation "View the value gotten for SDSLensRemote by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) projectedRemote)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] projectedRemote))
+		@! ()
 
+	sdsSourceTest = ((enterInformation "Enter the value to be SET for SDSSource" [] >>= \v. set v testShare)
+		-&&-
+		(get testShare >>= viewInformation "View the value gotten for SDSSource by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the number" [] >>= \n. upd (\tr. {tr & number = n}) testShare)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] testShare))
+		@! ()
+
+	// We can get, set, and upd the value of a top-level remote source,
+	sdsRemoteTest = 
+		((enterInformation "Enter the value to be SET for SDSRemote" [] >>= \v. set v remoteTestShare)
+		-&&-
+		(get remoteTestShare >>= viewInformation "View the value gotten for SDSRemote by GET" []))
+		-&&-
+		((enterInformation "Enter the new value for the number" [] >>= \n. upd (\tr. {tr & number = n}) remoteTestShare)
+		-&&-
+		(viewSharedInformation "View value by viewSharedInformation" [] remoteTestShare))
+		@! ()
+
+
+	viewAll = forever ((viewSharedInformation "Value of testShare" [] testShare
+		-&&- viewSharedInformation "Value of leftShare" [] leftShare
+		-&&- viewSharedInformation "Value of rightShare" [] rightShare
+		-&&- viewSharedInformation "Value of intShare" [] intShare)
+		@! ())
+
+// ======= Definitions required for defining a remote service =======
+// TODO: Create HTTP request by focussing the parameter
+
+:: OpenWeatherRequest = 
+	{ apiKey :: String
+	, type :: OpenWeatherRequestType
+	}
+
+:: OpenWeatherRequestType = ByCityName String | ByCoordinates Real Real
+
+:: OpenWeatherResponse = 
+	{ id :: Int
+	, main :: String
+	, description :: String
+	, icon :: String }
+
+derive class iTask OpenWeatherResponse
+
+// api.openweathermap.org/data/2.5/weather?q=London,uk
+weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions OpenWeatherResponse
+weatherOptions owr = HttpShareOptions (toRequest owr) fromResp
+where
+	toRequest {OpenWeatherRequest|apiKey, type}
+	# r = newHTTPRequest
+	= {HTTPRequest|r & server_name = "api.openweathermap.org", server_port = 80, req_path = "/data/2.5/weather", req_query = query type +++ "&APPID=" +++ apiKey}
+
+	fromResp response = case jsonQuery "weather/0" (fromString response.rsp_data) of
+		Nothing = Left "Could not select JSON"
+		(Just selected) = case fromJSON selected of
+			Nothing = Left "Could not transform JSON"
+			(Just v) = Right v
+
+	query (ByCityName name) 		= "?q=" +++ name 
+	query (ByCoordinates lat long) 	= "?lat=" +++ toString lat +++ "&lon=" +++ toString long
+
+weatherService = remoteService (weatherOptions {apiKey = "1160ac287072c67ae44708dee89f9a8b" , type = ByCityName "Nijmegen"})

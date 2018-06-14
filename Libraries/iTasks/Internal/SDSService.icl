@@ -67,7 +67,7 @@ where
 				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
 				(Ok (ModifyResult r w _), iworld)			= trace_n ("Got modify") (base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
 		(SDSRefreshRequest taskId sdsId)
-			//# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
+			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	
 
 	plainResponse string

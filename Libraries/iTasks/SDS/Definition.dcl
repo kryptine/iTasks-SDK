@@ -74,7 +74,7 @@ where
 
 class Writeable sds | Identifiable sds
 where
-    writeSDS         :: !(sds p r w) p !TaskContext w !*IWorld -> *(!MaybeError TaskException !(WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+    writeSDS         :: !(sds p r w) !p !TaskContext !w !*IWorld -> *(!MaybeError TaskException !(WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Modifiable sds | Readable, Writeable sds
 where
@@ -107,13 +107,13 @@ instance toString (WebServiceShareOptions r)
 :: SDSNotifyPred p          :== Timespec p -> Bool
 
 //Sources provide direct access to a data source
-:: SDSSource p r w = SDSSource (SDSSourceOptions p r w) 
+:: SDSSource p r w = SDSSource (SDSSourceOptions p r w) & JSONEncode{|*|} w
 
     // Allows for some keeping of local state. Writing to a SDS may require reading from that SDS. 
     // In the case that this reading is asynchronous, writing could also be asynchronous. This
     // option allows to temporarily store the read result, so that we can start rewriting in order
     //  to write to the SDS, using the stored read value.
-    | E. sds: SDSValue r (sds p r w) & RWShared sds & TC p & TC r & TC w
+    | E. sds: SDSValue Bool r (sds p r w) & RWShared sds & TC p & TC r & TC w
 
 :: SDSSourceOptions p r w = 
     { name          :: String

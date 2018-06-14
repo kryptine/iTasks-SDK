@@ -22,7 +22,7 @@ import qualified Data.Map as DM
 
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
-createRequestString req  host port
+createRequestString req host port
 # data = serializeToBase64 req
 # headers = 'DM'.fromList [("Connection", "Close"), ("Content-Length", toString (size data))]
 = toString {newHTTPRequest & req_method = HTTP_POST, server_name = host, server_port = port, req_path =  "/sds/", req_version = "HTTP/1.1", req_data = data, req_headers = headers}
@@ -33,6 +33,7 @@ onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
+import StdDebug
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env = case addConnection taskId host port connectionTask env of
     (Error e, env)  = (Error e, env)
@@ -47,6 +48,7 @@ where
         onDisconnect = onDisconnect}
 
     onDisconnect (Left acc) _
+    | not (trace_tn ("Got response: " +++ concat acc)) = undef
     # rawResponse = concat acc
     = case parseResponse rawResponse of
         Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
