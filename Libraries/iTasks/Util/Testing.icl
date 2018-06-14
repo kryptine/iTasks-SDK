@@ -114,7 +114,7 @@ testTaskOutput name task events exp comparison = {UnitTest|name=name,test=test}
 where
 	test world 
 		# (options,world) = defaultEngineOptions world
-		# iworld = createIWorld options world
+		# iworld = createIWorld {options & autoLayout = False} world
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
