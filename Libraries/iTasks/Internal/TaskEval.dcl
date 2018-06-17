@@ -54,11 +54,6 @@ extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
  * Get the next TaskId
  */
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-/**
-* Dequeues events from the event queue and evaluates the tasks instances
-* @param Maximum amount of events to process at once
-*/
-processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 /**
 * Evaluate a task instance
