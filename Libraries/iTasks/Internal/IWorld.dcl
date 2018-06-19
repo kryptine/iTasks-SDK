@@ -18,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared, :: ReadOnlyShared
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite, :: SDSIdentity
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -35,7 +35,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
                     , random                :: [Int]                                        // Infinite random stream
 
-                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                          // Notification requests from previously read sds's
+                    , sdsNotifyRequests     :: !Map SDSIdentity (Set SDSNotifyRequest)      // Notification requests from previously read sds's
                     , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
                     , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
                     , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes

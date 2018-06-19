@@ -1,10 +1,14 @@
 implementation module iTasks.Internal.SDS
 
 from StdFunc import const
-import StdString, StdTuple, StdMisc, StdList, StdBool
+import StdString, StdTuple, StdMisc, StdBool, StdFunc, StdInt, StdChar, dynamic_string
+from StdList import flatten, map, take, drop, instance toString [a]
+from Text import class Text(join), instance Text String
+import qualified Text
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.GenJSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text.GenJSON, Data.Foldable
+from Data.Set import instance Foldable Set
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -50,7 +54,7 @@ createSDS ns id read write = SDSSource
 
 //Construct the identity of an sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
-sdsIdentity s = concat (sdsIdentity` s [])
+sdsIdentity s = 'Text'.concat (sdsIdentity` s [])
 where
 	sdsIdentity` :: !(RWShared p r w) [String] -> [String]
 	sdsIdentity` (SDSSource {SDSSource|name}) acc = ["$", name, "$":acc]
@@ -77,8 +81,13 @@ mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWo
 mbRegister p sds Nothing reqSDSId iworld = iworld
 mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests,world}
 	# (ts, world) = nsTime world
-    # req = {SDSNotifyRequest|reqTimespec=ts,reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
-    = {iworld & world=world, sdsNotifyRequests = [req:sdsNotifyRequests]}
+    # req = {SDSNotifyRequest|reqTimespec=ts,reqTaskId=taskId,reqSDSId=reqSDSId,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
+    = { iworld
+	  & world = world
+	  , sdsNotifyRequests = 'DM'.alter (Just o maybe ('Set'.singleton req) ('Set'.insert req))
+	                                   (sdsIdentity sds)
+	                                   sdsNotifyRequests
+	  }
 
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p & TC r
 read` p mbNotify reqSDSId sds=:(SDSSource {SDSSource|read}) env
@@ -340,8 +349,9 @@ checkRegistrations sdsId pred iworld
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
-	lookupRegistrations sdsId iworld=:{sdsNotifyRequests}
-        = ([reg \\ reg=:{SDSNotifyRequest|cmpSDSId} <- sdsNotifyRequests | cmpSDSId == sdsId],iworld)
+	lookupRegistrations :: String !*IWorld -> (![SDSNotifyRequest], !*IWorld)
+	lookupRegistrations sdsId iworld=:{sdsNotifyRequests} =
+		('Set'.toList $ 'DM'.findWithDefault 'Set'.newSet sdsId sdsNotifyRequests, iworld)
 
 	//Match the notify requests against the predicate to determine two sets:
 	//The registrations that matched the predicate, and those that did not match the predicate
@@ -371,13 +381,22 @@ queueNotifyEvents sdsId notify iworld
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
-    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | not ('Set'.member reqTaskId taskIds)]}
+    = {iworld & sdsNotifyRequests = 'DM'.foldlWithKey clearRegistrationRequests 'DM'.newMap sdsNotifyRequests}
+where
+	clearRegistrationRequests :: (Map SDSIdentity (Set SDSNotifyRequest)) SDSIdentity (Set SDSNotifyRequest) -> Map SDSIdentity (Set SDSNotifyRequest)
+	clearRegistrationRequests notifyRequests sdsIdentity requests
+		| 'Set'.null filteredRequests = notifyRequests
+        | otherwise                   = 'DM'.put sdsIdentity filteredRequests notifyRequests
+	where
+		filteredRequests = 'Set'.filter (\req -> not $ 'Set'.member req.reqTaskId taskIds) requests
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
-listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList (foldr addReg 'DM'.newMap sdsNotifyRequests),iworld)
+listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList ('DM'.foldrWithKey addRegs 'DM'.newMap sdsNotifyRequests),iworld)
 where
-    addReg {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _),cmpSDSId} list
-        = 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
+    addRegs cmpSDSId reqs list = foldr addReg list reqs
+	where
+		addReg {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _)} list
+		    = 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
 formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatSDSRegistrationsList list
@@ -433,5 +452,8 @@ newURL iworld=:{IWorld|options={serverUrl},random}
 // TODO: different URL for clients
 getURLbyId :: !String !*IWorld -> (!String, !*IWorld)
 getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
-	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)	
+	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)
 
+// some efficient order to be able to put notify requests in sets
+instance < SDSNotifyRequest where
+	< x y = copy_to_string x < copy_to_string y
