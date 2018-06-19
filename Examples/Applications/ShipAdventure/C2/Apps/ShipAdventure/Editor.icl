@@ -15,8 +15,11 @@ import C2.Apps.ShipAdventure.Images
 import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
-from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
-from Graphics.Scalable import :: ImageOffset, :: Host(..)
+
+import Graphics.Scalable.Image => qualified grid
+import Graphics.Scalable.Types
+//from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
+//from Graphics.Scalable import :: ImageOffset, :: Host(..)
 
 derive JSEncode Map2D, Section, Maybe, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
 derive JSEncode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
@@ -193,7 +196,8 @@ where
 	imageEditor = fromSVGEditor
 		{ initView       = fst
 		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ -> 
-			above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
+		//TODO	above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
+			above [] [] Nothing [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 		, updView        = \m v -> fst m
 		, updModel       = \(_,data) newClSt -> (newClSt,data)
 		}
@@ -209,10 +213,10 @@ editLayout
                    , OnAction (Action "Remove outer borders" ) (hasValue (uncurry (editOuterBorders Open)))
                    ]
                ) @! ()
-             ] <<@ ApplyLayout layout @! ()
+             ] @! ()//TODO <<@ ApplyLayout layout @! ()
+/*
 where
 	layout = idLayout
-/*
 	layout = sequenceLayouts
 		[ insertSubAt [1] (ui UIContainer) // Group the 'tool' tasks
 		, moveSubAt[2] [1,0]
@@ -265,7 +269,7 @@ editSectionContents
                                    [ChooseFromCheckGroup (\d -> d.Cable.description)]
                                    (mapRead ('DIS'.elems o fst) (myCables |+< focusedShare)) focusedShare
                )
-             ] <<@ ApplyLayout layout @! ()
+             ] @! () //TODO <<@ ApplyLayout layout @! ()
   where
   updateSectionEditor :: !String ![ChoiceOption a] (Shared [a]) (Shared [a]) -> Task [a] | iTask a
   updateSectionEditor d updOpts listShare focusedShare
@@ -279,8 +283,8 @@ editSectionContents
            _                         = viewInformation (Title "Please select section") [] "Please select section" @! ()
         )
 
-  layout = idLayout
 /*
+  layout = idLayout
   layout = sequenceLayouts
 		[insertSubAt [1] (uia UIContainer (directionAttr Horizontal))
 		,moveSubAt [2] [1,0]
@@ -497,7 +501,7 @@ initSection    		= {Section | sectionName = ""
 					           , borders     = initBorders
 					           , hops        = []
 					   }
-initBorders			= {n=Open,e=Open,s=Open,w=Open}
+initBorders			= {Borders|n=Open,e=Open,s=Open,w=Open}
 frigate_outline		=: [(0.0,0.5)] ++ port ++ [(1.0,0.5)] ++ starboard
 where
 	port			= [(0.006,0.048),(0.107,0.01),(0.179,0.0),(0.684,0.0),(0.719,0.01),(0.752,0.029),(0.787,0.067),(0.829,0.106),(0.852,0.135),(0.898,0.212),(0.926,0.279),(0.999,0.462)]
