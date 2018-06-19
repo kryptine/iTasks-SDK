@@ -29,23 +29,23 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timespec                                    // Server side clock
-                    , current               :: !TaskEvalState                               // Shared state during task evaluation
+:: *IWorld		=	{ options               :: !EngineOptions                                   // Engine configuration
+                    , clock                 :: !Timespec                                        // Server side clock
+                    , current               :: !TaskEvalState                                   // Shared state during task evaluation
 
-                    , random                :: [Int]                                        // Infinite random stream
+                    , random                :: [Int]                                            // Infinite random stream
 
-                    , sdsNotifyRequests     :: !Map SDSIdentity (Set SDSNotifyRequest)      // Notification requests from previously read sds's
-                    , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
-                    , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
-                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
-					, exposedShares			:: !Map String (Dynamic, JSONShared)            // Shared source
-					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
+                    , sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
+                    , memoryShares          :: !Map String Dynamic                              // Run-time memory shares
+                    , readCache             :: !Map (String,String) Dynamic                     // Cached share reads
+                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+					, exposedShares			:: !Map String (Dynamic, JSONShared)                // Shared source
+					, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
 
-	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
-                    , ioStates              :: !IOStates                                    // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+	                , ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
+                    , ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
-					, world					:: !*World									    // The outside world
+					, world					:: !*World									        // The outside world
 
                     //Experimental database connection cache
                     , resources             :: *[*Resource]

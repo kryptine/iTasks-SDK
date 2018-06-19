@@ -36,13 +36,13 @@ where
 	lesser (Just _) Nothing = True
 	lesser Nothing Nothing = False
 	
-	getTimeoutFromClock :: Timespec (Set SDSNotifyRequest) -> [Maybe Int]
-	getTimeoutFromClock now requests = getTimeoutFromClock` <$> 'DS'.toList requests
+	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
+	getTimeoutFromClock now requests = getTimeoutFromClock` <$> 'DM'.toList requests
 	where
-		getTimeoutFromClock` :: SDSNotifyRequest -> Maybe Int
-		getTimeoutFromClock` snr=:{cmpParam=(ts :: ClockParameter Timespec)}
+		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
+		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
 			| startsWith "$IWorld:timespec$" snr.reqSDSId && ts.interval <> zero
-				# fire = iworldTimespecNextFire now snr.reqTimespec ts
+				# fire = iworldTimespecNextFire now reqTimespec ts
 				= Just (max 0 (toMs fire - toMs now))
 			= mt
 		getTimeoutFromClock` _ = mt
