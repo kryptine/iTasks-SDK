@@ -62,7 +62,7 @@ where
 
 	eval event evalOpts tree iworld=:{current={taskTime}}
 		//Decode or initialize state
-		# (mbd,iworld) = case  tree of
+		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok r,iworld)
