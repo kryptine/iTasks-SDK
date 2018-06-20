@@ -937,6 +937,7 @@ extractDownstreamChange (lui,moves)
 		(Just (InsertChild ui), Just lui)     = (ReplaceUI ui,(lui,moves))
 		(Just RemoveChild, Just lui)          = (ReplaceUI (UI UIEmpty 'DM'.newMap []),(lui,moves))
 		(Just (ChangeChild change), Just lui) = (change,(lui,moves))
+		(Nothing, Just lui)                   = (NoChange,(lui,moves))
 		_ = abort "extractDownstreamChange: at the top-level, an lui should always be returned"
 
 //For each node we need to extract one of the following changes:
