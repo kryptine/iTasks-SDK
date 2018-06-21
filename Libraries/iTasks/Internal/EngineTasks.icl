@@ -3,6 +3,7 @@ implementation module iTasks.Internal.EngineTasks
 import StdBool, StdOverloaded, StdList, StdOrdList
 import qualified Data.Map as DM
 import qualified Data.Set as DS
+import Data.List
 import Data.Functor, Data.Func
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -12,7 +13,6 @@ import iTasks.Internal.SDS
 import iTasks.Internal.TaskStore
 import iTasks.SDS.Definition
 import iTasks.SDS.Combinators.Common
-import iTasks
 
 from iTasks.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
 from System.Time import time
@@ -49,28 +49,40 @@ where
 
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
 
+updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateClock iworld=:{IWorld|clock,world}
+    //Determine current date and time
+	# (timespec,world) 	= nsTime world
+    # iworld = {iworld & world = world}
+    //Write SDS if necessary
+    # (mbe,iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) iworld
+	| mbe =:(Error _) = (mbe,iworld)
+    = (Ok (),iworld)
+
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
-removeOutdatedSessions :: Task ()
-removeOutdatedSessions = whileUnchanged (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp)
-	\_->get (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex)
-	>>- mkInstantTask o const o checkAll removeIfOutdated
+removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+removeOutdatedSessions iworld=:{IWorld|options}
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
+    = case mbIndex of
+        Ok index    = checkAll removeIfOutdated index iworld 
+        Error e     = (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion,sessionTime},clock=tNow}
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			//If there is I/O information, we check that age first
 			(Ok (Just (client,tInstance)),iworld) //No IO for too long, clean up
-				= (Ok ((tNow - tInstance) > sessionTime),iworld)
+				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
 			(Ok Nothing,iworld)
 				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
 					(Ok {InstanceConstants|build,issuedAt=tInstance},iworld)
 						| build <> appVersion = (Ok True,iworld)
-						| (tNow - tInstance) > sessionTime = (Ok True,iworld)
+						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
 						= (Ok False,iworld)
 					(Error e,iworld)
 						= (Error e,iworld)
@@ -97,15 +109,19 @@ flushWritesWhenIdle iworld = case read taskEvents iworld of
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
-stopOnStable :: Task ()
-stopOnStable = get (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex)
-	>>- \index->mkInstantTask \tid iworld=:{shutdown}->case shutdown of
-			Just _ = (Ok (), iworld)
-			_ = (Ok (), {iworld & shutdown=
-				if (allStable index)
-					(Just (if (exceptionOccurred index) 1 0))
-					Nothing})
+stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+stopOnStable iworld=:{IWorld|shutdown}
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) iworld
+	= case mbIndex of 
+		Ok index 
+			# shutdown = case shutdown of
+				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
+				_       = shutdown
+			= (Ok (), {IWorld|iworld & shutdown = shutdown})
+		Error e  = (Error e, iworld)
 where
 	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances) 
 	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
 	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
+
+

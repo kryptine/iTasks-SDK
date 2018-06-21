@@ -7,10 +7,13 @@ from iTasks.WF.Definition import :: TaskException
 from Data.Error import :: MaybeError
 from Data.Maybe import :: Maybe
 from TCPIP import :: Timeout
-from iTasks.WF.Definition import :: Task
 
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 
-removeOutdatedSessions :: Task ()
+updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
-stopOnStable :: Task ()
+removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+
+flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+
+stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
