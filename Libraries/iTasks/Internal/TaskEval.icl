@@ -54,6 +54,19 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
+processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
+processEvents max iworld
+	| max <= 0 = (Ok (), iworld)
+	| otherwise
+		= case dequeueEvent iworld of 
+			(Nothing,iworld) = (Ok (),iworld)
+			(Just (instanceNo,event),iworld)
+				= case evalTaskInstance instanceNo event iworld of 
+					(Ok taskValue,iworld)
+						= processEvents (max - 1) iworld
+					(Error msg,iworld=:{IWorld|world})
+						= (Ok (),{IWorld|iworld & world = world})
+
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
