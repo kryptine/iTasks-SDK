@@ -9,8 +9,9 @@ import Text, Text.HTML
 import Data.List, Data.Func
 import qualified Data.Map as DM
 
+import Testing.TestEvents
 import iTasks
-import iTasks.Internal.Test.Definition
+import iTasks.Util.Testing
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
@@ -24,8 +25,8 @@ import iTasks.Extensions.Document
 import iTasks.Extensions.Process
 import iTasks.Extensions.FileCollection
 
-UNIT_TESTS_PATH :== "../Tests/TestPrograms"
-INTERACTIVE_TESTS_PATH :== "../Tests/TestPrograms/Interactive"
+UNIT_TESTS_PATH :== "../Tests/Unit"
+INTERACTIVE_TESTS_PATH :== "../Tests/Interactive"
 
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
@@ -34,6 +35,13 @@ EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
                     ,"../Examples/Applications/TheTaxMan/TheTaxMan.icl"
                     ,"../Examples/GIS/LeafletMapExample.icl"
                     ]
+
+derive class iTask EndEventType
+
+derive gEditor FailReason, FailedAssertion, CounterExample, Relation
+derive gDefault FailReason, FailedAssertion, CounterExample, Relation
+derive gEq FailReason, FailedAssertion, CounterExample, Relation
+derive gText FailReason, FailedAssertion, CounterExample, Relation
 
 inspectCodeQuality :: Task ()
 inspectCodeQuality
@@ -100,19 +108,17 @@ where
  		tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus UNIT_TESTS_PATH directoryListing)
 
 	toTestReport results
-		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
+		= DivTag [] [] //[suiteHtml res \\ res <- results | not (isEmpty results)]
 	where
-		suiteHtml {suiteName,testResults}
-			=  DivTag [] [H2Tag [] [Text suiteName]
-						 ,TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
-						 ]
+		suiteHtml testResults
+			= TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
 
 		headerRow = TrTag [] [ThTag [] [Text "Test"],ThTag [] [Text "Result"],ThTag [] [Text "Details"]]
 
-		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
-		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
-		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
-		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
+		resultRow Passed = TrTag [] [TdTag [] [Text "FIXME"],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
+		resultRow Skipped = TrTag [] [TdTag [] [Text "FIXME"],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
+		resultRow (Failed Nothing) = TrTag [] [TdTag [] [Text "FIXME"],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
+		resultRow (Failed (Just details)) = TrTag [] [TdTag [] [Text "FIXME"],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text (toString (toJSON details))]]]
 
 checkExampleApplications = withShared 'DM'.newMap
 	\results ->
@@ -294,7 +300,7 @@ projectTemplate moduleName = join OS_NEWLINE
 	["Version: 1.4"
 	,"Global"
 	,"\tProjectRoot: ."
-	,"\tTarget: iTasks git"
+	,"\tTarget: iTasks"
 	,"\tExec: {Project}/" +++ addExtension moduleName "exe"
 	,"\tCodeGen"
 	,"\t\tCheckStacks: False"
