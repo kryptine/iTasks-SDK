@@ -20,10 +20,11 @@ import iTasks.Internal.IWorld
 import iTasks.UI.Definition
 import qualified iTasks.Internal.SDS as SDS
 from Data.Queue import :: Queue(..)
-import System.OS
-import iTasks.Util.Trace
+
+import System.OS, System.CommandLine, System.Options
 
 import Testing.TestEvents
+import Testing.Options
 
 derive class iTask InteractiveTest
 
@@ -180,25 +181,43 @@ checkSuiteResult f testResults = all (\(_,r) -> f r) testResults
 
 runUnitTests :: [UnitTest] *World -> *World
 runUnitTests suites world
-	# (console,world)	       = stdio world
-	# (report,(console,world)) = foldl runTest ([],(console,world)) suites
-	# (_,world)			       = fclose console world
-	# world 			       = setReturnCode (if (noneFailed report) 0 1) world
-    = world
+	# (args,world)             = getCommandLine world
+	= case parseOptions testOptionDescription (tl args) gDefault{|*|} of
+		(Ok options)
+			# (console,world)	       = stdio world
+			# (report,(console,world)) = foldl (runTest options) ([],(console,world)) suites
+			# (_,world)			       = fclose console world
+			# world 			       = setReturnCode (if (noneFailed report) 0 1) world
+			= world
+		(Error msgs)
+			# (console,world)	       = stdio world
+			# console                  = foldl (\c m -> fwrites (m +++ "\n") c) console args
+			# console                  = foldl (\c m -> fwrites (m +++ "\n") c) console msgs
+			# (_,world)			       = fclose console world
+			= setReturnCode 1 world
 where	
-	runTest (results,(console,world)) {UnitTest|name,test}
-		# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
-		//# console = fwrites (name +++ "... ") console
-		# (result,world) = test world
-		# message = case result of
-			Passed = green "PASSED" 
-			Failed _ = red "FAILED"
-			Skipped = yellow "SKIPPED" 
-		# console = fwrites (toString (toJSON (EndEvent {EndEvent|name=name,event=result,message=message})) +++ "\n") console
-		= ([(name,result):results],(console,world))
+	runTest options (results,(console,world)) {UnitTest|name,test}
+		//Just print names
+		| options.list
+			# console = fwrites (name +++ "\n") console
+			= (results,(console,world))
+		//Skip
+		| skipTest name options
+			= (results,(console,world))
+		//Check if the test should run	
+		| otherwise 
+			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
+			# (result,world) = test world
+			# message = case result of
+				Passed = "PASSED" 
+				Failed _ = "FAILED"
+				Skipped = "SKIPPED" 
+			# console = fwrites (toString (toJSON (EndEvent {EndEvent|name=name,event=result,message=message})) +++ "\n") console
+			= ([(name,result):results],(console,world))
 
-	//ANSI COLOR CODES -> TODO: Create a library in clean-platform for ANSI colored output
-	red s = toString [toChar 27,'[','3','1','m'] +++ s +++ toString [toChar 27,'[','0','m']
-	green s = toString [toChar 27,'[','3','2','m'] +++ s +++ toString [toChar 27,'[','0','m']
-	yellow s = toString [toChar 27,'[','3','3','m'] +++ s +++ toString [toChar 27,'[','0','m']
+	skipTest name {runs,skip}	
+		| isMember name skip = True //Explicitly skipped
+		| runs =: [] = False //Run all
+		| otherwise = isMember name [name \\ {TestRun|name} <- runs] //Check if it was listed
+
 
