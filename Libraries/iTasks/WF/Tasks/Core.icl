@@ -10,7 +10,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
 
-import Data.Error, Data.Maybe
+import Data.Error, Data.Maybe, Data.Func
 import Text.GenJSON
 import StdString, StdBool
 import qualified Data.Set as DS
@@ -56,7 +56,9 @@ where
 interact :: !d !EditMode !(SDS () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w
 interact prompt mode shared {onInit,onEdit,onRefresh} editor = Task eval
 where
-	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+	eval event evalOpts tt=:(TCDestroy _) iworld
+		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tt) iworld
+		= (DestroyedResult, iworld)
 
 	eval event evalOpts tree iworld=:{current={taskTime}}
 		//Decode or initialize state

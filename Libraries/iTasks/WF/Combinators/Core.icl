@@ -21,9 +21,10 @@ import iTasks.WF.Tasks.System
 import StdList, StdBool, StdTuple, StdString, Data.Maybe
 from StdFunc import o
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 
-import Data.Maybe, Data.Either, Data.Error
+import Data.Maybe, Data.Either, Data.Error, Data.Func
 import Text.GenJSON
 from Data.Functor import <$>, class Functor(fmap)
 
@@ -302,7 +303,8 @@ where
                 # curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees curEnabledActions),iworld)
     //Cleanup
-    eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees _)) iworld=:{current}
+    eval event evalOpts ttree=:(TCDestroy (TCParallel taskId ts taskTrees _)) iworld=:{current}
+		# iworld = clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
         //Mark all tasks as deleted and use the standar evaluation function to clean up
         # taskListFilter         = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
         # (mbError,iworld)       = modify (\ptss -> ((),map (\pts -> {ParallelTaskState|pts & change=Just RemoveParallelTask}) ptss)) (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
@@ -791,7 +793,8 @@ where
 		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted)
 		= (ValueResult (Value curStatus stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} change (TCAttach taskId ts curStatus build instanceKey), iworld)
 
-	eval event evalOpts (TCDestroy (TCAttach taskId _ _ _ _)) iworld
+	eval event evalOpts ttree=:(TCDestroy (TCAttach taskId _ _ _ _)) iworld
+		# iworld = clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
 		# (_,iworld)	    = modify (\p -> ((),release p)) (sdsFocus instanceNo taskInstanceProgress) iworld
         = (DestroyedResult,iworld)
 	where

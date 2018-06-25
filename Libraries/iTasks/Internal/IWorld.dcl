@@ -18,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared, :: ReadOnlyShared
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite, :: SDSIdentity
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -29,23 +29,23 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timespec                                    // Server side clock
-                    , current               :: !TaskEvalState                               // Shared state during task evaluation
+:: *IWorld		=	{ options               :: !EngineOptions                                   // Engine configuration
+                    , clock                 :: !Timespec                                        // Server side clock
+                    , current               :: !TaskEvalState                                   // Shared state during task evaluation
 
-                    , random                :: [Int]                                        // Infinite random stream
+                    , random                :: [Int]                                            // Infinite random stream
 
-                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                          // Notification requests from previously read sds's
-                    , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
-                    , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
-                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
-					, exposedShares			:: !Map String (Dynamic, JSONShared)            // Shared source
-					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
+                    , sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
+                    , memoryShares          :: !Map String Dynamic                              // Run-time memory shares
+                    , readCache             :: !Map (String,String) Dynamic                     // Cached share reads
+                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+					, exposedShares			:: !Map String (Dynamic, JSONShared)                // Shared source
+					, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
 
-	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
-                    , ioStates              :: !IOStates                                    // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+	                , ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
+                    , ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
-					, world					:: !*World									    // The outside world
+					, world					:: !*World									        // The outside world
 
                     //Experimental database connection cache
                     , resources             :: *[*Resource]
@@ -77,10 +77,11 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
+    | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
-    , nextConnectionId      :: !ConnectionId
+    , nextConnectionId      :: !ConnectionId    
     , port                  :: !Int
     , connectionTask        :: !ConnectionTask
     , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
@@ -95,6 +96,12 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
+
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
 
 :: IOStates :== Map TaskId IOState
 :: IOState
@@ -138,8 +145,6 @@ destroyIWorld :: !*IWorld -> *World
 	}
 
 iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
-iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
-
 /*
  * Calculate the next fire for the given timespec
  *
@@ -149,7 +154,7 @@ iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
  * @result time to fire next
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
-
+iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldLocalDateTime    :: ReadOnlyShared DateTime
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)

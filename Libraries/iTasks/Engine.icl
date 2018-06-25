@@ -37,6 +37,8 @@ from System.OS import IF_POSIX_OR_WINDOWS
 import System.GetOpt
 import Data.Functor
 
+MAX_EVENTS 		        :== 5
+
 defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
 defaultEngineOptions world
 	# (appPath,world)    = determineAppPath world	
@@ -118,10 +120,15 @@ startEngineWithOptions initFun publishable world
  			# iworld				= createIWorld (fromJust mbOptions) world
  			# (res,iworld) 			= initJSCompilerState iworld
 		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-			# iworld				= serve [TaskWrapper removeOutdatedSessions] (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
+			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks (timeout options.timeout) iworld
 			= destroyIWorld iworld
 where
 	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) taskOutput)]
+	engineTasks =
+ 		[BackgroundTask updateClock
+		,BackgroundTask (processEvents MAX_EVENTS)
+		,BackgroundTask removeOutdatedSessions
+		,BackgroundTask flushWritesWhenIdle]
 
 runTasks :: a !*World -> *World | Runnable a
 runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
@@ -137,8 +144,13 @@ runTasksWithOptions initFun runnable world
  	# iworld				= createIWorld options world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve (toRunnable runnable) [] (timeout options.timeout) iworld
+	# iworld				= serve (toRunnable runnable) [] systemTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
+where
+	systemTasks =
+ 		[BackgroundTask updateClock
+		,BackgroundTask (processEvents MAX_EVENTS)
+		,BackgroundTask stopOnStable]
 
 show :: ![String] !*World -> *World
 show lines world
