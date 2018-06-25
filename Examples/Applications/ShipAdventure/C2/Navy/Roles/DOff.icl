@@ -53,7 +53,11 @@ damagePrediction
   resetSections = set 'DS'.newSet disabledSections >>| damagePrediction
   isDisabled c3d disSects = 'DS'.member c3d disSects
 
-derive class iTask Set
+derive gEditor Set
+derive gDefault Set
+derive gText Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 showCommandAims :: Task ()
 showCommandAims = viewSharedInformation "Current Command Aims" [] commandAims @! ()

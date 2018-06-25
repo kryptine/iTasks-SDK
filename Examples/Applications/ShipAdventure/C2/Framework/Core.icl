@@ -29,7 +29,7 @@ where
                   >>|          allTasks (map (\f -> f me) (regEntities me))
                   >>~ \ents -> (allTasks (map (\f -> f me ents) (contBgTasks me)))
                                ||-
-                               whileAuthenticated me ents alwaysOnTasks tlist <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI])
+                               whileAuthenticated me ents alwaysOnTasks tlist <<@ ApplyLayout (sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI])
 
 whileAuthenticated :: User [Entity]
                       (User -> [(String, User [Entity] -> Task ())])
@@ -59,7 +59,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
       doOpen :: Workspace [(TaskId, WorklistRow)] -> Task ()
       doOpen ws xs = sequence "openAssignedTasks" (map (\(taskId, _) -> appendOnce taskId (workOn taskId @! ()) ws) xs) @! ()
 
-	layout = foldl1 sequenceLayouts
+	layout = sequenceLayouts
 		[removeSubUIs (SelectByPath [1]) //Don't show the openAssignedTasks UI
  		,arrangeWithSideBar 0 RightSide 300 True
 		,layoutSubUIs (SelectByPath [0]) (arrangeWithTabs True)

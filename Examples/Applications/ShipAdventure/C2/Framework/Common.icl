@@ -36,7 +36,7 @@ selectedContactShare = sdsLens "selectedContactShare" (const ()) (SDSRead read) 
   write _ st=:{selection, entities} e = Ok (Just {st & entities = 'DIS'.put selection e entities})
 
   notify :: () MapState Entity -> SDSNotifyPred ()
-  notify _ _ _ = \_ -> False
+  notify _ _ _ = \_ _ -> False
 
 userMapState :: User -> Shared MapState
 userMapState u = sharedStore ("userMapState" +++ toString u) defSettings
@@ -70,7 +70,7 @@ contactWithId = sdsLens "contactWithId" (const ()) (SDSRead read) (SDSWrite writ
   write idx st=:{entities} e = Ok (Just {st & entities = 'DIS'.put idx e entities})
 
   notify :: Int MapState Entity -> SDSNotifyPred Int
-  notify idx _ _ = \idx` -> idx == idx`
+  notify idx _ _ = \_ idx` -> idx == idx`
 
 resetMapState :: Task ()
 resetMapState = set defSettings mapState @! ()

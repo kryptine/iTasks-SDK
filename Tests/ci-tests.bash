@@ -10,5 +10,4 @@ find . -name "*.prj.default" | while read f; do
 	done
 find . -name "*.prj" | xargs dirname | sort -u | xargs -I{} sh -c "cd {}; cpm make"
 
-#Run the tests
 ( cd Tools; ./RunUnitTestsForCI; )
