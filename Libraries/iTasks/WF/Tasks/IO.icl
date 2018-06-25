@@ -81,14 +81,16 @@ where
 		= (ValueResult (Value i True) (info ts) (rep event) tree, iworld)
 
 	//Destroyed while the process was still running
-	eval event evalOpts (TCDestroy (TCBasic taskId ts jsonph _)) iworld
+	eval event evalOpts tree=:(TCDestroy (TCBasic taskId ts jsonph _)) iworld
+		# iworld = clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tree) iworld
 		= apIWTransformer iworld
 		$             tuple (fjson jsonph)
 		>-= \(ph, _)->liftOSErr (terminateProcess ph)
 		>-= \_      ->tuple (Ok DestroyedResult)
 
 	//Destroyed when the task was already stable
-	eval event evalOpts (TCDestroy _) iworld
+	eval event evalOpts tree=:(TCDestroy _) iworld
+		# iworld = clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tree) iworld
 		= (DestroyedResult, iworld)
 
 	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}

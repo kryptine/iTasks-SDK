@@ -57,7 +57,7 @@ doAuthenticated task
 	= (	enterCredentials 
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts (setUIAttributes (titleAttr "Login")) frameCompact)) //Compact layout before login, full screen afterwards
+		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact])) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -90,7 +90,7 @@ where
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs True
 
-	layoutControlDash = foldl1 sequenceLayouts
+	layoutControlDash = sequenceLayouts
 		[moveSubUIs (SelectByPath [0,0]) [] 1
 		,moveSubUIs (SelectByPath [0,0]) [] 2
 		,removeSubUIs (SelectByPath [0])
