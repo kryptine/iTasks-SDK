@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/EnterInteger
+	Exec:	{Project}/BasicAPIExamples/EditorsOnBasicAndPredefinedTypes/EnterInteger
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	EnterInteger
+	Name:	BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.EnterInteger
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

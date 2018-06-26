@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/EnterPerson
+	Exec:	{Project}/BasicAPIExamples/EditorsOnCustomTypes/EnterPerson
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	EnterPerson
+	Name:	BasicAPIExamples.EditorsOnCustomTypes.EnterPerson
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

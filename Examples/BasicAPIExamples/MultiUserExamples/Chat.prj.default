@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/Chat
+	Exec:	{Project}/BasicAPIExamples/MultiUserExamples/Chat
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	Chat
+	Name:	BasicAPIExamples.MultiUserExamples.Chat
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

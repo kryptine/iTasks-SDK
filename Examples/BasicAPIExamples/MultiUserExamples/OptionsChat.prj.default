@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/OptionsChat
+	Exec:	{Project}/BasicAPIExamples/MultiUserExamples/OptionsChat
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	OptionsChat
+	Name:	BasicAPIExamples.MultiUserExamples.OptionsChat
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

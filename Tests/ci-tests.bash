@@ -10,7 +10,7 @@ sed -i "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" /opt/clean/etc/IDEEnvs
 	cp CreateBasicAPIExamples.prj{.default,}
 	cpm CreateBasicAPIExamples.prj
 	rm CreateBasicAPIExamples.prj
-	./CreateBasicAPIExamples > BasicAPIExamples.icl
+	./CreateBasicAPIExamples.exe > BasicAPIExamples.icl
 )
 
 #Try to compile everything

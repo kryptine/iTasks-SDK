@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/EnterFamilyTree
+	Exec:	{Project}/BasicAPIExamples/EditorsOnCustomTypes/EnterFamilyTree
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	EnterFamilyTree
+	Name:	BasicAPIExamples.EditorsOnCustomTypes.EnterFamilyTree
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

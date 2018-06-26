@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/EnterText
+	Exec:	{Project}/BasicAPIExamples/EditorsOnBasicAndPredefinedTypes/EnterText
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	EnterText
+	Name:	BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.EnterText
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

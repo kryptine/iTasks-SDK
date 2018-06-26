@@ -1,8 +1,8 @@
 Version: 1.4
 Global
-	ProjectRoot:	.
+	ProjectRoot:	...
 	Target:	iTasks
-	Exec:	{Project}/UpdateSharedPersonsAndView
+	Exec:	{Project}/BasicAPIExamples/InteractionUsingShares/UpdateSharedPersonsAndView
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	UpdateSharedPersonsAndView
+	Name:	BasicAPIExamples.InteractionUsingShares.UpdateSharedPersonsAndView
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
