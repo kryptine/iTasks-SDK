@@ -10,18 +10,21 @@ import iTasks.Internal.Util
 
 from iTasks.WF.Combinators.Core import :: SharedTaskList
 from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(..)
-from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
+from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del
 from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 from iTasks.Internal.SDS as SDS       import qualified read, write, modify
 from iTasks.SDS.Combinators.Common      import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
-
 import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
 from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 
 derive gEq TIMeta
+
+import StdArray, dynamic_string, StdDebug, Data.GenDiff
+from Data.Map import instance Functor (Map k)
+derive gDiff JSONNode
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -55,13 +58,13 @@ getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
-processEvents max iworld
+processEvents max iworld=:{IWorld| memoryShares}
 	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of 
 			(Nothing,iworld) = (Ok (),iworld)
 			(Just (instanceNo,event),iworld)
-				= case evalTaskInstance instanceNo event iworld of 
+				= case trace_n ("memory shares size " +++ toString (size $ copy_to_string memoryShares)) $ evalTaskInstance instanceNo event iworld of
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld=:{IWorld|world})
@@ -121,7 +124,7 @@ where
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
-            # (_,iworld)                = 'SDS'.modify (\r -> ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
+            # (_,iworld)                = 'SDS'.modify (\r -> let x = ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}) in trace_n (diffToConsole $ gDiff{|*|} (toJSON r.tree) (toJSON tree)) x)
                                                 (sdsFocus instanceNo taskInstanceReduct) iworld
 												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
