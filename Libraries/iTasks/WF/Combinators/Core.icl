@@ -415,10 +415,15 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
             Nothing //We have evaluated all branches and nothing is added
                 //Remove all entries that are marked as removed from the list, they have been cleaned up by now
                 # taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-                # (mbError,iworld)      = modify (\l -> ((),[x \\ x <- l | not (isRemoved x)]))
+                # (mbError,iworld)      = modify (\l -> ([taskId \\ x=:{ParallelTaskState|taskId} <- l | isRemoved x],[x \\ x <- l | not (isRemoved x)]))
 											(sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
-                | mbList =:(Error _)    = (Error (fromError mbList),iworld)
+                | mbError =:(Error _)    = (Error (fromError mbError),iworld)
+				//Remove all task functions of the removed entries from the instance reduct
+				# (TaskId instanceNo _) = listId
+                # (mbError,iworld)      = modify (\(r=:{TIReduct|tasks}) -> ((),{TIReduct|r & tasks = foldr 'DM'.del tasks (fromOk mbError)} )) (sdsFocus instanceNo taskInstanceReduct) iworld
+                | mbError =:(Error _)    = (Error (fromError mbError),iworld)
                 = (Ok completed,iworld)
+
             Just (_,(type,task),_) //Add extension
                 # (mbStateMbTask,iworld)     = initParallelTask evalOpts listId 0 type task iworld
                 = case mbStateMbTask of
