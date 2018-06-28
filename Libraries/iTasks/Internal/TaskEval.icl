@@ -23,8 +23,8 @@ from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 derive gEq TIMeta
 
 import StdArray, dynamic_string, StdDebug, Data.GenDiff
-from Data.Map import instance Functor (Map k)
-derive gDiff JSONNode
+derive gDiff TaskTree,Map,LUI,LUIEffectStage,LUINo,TaskId,AttachmentStatus,EditMask,Either,LUIEffects,LUIChanges,JSONNode,UIType,FieldMask,Set,Maybe
+gDiff{|DeferredJSON|} x y = gDiff{|*|} (toJSON x) (toJSON y)
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -124,7 +124,7 @@ where
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
-            # (_,iworld)                = 'SDS'.modify (\r -> let x = ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}) in trace_n (diffToConsole $ gDiff{|*|} (toJSON r.tree) (toJSON tree)) x)
+            # (_,iworld)                = 'SDS'.modify (\r -> let x = ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}) in trace_n (diffToConsole $ gDiff{|*|} r.tree tree) x)
                                                 (sdsFocus instanceNo taskInstanceReduct) iworld
 												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
