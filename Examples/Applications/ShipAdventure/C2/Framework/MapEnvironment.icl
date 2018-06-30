@@ -657,7 +657,7 @@ toggleDoor roomNo=:(floorIdx, c2d) exit
   where
   newLocks :: !Dir ![Dir] -> [Dir]
   newLocks dir locks
-    #! (lockedDirs, rest) = splitWith (\l -> l === dir) locks
+    #! (lockedDirs, rest) = partition (\l -> l === dir) locks
     | isEmpty lockedDirs = [dir : rest]
     | otherwise          = rest
 
@@ -672,7 +672,7 @@ toggleHop fromRoom toRoom
   where
   newLocks :: !Coord3D ![Coord3D] -> [Coord3D]
   newLocks c3d locks
-    #! (lockedDirs, rest) = splitWith (\l -> l === c3d) locks
+    #! (lockedDirs, rest) = partition (\l -> l === c3d) locks
     | isEmpty lockedDirs = [c3d : rest]
     | otherwise          = rest
 
