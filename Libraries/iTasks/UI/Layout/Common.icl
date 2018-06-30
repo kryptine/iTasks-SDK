@@ -110,7 +110,7 @@ where
 		}
 
 	apply ui=:(UI t attr cs)
-		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
+		# (actions, others) = partition (\s->s=:(UI UIAction _ _)) cs
 		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSType ui)
 	
 	adjust (NoChange,s)   = (NoChange,s)
