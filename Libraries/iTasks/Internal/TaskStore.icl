@@ -426,8 +426,11 @@ taskInstanceEmbeddedTask :: RWShared TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceReduct
 where
     param (TaskId instanceNo _) = instanceNo
-    read taskId {TIReduct|tasks} = case fmap unwrapTask ('DM'.get taskId tasks) of
-        Just task = Ok task
+	//TODO: Investigate why unwrapTask (from clientoverride) no longer works here
+    read taskId {TIReduct|tasks} = case ('DM'.get taskId tasks) of
+		(Just dyn) = case dyn of
+			(task :: Task a^) = Ok task
+        	_   = Error (exception ("Could not unwrap embedded task " <+++ taskId))
         _         = Error (exception ("Could not find embedded task " <+++ taskId))
     write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
     notify taskId _ = const ((==) taskId)
