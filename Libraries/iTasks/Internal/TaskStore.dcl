@@ -77,6 +77,7 @@ taskInstanceShares      :: RWShared InstanceNo (Map TaskId DeferredJSON) (Map Ta
 localShare              			:: RWShared TaskId a a | iTask a
 
 //Core parallel task list state structure
+taskInstanceParallelTaskLists       :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 
 //Private interface used during evaluation of parallel combinator

@@ -117,11 +117,11 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 //From this data structure both the UI with, and without the layout effects, can be deduced
 :: LUI
 	//UI nodes (with upstream changes)
-	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
+	= LUINode !UIType !UIAttributes ![LUI] !LUIChanges !LUIEffects
 	//Placeholder nodes
-	| LUIShiftDestination LUIShiftID
-	| LUIMoveSource LUIMoveID
-	| LUIMoveDestination LUIMoveID LUINo
+	| LUIShiftDestination !LUIShiftID
+	| LUIMoveSource !LUIMoveID
+	| LUIMoveDestination !LUIMoveID !LUINo
 
 //Upstream UI changes
 :: LUIChanges =
@@ -129,18 +129,18 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 	, toBeRemoved   :: !Bool
 	, toBeReplaced  :: !Maybe LUI
 	, toBeShifted   :: !Maybe LUIShiftID
-	, setAttributes :: UIAttributes
-	, delAttributes :: Set UIAttributeKey
+	, setAttributes :: !UIAttributes
+	, delAttributes :: !Set UIAttributeKey
 	}
 
 :: LUIEffects =
-	{ overwrittenType       :: LUIEffectStage (LUINo,UIType)
-	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))
-	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage LUINo)
-	, additional            :: LUIEffectStage LUINo
-	, hidden                :: LUIEffectStage LUINo
-	, wrapper               :: LUIEffectStage LUINo
-	, unwrapped             :: LUIEffectStage LUINo
+	{ overwrittenType       :: !LUIEffectStage (!LUINo, !UIType)
+	, overwrittenAttributes :: !Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode))
+	, hiddenAttributes      :: !Map UIAttributeKey (LUIEffectStage LUINo)
+	, additional            :: !LUIEffectStage LUINo
+	, hidden                :: !LUIEffectStage LUINo
+	, wrapper               :: !LUIEffectStage LUINo
+	, unwrapped             :: !LUIEffectStage LUINo
 	}
 
 //Layout rules determine that an effect should according to that rule be applied or restored.
@@ -149,11 +149,11 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 :: LUIEffectStage a
 	//In between events effects can only be either applied or not
 	= ESNotApplied
-	| ESApplied a
+	| ESApplied !a
 	//While the layout rules are applied the effects can be in intermediate state
-	| ESToBeApplied a
-	| ESToBeUpdated a a
-	| ESToBeRemoved a
+	| ESToBeApplied !a
+	| ESToBeUpdated !a !a
+	| ESToBeRemoved !a
 
 //Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
 //and in their destination location (to apply further effects).
@@ -165,7 +165,7 @@ noChanges :: LUIChanges
 noEffects :: LUIEffects
 
 //When layout rules make changes, it must be tracable which layout rule caused the change
-:: LUINo = LUINo [Int]
+:: LUINo = LUINo ![Int]
 
 instance < LUINo
 instance == LUINo

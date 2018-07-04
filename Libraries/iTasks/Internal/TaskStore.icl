@@ -426,8 +426,8 @@ taskInstanceEmbeddedTask :: RWShared TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceReduct
 where
     param (TaskId instanceNo _) = instanceNo
-    read taskId {TIReduct|tasks} = case fmap unwrapTask ('DM'.get taskId tasks) of
-        Just task = Ok task
+    read taskId {TIReduct|tasks} = case ('DM'.get taskId tasks) of
+		(Just dyn) = Ok (unwrapTask dyn)
         _         = Error (exception ("Could not find embedded task " <+++ taskId))
     write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
     notify taskId _ = const ((==) taskId)

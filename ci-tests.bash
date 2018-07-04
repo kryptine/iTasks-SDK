@@ -4,6 +4,7 @@ if [ -e /opt/clean/etc/IDEEnvs ]; then
 	trap 'mv -v /opt/clean/etc/IDEEnvs{.bak,}' EXIT
 	cp -v /opt/clean/etc/IDEEnvs{,.bak}
 	sed -i "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" /opt/clean/etc/IDEEnvs
+	sed -i 's#EnvironmentLinker:    lib/exe/linker#&:-lmysqlclient -lsqlite3#g' /opt/clean/etc/IDEEnvs
 fi
 
 #Try to compile everything
