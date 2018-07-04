@@ -9,7 +9,8 @@ import qualified Data.Set as DS
 import Data.Maybe
 
 derive gEq LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo
-derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive gPrint LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set, UI, UIType, JSONNode, Map
+derive gPrint Maybe, UIChange, UIChildChange, UIAttributeChange
 
 import Data.GenLexOrd
 derive gLexOrd LUIEffectStage

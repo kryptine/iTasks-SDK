@@ -5,7 +5,7 @@ import iTasks.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks.Extensions.Editors.Ace
 import iTasks.Internal.Serialization
-import Text, Text.HTML, System.CommandLine
+import Text, Text.HTML, Text.GenPrint, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
@@ -39,36 +39,35 @@ where
 	pass :: *World -> *(EndEventType,*World)
 	pass w = (Passed,w)
 
-assert :: String (a -> Bool) a -> UnitTest | JSONEncode{|*|} a
+assert :: String (a -> Bool) a -> UnitTest
 assert name exp sut = {UnitTest|name=name,test=test}
 where
 	test w = (if (exp sut) Passed (Failed Nothing),w)
 
-
-assertEqual :: String a a -> UnitTest | gEq{|*|} a & JSONEncode{|*|} a
+assertEqual :: String a a -> UnitTest | gEq{|*|} a & gPrint{|*|} a
 assertEqual name exp sut = {UnitTest|name=name,test=test}
 where
 	test w = (checkEqual exp sut,w)
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> UnitTest | JSONEncode{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> UnitTest
 assertWorld name exp sut = {UnitTest|name=name,test=test}
 where
 	test w 
 		# (res,w) = sut w
 		= (if (exp res) Passed (Failed Nothing),w)
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> UnitTest | gEq{|*|} a & JSONEncode{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> UnitTest | gEq{|*|} a & gPrint{|*|} a
 assertEqualWorld name exp sut = {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just (FailedAssertions [ExpectedRelation (JSON (toJSON exp)) Eq (JSON (toJSON res))]))),w)
+		= (if (exp === res) Passed (Failed (Just (FailedAssertions [ExpectedRelation (GPrint (printToString exp)) Eq (GPrint (printToString res))]))),w)
 
-checkEqual :: a a -> EndEventType | gEq{|*|} a & JSONEncode{|*|} a
+checkEqual :: a a -> EndEventType | gEq{|*|} a & gPrint{|*|} a
 checkEqual exp sut = checkEqualWith (===) exp sut
 
-checkEqualWith :: (a a -> Bool) a a -> EndEventType | JSONEncode{|*|} a
-checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just (FailedAssertions [ExpectedRelation (JSON (toJSON exp)) Eq (JSON (toJSON sut))])))
+checkEqualWith :: (a a -> Bool) a a -> EndEventType | gPrint{|*|} a
+checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just (FailedAssertions [ExpectedRelation (GPrint (printToString exp)) Eq (GPrint (printToString sut))])))
 
 pass :: String -> UnitTest
 pass name = {UnitTest|name=name,test = \w -> (Passed,w)}

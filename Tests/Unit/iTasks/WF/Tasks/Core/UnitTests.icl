@@ -2,9 +2,10 @@ module iTasks.WF.Tasks.Core.UnitTests
 import iTasks.Util.Testing
 import qualified Data.Map as DM
 import Data.Either
-import Text.GenJSON
+import Text.GenPrint
 
-derive JSONEncode TaskOutputMessage
+derive gPrint TaskOutputMessage
+derive gPrint UIChange, UIChildChange, UIAttributeChange, UI, UIType, Map, JSONNode
 
 //Test interact
 expPromptUI msg 
@@ -33,6 +34,7 @@ where
 			,("mode",JSONString "update")
 			,("taskId",JSONString "1-0")
 			,("value",JSONString "Hello world")
+			,("minlength",JSONInt 1)
 			])
 
 tests = [minimalInteractUI]

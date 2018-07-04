@@ -8,7 +8,8 @@ import Testing.TestEvents
 import System.OS, Data.Either, Data.Functor
 import qualified Data.Set as DS
 import qualified Data.Map as DM
-import Text.GenJSON
+
+import Text.GenPrint
 
 derive JSONEncode TaskOutputMessage
 

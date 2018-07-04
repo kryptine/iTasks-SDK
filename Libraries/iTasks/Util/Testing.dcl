@@ -3,6 +3,7 @@ import iTasks
 import iTasks.Util.Trace
 from iTasks.Internal.TaskStore import :: TaskOutputMessage(..)
 from Testing.TestEvents import :: EndEventType
+from Text.GenPrint import generic gPrint, :: PrintState, class PrintOutput
 
 :: UnitTest
 	= { name :: String
@@ -27,16 +28,16 @@ derive gEditor UnitTest
 derive gText UnitTest
 derive gDefault UnitTest
 
-assert :: String (a -> Bool) a -> UnitTest | JSONEncode{|*|} a
+assert :: String (a -> Bool) a -> UnitTest
 
-assertEqual :: String a a -> UnitTest | gEq{|*|} a & JSONEncode{|*|} a
+assertEqual :: String a a -> UnitTest | gEq{|*|} a & gPrint{|*|} a
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> UnitTest | JSONEncode{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> UnitTest
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> UnitTest | gEq{|*|} a & JSONEncode{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> UnitTest | gEq{|*|} a & gPrint{|*|} a
 
-checkEqual :: a a -> EndEventType | gEq{|*|} a & JSONEncode{|*|} a
-checkEqualWith :: (a a -> Bool) a a -> EndEventType | JSONEncode{|*|} a
+checkEqual :: a a -> EndEventType | gEq{|*|} a & gPrint{|*|} a
+checkEqualWith :: (a a -> Bool) a a -> EndEventType | gPrint{|*|} a
 
 pass :: String -> UnitTest
 
