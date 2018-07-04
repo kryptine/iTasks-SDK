@@ -62,13 +62,13 @@ assertEqualWorld name exp sut = {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just (FailedAssertions [ExpectedRelation (toJSON exp) Eq (toJSON res)]))),w)
+		= (if (exp === res) Passed (Failed (Just (FailedAssertions [ExpectedRelation (JSON (toJSON exp)) Eq (JSON (toJSON res))]))),w)
 
 checkEqual :: a a -> EndEventType | gEq{|*|} a & JSONEncode{|*|} a
 checkEqual exp sut = checkEqualWith (===) exp sut
 
 checkEqualWith :: (a a -> Bool) a a -> EndEventType | JSONEncode{|*|} a
-checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just (FailedAssertions [ExpectedRelation (toJSON exp) Eq (toJSON sut)])))
+checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just (FailedAssertions [ExpectedRelation (JSON (toJSON exp)) Eq (JSON (toJSON sut))])))
 
 pass :: String -> UnitTest
 pass name = {UnitTest|name=name,test = \w -> (Passed,w)}

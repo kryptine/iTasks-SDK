@@ -36,7 +36,7 @@ EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
                     ,"../Examples/GIS/LeafletMapExample.icl"
                     ]
 
-derive class iTask EndEventType
+derive class iTask EndEventType, Expression
 
 derive gEditor EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 derive gDefault EndEvent, FailReason, FailedAssertion, CounterExample, Relation

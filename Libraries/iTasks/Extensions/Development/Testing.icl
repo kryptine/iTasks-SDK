@@ -9,7 +9,8 @@ import iTasks.Extensions.Development.Tools
 import iTasks.Extensions.Development.Codebase
 import Text, Data.Tuple, Data.Error, Data.Func, System.FilePath, System.OS
 
-derive class iTask EndEventType
+derive class iTask EndEventType, Expression
+
 derive gEditor EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 derive gText EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 derive gDefault EndEvent, FailReason, FailedAssertion, CounterExample, Relation
