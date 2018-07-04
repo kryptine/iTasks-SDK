@@ -144,6 +144,7 @@ createClientIWorld serverURL currentInstance
 		    ,nextTaskNo			= 6666
           }
           ,sdsNotifyRequests    = 'Data.Map'.newMap
+          ,sdsNotifyReqsByTask  = 'Data.Map'.newMap
           ,memoryShares         = 'Data.Map'.newMap
           ,readCache            = 'Data.Map'.newMap
           ,writeCache           = 'Data.Map'.newMap
