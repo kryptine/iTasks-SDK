@@ -4,8 +4,9 @@ definition module iTasks.Extensions.Development.Testing
 */
 import iTasks
 
-from Testing.TestEvents import :: EndEventType
+from Testing.TestEvents import :: EndEvent, :: EndEventType
 from iTasks.Util.Testing import :: TestReport 
+from iTasks.Extensions.Development.Codebase import :: CleanModuleName, :: ModuleName
 
-compileTestModule :: FilePath -> Task EndEventType
-runTestModule :: FilePath -> Task EndEventType
+compileTestModule :: CleanModuleName -> Task EndEvent
+runTestModule :: CleanModuleName -> Task [EndEvent]
