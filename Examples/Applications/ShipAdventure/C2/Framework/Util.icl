@@ -19,7 +19,7 @@ derive class iTask Location
 editSharedList :: (Shared [a]) -> Task () | iTask a
 editSharedList list
 	= editSharedListWithTask (updateInformation "Item Info" []) list
-                             
+
 editSharedListWithTask :: (a -> Task a) (Shared [a]) -> Task () | iTask a
 editSharedListWithTask tupdate list
 	= editSharedListWithTaskTask  (enterInformation "Enter new item" []) tupdate list
@@ -32,9 +32,9 @@ editSharedListWithTaskTask tenter tupdate list
 							,ESLClearAll] list
 
 editSharedListGeneric :: [EditSharedListOption a] (Shared [a]) -> Task () | iTask a
-editSharedListGeneric options list 
-	= doOrClose (forever (enterChoiceWithShared "Choose an item" 
-    	[ChooseFromGrid snd] 
+editSharedListGeneric options list
+	= doOrClose (forever (enterChoiceWithShared "Choose an item"
+    	[ChooseFromGrid snd]
         (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) list)
   	>>* [OnAction (Action desc) 				(always (addItem t))
   		\\ (ESLAdd (desc,t)) <- options] 	++
@@ -46,16 +46,16 @@ editSharedListGeneric options list
       	\\ ESLDel <- options]          		++
       	[OnAction (Action "Clear All")  		(always clearAll)
       	\\ ESLClearAll <- options] )) @! ()
-                  
+
 where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! ()
       deleteItem (k,u) = upd (\us -> removeAt k us) list  @! ()
       editItem t (k,u) =   t u
                        >>= \item -> upd (\us -> updateAt k item us) list
-                       @!  ()  
+                       @!  ()
       viewItem t (k,u) = t u @! ()
       clearAll         = viewInformation "Clear All" []
       									 "Are you sure you want to delete all items?"
-                         >>* [OnAction ActionOk   
+                         >>* [OnAction ActionOk
                          		(always (upd (\us -> []) list @! ()))
                              ,OnAction ActionCancel
                                 (always (return ()))
@@ -83,10 +83,10 @@ doTaskPeriodicallyUntilPause period task
                 //>>*  [OnAction ActionOk     (hasValue checkloginandstart)
                      //,OnAction ActionCancel (always (doLoggedIn t))
                       //]
-//where checkloginandstart user = checkUser user 
+//where checkloginandstart user = checkUser user
 							//>>= \ok -> if ok (setLoggedIn user
 							//>>| t user) loginfailed
-      //checkUser user          = get users 
+      //checkUser user          = get users
                                //@ \us -> [u\\ u <- us| u.User.name  == user.User.name
                                           //&&  u.User.password  == user.User.password]
                                          //<>
@@ -109,10 +109,10 @@ lastElems n xs = drop (length xs - n) xs
 showInfo :: String -> Task String
 showInfo msg = viewInformation ("Information","") [] msg
 
-							
+
 doTasksSequentially :: [Task a] -> Task () | iTask a
 doTasksSequentially []     = return ()
-doTasksSequentially [t:ts] = t >>| doTasksSequentially ts 
+doTasksSequentially [t:ts] = t >>| doTasksSequentially ts
 
 allTabs :: [Task a] -> (Task [a]) | iTask a
 allTabs ts = allTasks ts  	<<@ ArrangeWithTabs True
@@ -151,13 +151,13 @@ viewChats :: Int -> Task ()
 viewChats n = viewSharedInformation "Chats" [] (mapRead (lastElems n) chats) @! ()
 
 chatDialog :: User [Entity] -> Task ()
-chatDialog me _ = doOrClose (forever (enterInformation "Type a message" [] 
-                     >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()               
-where 
- doUpate m =               get currentDateTime 
-               >>=  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats 
+chatDialog me _ = doOrClose (forever (enterInformation "Type a message" []
+                     >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()
+where
+ doUpate m =               get currentDateTime
+               >>=  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats
                @! ()
-  
+
 editChats :: Task ()
 editChats  = editSharedList chats
 

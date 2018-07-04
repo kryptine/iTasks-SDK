@@ -12,7 +12,7 @@ Start world = startEngine
 	] world
 
 workflows :: [Workflow]
-workflows 
+workflows
 	=	citizenProcedures
 	++	adminEditors
 
@@ -24,7 +24,7 @@ citizenProcedures
 		]
 
 startRequestCompensation :: Task ()
-startRequestCompensation 
+startRequestCompensation
 	=	startTopLevelOnce
 			(viewInformation ("Start tax compensation") [] "Here you can enter a subsidy request...")
 			(Action "Start Request")
@@ -37,7 +37,7 @@ startRequestCompensation
 
 adminEditors :: [Workflow]
 adminEditors
-	=	[	
+	=	[
 			restrictedTransientWorkflow "Overview"                          "Give overview of selected citizen..."  ["admin","officer"] viewSelectedCitizen
 		]
 	++	[	restrictedTransientWorkflow "edit/Citizens"                     "Edit list of citizens"                 ["admin"] editCitizens

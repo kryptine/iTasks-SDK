@@ -18,7 +18,7 @@ wf a = workflow a "Enter a person" enterPerson
 derive class iTask Person, Gender
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine enterPerson world
 
 enterPerson :: Task Person

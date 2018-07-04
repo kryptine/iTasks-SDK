@@ -33,7 +33,7 @@ import Incidone.OP.Concepts
       }
 
 :: ActionTasks
-    = E.c: ActionTasks 
+    = E.c: ActionTasks
         ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) //Configuration task
         (c (Shared ActionStatus) -> Task ()) & iTask c  //An action item that needs to be configured before it can be deployed
 
@@ -97,7 +97,7 @@ import Incidone.OP.Concepts
 :: CommunicationMeanSuggestion
     = CommunicateUsingPhone
     | CommunicateUsingVHF
-    | CommunicateUsingP2000 
+    | CommunicateUsingP2000
     | CommunicateUsingEmail
 
 :: UserActionListDefinition =

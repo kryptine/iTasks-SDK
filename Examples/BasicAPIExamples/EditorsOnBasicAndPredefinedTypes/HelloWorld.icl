@@ -13,4 +13,4 @@ Start world
 
 helloWorld :: Task String
 helloWorld
-	= viewInformation "You have a message from iTasks:" [] "Hello world!" 
+	= viewInformation "You have a message from iTasks:" [] "Hello world!"

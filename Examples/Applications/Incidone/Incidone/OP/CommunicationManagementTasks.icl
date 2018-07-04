@@ -38,7 +38,7 @@ answerPhoneCall communicationNo
     >>| connectInboundPhoneCall communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
-          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True) 
+          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
                                                             <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                             <<@ Title ("Answer phone call")
                                                             /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME

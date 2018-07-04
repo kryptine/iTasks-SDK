@@ -166,7 +166,7 @@ contactOptions (Just group) = sdsFocus group contactsWithGroupShort
 forIncident :: IncidentNo (ActionDefinition (ContactNo,IncidentNo)) -> ActionDefinition ContactNo
 forIncident incidentNo item=:{ActionDefinition|task} = {ActionDefinition|item & task = task`}
 where
-    task` contactNo status = task (contactNo,incidentNo) status 
+    task` contactNo status = task (contactNo,incidentNo) status
 
 addDefaultStatus :: (Task c) -> ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) | iTask c
 addDefaultStatus task = \initContacts initIncidents -> task @ \c -> (c,{ActionStatus|defaultValue & contacts = initContacts, incidents = initIncidents})
@@ -228,7 +228,7 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = emptyEditor 
+gEditor{|ActionTasks|} = emptyEditor
 
 instance toString ActionProgress
 where
@@ -280,7 +280,7 @@ predefinedTodoItem :: String ItemMeta -> CatalogAction
 predefinedTodoItem identity meta=:{ItemMeta|title,description}
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer todoItemTask}
 where
-    configer initContacts initIncidents 
+    configer initContacts initIncidents
         = return ((),{ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents})
 
 userTodoItem :: String ItemMeta -> CatalogAction
@@ -293,14 +293,14 @@ alertItemTask contactNo status = communicationItemTask contactNo status
 configureAlertItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo, Maybe P2000Message),ActionStatus)
 configureAlertItemTask initContacts initIncidents = configureCommunicationItemTask "Alert" initContacts initIncidents
 
-configureUserAlertItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
+configureUserAlertItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
 configureUserAlertItemTask meta def initContacts initIncidents = configureUserCommunicationItemTask "Alert" meta def initContacts initIncidents
 
 blankAlertItem :: CatalogAction
 blankAlertItem = {CatalogAction|identity="blank-alert",meta={ItemMeta|title="Alert item",description=Nothing},tasks=ActionTasks configureAlertItemTask alertItemTask}
 
-predefinedAlertItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction 
-predefinedAlertItem identity meta=:{ItemMeta|title,description} config 
+predefinedAlertItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction
+predefinedAlertItem identity meta=:{ItemMeta|title,description} config
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer alertItemTask}
 where
     configer initContacts initIncidents
@@ -312,19 +312,19 @@ userAlertItem identity meta def
 
 //Inform items
 informItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
-informItemTask contactNo status = communicationItemTask contactNo status 
+informItemTask contactNo status = communicationItemTask contactNo status
 
 configureInformItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
-configureInformItemTask initContacts initIncidents = configureCommunicationItemTask "Inform" initContacts initIncidents 
+configureInformItemTask initContacts initIncidents = configureCommunicationItemTask "Inform" initContacts initIncidents
 
-configureUserInformItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
+configureUserInformItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
 configureUserInformItemTask meta def initContacts initIncidents = configureUserCommunicationItemTask "Inform" meta def initContacts initIncidents
 
 blankInformItem :: CatalogAction
 blankInformItem = {CatalogAction|identity="blank-inform",meta={ItemMeta|title="Inform item",description=Nothing}
                   ,tasks=ActionTasks configureInformItemTask informItemTask}
 
-predefinedInformItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction 
+predefinedInformItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction
 predefinedInformItem identity meta=:{ItemMeta|title,description} config
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer informItemTask}
 where
@@ -335,7 +335,7 @@ userInformItem :: String ItemMeta CommunicationActionDefinition -> CatalogAction
 userInformItem identity meta def
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks (configureUserInformItemTask meta def) informItemTask}
 
-//List items 
+//List items
 listItemTask :: (String,ActionPlan) (Shared ActionStatus) -> Task ()
 listItemTask (title,plan) status
     =   upd (\s -> {ActionStatus|s & title = title}) status
@@ -351,7 +351,7 @@ where
     where
         configureDelayed configer task list
             =   configer initContacts initIncidents
-            >>= \(config,status) -> 
+            >>= \(config,status) ->
                 set status (selfActionStatus list)
             >>| task config (selfActionStatus list)
         initStatus {ItemMeta|title,description}
@@ -361,11 +361,11 @@ where
 /*
         = [(Detached (initAttributes identity (initStatus [] [])) True, \list -> task (selfActionStatus list)) //TODO: Maybe inherit contact+incident from parent
           \\ item=:{CatalogAction|identity,task=ConfigurableAction configer task} <- init]
- */   
-    
+ */
+
 configureListItemTask :: [ContactNo] [IncidentNo] -> Task ((String,ActionPlan),ActionStatus)
 configureListItemTask initContacts initIncidents
-    = enterActionStatus initContacts initIncidents 
+    = enterActionStatus initContacts initIncidents
     @ \s -> ((s.ActionStatus.title, {ActionPlan|immediateActions=return [],suggestedActions=return []}),s)
 
 blankListItem :: CatalogAction
@@ -375,7 +375,7 @@ predefinedListItem :: String ItemMeta ActionPlan -> CatalogAction
 predefinedListItem identity meta=:{ItemMeta|title,description} plan
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer listItemTask}
 where
-    configer initContacts initIncidents 
+    configer initContacts initIncidents
         = updateInitialActionStatus meta initContacts initIncidents
         @ \s -> ((s.ActionStatus.title, plan),s)
 
@@ -386,7 +386,7 @@ where
     task c status = listItemTask (title,plan c) status
 
 //TODO: Filter actions by their rules and watch data changes
-userListItem :: String ItemMeta UserActionListDefinition -> CatalogAction 
+userListItem :: String ItemMeta UserActionListDefinition -> CatalogAction
 userListItem identity meta=:{ItemMeta|title,description} {immediateActions,additionalActions}
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer listItemTask}
 where
@@ -406,7 +406,7 @@ where
 
 //These tasks are used both by alert and inform actions
 configureCommunicationItemTask :: String [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
-configureCommunicationItemTask type initContacts initIncidents 
+configureCommunicationItemTask type initContacts initIncidents
     =  (enterChoiceWithShared ("Select the contact to "+++ toLowerCase type) [] allContactsShort
         -&&-
         enterChoiceWithShared ("Select the incident to "+++toLowerCase type +++" about") [] openIncidentsShort
@@ -416,28 +416,28 @@ configureCommunicationItemTask type initContacts initIncidents
                                             ,contacts=removeDup [contactIdentity c:initContacts]
                                             ,incidents=removeDup [incidentIdentity i:initIncidents]})
 
-configureUserCommunicationItemTask :: String ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
-configureUserCommunicationItemTask type meta {CommunicationActionDefinition|contactReference=Just ref,p2000Template} initContacts initIncidents 
-    =   findReferencedContacts ref 
-    >>- \contacts -> 
+configureUserCommunicationItemTask :: String ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
+configureUserCommunicationItemTask type meta {CommunicationActionDefinition|contactReference=Just ref,p2000Template} initContacts initIncidents
+    =   findReferencedContacts ref
+    >>- \contacts ->
         (enterChoiceAs ("Select the contact to " +++ toLowerCase type) [] contacts contactIdentity @ (\c -> (c,p2000Template)))
         -&&-
         updateInitialActionStatus meta initContacts initIncidents
 
-configureUserCommunicationItemTask type _ _ initContacts initIncidents 
+configureUserCommunicationItemTask type _ _ initContacts initIncidents
     = configureCommunicationItemTask type initContacts initIncidents
 
 communicationItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
 communicationItemTask (contactNo,mbP2000Template) status
     //View action description
-    =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status 
+    =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status
     -&&- ((
     //View contact communication means
         (viewContactCommunicationMeans contactNo
         >^* [OnAction ActionEdit (always (doOrClose (manageContactCommunicationMeans True contactNo) <<@ InWindow))]
         )
         //Manage list of communication attempts and initiate communications
-        -&&- attemptCommunication contactNo 
+        -&&- attemptCommunication contactNo
         ) <<@ ArrangeWithSideBar 0 LeftSide 200 True) <<@ ArrangeWithSideBar 0 TopSide 50 True
     @! ()
 where
@@ -464,7 +464,7 @@ where
     addP2000Message status attempts
         =   createCommunication P2000Message Out (Just contactNo)
         >>- \communicationNo ->
-            maybe (return ()) (initMessageFromTemplate communicationNo contactNo) mbP2000Template 
+            maybe (return ()) (initMessageFromTemplate communicationNo contactNo) mbP2000Template
         >>| doOrClose (composeP2000Message communicationNo) <<@ InWindow
         >>- \mbCommunication -> case mbCommunication of
             Nothing
@@ -541,7 +541,7 @@ where
 
     addActionToFolders a folders = [(match,if (match a) (add a folder) folder) \\ (match,folder) <- folders]
     where
-        add item=:(i,(iNo,pNo,action)) folder 
+        add item=:(i,(iNo,pNo,action)) folder
             # (added,nodes) = inject item (choiceTreeChildren folder)
             # nodes = if added nodes (nodes ++ [node i iNo action])
             # type = case folder.ChoiceTree.type of
@@ -689,7 +689,7 @@ manageCurrentSubActionItems status list
     @!  ()
 where
     //Filter the list for detached items
-    subTaskItems list = mapRead toActionStatusesTL (taskListMeta list) 
+    subTaskItems list = mapRead toActionStatusesTL (taskListMeta list)
 
     format {ActionStatus|title,progress}
         = {ActionStatusShort|progress=formatProgress progress,title=title}
@@ -785,7 +785,7 @@ where
 
     removeCatalogItem item
         =   viewInformation (Title "Remove") [] ("Remove " <+++ item.UserCatalogAction.identity <+++ "?")
-        >>? \nx -> 
+        >>? \nx ->
 	    upd (\xs -> [x \\ x <- xs | x.UserCatalogAction.identity <> item.UserCatalogAction.identity]) userActionCatalog @! ()
 
     exportCatalog
@@ -810,7 +810,7 @@ where
                 ) (\e -> viewInformation "Failed import action catalog" [] e @! ())
             ) <<@ Title "Import actions"
     where
-        instructions = toString 
+        instructions = toString
             (PTag [] [Text "Please select a JSON export file to upload.",BrTag []
                      ,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/actioncatalog.json",TargetAttr "_blank"] [Text "actioncatalog.json"]
                      ])

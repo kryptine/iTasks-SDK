@@ -9,7 +9,7 @@ wf :: String -> Workflow
 wf a = workflow a "Edit a shared note as a list" sharedNoteAsList
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine sharedNoteAsList world
 
 

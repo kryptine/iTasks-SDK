@@ -16,7 +16,7 @@ import C2.Framework.Entity
 						|  ESLUpdate (String,a -> Task a)
 						| ESLView (String,a -> Task ())
 						| ESLDel
-						| ESLClearAll  
+						| ESLClearAll
 
 derive class iTask Location
 

@@ -224,7 +224,7 @@ mkUpDown cur=:(curFloor, _) next=:(nextFloor, _) hopLocks
  //TODO  = beside (repeat AtBottom) [] ('DL'.strictTRMap (\n -> rect (px 3.0) ((px 3.0) *. n)) (if goesUp [1,2,3] [3,2,1])) NoHost <@< { opacity = if l 0.3 1.0 }
   = beside (repeat AtBottom) [] Nothing [] ('DL'.strictTRMap (\n -> rect (px 3.0) ((px 3.0) *. n)) (if goesUp [1,2,3] [3,2,1])) NoHost <@< { opacity = if l 0.3 1.0 }
 
-mkStatusBadge :: !SectionStatus Coord3D !RenderMode !Real ![Image (a, MapAction SectionStatus)] !SectionStatus 
+mkStatusBadge :: !SectionStatus Coord3D !RenderMode !Real ![Image (a, MapAction SectionStatus)] !SectionStatus
               -> [Image (a, MapAction SectionStatus)]
 mkStatusBadge activeSectionStatus c3d mngmnt badgeMult acc roomStatus
   #! high      = activeSectionStatus === roomStatus

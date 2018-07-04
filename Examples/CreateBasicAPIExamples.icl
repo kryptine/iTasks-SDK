@@ -31,7 +31,7 @@ recurse root
 			(tuple (Ok []))
 
 makeExs :: [FilePath] -> [String]
-makeExs i = 
+makeExs i =
 	[ "module BasicAPIExamples\n"
 	, "\n"
 	, "import iTasks"

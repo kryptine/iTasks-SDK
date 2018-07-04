@@ -16,6 +16,6 @@ browseAndViewGoogleMap :: Task GoogleMap
 browseAndViewGoogleMap
 	= withShared defaultValue 												// create shared default value for the map
 		(\smap -> 	updateSharedInformation "Browse Map" [] smap 			// update it here
-					-|| 
+					-||
 					viewSharedInformation "View Browsing Map" [] smap )		// while viewing it here
 	>>= viewInformation "Resulting map looks as follows" []					// show final result

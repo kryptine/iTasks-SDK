@@ -23,7 +23,7 @@ createNewIncident :: Task (Maybe IncidentNo)
 createNewIncident
 	=	enterInformation ("Create new incident", "Fill in the following basic information to create a new incident") []
 	>>? createIncident
-	
+
 createNewContact :: Task (Maybe ContactNo)
 createNewContact
 	=	enterInformation ("New contact","Enter the basic information of the new contact") []
@@ -167,7 +167,7 @@ manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Tas
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
     =   get refsList
     >>- \initList ->
-        parallel ([(Embedded, removeWhenStable (detailsTask i)) \\ i <- initList] ++ [(Embedded,add)]) [] 
+        parallel ([(Embedded, removeWhenStable (detailsTask i)) \\ i <- initList] ++ [(Embedded,add)]) []
     @! ()
 where
     add list
@@ -210,7 +210,7 @@ syncNetworkChannel :: String Int String (String -> m) (m -> String) (Shared ([m]
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
     = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect} @! ()
 where
-    onConnect _ (received,receiveStopped,send,sendStopped) 
+    onConnect _ (received,receiveStopped,send,sendStopped)
         = (Ok "",if (not (isEmpty send)) (Just (received,False,[],sendStopped)) Nothing, map encodeFun send,False)
 
 	onData newData acc (received,receiveStopped,send,sendStopped)
@@ -223,7 +223,7 @@ where
 	onShareChange acc (received,receiveStopped,send,sendStopped)
 		= (Ok acc,Nothing,[],False)
 
-    onDisconnect l (received,receiveStopped,send,sendStopped) 
+    onDisconnect l (received,receiveStopped,send,sendStopped)
 		= (Ok l,Just (received,True,send,sendStopped))
 
 consumeNetworkStream :: ([m] -> Task ()) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m

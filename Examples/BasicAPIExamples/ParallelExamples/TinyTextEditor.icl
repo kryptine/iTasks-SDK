@@ -9,7 +9,7 @@ wf :: String -> Workflow
 wf a = workflow a "Tiny text editor" editWithStatistics
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine editWithStatistics world
 
 :: Statistics 	= 	{	lineCount :: Int
@@ -24,17 +24,17 @@ derive class iTask Statistics, Replace
 
 
 editWithStatistics :: Task ()
-editWithStatistics 
+editWithStatistics
  =						enterInformation "Give name of text file you want to edit..." []
 	>>= \fileName -> 	let file = sharedStore fileName ""
-						in	editFile fileName file 
+						in	editFile fileName file
 							-||-
 							(showStatistics file -||- replace initReplace file <<@ ApplyLayout arrangeHorizontal)
 							>>*	 [ OnAction (Action "Quit") (always (return ()))
-								 ] 
+								 ]
 
 editFile :: String (Shared String)  -> Task ()
-editFile fileName sharedFile 
+editFile fileName sharedFile
 	=	updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile @! ()
 
 showStatistics :: (Shared String) -> Task ()
@@ -49,13 +49,13 @@ where
 		lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
 replace :: Replace (Shared String) -> Task ()
-replace cmnd sharedFile 
- = 	(	updateInformation "Replace:" [] cmnd 
+replace cmnd sharedFile
+ = 	(	updateInformation "Replace:" [] cmnd
 	>>*	[ OnAction (Action "Replace") (hasValue substitute)
 		]
 	)
 where
- 	substitute cmnd 
-	 	=	upd (replaceSubString cmnd.search (if (isNothing cmnd.replaceBy) "" (fromJust cmnd.replaceBy))) sharedFile 
+ 	substitute cmnd
+	 	=	upd (replaceSubString cmnd.search (if (isNothing cmnd.replaceBy) "" (fromJust cmnd.replaceBy))) sharedFile
 	 	>>| replace cmnd sharedFile
 

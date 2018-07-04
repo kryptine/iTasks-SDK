@@ -47,7 +47,7 @@ definition module Incidone.Util.AIS
 	, day			:: Int		// Day
 	, hour			:: Int		// Hour
 	, minute		:: Int		// Minute
-	, second		:: Int		// Second 
+	, second		:: Int		// Second
 	, accuracy		:: Bool		// Fix quality
 	, lon			:: Int		// Longitude
 	, lat			:: Int		// Latitude

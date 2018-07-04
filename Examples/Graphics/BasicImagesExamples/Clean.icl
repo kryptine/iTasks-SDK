@@ -51,7 +51,7 @@ where
 */
 star :: Int (Real,Real) -> Image m
 star n (r_in,r_out)
-	= polygon (flatten 
+	= polygon (flatten
 	     [  [(px r_out *. (cos (angle * (toReal outer_corner))), px r_out *. (sin (angle * (toReal outer_corner))))
 	        ,(px r_in  *. (cos (angle * (toReal inner_corner))), px r_in  *. (sin (angle * (toReal inner_corner))))
 	        ]

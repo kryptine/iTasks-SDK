@@ -24,9 +24,10 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
-			DescExL:    False
+			GenericFusion:	False
+			DescExL:	False
 		Output
-			Output:	ShowConstructors
+			Output:	NoReturnType
 			Font:	Courier
 			FontSize:	9
 			WriteStdErr:	False
@@ -41,6 +42,10 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+	OtherPaths
+		Path:	{Application}*lib*Dynamics
+		Path:	{Application}*lib*Platform
+		Path:	{Application}*lib*StdEnv
 	Precompile:	
 	Postlink:	
 MainModule

@@ -14,7 +14,7 @@ Start world
 // Update and view shared notifications
 
 sharedNotes :: Task String
-sharedNotes 
+sharedNotes
 	= withShared ""																									// create an initial empty shared string
 		(\note -> 	viewSharedInformation "View on note" [ViewUsing id textArea] note								// one to view the resulting string
 					-||-

@@ -8,7 +8,7 @@ wf :: String -> Workflow
 wf a = workflow a "Edit a shared list of persons" enterSharedPersons
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine enterSharedPersons world
 
 :: Person =
@@ -21,8 +21,8 @@ Start world
 
 derive class iTask Person, Gender
 
-enterSharedPersons :: Task [Person] 
-enterSharedPersons 
+enterSharedPersons :: Task [Person]
+enterSharedPersons
 	= 				withShared []																		// create an empty shared list
 	\sharedList ->  updateSharedInformation "Modify the Shared List of Persons:" [] sharedList			// update that list
 					-||

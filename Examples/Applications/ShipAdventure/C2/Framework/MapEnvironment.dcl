@@ -1,7 +1,7 @@
 definition module C2.Framework.MapEnvironment
- 
+
 import iTasks
- 
+
 import iTasks.Internal.Tonic
 import iTasks.Extensions.Admin.TonicAdmin
 from Data.IntMap.Strict import :: IntMap
@@ -177,9 +177,9 @@ getObjectOfType :: !(Actor o a) !o -> Object o | iTask o & iTask a
 
 // given a shortest path algorithm, the current location and the kind of object one searches for
 // returns: number of objects found, location of the closest object, distance to that object, shortest path to that object
-//pathToClosestObject :: (Coord3D !Coord3D Maps2D -> Maybe ([Coord3D], Distance)) o Coord3D Maps2D 
+//pathToClosestObject :: (Coord3D !Coord3D Maps2D -> Maybe ([Coord3D], Distance)) o Coord3D Maps2D
 //															-> (Int, (Coord3D, Distance, Maybe ([Coord3D], Distance)))
-															
+
 // given a shortest path algorithm, the current location, the kind of object one searches for, and the destination where the object has to be taken to
 // returns: number of objects found, location of the closest object, distance to that object, shortest path to that object
 smartPathToClosestObject :: !(Coord3D Coord3D (SectionStatusMap r) SectionExitLockMap SectionHopLockMap Graph -> Maybe ([Coord3D], Distance))

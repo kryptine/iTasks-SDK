@@ -26,7 +26,7 @@ selectContact = withShared Nothing
          (viewContactsOnMap mapContacts sel <<@ Title "Map")
 		 <<@ ArrangeWithTabs True
         )
-where	
+where
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
 
 	selectContactFromLists :: (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
@@ -40,7 +40,7 @@ where
 /*
 				  ,(editSharedSelectionWithShared (Title "AIS") False
 						(SelectInTree ungrouped) (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
-*/				  ] <<@ (ArrangeSplit Horizontal True) @? tvHd 
+*/				  ] <<@ (ArrangeSplit Horizontal True) @? tvHd
 
     fromOpenOption [{ContactShortWithIncidents|contactNo}] = contactNo
 
@@ -195,7 +195,7 @@ manageContactCommunicationMeans compact contactNo = forever (
     >^* [OnAction ActionAdd  (always (addMean contactNo <<@ InWindow @! ()))
         ,OnAction ActionEdit (hasValue (\{CommunicationMean|id} -> editMean id <<@ InWindow @! ()))
         ,OnAction ActionRemove (hasValue (\{CommunicationMean|id} -> removeMean id))
-        ] 
+        ]
     )
 where
     ActionAdd = Action (if compact "Add" "/Add")
@@ -263,7 +263,7 @@ manageContactIncidents :: Workspace ContactNo -> Task ()
 manageContactIncidents ws contactNo
     =	feedForward choose
     (	\sel ->
-        withSelection viewNoSelection viewIncidentDetails sel 
+        withSelection viewNoSelection viewIncidentDetails sel
         -&&-
         doAddRemoveOpen (add <<@ InWindow) (\c -> (remove c) <<@ InWindow) (\c -> doOrClose (open c)) ws sel
     )	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
@@ -596,7 +596,7 @@ where
 	selection _								= NoValue
 
     sharePerspective (_,perspective) = set (WallOverview perspective) wallContent @! ()
-	
+
     toMarkers sel contacts
         = [contactGeoToMapMarker ais (isSelected contactNo sel) c \\ (ais,c=:{ContactGeo|contactNo,name=Just _,position=Just _}) <- contacts]
 
@@ -609,7 +609,7 @@ where
         | startsWith "c" markerId   = Just (Left (toInt (subString 1 (textSize markerId) markerId)))
         | startsWith "a" markerId   = Just (Right (toInt (subString 1 (textSize markerId) markerId)))
                                     = updateSelection ms
-		
+
 	findContactNo title contacts = case [(isAis,contactNo) \\ (isAis,{ContactGeo|contactNo,name}) <- contacts | name == title] of
 		[(False,contactNo)] = Just (Left contactNo)
 		[(True,mmsi)]   = Just (Right mmsi)

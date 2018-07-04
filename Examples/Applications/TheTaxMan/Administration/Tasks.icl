@@ -10,14 +10,14 @@ import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS
 import StdArray, StdFile
 
 batchProcessing :: Task ()
-batchProcessing 
-	=				pay								
+batchProcessing
+	=				pay
 
 pay :: Task ()
-pay	
+pay
 	= 				get currentDate
 	>>- \today ->	get collectionPayments
-	>>- \payments ->	
+	>>- \payments ->
 	let pay_now   = filter (\collection=:{Collection | date} -> date <= today) payments
 		pay_later = filter (\collection=:{Collection | date} -> date >  today) payments
 	in				set pay_later collectionPayments
@@ -34,9 +34,9 @@ viewSelectedCitizen
 viewCitizenInformation :: SSN Date -> Task ()
 viewCitizenInformation ssn date
 	=					getCitizen ssn
-	>>- \mbCit -> 		if (isNothing mbCit) (return ()) 
+	>>- \mbCit -> 		if (isNothing mbCit) (return ())
 	(					return (fromJust mbCit)
-	>>- \cit=:{Citizen|ssn} ->	
+	>>- \cit=:{Citizen|ssn} ->
 	(					viewInformation "Overview data:" [] ())
 	-|| (				viewInformation (Title "Address information") [] cit
 						-&&-
@@ -56,9 +56,9 @@ viewAddressOfCurrentUser
 	=				currentCitizen
 	>>-	\citizen ->	viewInformation "My data:" [] citizen
 					-||
-					viewInformation () [] (if (isNothing citizen.Citizen.homeAddress) 
+					viewInformation () [] (if (isNothing citizen.Citizen.homeAddress)
 												(Text "Unknown home address")
-												(showAddress (fromJust citizen.Citizen.homeAddress).Address.postcode (fromJust citizen.Citizen.homeAddress).Address.houseNumber)) 
+												(showAddress (fromJust citizen.Citizen.homeAddress).Address.postcode (fromJust citizen.Citizen.homeAddress).Address.houseNumber))
 	@! ()
 where
 	showAddress postcode houseNumber
@@ -73,8 +73,8 @@ getCitizen ssn
 // current User logged in
 //	authenticated users always have a SSN
 currentSSN :: Task SSN
-currentSSN 
-	= 												get currentUser 
+currentSSN
+	= 												get currentUser
 	>>- \(AuthenticatedUser userId roles title) ->	return (hd [ssn \\ role <- roles , ("ssn",ssn) <- [(role%(0,2),role%(3,11))]])
 
 currentCitizen :: Task Citizen
@@ -84,22 +84,22 @@ currentCitizen
 	>>-	\citizen -> return (fromJust citizen)
 
 showCitizenInformationOfCurrentUser :: Task ()
-showCitizenInformationOfCurrentUser 
+showCitizenInformationOfCurrentUser
 	=		 	currentSSN
 	>>- \ssn -> viewCitizenInformation ssn defaultValue
 	>>|			return ()
 
 examplefilepath :: !FilePath !String -> FilePath
 examplefilepath dir filename = dir <+++ pathSeparator <+++ "ExampleData" <+++ pathSeparator <+++ filename
- 
+
 convertExampleData :: Task ()
 convertExampleData
 	=				accWorldError getCurrentDirectory (\(errorcode,errormsg) -> "convert task failed to access current directory (errorcode: " <+++ errorcode <+++ ", errormsg: " <+++ errormsg <+++ ".\n")
 	>>- \curDir ->  readLinesFromFile (examplefilepath curDir "roofing_companies.txt")
-	>>- \lines ->	set [{ cocNo   = no 
+	>>- \lines ->	set [{ cocNo   = no
 					     , cocName = name
 					     , type    = ["solar panel company"]
-						 } \\ line <- lines, 
+						 } \\ line <- lines,
 						 [no,name:_] <- [split "\t" line]
 						 ] companies
 	>>=	\roofers ->	viewInformation "roofing companies:" [] roofers
@@ -109,8 +109,8 @@ convertExampleData
 						 , name        = {Name | forename = fore, surname = sur}
 						 , homeAddress = if (postcode == "AU") Nothing
 						                                       (Just {Address | postcode = postcode, houseNumber = toInt no})
-						 } 
-						\\ 	line <- lines, 
+						 }
+						\\ 	line <- lines,
 							[ssn,fore,sur,postcode,no:_] <- [split "\t" line]
 						] citizens
 	>>=	\cvs ->		viewInformation "citizens:" [] cvs
@@ -122,23 +122,23 @@ convertExampleData
 	>>|				readLinesFromFile (examplefilepath curDir "officers.txt")
 	>>- \officers -> importDemoUsersFlow
 	>>- \demoAccounts ->
-					set ([{UserAccount | credentials = 	{ username = Username "root", password = Password "root"} 
+					set ([{UserAccount | credentials = 	{ username = Username "root", password = Password "root"}
 		 								, title = Just "root", roles = ["admin","programmer","god"]
 		 								}] ++
 						 [{UserAccount | demo & roles = ["admin"]} 	\\ demo <- demoAccounts] ++
-						 [{UserAccount | credentials = 	{ username = Username officer, password = Password officer} 
+						 [{UserAccount | credentials = 	{ username = Username officer, password = Password officer}
 		 								, title = Just officer, roles = ["officer"]
-		 								} 
+		 								}
 		 								\\ officer <- map rtrim officers]	++
 						 [{UserAccount | credentials = 	{ username = Username roofer.cocNo, password = Password roofer.cocNo}
 		 								, title = Just roofer.cocName, roles = ["roofing company"]
-		 								} 
-		 								\\ roofer <- roofers] ++	
+		 								}
+		 								\\ roofer <- roofers] ++
 						 [{UserAccount | credentials = 	{ username = Username cv.Citizen.ssn, password = Password cv.Citizen.ssn}
 		 								, title = Just (cv.Citizen.name.forename +++ " " +++ cv.Citizen.name.surname), roles = ["citizen","ssn"+++ toString cv.Citizen.ssn]
-		 								} 
-		 								\\ cv <- cvs] 	
-					
+		 								}
+		 								\\ cv <- cvs]
+
 					) userAccounts
 	>>=				viewInformation "accounts" []
 	>>|	viewInformation "Done!" [] ()
@@ -152,7 +152,7 @@ where
 		[postcode,no,ssn_or_coc:_]		= split "\t" line_from_real_estate_owners
 		address							= {Address | postcode = postcode, houseNumber = toInt no}
 		id								= if (size ssn_or_coc == 8) (Right ssn_or_coc) (Left ssn_or_coc)
-	
+
 	add_cadastre_real_estate :: [CadastreRealEstate] RealEstateOwner -> [CadastreRealEstate]
 	add_cadastre_real_estate data {RealEstateOwner | ownerID,addresses}
 		= foldl (add_real_estate ownerID) data addresses
@@ -166,16 +166,16 @@ where
 // copied from directoryBrowsing:
 readLinesFromFile :: !String -> Task [String]
 readLinesFromFile path = accWorldError (read path) id
-where 
+where
 	read path world
 	# (ok,file,world)			= fopen path FReadData world
-	| not ok					= (Error ("Cannot find file: " +++ path), world) 
+	| not ok					= (Error ("Cannot find file: " +++ path), world)
 	# (res,file)				= readAllLines file []
 	# (ok,world)				= fclose file world
 	| not ok					= (Error ("Cannot close file: " +++ path), world)
     =  (Ok res, world)
 
-	readAllLines file accu 
+	readAllLines file accu
 	# (line,file) 				= freadline file
 	| line == ""				= (reverse accu,file)
 	= readAllLines file [line:accu]

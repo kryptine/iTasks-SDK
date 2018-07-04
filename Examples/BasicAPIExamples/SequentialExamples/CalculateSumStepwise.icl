@@ -8,7 +8,7 @@ wf :: String -> Workflow
 wf a = workflow a "Calculate the Sum Stepwise" calculateSumStepwise
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine calculateSumStepwise world
 
 calculateSumStepwise :: Task Int

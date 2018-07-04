@@ -8,7 +8,7 @@ wf :: String -> Workflow
 wf a = workflow a "Edit a list of Persons one by one" (person1by1 [])
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine (person1by1 [])  world
 
 :: Person =
@@ -23,8 +23,8 @@ derive class iTask Person, Gender
 
 person1by1 :: [Person] -> Task [Person]
 person1by1 persons
-	=       enterInformation "Add a person" [] 
-			-|| 
+	=       enterInformation "Add a person" []
+			-||
 			viewInformation "List so far.." [] persons // <<@ horizontal
 	>>*		[ OnAction  (Action "Add") 		(hasValue (\v -> person1by1  [v : persons]))
 		    , OnAction  (Action "Finish")   (always (return persons))

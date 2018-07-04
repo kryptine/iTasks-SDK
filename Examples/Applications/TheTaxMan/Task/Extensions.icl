@@ -13,7 +13,7 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
 where
   crud
     =  ( enterChoiceWithShared descr [ChooseFromGrid id:choiceOpts] (mapRead toList sh)
- 	>&^ viewSharedInformation (Title "Selected") []) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide 350 True) 
+ 	>&^ viewSharedInformation (Title "Selected") []) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide 350 True)
     >>* [ OnAction (Action "New")    (always   newItem)
         , OnAction (Action "Edit")   (hasValue editItem)
         , OnAction (Action "Delete") (hasValue deleteItem)
@@ -23,7 +23,7 @@ where
     >>* [OnAction ActionOk (hasValue (\item -> upd (putItem item) sh @! ()))
 		,OnAction ActionCancel (always (return ()))
 		]
-	
+
   editItem x
     =            updateInformation (Title "Edit item") updateOpts x
     >>* [OnAction ActionOk (hasValue (\item -> upd (delItem x) sh >>| upd (putItem item) sh @! ()))
@@ -40,14 +40,14 @@ crud` descr toList putItem delItem sh = crudWith descr [] [] [] [] toList putIte
 
 editStore :: String (Shared [a]) -> Task () | iTask a & Eq a & Ord a
 editStore prompt store
-	= crud` (Title prompt) id (\item items -> sort [item:items]) (\item items -> removeMember item items) store 
+	= crud` (Title prompt) id (\item items -> sort [item:items]) (\item items -> removeMember item items) store
 
 addToStore :: [a] !(Shared [a]) -> Task () | iTask a
 addToStore new store
 	= upd (\content -> content ++ new) store @! ()
 
 appendTitledTopLevelTask :: String (Task a) -> Task TaskId | iTask a
-appendTitledTopLevelTask title task 
+appendTitledTopLevelTask title task
 	= get currentUser -&&- get currentDateTime
 	>>- \(user,now) -> appendTopLevelTask ('DM'.fromList [ ("title", title)
                                           , ("createdBy",  toString (toUserConstraint user))
@@ -65,7 +65,7 @@ startTopLevelOnce viewTask action title flowTask
 		[{TaskInstance|instanceNo}:_]
 			= workOn (TaskId instanceNo 0) <<@ ApplyLayout (setUIAttributes (sizeAttr FlexSize FlexSize))
 			@! ()
-		_   = 	viewTask 
+		_   = 	viewTask
 			>>* [OnAction action (always (
 						appendTitledTopLevelTask title flowTask
 					>>- \taskId -> (workOn taskId <<@ ApplyLayout (setUIAttributes (sizeAttr FlexSize FlexSize)))
@@ -73,7 +73,7 @@ startTopLevelOnce viewTask action title flowTask
 				))]
 
 maybeCancel :: String (Task a) -> Task (Maybe a) | iTask a
-maybeCancel panic task	
+maybeCancel panic task
 	= 	task >>* [OnValue (ifStable (return o Just))
 	             ,OnAction (Action panic) (always (return Nothing))]
 

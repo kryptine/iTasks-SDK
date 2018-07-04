@@ -94,11 +94,11 @@ where
 contactSummary :: Contact -> ContactShort
 contactSummary {Contact|contactNo,name,type,group}
 	= {ContactShort|contactNo = contactNo, name = name, type = type, group = group}
-		
+
 incidentDetails :: Incident -> IncidentDetails
 incidentDetails {Incident|incidentNo,title,summary,type,phase}
 	= {IncidentDetails|incidentNo = incidentNo, title = title, summary = summary, type = type, phase = phase}
-	
+
 contactDetails :: Contact -> ContactDetails
 contactDetails {Contact|contactNo,name,type,position,notes}
 	= {ContactDetails|contactNo = contactNo, name = name, type = type, position = position, notes = notes}

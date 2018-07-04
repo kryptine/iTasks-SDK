@@ -15,4 +15,4 @@ Start world
 googleMap :: Task GoogleMap
 googleMap
 	=   enterInformation "Enter a Google map:" []
-	>>= viewInformation "You entered:" [ViewAs (gText{|*|} AsMultiLine o Just)] 
+	>>= viewInformation "You entered:" [ViewAs (gText{|*|} AsMultiLine o Just)]

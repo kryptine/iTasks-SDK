@@ -6,7 +6,7 @@ import iTasks.Extensions.Admin.UserAdmin
 import iTasks.Extensions.Admin.WorkflowAdmin
 
 wf :: String -> Workflow
-wf a = workflow a "Chat with other users" multiUserExample
+wf a = workflow a "Chat with other users" myExample
 
 Start :: *World -> *World
 Start world
@@ -18,11 +18,10 @@ multiUserExample
 						(foldl (+++) "" (map (\n -> n +++ ", ") players))
 					-||-
 					viewInformation "and then Select \"new\" to create a new Task..." [] ""
-	>>|				loginAndManageWorkList "Chat_4_2 Example" [workflow "chat" "chat" myExample]
+	>>|				loginAndManageWorkList "Chat_4_2 Example" [wf "chat"]
 where
 	mkUserAccount name
 		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
-
 
 // -------------------------------------------------------------------------
 // Simple MultiUser Chat Application for 2 users
@@ -50,7 +49,7 @@ startChats enter update chatters chatStore
 	>>| get chatStore
 
 chatWith :: User (Task a) (User a -> Task b) (Shared [b]) -> Task () | iTask a & iTask b
-chatWith me enter update chatStore  
+chatWith me enter update chatStore
 	=  	viewSharedInformation ("Chat History:") [] chatStore
 	   	||-
 		oneChat

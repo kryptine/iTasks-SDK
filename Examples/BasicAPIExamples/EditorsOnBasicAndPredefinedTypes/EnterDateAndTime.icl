@@ -9,10 +9,10 @@ wf :: String -> Workflow
 wf a = workflow a "Enter a date and a time" enterDateTime
 
 Start :: *World -> *World
-Start world 
+Start world
 	= startEngine enterDateTime world
 
 enterDateTime :: Task [(Date, Time)]
-enterDateTime 
+enterDateTime
 	= 	enterInformation "Enter a date and time" []
 	>>=	viewInformation "You Entered:" []
