@@ -10,7 +10,7 @@ import iTasks.Internal.Util
 
 from iTasks.WF.Combinators.Core import :: SharedTaskList
 from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(..)
-from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del
+from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del, mapSize
 from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 from iTasks.Internal.SDS as SDS       import qualified read, write, modify
@@ -64,7 +64,8 @@ processEvents max iworld=:{IWorld| memoryShares}
 		= case dequeueEvent iworld of 
 			(Nothing,iworld) = (Ok (),iworld)
 			(Just (instanceNo,event),iworld)
-				= case trace_n ("memory shares size " +++ toString (size $ copy_to_string memoryShares)) $ evalTaskInstance instanceNo event iworld of
+				//# iworld = trace_n ("memory shares size " +++ toString (size $ copy_to_string memoryShares) +++ ", num "+++ toString ('DM'.mapSize memoryShares)) iworld
+				= case evalTaskInstance instanceNo event iworld of
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld=:{IWorld|world})
@@ -124,7 +125,7 @@ where
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
-            # (_,iworld)                = 'SDS'.modify (\r -> let x = ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}) in trace_n (diffToConsole $ gDiff{|*|} r.tree tree) x)
+            # (_,iworld)                = 'SDS'.modify (\r -> let x = ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}) in x)
                                                 (sdsFocus instanceNo taskInstanceReduct) iworld
 												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
