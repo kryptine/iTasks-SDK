@@ -1,6 +1,6 @@
 test:
     before_script:
-        - install_clean.sh bundle-complete && apt-get update -qq && apt-get install -y -qq build-essential libsqlite3-dev libmariadbclient-dev-compat
+        - install_clean.sh bundle-complete && install_clean_nightly.sh test && apt-get update -qq && apt-get install -y -qq build-essential libsqlite3-dev libmariadbclient-dev-compat
     image: "camilstaps/clean:nightly"
     script:
-        - bash Tests/ci-tests.bash
+        - bash ci-tests.bash

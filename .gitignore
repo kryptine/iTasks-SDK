@@ -6,6 +6,5 @@
 *.prp
 *.exe
 .sass-cache
-
-# This is generated
 BasicAPIExamples.icl
+.ctest-results.json

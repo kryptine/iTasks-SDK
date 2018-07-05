@@ -62,13 +62,12 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !DeferredJSON !Bool 									//Encoded value and stable indicator
 	| TCInteract	            !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditMask
-	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
-	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
+	| TCStep					!TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
+	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
 	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
-	//| TCLayout					!DeferredJSON !TaskTree
 	| TCLayout					!(!LUI,!LUIMoves) !TaskTree
 	| TCNop			
 	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event

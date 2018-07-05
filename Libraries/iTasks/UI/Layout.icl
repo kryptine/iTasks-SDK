@@ -934,11 +934,12 @@ extractDownstreamChange (lui,moves)
 	# mbChildChange = extractDownstreamChildChange lui moves
 	# (mbLui,moves)  = confirmChangesAndEffects_ (lui, moves)
 	= case (mbChildChange,mbLui) of
-		(Just (InsertChild ui), Just lui)     = (ReplaceUI ui,(lui,moves))
-		(Just RemoveChild, Just lui)          = (ReplaceUI (UI UIEmpty 'DM'.newMap []),(lui,moves))
-		(Just (ChangeChild change), Just lui) = (change,(lui,moves))
-		(Nothing, Just lui)                   = (NoChange,(lui,moves))
+		(Just (InsertChild ui), Just lui)     = (ReplaceUI ui, cleanupState_ (lui,moves))
+		(Just RemoveChild, Just lui)          = (ReplaceUI (UI UIEmpty 'DM'.newMap []), cleanupState_ (lui,moves))
+		(Just (ChangeChild change), Just lui) = (change, cleanupState_ (lui,moves))
+		(Nothing, Just lui)                   = (NoChange, cleanupState_ (lui,moves))
 		_ = abort "extractDownstreamChange: at the top-level, an lui should always be returned"
+
 
 //For each node we need to extract one of the following changes:
 // 1. Just (InsertChild x)        - The node did not exist client-side, but does now
@@ -1321,3 +1322,17 @@ confirmEffect_ (ESToBeApplied x) = ESApplied x
 confirmEffect_ (ESToBeUpdated _ x) = ESApplied x
 confirmEffect_ (ESToBeRemoved x) = ESNotApplied
 confirmEffect_ es = es
+
+//This extra pass should not be necessary, but without it the moves table is
+//leaking memory
+//TODO: Figure out why some moved items are still in the table
+cleanupState_ :: (LUI,LUIMoves) -> (LUI,LUIMoves) 
+cleanupState_ (lui,moves) = (lui, onlyKeep usedMoveIds moves)
+where
+	onlyKeep keep moves = ('DM'.fromList o (filter (\(k,_) -> isMember k keep)) o 'DM'.toList) moves
+
+	usedMoveIds = collect lui
+
+	collect (LUINode _ _ items _ _) = flatten (map collect items)
+	collect (LUIMoveSource moveId) = [moveId:maybe [] (collect o snd) ('DM'.get moveId moves)]
+	collect _ = []

@@ -1,14 +1,14 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks
-	Exec:	{Project}/RunUnitTestsForCI
+	Target:	StdEnv
+	Exec:	{Project}/iTasks.Internal.TaskStore.UnitTests
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	209715200
-		StackSize:	5120000
+		HeapSize:	20971520
+		StackSize:	512000
 		ExtraMemory:	8192
 		IntialHeapSize:	204800
 		HeapSizeMultiplier:	4096
@@ -27,7 +27,7 @@ Global
 			GenericFusion:	False
 			DescExL:	False
 		Output
-			Output:	ShowConstructors
+			Output:	NoConsole
 			Font:	Monaco
 			FontSize:	9
 			WriteStdErr:	False
@@ -42,10 +42,18 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+		Path:	{Project}*..*..*Libraries
+		Path:	{Application}*lib*Dynamics
+		Path:	{Application}*lib*GraphCopy
+		Path:	{Application}*lib*Sapl
+		Path:	{Application}*lib*StdEnv
+		Path:	{Application}*lib*TCPIP
+		Path:	{Application}*lib*Platform
+		Path:	{Application}*lib*Platform/Deprecated/StdLib
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	RunUnitTestsForCI
+	Name:	iTasks.Internal.TaskStore.UnitTests
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
