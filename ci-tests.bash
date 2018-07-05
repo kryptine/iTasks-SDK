@@ -27,7 +27,9 @@ find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; cpm make"
 #With generic fusion
 find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
-	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
+	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj &&
+	sed -i 's|EnvironmentCompiler:	lib/exe/cocl:|&:-h 4000m -s 100m|g' *.prj && cpm make"
+		
 
 #Run the unit tests
 find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -r
