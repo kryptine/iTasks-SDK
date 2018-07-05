@@ -1,6 +1,6 @@
 module TestSVGEditlet
 import iTasks
-import iTasks.Internal.Test.Definition
+import iTasks.Util.Testing
 
 import StdReal
 

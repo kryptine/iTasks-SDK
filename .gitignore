@@ -6,3 +6,4 @@
 *.prp
 *.exe
 .sass-cache
+.ctest-results.json
