@@ -22,7 +22,12 @@ fi
 find . -name "*.prj.default" | while read f; do
 		cp "$f" "$(dirname $f)/$(basename -s .prj.default $f)".prj
 	done
-find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c "cd {}; cpm make"
+#Without generic fusion
+find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+	"cd {}; cpm make"
+#With generic fusion
+find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
 find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -r
