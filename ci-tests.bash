@@ -25,4 +25,4 @@ find . -name "*.prj.default" | while read f; do
 find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c "cd {}; cpm make"
 
 #Run the unit tests
-find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -r
+find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -f human -r
