@@ -4,7 +4,7 @@ import iTasks
 import iTasks.Extensions.Admin.UserAdmin
 
 StartMultiUserTasks :: [Workflow] [PublishedTask] *World -> *World
-StartMultiUserTasks workflows tasks world 
+StartMultiUserTasks workflows tasks world
 	= startTask [ workflow "Manage users"  "Manage system users..."   manageUsers
 				: workflows
 				] tasks world
@@ -18,7 +18,7 @@ where
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
 		>>* [OnAction (Action "Login") (hasValue (browseAuthenticated taskList))
 			] )
-	
+
 	browseAuthenticated taskList {Credentials|username,password}
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of

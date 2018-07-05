@@ -6,4 +6,5 @@
 *.prp
 *.exe
 .sass-cache
+BasicAPIExamples.icl
 .ctest-results.json

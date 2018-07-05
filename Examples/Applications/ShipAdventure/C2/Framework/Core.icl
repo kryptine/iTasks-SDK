@@ -41,7 +41,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
   controlDash :: Task ()
   controlDash
     = (allTasks [ viewInformation () [] ("Welcome " +++ toString user) @! ()
-                , viewNotifications 
+                , viewNotifications
                 ] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
       >>* [OnAction (Action "Log out") (always (return ()))]
       ) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))

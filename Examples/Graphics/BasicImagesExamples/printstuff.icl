@@ -92,7 +92,7 @@ indentImg prefix {Img | uniqId,host,transform,overlays,offsets}
 	     ""
 	     (prefix <+ ",offsets = " <+ showl offsets <+ "\n") <+
 	  prefix <+ "}"
-	  
+
 indentHost :: !String !HostImg -> String
 indentHost prefix (BasicHostImg img attrs)
 	= toString img <+ if (isEmpty (toList attrs)) "" (" <@< " <+ showl (toList attrs))

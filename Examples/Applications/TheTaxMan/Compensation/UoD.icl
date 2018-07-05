@@ -95,11 +95,11 @@ where
 
 derive class iTask 	DecisionStatus,
 					Decision,
-					TaxSolarPanelDossier, 
+					TaxSolarPanelDossier,
 					Collection,
 					RealEstateOwner,
 					CompanyDeclaration,
-					TaxCompensationCitizenRequest, 
+					TaxCompensationCitizenRequest,
 					TaxCompensationDocuments,
 					OwnedRealEstate
 instance == DecisionStatus          where == a1 a2 = a1 === a2
@@ -109,6 +109,6 @@ instance == Collection              where == a1 a2 = a1 === a2
 instance == RealEstateOwner         where == a1 a2 = a1 === a2
 
 instance <  TaxSolarPanelDossier    where <  a1 a2 = a1.TaxSolarPanelDossier.date < a2.TaxSolarPanelDossier.date
-instance <  Decision                where <  a1 a2 = a1.Decision.ssn              < a2.Decision.ssn 
+instance <  Decision                where <  a1 a2 = a1.Decision.ssn              < a2.Decision.ssn
 instance <  Collection              where <  a1 a2 = a1.Collection.date           < a2.Collection.date
 instance <  RealEstateOwner         where <  a1 a2 = a1.RealEstateOwner.ownerID   < a2.RealEstateOwner.ownerID

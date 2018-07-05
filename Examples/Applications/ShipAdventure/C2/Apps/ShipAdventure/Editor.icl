@@ -195,7 +195,7 @@ graphicalMapEditor
 where
 	imageEditor = fromSVGEditor
 		{ initView       = fst
-		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ -> 
+		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ ->
 		//TODO	above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 			above [] [] Nothing [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 		, updView        = \m v -> fst m
@@ -241,10 +241,10 @@ editOuterBorders border ship mapID = case getMap2DIndex mapID ship of
       #! m2d = foldr (\rowIdx -> updSection {row = rowIdx,     col = lastColIdx} (editBorder E border)) m2d [0..lastRowIdx]
       = m2d
     editBorders _ m2d = m2d
-    
+
     editBorder :: !Dir !Border !Section -> Section
     editBorder dir border s = {Section | s & borders = edit dir border s.Section.borders}
-    
+
     edit :: !Dir !Border !Borders -> Borders
     edit N border b = {Borders | b & n = border}
     edit E border b = {Borders | b & e = border}
@@ -376,7 +376,7 @@ where
 	where
 		curNoOfRows		= length sections
 		curNoOfColumns	= length (hd sections)
-		
+
 	    heighten :: ![[Section]] -> [[Section]]
 		heighten sects	= if (newNoOfRows < curNoOfRows) (take newNoOfRows sects)
 						 (if (newNoOfRows > curNoOfRows) (sects ++ [  [  initSection
@@ -393,7 +393,7 @@ where
 						                                       \\ row <- sects & row_no <- [0..]
 						                                       ]
 						                                       sects)
-	
+
 	updateNoOfMaps :: !Int !Maps2D -> Maps2D
 	updateNoOfMaps newNoOfMaps maps
 	| newNoOfMaps <= 0	= maps
@@ -408,7 +408,7 @@ where
 		(dim,mapsize,doorsize)
 						= if (isEmpty maps) ((1,1),initMap2DSize,initDoors2DSize)
 						     (let map = hd maps in (dimension map,map.Map2D.size2D,map.Map2D.doors2D))
-		
+
 		noUpStairs :: !Section -> Section
 		noUpStairs s=:{Section | hops}
 						= {Section | s & hops = filter (\(idx,_) -> idx <= topfloor) hops}
@@ -460,7 +460,7 @@ fromMapActionForm (maps,edit) sectionE=:{EditForm | map2DIndex = idx,section=c,n
   = (updMap2D idx ((updateMapID newMapId) o (updSection c (updateSection (idx,c) sectionE))) (updHops (idx,c) up down maps),updateSelection (idx,c) edit)
 where
 	new_hops	= if up [(idx-1,c)] [] ++ if down [(idx+1,c)] []
-	
+
 	updHops :: !Coord3D !Bool !Bool !Maps2D -> Maps2D
 	updHops source=:(idx,c) up down maps
 	  = case getMap2D idx maps of
@@ -474,14 +474,14 @@ where
 	where
 		removeHop c maps (idx,c`) = updMap2D idx (updSection c` (\s=:{Section | hops} -> {Section | s & hops = removeMember c hops})) maps
 		addHop c maps (idx,c`) = updMap2D idx (updSection c` (\s=:{Section | hops} -> {Section | s & hops = [c:hops]})) maps
-	
+
 	updateMapID :: !MapID !Map2D -> Map2D
 	updateMapID newId map = {Map2D | map & mapId = newId}
-	
+
 	updateSection :: !Coord3D !EditForm !Section -> Section
 	updateSection (idx,c) {EditForm | sectionName,up,down} s
 		= {Section | s & sectionName=fromMaybe "" sectionName,hops = new_hops}
-	
+
 	updateSelection :: !Coord3D !(MapAction s) -> MapAction s
 	updateSelection c3d (FocusOnMap     _)	= FocusOnSection c3d
 	updateSelection c3d (FocusOnSection _)	= FocusOnSection c3d

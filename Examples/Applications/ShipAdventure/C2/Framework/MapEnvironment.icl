@@ -27,7 +27,7 @@ derive class iTask Map2D, Section, Borders, Border, Coord2D, Dir, MapAction
 
 derive class iTask Actor, Object
 
-// small utility functions 
+// small utility functions
 
 instance == (Actor o a)  where (==) a1 a2 = a1.userName == a2.userName
 
@@ -244,7 +244,7 @@ getMapID idx ms2d
 getMap2DIndex       :: !MapID !Maps2D -> Maybe Maps2DIndex
 getMap2DIndex mapID ms2d
 					= listToMaybe [idx \\ {Map2D | mapId} <- ms2d & idx <- [0..] | mapId == mapID]
-  					
+
 getSection :: !Coord2D !Map2D -> Maybe Section
 getSection {col, row} {Map2D | map2D} = map2D !!! row >>= \cols -> cols !!! col
 

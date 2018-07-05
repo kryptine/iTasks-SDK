@@ -27,7 +27,7 @@ manageIncidentInformation ws incidentNo
 		    ,(Embedded, \_ -> manageIncidentContacts ws incidentNo)
 		    ,(Embedded, \_ -> manageIncidentActions incidentNo)
 		    ,(Embedded, \_ -> manageIncidentWeather incidentNo)
-		    ,(Embedded, \_ -> manageIncidentLog incidentNo)			
+		    ,(Embedded, \_ -> manageIncidentLog incidentNo)
 		    ] [] <<@ ArrangeWithTabs False)
     @! ()
 
@@ -101,7 +101,7 @@ manageIncidentActions incidentNo
 	@!  ()
 where
     selectAndWorkOnPlannedActions
-        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */) 
+        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */)
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
@@ -152,7 +152,7 @@ where
         (   enterInformation () [] @ string
         >>* [OnAction (Action "Add log message") (hasValue (\msg -> addLogMessage msg incidentNo))]
         )
-	
+
 	string :: String -> String
 	string x = x
 
@@ -350,7 +350,7 @@ createIncident incident
 		logIncidentCreated incidentNo incident
 	@! 	incidentNo
 where
-	create :: NewIncident -> Task IncidentNo 
+	create :: NewIncident -> Task IncidentNo
 	create {NewIncident|type,title,summary}
 		=	get databaseDef
 		>>- \db -> sqlExecute db ["allIncidents"] (execInsert "INSERT INTO Incident (type,title,summary) VALUES (?,?,?)"
