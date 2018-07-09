@@ -107,7 +107,7 @@ instance toString (WebServiceShareOptions r)
 :: SDSNotifyPred p          :== Timespec p -> Bool
 
 //Sources provide direct access to a data source
-:: SDSSource p r w = SDSSource (SDSSourceOptions p r w) & JSONEncode{|*|} w
+:: SDSSource p r w = SDSSource (SDSSourceOptions p r w)
 
     // Allows for some keeping of local state. Writing to a SDS may require reading from that SDS. 
     // In the case that this reading is asynchronous, writing could also be asynchronous. This
