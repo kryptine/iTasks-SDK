@@ -135,7 +135,11 @@ where
 * - There is only one constructor
 * - There are multiple constructors
 */
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} {genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh} _ _ _ _
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ce=:{genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh} _ _ _ _
+	//This is a newtype
+	| gtd_num_conses == 0
+		= bijectEditorValue (\(OBJECT i)->i) (\i->OBJECT i) ce
+	//This is not a newtype
 	= withEditModeAttr {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	gcd_names   = [gcd_name  \\ {GenericConsDescriptor | gcd_name}  <- gtd_conses]  // preselect cons names   to circumvent cyclic dependencies
