@@ -72,12 +72,13 @@ where
 
 derive class iTask AttachException
 
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
-transform f (Task evala) = Task eval
+transformError :: ((TaskValue a) -> MaybeError TaskException (TaskValue b)) !(Task a) -> Task b
+transformError f (Task evala) = Task eval
 where
 	eval event evalOpts tree iworld = case evala event evalOpts tree iworld of
-		//TODO: guarantee stability
-		(ValueResult val lastEvent rep tree,iworld)	= (ValueResult (f val) lastEvent rep tree, iworld)
+		(ValueResult val lastEvent rep tree,iworld)	= case f val of
+			Error e = (ExceptionResult e, iworld)
+			Ok v = (ValueResult v lastEvent rep tree, iworld)
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
