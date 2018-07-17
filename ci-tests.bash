@@ -7,6 +7,7 @@ if [ -e "$CLEAN_HOME"/etc/IDEEnvs ]; then
 	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak}
 	sed -i.bak "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" "$CLEAN_HOME"/etc/IDEEnvs
 	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&:-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
+    sed -i.bak 's|EnvironmentCompiler:	lib/exe/cocl:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
 fi
 
 #Create BasicAPIExamples
@@ -27,9 +28,7 @@ find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; cpm make"
 #With generic fusion
 find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
-	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj &&
-	sed -i 's|EnvironmentCompiler:	lib/exe/cocl:|&:-h 4000m -s 100m|g' *.prj && cpm make"
-		
+	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
 find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -r
