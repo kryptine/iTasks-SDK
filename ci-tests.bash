@@ -3,8 +3,8 @@ set -e
 
 #Update IDEEnvs
 if [ -e "$CLEAN_HOME"/etc/IDEEnvs ]; then
-	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak,}' EXIT
-	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak}
+	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak2,}' EXIT
+	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak2}
 	sed -i.bak "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" "$CLEAN_HOME"/etc/IDEEnvs
 	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&:-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
     sed -i.bak 's|EnvironmentCompiler:	lib/exe/cocl:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
@@ -27,7 +27,7 @@ find . -name "*.prj.default" | while read f; do
 find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; cpm make"
 #With generic fusion
-find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+find . -name "*.prj" -not "IncidoneCCC.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
