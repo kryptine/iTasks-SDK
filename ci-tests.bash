@@ -31,4 +31,5 @@ find . -name "*.prj" -not "IncidoneCCC.prj" -exec dirname {} \; | sort -u | xarg
 	"cd {}; sed -i 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
-find Tests/Unit -type f -perm 755 | xargs -n 1 cleantest -r
+find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 cleantest -f human -r
+
