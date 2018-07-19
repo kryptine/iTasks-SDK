@@ -1,80 +1,24 @@
 itasks.Container = {
 	cssCls: 'container',
 	initDOMEl: function() {
-		if(this.baseCls) {
-			this.domEl.classList.add(this.baseCls);
-		}
-		if(this.attributes.resizable){
-			var me = this;
-
-			me.domEl.style.position = 'relative';
-
-			function resizer(me, c, w, h, l, r, t, b, rw, rh){
-				res = document.createElement('div');
-				res.style.width = w;
-				res.style.height = h;
-				res.style.background = 'gray';
-				res.style.position = 'absolute';
-				res.style.left = l;
-				res.style.right = r;
-				res.style.top = t;
-				res.style.bottom = b;
-				res.style.cursor = c;
-				res.style.borderStyle = 'groove';
-				res.style.borderWidth = '2px';
-				me.domEl.style.overflow = 'hidden';
-				me.domEl.appendChild(res);
-
-				//Add listener
-				res.addEventListener('mousedown', function init (e){
-					var oldX = e.clientX;
-					var oldY = e.clientY;
-					var oldW = parseInt(me.domEl.style.width.slice(0, -2));
-					var oldH = parseInt(me.domEl.style.height.slice(0, -2));
-					var resize = function resize(ev) {
-						me.domEl.style.width = rw(oldX, oldW, ev) + "px";
-						me.domEl.style.height = rh(oldY, oldH, ev) + "px";
-					};
-					window.addEventListener('mousemove', resize, false);
-					window.addEventListener('mouseup',
-						function stop(e){
-							window.removeEventListener('mousemove', resize, false);
-							window.removeEventListener('mouseup', stop, false);
-					}, false);
-				}, false);
-			}
-
-			if(me.attributes.resizable.includes("left")){
-				resizer(me, "ew-resize", '0px', '100%', 0, undefined, 0, undefined,
-					function (ox, ow, ev) {return ow + (ox - ev.clientX);},
-					function (oy, oh, ev) {return oh;});
-			}
-
-			if(me.attributes.resizable.includes("right")){
-				resizer(me, "ew-resize", '0px', '100%', undefined, 0, 0, undefined,
-					function (ox, ow, ev) {return ow + (ev.clientX - ox);},
-					function (oy, oh, ev) {return oh;});
-			}
-
-			if(me.attributes.resizable.includes("top")){
-				resizer(me, "ns-resize", '100%', '0px', 0, undefined, 0, undefined,
-					function (ox, ow, ev) {return ow;},
-					function (oy, oh, ev) {return oh + (oy - ev.clientY);});
-			}
-
-			if(me.attributes.resizable.includes("bottom")){
-				resizer(me, "ns-resize", '100%', '0px', 0, undefined, undefined, 0,
-					function (ox, ow, ev) {return ow;},
-					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
-			}
+		var me = this;
+		if(me.baseCls) {
+			me.domEl.classList.add(me.baseCls);
 		}
 	}
 };
+
 itasks.Panel = {
 	cssCls: 'panel',
 	initDOMEl: function() {
 		var me = this,
 			isTab = (me.parentCmp && me.parentCmp.type == 'TabSet');
+
+		//Add top sizer
+		if(me.attributes.resizable && me.attributes.resizable.includes('top')) { 
+			me.domEl.append(me.createSizer());
+		}
+
 		//Create header
 		if(me.attributes.title && !isTab) {
 			me.headerEl = document.createElement('div');
@@ -88,13 +32,85 @@ itasks.Panel = {
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
 
+		//Add bottom sizer
+		if(me.attributes.resizable && me.attributes.resizable.includes('bottom')) { 
+			me.domEl.append(me.createSizer());
+		}
+
 		if(me.frame) {
 			me.domEl.classList.add(me.cssPrefix + 'framed');
 		}
 		if(me.baseCls) {
 			me.domEl.classList.add(me.attributes.baseCls);
 		}
-	}
+
+		//Fullscreenable
+		if(me.attributes.fullscreenable){
+			me.domEl.style.position = 'relative';
+			var fullscreener = document.createElement('a');
+			var button = document.createElement('div');
+			button.classList.add(me.cssPrefix + "button-icon");
+			button.classList.add("icon-fullscreen");
+			fullscreener.appendChild(button);
+			fullscreener.style.position = 'absolute';
+			fullscreener.style.bottom = 0;
+			fullscreener.style.right = 0;
+			fullscreener.href = '#';
+
+			me.fullscreen = false;
+			fullscreener.onclick = function () {
+				if(me.fullscreen){
+					me.domEl.style.position = 'relative';
+					me.domEl.style.top = null;
+					me.domEl.style.left = null;
+					me.domEl.style.right = null;
+					me.domEl.style.bottom = null;
+					me.domEl.style.width = null;
+					me.domEl.style.height = null;
+					fullscreener.style.zIndex = null;
+					me.domEl.style.zIndex = null;
+					me.fullscreen = false;
+				} else {
+					me.domEl.style.position = 'absolute';
+					me.domEl.style.top = 0;
+					me.domEl.style.left = 0;
+					me.domEl.style.right = 0;
+					me.domEl.style.bottom = 0;
+					me.domEl.style.width = '100%';
+					me.domEl.style.height = '100%';
+					fullscreener.style.zIndex = 999;
+					me.domEl.style.zIndex = 998;
+					me.fullscreen = true;
+				}
+			};
+			me.domEl.appendChild(fullscreener);
+		}
+	},
+	createSizer: function() {
+	
+		var me = this,
+		    el = document.createElement('div');
+
+		el.classList.add(me.cssPrefix + 'vsizer');
+		el.addEventListener('mousedown', function init (e){
+			
+			var startPos = e.clientY;
+			var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
+			
+			var resize = function resize(ev) {
+				me.domEl.style['height'] = (startSize + (ev.clientY - startPos)) + 'px';
+			};
+
+			window.addEventListener('mousemove', resize, false);
+			window.addEventListener('mouseup', function stop(e){
+					window.removeEventListener('mousemove', resize, false);
+					window.removeEventListener('mouseup', stop, false);
+				}, false);
+			}, false);
+	
+		return el;	
+	},
+
 };
 itasks.TabSet = {
 	cssCls: 'tabset',

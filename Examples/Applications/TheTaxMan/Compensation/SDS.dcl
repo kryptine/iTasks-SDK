@@ -66,7 +66,7 @@ currentClaims :: SSN Date -> Shared [Collection]
 currentProcessed :: SSN Date -> Shared [Collection]
 
 /** currentRealEstate citizen:
-		this shared data source extracts all registered owned properties of @citizen that is 
+		this shared data source extracts all registered owned properties of @citizen that is
 		registered in *cadastreRealEstate*.
 */
 currentRealEstate :: Citizen  -> ReadWriteShared [OwnedRealEstate] [CadastreRealEstate]

@@ -141,7 +141,7 @@ manageUsers = forever (catchAll (
       ) (\e -> viewInformation "Error" [] e >>| return ()))
 where
     manageExistingUsers
-        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity 
+        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
@@ -222,7 +222,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst 
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
@@ -258,7 +258,7 @@ where
                 ) (\e -> viewInformation "Failed import of web links" [] e @! ())
             ) <<@ Title "Import web links"
     where
-        instructions = toString 
+        instructions = toString
             (PTag [] [Text "Please select a JSON export file to upload.",BrTag []
                      ,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/weblinks.json",TargetAttr "_blank"] [Text "weblinks.json"]
                      ])

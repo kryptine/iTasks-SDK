@@ -54,10 +54,10 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	= (	enterCredentials 
+	= (	enterCredentials
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts (setUIAttributes (titleAttr "Login")) frameCompact)) //Compact layout before login, full screen afterwards
+		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact])) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -66,7 +66,7 @@ where
 
 	verifyCredentials :: Credentials -> Task (Maybe User)
 	verifyCredentials credentials=:{Credentials|username,password}
-		| username === Username "admin"	
+		| username === Username "admin"
             = get adminPassword >>- \password` -> if (password === password`)
                 (return (Just (AuthenticatedUser "admin" [] (Just "Administrator"))))
                 (return Nothing)
@@ -82,7 +82,7 @@ whileAuthenticated user tasks
     =  (controlDash -|| workOnTasks) <<@ (ArrangeWithSideBar 0 TopSide 30 False)
 where
 	controlDash = (
-		    viewInformation () [] ("Welcome " +++ toString user) 
+		    viewInformation () [] ("Welcome " +++ toString user)
              -&&-
             viewNotifications
         >>* [OnAction (Action "Log out") (always (return ()))]
@@ -90,7 +90,7 @@ where
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs True
 
-	layoutControlDash = foldl1 sequenceLayouts
+	layoutControlDash = sequenceLayouts
 		[moveSubUIs (SelectByPath [0,0]) [] 1
 		,moveSubUIs (SelectByPath [0,0]) [] 2
 		,removeSubUIs (SelectByPath [0])

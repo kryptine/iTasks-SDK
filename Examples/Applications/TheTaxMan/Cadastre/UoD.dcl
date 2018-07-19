@@ -11,7 +11,7 @@ import CivilAffairs.UoD, ChamberOfCommerce.UoD
 		, subOwners :: [Owner]		/** possibly additional owners of the real estate */
 		}
 /** Owner:
-		the registered owner of a real estate is either a citizen (identified via *SSN*) or a company 
+		the registered owner of a real estate is either a citizen (identified via *SSN*) or a company
 		(identified via *COCN*).
 */
 :: Owner

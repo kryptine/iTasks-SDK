@@ -4,7 +4,7 @@ import iTasks
 
 editStore :: String (Shared [a]) -> Task () | iTask a & Eq a & Ord a
 
-addToStore :: [a] !(Shared [a]) -> Task () | iTask a 
+addToStore :: [a] !(Shared [a]) -> Task () | iTask a
 
 appendTitledTopLevelTask :: String (Task a) -> Task TaskId | iTask a
 

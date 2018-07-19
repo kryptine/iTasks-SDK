@@ -365,3 +365,14 @@
 .#{$prefix}debug {
 	border: 3px solid red;
 }
+
+.#{$prefix}vsizer {
+	height: 5px;
+	cursor: ns-resize;
+	background-color: #{$canvas-base-color};
+	
+	&:hover {
+		background-color: #{$select-base-color};
+	}
+}
+

@@ -7,7 +7,7 @@ import Text.HTML
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
-    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) 
+    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False)
     @! ()
 where
     header

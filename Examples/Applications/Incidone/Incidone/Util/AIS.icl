@@ -56,7 +56,7 @@ TESTMESSAGES :==
 	, day			:: Int		// Day
 	, hour			:: Int		// Hour
 	, minute		:: Int		// Minute
-	, second		:: Int		// Second 
+	, second		:: Int		// Second
 	, accuracy		:: Bool		// Fix quality
 	, lon			:: Int		// Longitude
 	, lat			:: Int		// Latitude
@@ -113,7 +113,7 @@ where
 					= ([f6],remainder)
 				| otherwise
 					# (fragments,remainder) = decodeWrapper remainder
-					= ([f6:fragments],remainder)	
+					= ([f6:fragments],remainder)
 			_ 	= ([],remainder)
 
 	//Decode the message data
@@ -138,7 +138,7 @@ where
 		initMessage 4 = AIVDM4 initType4
 		initMessage 5 = AIVDM5 initType5
 		initMessage i = AIVDM i
-		
+
 		initCNB type = {msgtype=type,repeat=0,mmsi=0,status=0,turn=0,speed=0,accuracy=False
 					   ,lon=0,lat=0,course=0,heading=0,second=0,maneuver=0,raim=False,radio=0}
 		initType4    = {msgtype=4,repeat=0,mmsi=0,year=0,month=0,day=0,hour=0,minute=0
@@ -206,7 +206,7 @@ where
 		updMMSI i (AIVDM4 m) = AIVDM4 {AIVDM4|m & mmsi = i}
 		updMMSI i (AIVDM5 m) = AIVDM5 {AIVDM5|m & mmsi = i}
 		updMMSI i msg        = msg
-		
+
 		updCNB f i (AIVDM1 m) = AIVDM1 (f i m)
 		updCNB f i (AIVDM2 m) = AIVDM2 (f i m)
 		updCNB f i (AIVDM3 m) = AIVDM3 (f i m)

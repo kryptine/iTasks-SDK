@@ -152,7 +152,7 @@ toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,markers}
     = {LeafletMap|perspective = toLeafletPerspective perspective
       ,icons = [icon i \\ i <- [1..250]]
-	  ,tilesUrls = [TILESERVER] 
+	  ,tilesUrls = [TILESERVER]
       ,objects = convMarkers markers //Just the baselayer
       }
 where

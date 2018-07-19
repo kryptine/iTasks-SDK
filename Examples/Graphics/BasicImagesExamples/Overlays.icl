@@ -32,7 +32,7 @@ overlays model tags
 	= margin (px 10.0) (
 		above [] [] Nothing []
 		   [ grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
-		        [ beside (repeat AtMiddleY) [] Nothing [] 
+		        [ beside (repeat AtMiddleY) [] Nothing []
 		                 [ margin (px 5.0) (overlay (repeat (x_align,y_align)) [] discs NoHost)
 		                 , txt ("(" <+ x_align <+ "," <+ y_align <+ ")*")
 		                 ] NoHost

@@ -3,17 +3,17 @@ import iTasks
 import iTasks.Extensions.GIS.Leaflet
 import iTasks.Extensions.GIS.LeafletNavalIcons
 import iTasks.UI.Definition
-import Data.List 
+import Data.List
 
 playWithMaps :: Task ()
 playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
 	(allTasks [managePerspective m, manageMapObjects m])
 	-&&-
 	manipulateMap m
-	) <<@ ArrangeWithSideBar 0 LeftSide 600 True @! () 
+	) <<@ ArrangeWithSideBar 0 LeftSide 600 True @! ()
 
 manipulateMap :: (Shared LeafletMap) -> Task ()
-manipulateMap m = updateSharedInformation () [] m 
+manipulateMap m = updateSharedInformation () [] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 
 managePerspective :: (Shared LeafletMap) -> Task ()
@@ -27,7 +27,7 @@ where
 	toPrj m = m.LeafletMap.objects
 	fromPrj m objects = {m & objects = objects}
 
-	addDemoObjects m 
+	addDemoObjects m
 		= enterChoiceAs "Add objects:" [ChooseFromCheckGroup fst] options snd
 		>^* [OnAction (Action "Add") (hasValue id)]
 	where
@@ -40,7 +40,7 @@ where
 
 	addRandomMarker m
 		= 	get randomInt -&&- get randomInt @ toRandomMarker
-		>>- \marker -> upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [marker]}) m 
+		>>- \marker -> upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [marker]}) m
 
 	toRandomMarker (rLat,rLng)
 		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False, popup = Nothing}

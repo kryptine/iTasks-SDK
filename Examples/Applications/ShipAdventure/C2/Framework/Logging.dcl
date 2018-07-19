@@ -1,7 +1,7 @@
 definition module C2.Framework.Logging
- 
+
 import iTasks
- 
+
 :: Log			=	{ fromWho 		:: !String
 					, intendedFor	:: !String
 					, when			:: !DateTime
@@ -12,7 +12,7 @@ derive class iTask Log
 
 // shared store for logging events
 
-myLog 	:: Shared [Log]						
+myLog 	:: Shared [Log]
 
 // tasks for logging:
 

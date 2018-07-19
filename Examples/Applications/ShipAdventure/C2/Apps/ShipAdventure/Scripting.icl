@@ -22,13 +22,13 @@ handleSmokeScript :: Shared [Script]
 handleSmokeScript = sharedStore "handleSmokeScript" []
 
 changeFireScript :: Task ()
-changeFireScript = changeScript "Handling Fire" handleFireScript 
+changeFireScript = changeScript "Handling Fire" handleFireScript
 
 changeFloodScript :: Task ()
-changeFloodScript = changeScript "Handling Flood" handleFloodScript 
+changeFloodScript = changeScript "Handling Flood" handleFloodScript
 
 changeSmokeScript :: Task ()
-changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript 
+changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript
 
 changeScript :: !String !(Shared [Script]) -> Task ()
 changeScript prompt script

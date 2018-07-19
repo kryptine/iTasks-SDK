@@ -1,7 +1,7 @@
 implementation module C2.Apps.ShipAdventure.Types
- 
+
 //import iTasks
- 
+
 import iTasks.Internal.Tonic
 import iTasks.Extensions.Admin.TonicAdmin
 import iTasks.Extensions.SVG.SVGEditor
@@ -23,7 +23,13 @@ import C2.Apps.ShipAdventure.Editor
 
 derive gLexOrd CableType, Capability
 derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
-derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
+derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Capability, CapabilityExpr
+
+derive gEditor Set
+derive gDefault Set
+derive gText Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 derive JSEncode Map2D, Coord2D, Map, IntMap, Dir, User, Maybe, Section, Borders, Border, MapAction, Object, Actor
 derive JSEncode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
@@ -286,7 +292,7 @@ deviceIdInNetworkSectionShare = sdsLens "deviceIdInNetworkSectionShare" (const (
   write c3d network devIds = Ok (Just ({network & devices = 'DM'.put c3d devIds network.devices}))
 
   notify :: !Coord3D !Network ![DeviceId] -> SDSNotifyPred Coord3D
-  notify c3d network devIds = \idx` -> c3d == idx`
+  notify c3d network devIds = \_ idx` -> c3d == idx`
 
 devicesInSectionShare :: RWShared Coord3D [Device] [Device]
 devicesInSectionShare
@@ -360,8 +366,8 @@ cablesInSectionShare = sdsLens "cablesInSectionShare" (const ()) (SDSRead read) 
                                                                 in  if inList network
                                                                       {network & cableMapping = 'DIS'.put cable.cableId [(True, c3d) : coords] network.cableMapping}
                                                                 ) network cables))
-  notify :: !Coord3D !Network ![Cable] -> (Coord3D -> Bool)
-  notify c3d oldNetwork newCables = \c3d` -> c3d === c3d`
+  notify :: !Coord3D !Network ![Cable] -> SDSNotifyPred Coord3D
+  notify c3d oldNetwork newCables = \_ c3d` -> c3d === c3d`
 
 cablesForSection :: !Coord3D !Network -> [Cable]
 cablesForSection c3d { Network | cables, cableMapping }
@@ -425,7 +431,7 @@ updateMapStatus mode
 where
 	editor = fromSVGEditor
 		{ initView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) -> (ms2d, cl)
-		, renderImage = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl) (ms2d`, cl`) 
+		, renderImage = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> maps2DImage disSects cl mode ms2d` exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network
 		, updView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
 		, updModel = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), _)  (ms2d`, cl`) -> ((((((((((disSects, ms2d`), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl`)
@@ -446,7 +452,7 @@ where
 		, renderImage = \((((((((ms2d, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> roomImage c3d exitLocks hopLocks inventoryMap statusMap actorMap allDevices network True (fromJust (getSectionFromMap c3d ms2d`)) (ms2d !! floorIdx) cl`
 		, updView     = \((((((((ms2d, _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
-		, updModel    = \((((((((_,    exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), _)  (ms2d`, cl`) 
+		, updModel    = \((((((((_,    exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), _)  (ms2d`, cl`)
 			-> ((((((((ms2d`, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl`)
 		}
 

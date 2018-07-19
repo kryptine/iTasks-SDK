@@ -33,7 +33,7 @@ Start world
 count :: Int *TagSource -> Image Int
 count n _
 	= margin (px 20.0) (
-	    overlay [(AtMiddleX,AtMiddleY)] [] 
+	    overlay [(AtMiddleX,AtMiddleY)] []
 	       [ text font (toString n) <@< {fill = white}]
 	       (Host (rect (textxspan font ("  " <+ n)) (px (h + m))))
 	       <@< {onclick = (+), local = False}

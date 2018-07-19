@@ -1,10 +1,10 @@
 implementation module C2.Framework.Logging
- 
+
 import iTasks
- 
+
 derive class iTask Log
 
-myLog :: Shared [Log]						// logging events					
+myLog :: Shared [Log]						// logging events
 myLog = sharedStore "myLog" []
 
 addLog :: !a !b !c -> Task () | toString a & toString b & toString c

@@ -143,7 +143,7 @@ where
                 # (err,cur) = execute "INSERT INTO PhoneCall (communicationNo,externalNo) VALUES (?,?)"
                     (flatten [toSQL communicationNo,mbToSQL externalNo]) cur
 				| isJust err
-                	# (err,cur) = execute "UPDATE PhoneCall SET externalNo = ? WHERE communicationNo = ?" 
+                	# (err,cur) = execute "UPDATE PhoneCall SET externalNo = ? WHERE communicationNo = ?"
                     	(flatten [mbToSQL externalNo,toSQL communicationNo]) cur
 			        | isJust err  = (Error (toString (fromJust err)),cur)
 			        = (Ok (), cur)
@@ -193,7 +193,7 @@ where
 
 detailsIncidents :: (Maybe RowFilterDef) -> ReadOnlyShared [IncidentDetails]
 detailsIncidents mbWhere = mapRead (map prj) (baseIncidents mbWhere)
-where	
+where
     prj {Incident|incidentNo,title,summary,type,phase}
       = {IncidentDetails|incidentNo=incidentNo,title=title,summary=summary,type=type,phase=phase}
 
@@ -327,7 +327,7 @@ where
 		  , communications = fromMaybe [] ('DM'.get incident.Incident.incidentNo cmlinks)
           , log = log
 		  }
-	
+
 	writePrj (incident=:{Incident|incidentNo,contacts,communications}) (((_,cnlinks),cmlinks),_)
 		= Just ((incident,'DM'.put incidentNo contacts cnlinks),'DM'.put incidentNo communications cmlinks)
 	writePrj _ _ = Nothing
@@ -758,7 +758,7 @@ where
 		# (err,mbRow,cur)	= fetchOne cur
 		| isJust err		= (Error (toString (fromJust err)),cur)
 		= (Ok (fmap fromSQL mbRow), cur)
-		
+
 	writeFun mmsi Nothing cur = (Ok (), cur) //Only write on Just
 	writeFun mmsi (Just contact=:{Contact|contactNo,type,name,group,position,heading,track,positionUpdated,needsHelp,providesHelp,notes,status}) cur
 	    //Update contact info
@@ -795,7 +795,7 @@ contactCommunicationMeans = sdsTranslate "contactCommunicationMeans" query (dbRe
 where
     query contactNo = {columns=columns,rows=rows contactNo,order = Nothing}
     rows contactNo = Just (EqualsValue ("communicationMeans1_communicationMeans2","communicationMeans2") [SQLVInteger contactNo])
-    columns = InnerJoin columnsCommunicationMean 
+    columns = InnerJoin columnsCommunicationMean
                 {name="communicationMeans1_communicationMeans2",alias="communicationMeans1_communicationMeans2",columns=[]}
                 ("communicationMeans1_communicationMeans2","communicationMeans1") ("CommunicationMean","id")
 
@@ -880,7 +880,7 @@ airplaneDetailsByNo = sdsTranslate "airplaneDetailsByNo" query (dbReadWriteOneSD
 where
     query contactNo = {columns=columnsAirplaneDetails,rows=Just (EqualsValue ("Airplane","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-helicopterDetailsByNo :: RWShared ContactNo HelicopterDetails HelicopterDetails 
+helicopterDetailsByNo :: RWShared ContactNo HelicopterDetails HelicopterDetails
 helicopterDetailsByNo = sdsTranslate "helicopterDetailsByNo" query (dbReadWriteOneSDS "helicopterDetailsByNo")
 where
     query contactNo = {columns=columnsHelicopterDetails,rows=Just (EqualsValue ("Helicopter","contactNo") [SQLVInteger contactNo]), order=Nothing}
@@ -947,7 +947,7 @@ where
 
     writeFun mmsi (Just {AISContact|position,heading,track,lastPositionMsg,lastInfoMsg,positionUpdated,infoUpdated}) cur
 		//Brute force upsert, try insert, if it fails, try update
-        # (res,cur) = execInsert "INSERT INTO AISContact (mmsi,position_lat,position_lon,position_desc,heading,track,lastPositionMsg,lastInfoMsg,positionUpdated,infoUpdated) VALUES (?,?,?,?,?,?,?,?,?,?)" 
+        # (res,cur) = execInsert "INSERT INTO AISContact (mmsi,position_lat,position_lon,position_desc,heading,track,lastPositionMsg,lastInfoMsg,positionUpdated,infoUpdated) VALUES (?,?,?,?,?,?,?,?,?,?)"
                         (flatten [toSQL mmsi, mbToSQL position, mbToSQL heading, mbToSQL track, mbToSQL lastPositionMsg, mbToSQL lastInfoMsg,mbToSQL positionUpdated, mbToSQL infoUpdated]) cur
 
 		| res=:(Error _) //Try update
