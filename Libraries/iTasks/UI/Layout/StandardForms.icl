@@ -17,6 +17,8 @@ layoutCombinatorContainers = sequenceLayouts
 	[layoutSubUIs (SelectByType UIInteract) layoutInteract
 	,layoutSubUIs (SelectByType UIStep) layoutStep
 	,layoutSubUIs (SelectByType UIParallel) layoutParallel
+	//There can still be buttons (e.g. when a parallel has been transformed to a tabset
+	,layoutSubUIs (SelectByType UIAction) layoutAsButton
 	]
 
 layoutStep = sequenceLayouts

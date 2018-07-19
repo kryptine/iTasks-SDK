@@ -356,17 +356,18 @@ itasks.Button = {
 			el.appendChild(me.label);
 		}
 
-        el.addEventListener('click',function(e) {
+		el.addEventListener('click',function(e) {
 			if(typeof(me.attributes.value) == 'boolean') { //Toggle edit buttons
 				me.attributes.value = !me.attributes.value;
 			}
-            if(me.attributes.enabled) {
+			if(me.attributes.enabled) {
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
-            }
+			}
 			e.preventDefault();
 			return false;
 		});
-    },
+	},
+
 	initContainerEl: function() { //Make sure no padding is set on buttons
 	},
 	onAttributeChange: function(name,value) {
