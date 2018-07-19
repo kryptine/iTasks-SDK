@@ -306,6 +306,7 @@ extractDownstreamChangeTests =
 	,extractDownstreamChangeTest_ChangeInChildrenWithMoves
 	,extractDownstreamChangeTest_NewWrappedChild
 	,extractDownstreamChangeTest_NoLongerWrappedChild
+	,extractDownstreamChangeTest_ChangingAWrappedAttribute
 	,extractDownstreamChangeTest_NewUnwrappedChild
 	,extractDownstreamChangeTest_NoLongerUnwrappedChild
 	,extractDownstreamChangeTest_ChangingAnUnwrappedAttribute
@@ -837,6 +838,30 @@ extractDownstreamChangeTest_NoLongerWrappedChild =
 					[LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & additional = ESApplied (LUINo [1])} //Added after the wrapping, should be removed too
 					,LUINode UIDebug 'DM'.newMap [] noChanges noEffects
 					] noChanges {noEffects & wrapper = ESToBeRemoved (LUINo [0])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		,initLUIMoves))
+
+extractDownstreamChangeTest_ChangingAWrappedAttribute =
+	assertEqual "Changing an attribute of a wrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 42)] []))]))]
+			,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[LUINode UIInteract ('DM'.fromList [("value",JSONInt 42)]) [] noChanges noEffects 
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			 ,initLUIMoves)
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[LUINode UIInteract 'DM'.newMap [] 
+						{noChanges & setAttributes = 'DM'.fromList [("value",JSONInt 42)]}
+						 noEffects 
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects
 		,initLUIMoves))
@@ -1442,7 +1467,21 @@ wrapUITests =
 				] noChanges noEffects
 			,initLUIMoves)
 		)
-
+	,assertEqual "Wrap ui: check stability (no change)"
+		(LUINode UIStep ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0])} 
+			,initLUIMoves)
+		(wrapUI UIStep (LUINo [0])
+			(LUINode UIStep ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & wrapper = ESApplied (LUINo [0])} 
+			,initLUIMoves)
+		)
 	]
 
 unwrapUITests =
@@ -1553,6 +1592,17 @@ layoutSubUIsTests =
 				] {noChanges & delAttributes = 'DS'.fromList ["title"]} noEffects
 			,initLUIMoves)
 		)
+		,assertEqual "Layout sub-uis rule: stability of wrapped node (no change)"
+			(LUINode UIDebug 'DM'.newMap 
+					[LUINode UITextField 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
+			,initLUIMoves)
+			(layoutSubUIs (SelectByType UITextField) (wrapUI UIDebug) (LUINo [0])
+				(LUINode UIDebug 'DM'.newMap 
+					[LUINode UITextField 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
+				,initLUIMoves)
+			)	
 	]
 combinationTests =
 	//Applying the first change
