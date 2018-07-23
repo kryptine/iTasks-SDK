@@ -71,8 +71,8 @@ where
 	layoutWithActions = sequenceLayouts [setUIType UIPanel, addButtonBar]
 
 layoutInteract = sequenceLayouts
-	[setTitle 
-	,layoutEditor 
+	[setTitle
+	,layoutEditor
 	,removePromptIfEmpty
 	,setContainerType
 	]
@@ -130,7 +130,7 @@ layoutVarCons = sequenceLayouts
 	[setUIType UIContainer
 	,setUIAttributes (directionAttr Horizontal)
 	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UICons)) layoutVarCons
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIVarCons)) layoutVarCons
 	]
 
 layoutList :: LayoutRule
