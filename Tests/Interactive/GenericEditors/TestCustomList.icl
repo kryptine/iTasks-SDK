@@ -1,5 +1,5 @@
 module TestCustomList
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 :: List = Nil | Cons Int List
 derive class iTask List
