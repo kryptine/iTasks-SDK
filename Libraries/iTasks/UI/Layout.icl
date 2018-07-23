@@ -235,7 +235,7 @@ where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
 
 	rule` ruleNo (lui=:(LUINode type attr items changes effects=:{hiddenAttributes}),moves)
-		# keys = 'DM'.keys (getAttributesAtRuleApplication_ ruleNo lui)
+		# keys = 'DM'.keys (nodeAttributes_ ruleNo lui)
 		# hiddenAttributes = foldr (hideAttribute_ ruleNo (matchAttributeKey_ selection)) hiddenAttributes keys
 		= (LUINode type attr items changes {effects & hiddenAttributes = hiddenAttributes}, moves)
 
@@ -246,7 +246,7 @@ where
 
 	rule` ruleNo (lui=:(LUINode type attr items changes effects=:{overwrittenAttributes,hiddenAttributes}),moves)
 		//1. Apply the modifier function to the current of attributes that match the selection
-		# selectedAttr = selectAttributes_ selection (getAttributesAtRuleApplication_ ruleNo lui)
+		# selectedAttr = selectAttributes_ selection (nodeAttributes_ ruleNo lui)
 		# modifiedAttr = modifier selectedAttr
 		//2. Override new attributes and hide attributes that match the selection 
 		# overwrittenAttributes = overrideModifiedAttributes ruleNo modifiedAttr overwrittenAttributes
@@ -266,7 +266,7 @@ where
 		//Then use the setUIAttributes layout rule to copy the changes
 		= maybe (lui,moves) (withEffect (lui,moves)) (selectSource (lui,moves))
 	where
-		selectSource (lui,moves) = fmap (selectAttributes_ selection o getAttributesAtRuleApplication_ ruleNo) (selectSubNode_ ruleNo src (lui,moves))
+		selectSource (lui,moves) = fmap (selectAttributes_ selection o nodeAttributes_ ruleNo) (selectSubNode_ ruleNo src (lui,moves))
 		withEffect (lui,moves) attr = updateSubNode_ ruleNo dst ((setUIAttributes attr) ruleNo) (lui,moves)
 
 wrapUI :: UIType -> LayoutRule
@@ -454,7 +454,7 @@ where
 			| nodeSelected_ ruleNo selection path lui moves //If the layout matches, apply the rule
 				= (sub ruleNo (lui,moves))
 			| otherwise
-				//We first undo effects previously applied by 
+				//We first undo effects previously applied by this rule
 				# (lui,moves) = undoEffects_ ruleNo (lui,moves)
 				//We want to check the set of children at the time of `ruleNo`
 				= updateNode_ ruleNo (applyc path) (lui,moves)
@@ -546,16 +546,18 @@ nodeSelected_ ruleNo (SelectByPath p) path _ moves = p === path
 nodeSelected_ ruleNo (SelectByDepth n) p _ moves = length p == n
 nodeSelected_ ruleNo (SelectDescendents) [_:_] _ moves = True
 nodeSelected_ ruleNo (SelectDescendents) _ _ moves = False
-nodeSelected_ ruleNo (SelectByType t) _ lui moves
-	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> getTypeAtRuleApplication_ ruleNo x === t) (lui,moves))
-nodeSelected_ ruleNo (SelectByHasAttribute k) _ lui moves
-	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> isJust ('DM'.get k (getAttributesAtRuleApplication_ ruleNo x))) (lui,moves))
-nodeSelected_ ruleNo (SelectByAttribute k p) _ lui moves
-	= fromMaybe False (selectNode_ ruleNo (\(x,_) -> maybe False p ('DM'.get k (getAttributesAtRuleApplication_ ruleNo x))) (lui,moves))
-nodeSelected_ ruleNo (SelectByNumChildren num) _ lui moves
-	= fromMaybe False (selectNode_ ruleNo (\(LUINode _ _ items _ _,m) -> length (selectChildNodes_ ruleNo (items,m)) == num) (lui,moves))
+nodeSelected_ ruleNo (SelectByType t) _ lui moves = fromMaybe False
+	(fmap (\n -> nodeType_ ruleNo n === t) (selectNode_ ruleNo True fst (lui,moves)))
+nodeSelected_ ruleNo (SelectByHasAttribute k) _ lui moves = fromMaybe False
+	(fmap (\n -> isJust ('DM'.get k (nodeAttributes_ ruleNo n))) (selectNode_ ruleNo True fst (lui,moves)))
+nodeSelected_ ruleNo (SelectByAttribute k p) _ lui moves = fromMaybe False
+	(fmap (\n -> maybe False p ('DM'.get k (nodeAttributes_ ruleNo n)))	(selectNode_ ruleNo True fst (lui,moves)))
+nodeSelected_ ruleNo (SelectByNumChildren num) _ lui moves = fromMaybe False
+	//TODO: selectChildNodes should also have selectable before/after effect
+	(fmap (\(LUINode _ _ items _ _,m) -> length (selectChildNodes_ ruleNo (items,m)) == num)
+		(selectNode_ ruleNo True id (lui,moves)))
 nodeSelected_ ruleNo (SelectByContains selection) path lui moves
-	= fromMaybe False (selectNode_ ruleNo
+	= fromMaybe False (selectNode_ ruleNo True
 		(\(x=:LUINode _ _ items _ _,m) = nodeSelected_ ruleNo selection path x m
 	                                  || or [nodeSelected_ ruleNo (SelectByContains selection) (path ++ [i]) item m
 	                                        \\ item <- selectChildNodes_ ruleNo (items,m) & i <- [0..]])
@@ -629,8 +631,8 @@ where
 	isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
 	isSource _ = False
 
-selectNode_ :: LUINo ((LUI,LUIMoves) -> a) (LUI,LUIMoves) -> Maybe a
-selectNode_ ruleNo selector (lui,moves) = fst3 (processNode_ ruleNo fun (lui,moves))
+selectNode_ :: LUINo Bool ((LUI,LUIMoves) -> a) (LUI,LUIMoves) -> Maybe a
+selectNode_ ruleNo beforeEffect selector (lui,moves) = fst3 (processNode_ ruleNo beforeEffect fun (lui,moves))
 where
 	fun (lui,moves) = (selector (lui,moves),lui,moves)
 
@@ -643,8 +645,8 @@ where
 	fstEl (x,_) (y,_) = x < y	
 
 selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI 
-selectSubNode_ ruleNo [] (lui,moves)= selectNode_ ruleNo fst (lui,moves)
-selectSubNode_ ruleNo [s:ss] (lui,moves) = maybe Nothing id (selectNode_ ruleNo select (lui,moves))
+selectSubNode_ ruleNo [] (lui,moves)= selectNode_ ruleNo False fst (lui,moves)
+selectSubNode_ ruleNo [s:ss] (lui,moves) = maybe Nothing id (selectNode_ ruleNo False select (lui,moves))
 where
 	select (LUINode type attr items changes effects,moves) 
 		# items = selectChildNodes_ ruleNo (items,moves)
@@ -653,7 +655,7 @@ where
 
 updateNode_ :: LUINo ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
 updateNode_ ruleNo update (lui,moves)
-	# (_,lui,moves) = processNode_ ruleNo fun (lui,moves)
+	# (_,lui,moves) = processNode_ ruleNo False fun (lui,moves)
 	= (lui,moves)
 where
 	fun (item,moves) 
@@ -679,8 +681,8 @@ where
 
 	applyc i (lui,moves) = if (i == s) (updateSubNode_ ruleNo ss update (lui,moves)) (lui,moves)
 
-processNode_ :: LUINo ((LUI,LUIMoves) -> (a,LUI,LUIMoves)) (LUI,LUIMoves) -> (Maybe a, LUI, LUIMoves)
-processNode_ ruleNo fun (lui,moves) = case lui of
+processNode_ :: LUINo Bool ((LUI,LUIMoves) -> (a,LUI,LUIMoves)) (LUI,LUIMoves) -> (Maybe a, LUI, LUIMoves)
+processNode_ ruleNo beforeEffect fun (lui,moves) = case lui of
 	//When a move source exists (it is moved by a later rule), we update the referenced node
 	(LUIMoveSource moveId)
 		# (movedStage,movedItem) = getMovedNode_ moveId moves
@@ -709,31 +711,34 @@ processNode_ ruleNo fun (lui,moves) = case lui of
 			Nothing = (Nothing,lui,moves)
 	//When an item is scheduled to be replaced, update the replacement
 	(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
-		# (result,replacement,moves) = processNode_ ruleNo fun (replacement,moves)
+		# (result,replacement,moves) = processNode_ ruleNo beforeEffect fun (replacement,moves)
 		= (result, LUINode type attr items {changes & toBeReplaced=Just replacement} effects, moves)
 	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper 
-	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy}) | wrappedBy > ruleNo
-		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
+	(LUINode type attr items changes effects=:{wrapper=ESApplied wrappedBy})
+		| wrappedBy > ruleNo || beforeEffect && isPartOf_ wrappedBy ruleNo
+			= processFirstChild_ wrappedBy ruleNo beforeEffect fun (lui,moves)
 	//When an item is wrapped by a later rule, we update the wrapped child instead of the wrapper
-	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy}) | wrappedBy > ruleNo
-		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
+	(LUINode type attr items changes effects=:{wrapper=ESToBeApplied wrappedBy})
+		| wrappedBy > ruleNo || beforeEffect && isPartOf_ wrappedBy ruleNo
+			= processFirstChild_ wrappedBy ruleNo beforeEffect fun (lui,moves)
 	//Similarly, when the wrapping is set to be removed, we need to update the wrapped child
 	(LUINode type attr items changes effects=:{wrapper=ESToBeRemoved wrappedBy})
-		= processFirstChild_ wrappedBy ruleNo fun (lui,moves)
+		= processFirstChild_ wrappedBy ruleNo beforeEffect fun (lui,moves)
 	//When a node is unwrapped, we have to process the first inner node (if it exists...)
-	(LUINode type attr items changes effects=:{unwrapped=ESToBeApplied unwrappedBy}) | unwrappedBy < ruleNo 
-		= processFirstChild_ ruleNo ruleNo fun (lui,moves)
+	(LUINode type attr items changes effects=:{unwrapped=ESToBeApplied unwrappedBy}) | unwrappedBy < ruleNo
+		//TODO: Consider beforeEffect case..
+		= processFirstChild_ ruleNo ruleNo beforeEffect fun (lui,moves)
 	(LUINode type attr items changes effects=:{unwrapped=ESApplied unwrappedBy}) | unwrappedBy < ruleNo
-		= processFirstChild_ ruleNo ruleNo fun (lui,moves)
+		= processFirstChild_ ruleNo ruleNo beforeEffect fun (lui,moves)
 	//Default case: Just apply the update function
 	_ 
 		# (result,lui,moves) = fun (lui,moves)
 		= (Just result,lui,moves)
 where
-	processFirstChild_ atRuleNo ruleNo fun (lui=:(LUINode type attr items changes effects),moves)
+	processFirstChild_ atRuleNo ruleNo beforeEffect fun (lui=:(LUINode type attr items changes effects),moves)
 		= case scanToPosition_ atRuleNo 0 items moves of
 			(index,True,Just wrapped)
-				# (result,wrapped,moves) = processNode_ ruleNo fun (wrapped,moves) 
+				# (result,wrapped,moves) = processNode_ ruleNo beforeEffect fun (wrapped,moves)
 				= (result, LUINode type attr (updateAt index wrapped items) changes effects, moves)
 			_ = (Nothing,lui,moves)
 
@@ -785,14 +790,14 @@ getMovedBy_ (ESToBeApplied ruleNo) = Just ruleNo
 getMovedBy_ (ESToBeUpdated _ ruleNo) = Just ruleNo
 getMovedBy_ _ = Nothing
 
-getTypeAtRuleApplication_ :: LUINo LUI -> UIType
-getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeApplied (appliedAt,type)}) | appliedAt < ruleNo = type
-getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESApplied (appliedAt,type)}) | appliedAt < ruleNo = type
-getTypeAtRuleApplication_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeUpdated _ (appliedAt,type)}) | appliedAt < ruleNo = type
-getTypeAtRuleApplication_ ruleNo (LUINode type _ _ _ _) = type 
+nodeType_ :: LUINo LUI -> UIType
+nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeApplied (appliedAt,type)}) | appliedAt < ruleNo = type
+nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESApplied (appliedAt,type)}) | appliedAt < ruleNo = type
+nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeUpdated _ (appliedAt,type)}) | appliedAt < ruleNo = type
+nodeType_ ruleNo (LUINode type _ _ _ _) = type
 
-getAttributesAtRuleApplication_ :: LUINo LUI -> UIAttributes
-getAttributesAtRuleApplication_ ruleNo (LUINode _ attr _ changes effects=:{overwrittenAttributes,hiddenAttributes})
+nodeAttributes_ :: LUINo LUI -> UIAttributes
+nodeAttributes_ ruleNo (LUINode _ attr _ changes effects=:{overwrittenAttributes,hiddenAttributes})
 	//Consider upstream changes
 	# attr = applyAttributeChanges_ changes attr 
 	//Consider overwritten attributes
@@ -916,6 +921,7 @@ undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f c) ruleNo = ESToBeRemove
 undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f x) ruleNo = ESApplied c
 undoEffect_ _ _ es = es
 
+//Check if x is a sub-rule of y
 isPartOf_ :: LUINo LUINo -> Bool
 isPartOf_ (LUINo x) (LUINo y) = check x y
 where
@@ -955,7 +961,7 @@ extractDownstreamChildChange lui moves
 	| isTemporaryDestination_ mbMovedStage mbDestinationRule
 		= Nothing
 	//Cases where a new ui should be inserted
-	| needsInsert_ changes effects mbMovedStage mbDestinationRule
+	| needsInsert_ items changes effects mbMovedStage mbDestinationRule
 		= determineInsert_ lui current moves
 	//Cases where we need a full replace
 	| needsRemove_ changes effects mbMovedStage mbDestinationRule
@@ -970,14 +976,20 @@ where
 	isTemporaryDestination_ (Just (ESApplied newRule)) (Just destRule) = destRule <> newRule
 	isTemporaryDestination_ _ _ = False
 
-	needsInsert_ {toBeInserted=True} _ _ _ = True
-	needsInsert_ _ {additional=ESToBeApplied _} _ _ = True
-	needsInsert_ _ {hidden=ESToBeRemoved _} _ _ = True
+	needsInsert_ _ {toBeInserted=True} _ _ _ = True
+	needsInsert_ _ _ {additional=ESToBeApplied _} _ _ = True
+	needsInsert_ _ _ {hidden=ESToBeRemoved _} _ _ = True
 
-	needsInsert_ _ _ (Just (ESToBeApplied _)) (Just _) = True
-	needsInsert_ _ _ (Just (ESToBeRemoved _)) Nothing = True
-	needsInsert_ _ _ (Just (ESToBeUpdated _ ruleNo)) (Just destNo) = ruleNo == destNo
-	needsInsert_ _ _ _ _ = False	
+	//If an item is newly wrapped we check if the wrapped item needed an insert
+	needsInsert_ items _ {wrapper=ESToBeApplied wrappedBy} _ _
+		= case scanToPosition_ wrappedBy 0 items moves of
+			(_,_,Just (LUINode _ _ items changes effects)) = needsInsert_ items changes effects Nothing Nothing
+			_ = False
+
+	needsInsert_ _ _ _ (Just (ESToBeApplied _)) (Just _) = True
+	needsInsert_ _ _ _ (Just (ESToBeRemoved _)) Nothing = True
+	needsInsert_ _ _ _ (Just (ESToBeUpdated _ ruleNo)) (Just destNo) = ruleNo == destNo
+	needsInsert_ _ _ _ _ _ = False
 
 	needsRemove_ {toBeRemoved=True} _ _ _ = True
 	needsRemove_ _ {additional=ESToBeRemoved _} _ _ = True

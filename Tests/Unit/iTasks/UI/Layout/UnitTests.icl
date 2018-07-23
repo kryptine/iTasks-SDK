@@ -307,6 +307,7 @@ extractDownstreamChangeTests =
 	,extractDownstreamChangeTest_NewWrappedChild
 	,extractDownstreamChangeTest_NoLongerWrappedChild
 	,extractDownstreamChangeTest_ChangingAWrappedAttribute
+	,extractDownstreamChangeTest_InsertedWrappedChild
 	,extractDownstreamChangeTest_NewUnwrappedChild
 	,extractDownstreamChangeTest_NoLongerUnwrappedChild
 	,extractDownstreamChangeTest_ChangingAnUnwrappedAttribute
@@ -816,6 +817,28 @@ extractDownstreamChangeTest_NewWrappedChild =
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap
 					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		,initLUIMoves))
+
+extractDownstreamChangeTest_InsertedWrappedChild =
+	assertEqual "Inserted and directly wrapped child"
+		(ChangeUI [] [(1,InsertChild (UI UIStep 'DM'.newMap [UI UIDebug 'DM'.newMap []]))]
+			,(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESApplied (LUINo [0])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			 ,initLUIMoves)
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] {noChanges & toBeInserted = True} noEffects
 					] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0])}
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects
