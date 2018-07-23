@@ -1,5 +1,5 @@
 module TestADTSingleConsMulti
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 :: ADTSingleConsMulti = ADTSingleConsMulti Int String
 derive class iTask ADTSingleConsMulti

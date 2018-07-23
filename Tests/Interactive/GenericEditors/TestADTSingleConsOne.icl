@@ -1,5 +1,5 @@
 module TestADTSingleConsOne
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 :: ADTSingleCons = ADTSingleCons Int
 derive class iTask ADTSingleCons
