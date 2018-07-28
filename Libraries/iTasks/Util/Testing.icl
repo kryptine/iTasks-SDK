@@ -122,7 +122,7 @@ where
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level
-		# (res,iworld) = createTaskInstance task iworld
+		# (res,iworld) = createTaskInstance task 'DM'.newMap iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
 				//Apply all events

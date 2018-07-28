@@ -30,13 +30,14 @@ import iTasks.WF.Definition
 	}
 
 /**
-* Starts the task engine with a list of published task definitions.
+* Executes the task framework with a collection of startable task definitions.
 *
 * @param Tasks to start
 * @param The world
 * @return The world
 */
-startEngine :: a !*World -> *World | Publishable a
+doTasks :: a !*World -> *World | Startable a
+startEngine :== doTasks //Backwards compatibility
 
 /**
 * Starts the task engine with options and a list of published task definitions.
@@ -50,13 +51,16 @@ startEngine :: a !*World -> *World | Publishable a
 * @param The world
 * @return The world
 */
-startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
+doTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World
+	-> *World | Startable a
+
+startEngineWithOptions :== doTasksWithOptions
 
 /**
 * The function that takes the 'standard' command line options of an itask engine and
 * shows the default help and startup message
 *
-* Essentially: startEngine = startEngineWithOptions defaultEngineCLIOptions 
+* Essentially: doTasks = doTasksWithOptions defaultEngineCLIOptions 
 
 * @param The command line arguments
 * @param The default options
@@ -66,46 +70,57 @@ startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![Str
 defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![String])
 
 /**
-* Determines the default options for an application
-*/
-defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
-
-/**
 * Start a stripped task engine (without an HTTP server) with a list of tasks to be created 
 */
 runTasks :: a !*World -> *World | Runnable a
 
 runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
 
+/*
+* There are two ways tasks can be started:
+* Interactively when a user requests it through the web,
+* or directly when the application (server) is started,
+*/
+:: StartableTask
+  = WebTask !WebTask
+  | StartupTask !StartupTask
 
-// === Wrapping interactive tasks for use with the builtin iTask webserver ===
+:: WebTask =
+	{ url  :: !String
+	, task :: !WebTaskWrapper
+	}
 
-:: PublishedTask =
-	{ url			:: String
-	, task			:: WebTaskWrapper
+:: StartupTask =
+	{ attributes :: !TaskAttributes 
+	, task       :: !TaskWrapper
 	}
 
 :: WebTaskWrapper = E.a: WebTaskWrapper (HTTPRequest -> Task a) & iTask a
 :: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
 
-/**
-* Wraps a task together with a url to make it publishable by the engine
-*/
-publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+//Utility functions for creating collections of startable tasks
+atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
 
-class Publishable a
+publish :== atRequest //Backwards compatibility
+
+class Startable a
 where
-	publishAll :: !a -> [PublishedTask]
+	toStartable :: !a -> [StartableTask]
 
-instance Publishable (Task a) | iTask a
-instance Publishable (HTTPRequest -> Task a) | iTask a
-instance Publishable [PublishedTask]
+instance Startable (Task a) | iTask a //Default as web task
+instance Startable (HTTPRequest -> Task a) | iTask a //As web task
+instance Startable StartableTask
+instance Startable [StartableTask]
 
 // === Wrapping non-interactive tasks for running on the command line ===
-
 class Runnable a
 where
-	toRunnable :: !a -> [TaskWrapper] 
+	toRunnable :: !a -> [StartableTask]
 
 instance Runnable (Task a) | iTask a
-instance Runnable [TaskWrapper]
+
+/**
+* Determines the default options for an application
+*/
+defaultEngineOptions :: !*World -> (!EngineOptions,!*World)

@@ -3,8 +3,8 @@ implementation module MultiUser.Tasks
 import iTasks
 import iTasks.Extensions.Admin.UserAdmin
 
-StartMultiUserTasks :: [Workflow] [PublishedTask] *World -> *World
-StartMultiUserTasks workflows tasks world
+startMultiUserTasks :: [Workflow] [StartableTask] *World -> *World
+startMultiUserTasks workflows tasks world
 	= startTask [ workflow "Manage users"  "Manage system users..."   manageUsers
 				: workflows
 				] tasks world

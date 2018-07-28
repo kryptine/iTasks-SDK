@@ -105,34 +105,43 @@ where
 			("Specify the folder containing the sapl files\ndefault: " +++ defaults.saplDirPath)
 		]
 
-startEngine :: a !*World -> *World | Publishable a
-startEngine publishable world = startEngineWithOptions defaultEngineCLIOptions publishable world
+doTasks :: a !*World -> *World | Startable a
+doTasks startable world = doTasksWithOptions defaultEngineCLIOptions startable world
 
-startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
-startEngineWithOptions initFun publishable world
+doTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Startable a
+doTasksWithOptions initFun startable world
 	# (cli,world)			= getCommandLine world
 	# (options,world)       = defaultEngineOptions world
 	# (mbOptions,msg)       = initFun cli options
 	# world                 = show msg world
-	= case mbOptions of
-		Nothing = world
-		Just options
- 			# iworld				= createIWorld (fromJust mbOptions) world
- 			# (res,iworld) 			= initJSCompilerState iworld
-		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks (timeout options.timeout) iworld
-			= destroyIWorld iworld
+	| mbOptions =: Nothing  = world
+	# (Just options)		= mbOptions
+	# iworld				= createIWorld options world
+	# (res,iworld) 			= initJSCompilerState iworld
+	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+	# iworld				= serve startupTasks (tcpTasks options.serverPort options.keepaliveTime)
+	                                engineTasks (timeout options.timeout) iworld
+	= destroyIWorld iworld
 where
-	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) taskOutput)]
+    webTasks = [t \\ WebTask t <- toStartable startable]
+	startupTasks = [t \\ StartupTask t <- toStartable startable]
+	hasWebTasks = not (webTasks =: [])
+
+	//Only run a webserver if there are tasks that are started through the web
+	tcpTasks serverPort keepaliveTime
+		| webTasks =: [] = []
+		| otherwise
+			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
+	
 	engineTasks =
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask removeOutdatedSessions
-		,BackgroundTask flushWritesWhenIdle]
-
-runTasks :: a !*World -> *World | Runnable a
-runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
-
+		:if (webTasks =: [])
+			[BackgroundTask removeOutdatedSessions
+		 	,BackgroundTask flushWritesWhenIdle
+			]
+			[BackgroundTask stopOnStable]
+		]
 runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
 runTasksWithOptions initFun runnable world
 	# (cli,world)			= getCommandLine world
@@ -144,13 +153,20 @@ runTasksWithOptions initFun runnable world
  	# iworld				= createIWorld options world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve (toRunnable runnable) [] systemTasks (timeout options.timeout) iworld
+
+	# iworld				= serve startupTasks [] systemTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
+	startupTasks = [t \\ StartupTask t <- toRunnable runnable]
 	systemTasks =
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
 		,BackgroundTask stopOnStable]
+
+runTasks :: a !*World -> *World | Runnable a
+runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
+
+
 
 show :: ![String] !*World -> *World
 show lines world
@@ -160,37 +176,51 @@ show lines world
 	= world
 
 // The iTasks engine consist of a set of HTTP WebService 
-engineWebService :: publish -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)] | Publishable publish
-engineWebService publishable = [taskUIService published, documentService, sdsService, staticResourceService [url \\ {PublishedTask|url} <- published]]
-where
-	published = publishAll publishable 
+engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)] 
+engineWebService webtasks =
+	[taskUIService webtasks
+	,documentService
+	,sdsService
+	,staticResourceService [url \\ {WebTask|url} <- webtasks]
+	]
 
-publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = WebTaskWrapper task}
+atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+atRequest url task = WebTask {WebTask|url = url, task = WebTaskWrapper task}
 
-instance Publishable (Task a) | iTask a
-where
-	publishAll task = [publish "/" (const task)]
-
-instance Publishable (HTTPRequest -> Task a) | iTask a
-where
-	publishAll task = [publish "/" task]
-	
-instance Publishable [PublishedTask]
-where
-	publishAll list = list
+atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
+atStartup attributes task = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
 
 class Runnable a
 where
-	toRunnable :: !a -> [TaskWrapper] 
+	toRunnable :: !a -> [StartableTask] 
 
 instance Runnable (Task a) | iTask a
 where
-	toRunnable task = [TaskWrapper task]
+	toRunnable task = [StartupTask {StartupTask|attributes='DM'.newMap,task=TaskWrapper task}]
 
-instance Runnable [TaskWrapper]
+instance Runnable [StartableTask]
 where
 	toRunnable list = list
+
+class Startable a
+where
+	toStartable :: !a -> [StartableTask]
+
+instance Startable (Task a) | iTask a //Default as web task
+where
+	toStartable task = [atRequest "/" (const task)]
+
+instance Startable (HTTPRequest -> Task a) | iTask a //As web task
+where
+	toStartable task = [atRequest "/" task]
+
+instance Startable StartableTask
+where
+	toStartable task = [task]
+
+instance Startable [StartableTask]
+where
+	toStartable list = list
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
