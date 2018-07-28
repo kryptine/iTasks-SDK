@@ -142,40 +142,8 @@ where
 			]
 			[BackgroundTask stopOnStable]
 		]
-runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
-runTasksWithOptions initFun runnable world
-	# (cli,world)			= getCommandLine world
-	# (options,world)       = defaultEngineOptions world
-	# (mbOptions,msg)       = initFun cli options
-	# world                 = show msg world
-	| mbOptions =: Nothing  = world
-	# (Just options)		= mbOptions
- 	# iworld				= createIWorld options world
- 	# (res,iworld) 			= initJSCompilerState iworld
- 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 
-	# iworld				= serve startupTasks [] systemTasks (timeout options.timeout) iworld
-	= destroyIWorld iworld
-where
-	startupTasks = [t \\ StartupTask t <- toRunnable runnable]
-	systemTasks =
- 		[BackgroundTask updateClock
-		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask stopOnStable]
-
-runTasks :: a !*World -> *World | Runnable a
-runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
-
-
-
-show :: ![String] !*World -> *World
-show lines world
-	# (console,world)	= stdio world
-	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-	# (_,world)			= fclose console world
-	= world
-
-// The iTasks engine consist of a set of HTTP WebService 
+// The iTasks engine consist of a set of HTTP Web services
 engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)] 
 engineWebService webtasks =
 	[taskUIService webtasks
@@ -184,23 +152,18 @@ engineWebService webtasks =
 	,staticResourceService [url \\ {WebTask|url} <- webtasks]
 	]
 
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+
 atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
 atRequest url task = WebTask {WebTask|url = url, task = WebTaskWrapper task}
 
 atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
 atStartup attributes task = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
-
-class Runnable a
-where
-	toRunnable :: !a -> [StartableTask] 
-
-instance Runnable (Task a) | iTask a
-where
-	toRunnable task = [StartupTask {StartupTask|attributes='DM'.newMap,task=TaskWrapper task}]
-
-instance Runnable [StartableTask]
-where
-	toRunnable list = list
 
 class Startable a
 where

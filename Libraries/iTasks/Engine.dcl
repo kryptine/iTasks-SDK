@@ -2,15 +2,53 @@ definition module iTasks.Engine
 /**
 * This module provides the iTasks engine.
 * This is the primary function that creates the complete
-* environment in which worfklow specifications can be executed.
+* environment in which tasks can be executed.
 */
 
 from Data.Maybe      import :: Maybe
 from System.FilePath import :: FilePath
-from Internet.HTTP   import :: HTTPRequest
 from System.Time     import :: Timespec
+from Internet.HTTP   import :: HTTPRequest
 
 import iTasks.WF.Definition
+
+/*
+* There are two ways tasks can be started:
+* Interactively when a user requests it through the web,
+* or directly when the application (server) is started,
+*/
+:: StartableTask
+  = WebTask !WebTask
+  | StartupTask !StartupTask
+
+:: WebTask =
+	{ url  :: !String
+	, task :: !WebTaskWrapper
+	}
+
+:: StartupTask =
+	{ attributes :: !TaskAttributes 
+	, task       :: !TaskWrapper
+	}
+
+:: WebTaskWrapper = E.a: WebTaskWrapper (HTTPRequest -> Task a) & iTask a
+:: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
+
+//Utility functions for creating collections of startable tasks
+atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
+
+publish :== atRequest //Backwards compatibility
+
+class Startable a
+where
+	toStartable :: !a -> [StartableTask]
+
+instance Startable (Task a) | iTask a //Default as web task
+instance Startable (HTTPRequest -> Task a) | iTask a //As web task
+instance Startable StartableTask
+instance Startable [StartableTask]
+
 
 :: EngineOptions =
 	{ appName 		:: String
@@ -68,57 +106,6 @@ startEngineWithOptions :== doTasksWithOptions
 * @return A message that is printed to the console when the engine is started
 */
 defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![String])
-
-/**
-* Start a stripped task engine (without an HTTP server) with a list of tasks to be created 
-*/
-runTasks :: a !*World -> *World | Runnable a
-
-runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
-
-/*
-* There are two ways tasks can be started:
-* Interactively when a user requests it through the web,
-* or directly when the application (server) is started,
-*/
-:: StartableTask
-  = WebTask !WebTask
-  | StartupTask !StartupTask
-
-:: WebTask =
-	{ url  :: !String
-	, task :: !WebTaskWrapper
-	}
-
-:: StartupTask =
-	{ attributes :: !TaskAttributes 
-	, task       :: !TaskWrapper
-	}
-
-:: WebTaskWrapper = E.a: WebTaskWrapper (HTTPRequest -> Task a) & iTask a
-:: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
-
-//Utility functions for creating collections of startable tasks
-atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
-atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
-
-publish :== atRequest //Backwards compatibility
-
-class Startable a
-where
-	toStartable :: !a -> [StartableTask]
-
-instance Startable (Task a) | iTask a //Default as web task
-instance Startable (HTTPRequest -> Task a) | iTask a //As web task
-instance Startable StartableTask
-instance Startable [StartableTask]
-
-// === Wrapping non-interactive tasks for running on the command line ===
-class Runnable a
-where
-	toRunnable :: !a -> [StartableTask]
-
-instance Runnable (Task a) | iTask a
 
 /**
 * Determines the default options for an application
