@@ -149,7 +149,7 @@ engineWebService webtasks =
 	[taskUIService webtasks
 	,documentService
 	,sdsService
-	,staticResourceService [url \\ {WebTask|url} <- webtasks]
+	,staticResourceService [path \\ {WebTask|path} <- webtasks]
 	]
 
 show :: ![String] !*World -> *World
@@ -159,11 +159,11 @@ show lines world
 	# (_,world)			= fclose console world
 	= world
 
-atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
-atRequest url task = WebTask {WebTask|url = url, task = WebTaskWrapper task}
+onRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+onRequest path task = WebTask {WebTask|path = path, task = WebTaskWrapper task}
 
-atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
-atStartup attributes task = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
+onStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
+onStartup attributes task = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
 
 class Startable a
 where
@@ -171,11 +171,11 @@ where
 
 instance Startable (Task a) | iTask a //Default as web task
 where
-	toStartable task = [atRequest "/" (const task)]
+	toStartable task = [onRequest "/" (const task)]
 
 instance Startable (HTTPRequest -> Task a) | iTask a //As web task
 where
-	toStartable task = [atRequest "/" task]
+	toStartable task = [onRequest "/" task]
 
 instance Startable StartableTask
 where

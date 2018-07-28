@@ -22,7 +22,7 @@ import iTasks.WF.Definition
   | StartupTask !StartupTask
 
 :: WebTask =
-	{ url  :: !String
+	{ path :: !String
 	, task :: !WebTaskWrapper
 	}
 
@@ -35,10 +35,10 @@ import iTasks.WF.Definition
 :: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
 
 //Utility functions for creating collections of startable tasks
-atRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
-atStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
+onRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+onStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
 
-publish :== atRequest //Backwards compatibility
+publish :== onRequest //Backwards compatibility
 
 class Startable a
 where

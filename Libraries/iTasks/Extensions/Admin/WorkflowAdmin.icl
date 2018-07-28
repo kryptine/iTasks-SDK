@@ -80,7 +80,7 @@ where
 		_		= Error (exception ("Workflow " +++ path +++ " could not be found"))
 
 	fromPrj nwf wfs
-		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])
+		= Ok (Just [if (wf.Workflow.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: ReadOnlyShared [Workflow]
 allowedWorkflows = mapRead filterAllowed (workflows |+| currentUser)
