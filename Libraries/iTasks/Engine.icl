@@ -137,10 +137,10 @@ where
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
+			[BackgroundTask stopOnStable]
 			[BackgroundTask removeOutdatedSessions
 		 	,BackgroundTask flushWritesWhenIdle
 			]
-			[BackgroundTask stopOnStable]
 		]
 
 // The iTasks engine consist of a set of HTTP Web services
