@@ -36,14 +36,14 @@ This makes it possible to specify a heterogeneous list of tasks with different t
 ## Starting tasks when the application starts ##
 Some applications contain tasks that don't need any user interaction and should be started immediately.
 For those cases there is the `onStartup` function which also wraps a task as `StartableTask` value.
-Tasks that are wrapped this way are created when the iTask program starts and are not directly bound to any user or client. The second argument is a set of `TaskAttributes`.
+Tasks that are wrapped this way are created when the iTask program starts and are not directly bound to any user or client. The other argument is a set of `TaskAttributes`.
 This is initial meta-data that you can use to make it possible to identify the task instance.
 Because these tasks are not directly attached to a client when they are created, this makes it possible to find and attach them later.
 The following example shows a combination of an initialization task that is started when the application is started and another that can be started through the web.
 
 ```Clean
 Start world = doTasks
-	[onStartup initDatabase defaultValue
+	[onStartup defaultValue initDatabase 
 	,onRequest "/" (const browseDatabase)
 	]
 ```
