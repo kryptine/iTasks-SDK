@@ -6,6 +6,7 @@ definition module iTasks.Engine
 */
 
 from Data.Maybe      import :: Maybe
+from Data.Error      import :: MaybeError
 from System.FilePath import :: FilePath
 from System.Time     import :: Timespec
 from Internet.HTTP   import :: HTTPRequest
@@ -85,12 +86,12 @@ startEngine :== doTasks //Backwards compatibility
 * @param An initialization function to set the engine options with:
       @param The command line arguments
       @param The default options
-	  @return Maybe the engine options, in case of Nothing, the engine is not started
-      @return A message that is printed to the console when the engine is started
+      @return When Ok the engine options the engine is not started,
+              when Error, a message is printed to the console
 * @param The world
 * @return The world
 */
-doTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World
+doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World
 	-> *World | Startable a
 
 startEngineWithOptions :== doTasksWithOptions
@@ -103,10 +104,10 @@ startEngineWithOptions :== doTasksWithOptions
 
 * @param The command line arguments
 * @param The default options
-* @return Maybe the engine options, in case of Nothing, the engine is not started
-* @return A message that is printed to the console when the engine is started
+* @return When Ok the engine options the engine is not started,
+*         when Error, the message to printed to the console
 */
-defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![String])
+defaultEngineCLIOptions :: [String] EngineOptions -> MaybeError [String] EngineOptions 
 
 /**
 * Determines the default options for an application
