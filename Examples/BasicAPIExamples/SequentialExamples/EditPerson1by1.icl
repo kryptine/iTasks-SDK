@@ -9,7 +9,7 @@ wf a = workflow a "Edit a list of Persons one by one" (person1by1 [])
 
 Start :: *World -> *World
 Start world
-	= startEngine (person1by1 [])  world
+	= doTasks (person1by1 [])  world
 
 :: Person =
 	{ name			:: String

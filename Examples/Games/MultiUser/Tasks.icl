@@ -10,17 +10,18 @@ startMultiUserTasks workflows tasks world
 				] tasks world
 
 startTask taskList tasks world
-	= startEngine [ publish "/" (\_-> browseExamples taskList)
-                  : tasks
-				  ] world
+	= doTasks [ onStartup defaultValue (installWorkflows taskList)
+	          , onRequest "/" (const browseExamples)
+              : tasks
+              ] world
 where
-	browseExamples taskList = forever (
+	browseExamples = forever (
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-		>>* [OnAction (Action "Login") (hasValue (browseAuthenticated taskList))
+		>>* [OnAction (Action "Login") (hasValue browseAuthenticated)
 			] )
 
-	browseAuthenticated taskList {Credentials|username,password}
+	browseAuthenticated {Credentials|username,password}
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist taskList)
+			Just user 	= workAs user manageWorkOfCurrentUser
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()

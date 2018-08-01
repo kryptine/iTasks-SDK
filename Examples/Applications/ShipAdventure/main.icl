@@ -10,21 +10,24 @@ import C2.Framework.Logging
 import C2.Apps.ShipAdventure.Core, C2.Apps.ShipAdventure.Types, C2.Apps.ShipAdventure.Editor, C2.Apps.ShipAdventure.Scripting
 
 Start :: *World -> *World
-Start world = startEngine [ publish "/"             (\_ -> importDemoUsers >>| ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
-                          , publish "/tonic"        (\_ -> tonicDashboard [])
-                          , publish "/debug"        (\_ -> showDebug)
-                          , publish "/adventure"    (\_ -> importDemoUsersFlow >>| loginAndManageWorkList "Adventure" myTasks)
-                          , publish "/tonic"        (\_ -> tonicDashboard [])
-                          , publish "/alarm"        (\_ -> setSectionDetectors)
-                          , publish "/log"          (\_ -> showLog)
-                          //, publish "/devices"      (\_ -> manageDevices True)
-                          , publish "/editor"       (\_ -> shipEditorTabs)
-                          , publish "/changeFire"   (\_ -> changeFireScript)
-                          , publish "/changeFlood"  (\_ -> changeFloodScript)
-                          , publish "/changeSmoke"  (\_ -> changeSmokeScript)
-                          , publish "/doffMap"      (\_ -> dOffMap)
-                          , publish "/test"         (\_ -> editMaps2D)
-                          ] world
+Start world = doTasks
+	[onStartup defaultValue importDemoUsers
+	,onStartup defaultValue importDemoUsersFlow
+	,onStartup defaultValue (installWorkflows myTasks)
+	,onRequest "/" (\_ -> ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
+	,onRequest "/tonic" (\_ -> tonicDashboard [])
+	,onRequest "/debug" (\_ -> showDebug)
+	,onRequest "/adventure" (\_ -> loginAndManageWork "Adventure")
+	,onRequest "/alarm" (\_ -> setSectionDetectors)
+	,onRequest "/log" (\_ -> showLog)
+	//,onRequest "/devices" (\_ -> manageDevices True)
+	,onRequest "/editor" (\_ -> shipEditorTabs)
+	,onRequest "/changeFire" (\_ -> changeFireScript)
+	,onRequest "/changeFlood" (\_ -> changeFloodScript)
+	,onRequest "/changeSmoke" (\_ -> changeSmokeScript)
+	,onRequest "/doffMap" (\_ -> dOffMap)
+	,onRequest "/test" (\_ -> editMaps2D)
+	] world
 
 editMaps2D :: Task Maps2D
 editMaps2D = updateSharedInformation "Edit map" [] maps2DShare

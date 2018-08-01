@@ -25,4 +25,4 @@ where
 
 //above      :: ![XAlign] ![Span] !(Maybe Span) ![ImageOffset] ![Image m] !(Host m) -> Image m
 
-Start world = startEngine testSVGEditlet world
+Start world = doTasks testSVGEditlet world

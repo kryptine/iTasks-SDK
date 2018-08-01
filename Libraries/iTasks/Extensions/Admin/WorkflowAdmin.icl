@@ -21,7 +21,6 @@ JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					    = True
 gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return ())
 
-
 // Application specific types
 :: WorklistRow =
     { taskNr	 :: Maybe String
@@ -94,29 +93,23 @@ allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs 
 allowedPersistentWorkflows :: ReadOnlyShared [Workflow]
 allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
 
-// MANAGEMENT TASKS
-manageWorkflows :: ![Workflow] ->  Task ()
-manageWorkflows iflows
-	=	installInitialWorkflows iflows
-	>>| forever (catchAll (doAuthenticated manageWorkInSession) viewError)
+instance Startable WorkflowCollection
 where
-	viewError error = viewInformation "Error" [] error >>! \_ -> return ()
+	toStartable {WorkflowCollection|name,workflows} =
+		[onStartup defaultValue (installWorkflows workflows) 
+		,onRequest "/" (const (loginAndManageWork name))
+		]
 
-manageWorklist :: ![Workflow] -> Task ()
-manageWorklist iflows
-	=	installInitialWorkflows iflows
-	>>| manageWorkInSession
-
-installInitialWorkflows ::[Workflow] -> Task ()
-installInitialWorkflows [] = return ()
-installInitialWorkflows iflows
+installWorkflows :: ![Workflow] -> Task ()
+installWorkflows [] = return ()
+installWorkflows iflows
 	=   try (get workflows) (\(StoreReadBuildVersionError _) -> return [])
 	>>= \flows -> case flows of
 		[]	= set iflows workflows @! ()
 		_	= return ()
 		
-loginAndManageWorkList :: !String ![Workflow] -> Task ()
-loginAndManageWorkList welcome workflows 
+loginAndManageWork :: !String -> Task ()
+loginAndManageWork welcome 
 	= forever
 		(((	viewTitle welcome
 			||-
@@ -128,23 +121,26 @@ loginAndManageWorkList welcome workflows
 					>>| (return Nothing)
 				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
 	 	   ) 
-		>>- browse workflows) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
-		) 
+		>>- browse) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
+		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
 where
-	browse workflows (Just {Credentials|username,password})
+	browse (Just {Credentials|username,password})
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist workflows)
+			Just user 	= workAs user manageWorkOfCurrentUser
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
-	browse workflows Nothing
-		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorklist workflows)
+	browse Nothing
+		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) manageWorkOfCurrentUser
 		
 	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
 		
-manageWorkInSession:: Task ()
-manageWorkInSession
+manageWorkOfCurrentUser :: Task ()
+manageWorkOfCurrentUser
 	= 	((manageSession -||
-		  (chooseWhatToDo >&> withSelection (viewInformation () [] "Welcome!") (\wf -> unwrapWorkflowTask wf.Workflow.task))
+		  (chooseWhatToDo >&> withSelection
+			(viewInformation () [] "Welcome!")
+			(\wf -> unwrapWorkflowTask wf.Workflow.task)
+		  )
 		)
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where

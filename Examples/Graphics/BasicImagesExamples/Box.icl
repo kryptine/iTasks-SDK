@@ -15,13 +15,13 @@ none			= toSVGColor "none"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Box" [ViewUsing id (fromSVGEditor
-	                                                                          { initView    = id
-	                                                                          , renderImage = const box2
-	                                                                          , updView     = \m _ = m
-	                                                                          , updModel    = \_ v = v
-	                                                                          })] 0))] world
-
+	= doTasks (viewInformation "Box"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const box2
+			, updView     = \m _ = m
+			, updModel    = \_ v = v
+			})] 0) world
 
 /** box2 model tags = image:
 	@image uses the pair function that uses @tags to display two images inside a rectangle that depends on each others dimensions.

@@ -9,7 +9,7 @@ wf a = workflow a "Edit a shared list of persons" enterSharedPersons
 
 Start :: *World -> *World
 Start world
-	= startEngine enterSharedPersons world
+	= doTasks enterSharedPersons world
 
 :: Person =
 	{ name			:: String

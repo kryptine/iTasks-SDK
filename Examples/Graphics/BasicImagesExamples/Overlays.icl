@@ -17,12 +17,13 @@ lucida			= normalFontDef "Lucida Console"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Overlays" [ViewUsing id (fromSVGEditor
-		                                                                          { initView    = id
-		                                                                          , renderImage = const overlays
-		                                                                          , updView     = \m _ = m
-		                                                                          , updModel    = \_ v = v
-		                                                                          })] 0))] world
+	= doTasks (viewInformation "Overlays"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const overlays
+			, updView     = \m _ = m
+			, updModel    = \_ v = v
+			})] 0) world
 
 /** overlays model tags = image:
 	@image shows all overlay-combinations.

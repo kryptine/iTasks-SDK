@@ -9,7 +9,7 @@ wf a = workflow a "Enter text" enterText
 
 Start :: *World -> *World
 Start world
-	= startEngine enterText world
+	= doTasks enterText world
 
 enterText :: Task String
 enterText

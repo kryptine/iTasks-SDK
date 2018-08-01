@@ -10,5 +10,5 @@ derive class iTask TwoFieldRecord
 test :: Task TwoFieldRecord
 test = testCommonInteractions "TwoFieldRecord"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

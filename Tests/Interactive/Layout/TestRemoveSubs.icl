@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for removing a sub ui" @! () >>= return) <
 where
     layout = removeSubUIs (SelectByPath [1])
 
-Start world = startEngine test world
+Start world = doTasks test world

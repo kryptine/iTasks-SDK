@@ -5,12 +5,12 @@ implementation module BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.HelloWor
 import iTasks
 
 wf :: String -> Workflow
-wf a = workflow a "Hello World!" helloWorld
+wf a = workflow a "Hello, World!" helloWorld
 
 Start :: *World -> *World
 Start world
-	= startEngine helloWorld world
+	= doTasks helloWorld world
 
 helloWorld :: Task String
 helloWorld
-	= viewInformation "You have a message from iTasks:" [] "Hello world!"
+	= viewInformation "You have a message from iTasks:" [] "Hello, world!"

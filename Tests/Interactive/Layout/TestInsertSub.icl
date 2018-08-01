@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for inserting a sub ui" @! () >>= return) 
 where
     layout = insertChildUI 1 (ui UIDebug)
 
-Start world = startEngine test world
+Start world = doTasks test world

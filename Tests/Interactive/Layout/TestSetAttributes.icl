@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for setting an attribute" @! () >>= return
 where
     layout = setUIAttributes (styleAttr "background: #f0f")
 
-Start world = startEngine test world
+Start world = doTasks test world

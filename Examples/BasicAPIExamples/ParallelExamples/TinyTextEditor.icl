@@ -10,7 +10,7 @@ wf a = workflow a "Tiny text editor" editWithStatistics
 
 Start :: *World -> *World
 Start world
-	= startEngine editWithStatistics world
+	= doTasks editWithStatistics world
 
 :: Statistics 	= 	{	lineCount :: Int
 					,	wordCount :: Int

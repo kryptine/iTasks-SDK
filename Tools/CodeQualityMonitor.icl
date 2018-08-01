@@ -297,7 +297,7 @@ where
                    ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
                    ]
 
-Start world = startEngine inspectCodeQuality world
+Start world = doTasks inspectCodeQuality world
 
 //CREATE THIS WITH CPM LIBRARY
 projectTemplate moduleName = join OS_NEWLINE

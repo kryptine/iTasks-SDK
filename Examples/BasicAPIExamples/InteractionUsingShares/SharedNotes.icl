@@ -9,7 +9,7 @@ wf a = workflow a "Edit a shared note" sharedNotes
 
 Start :: *World -> *World
 Start world
-	= startEngine sharedNotes world
+	= doTasks sharedNotes world
 
 // Update and view shared notifications
 

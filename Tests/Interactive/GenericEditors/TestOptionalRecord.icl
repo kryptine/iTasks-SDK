@@ -10,4 +10,4 @@ derive class iTask TwoFieldRecord
 test :: Task (Maybe TwoFieldRecord)
 test = testCommonInteractions "Optional record"
 
-Start world = startEngine test world
+Start world = doTasks test world

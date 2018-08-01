@@ -24,4 +24,4 @@ listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 toMaybe (Value v _) =  (Just v)
 toMaybe _   =  Nothing
 
-Start world = startEngine test world
+Start world = doTasks test world

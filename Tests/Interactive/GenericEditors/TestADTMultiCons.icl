@@ -12,5 +12,5 @@ derive class iTask ADTMultiCons
 test :: Task ADTMultiCons
 test = testCommonInteractions "ADTMultiCons"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

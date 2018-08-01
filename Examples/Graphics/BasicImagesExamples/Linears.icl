@@ -20,13 +20,13 @@ blue			= toSVGColor "blue"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Linears" [ViewUsing id (fromSVGEditor
-		                                                                          { initView    = id
-		                                                                          , renderImage = const linears
-		                                                                          , updView     = \m _ = m
-		                                                                          , updModel    = \_ v = v
-		                                                                          })] 0))] world
-
+	= doTasks (viewInformation "Linears"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const linears
+			, updView     = \m _ = m
+			, updModel    = \_ v = v
+			})] 0) world
 
 /**	linears model tags = image:
 	@image shows all beside and above combinations.

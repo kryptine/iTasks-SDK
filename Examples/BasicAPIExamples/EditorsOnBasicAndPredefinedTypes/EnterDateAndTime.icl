@@ -10,7 +10,7 @@ wf a = workflow a "Enter a date and a time" enterDateTime
 
 Start :: *World -> *World
 Start world
-	= startEngine enterDateTime world
+	= doTasks enterDateTime world
 
 enterDateTime :: Task [(Date, Time)]
 enterDateTime

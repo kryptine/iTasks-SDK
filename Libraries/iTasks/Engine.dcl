@@ -48,6 +48,7 @@ instance Startable (Task a) | iTask a //Default as web task
 instance Startable (HTTPRequest -> Task a) | iTask a //As web task
 instance Startable StartableTask
 instance Startable [StartableTask]
+instance Startable (a,b) | Startable a & Startable b
 
 
 :: EngineOptions =

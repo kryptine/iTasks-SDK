@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for wrapping a ui" @! () >>= return) <<@ A
 where
     layout = wrapUI UIDebug
 
-Start world = startEngine test world
+Start world = doTasks test world

@@ -185,6 +185,10 @@ instance Startable [StartableTask]
 where
 	toStartable list = list
 
+instance Startable (a,b) | Startable a & Startable b
+where
+	toStartable (x,y) = toStartable x ++ toStartable y
+
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world

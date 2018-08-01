@@ -9,7 +9,7 @@ wf a = workflow a "Calculate sum in share" calculateSumInRecord
 
 Start :: *World -> *World
 Start world
-	= startEngine calculateSumInRecord world
+	= doTasks calculateSumInRecord world
 
 :: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Int}
 

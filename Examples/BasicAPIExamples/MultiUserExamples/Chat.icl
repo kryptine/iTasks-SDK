@@ -10,7 +10,7 @@ wf a = workflow a "Chat with other users" myExample
 
 Start :: *World -> *World
 Start world
-	= startEngine multiUserExample world
+	= doTasks multiUserExample world
 
 multiUserExample
 	=				set (map mkUserAccount players) userAccounts
@@ -18,7 +18,8 @@ multiUserExample
 						(foldl (+++) "" (map (\n -> n +++ ", ") players))
 					-||-
 					viewInformation "and then Select \"new\" to create a new Task..." [] ""
-	>>|				loginAndManageWorkList "Chat_4_2 Example" [wf "chat"]
+	>>|				installWorkflows [wf "chat"]	
+	>>|				loginAndManageWork "Chat_4_2 Example"
 where
 	mkUserAccount name
 		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }

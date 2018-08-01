@@ -9,7 +9,7 @@ wf a = workflow a "Enter a palindrome" palindrome
 
 Start :: *World -> *World
 Start world
-	= startEngine palindrome world
+	= doTasks palindrome world
 
 palindrome :: Task (Maybe String)
 palindrome

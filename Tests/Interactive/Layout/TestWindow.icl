@@ -8,4 +8,4 @@ test = viewInformation "Press the button to open a window" [] ()
 where
     taskInWindow = (viewInformation (Title "Test window") [] "Hello!" >>* [OnAction ActionClose (always (return ()))]) <<@ InWindow
 
-Start world = startEngine test world
+Start world = doTasks test world

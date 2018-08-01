@@ -12,12 +12,13 @@ from   StdList import repeat, repeatn
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Boxes" [ViewUsing id (fromSVGEditor
-	                                                                            { initView    = id
-	                                                                            , renderImage = const boxes
-	                                                                            , updView     = \m _ = m
-	                                                                            , updModel    = \_ v = v
-	                                                                            })] 0))] world
+	= doTasks (viewInformation "Boxes"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const boxes
+			, updView     = \m _ = m
+			, updModel    = \_ v = v
+			})] 0) world
 
 boxes :: m *TagSource -> Image m
 boxes model tags

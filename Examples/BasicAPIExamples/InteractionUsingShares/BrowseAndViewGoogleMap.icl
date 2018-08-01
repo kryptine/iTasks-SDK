@@ -10,7 +10,7 @@ wf a = workflow a "Browse a shared GoogleMap" browseAndViewGoogleMap
 
 Start :: *World -> *World
 Start world
-	= startEngine browseAndViewGoogleMap world
+	= doTasks browseAndViewGoogleMap world
 
 browseAndViewGoogleMap :: Task GoogleMap
 browseAndViewGoogleMap

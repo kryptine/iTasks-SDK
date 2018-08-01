@@ -16,4 +16,4 @@ derive class iTask ADTMultiCons, RecordWithADT
 test :: Task RecordWithADT
 test = testCommonInteractions "Record with ADT"
 
-Start world = startEngine test world
+Start world = doTasks test world

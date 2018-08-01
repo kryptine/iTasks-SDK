@@ -5,4 +5,4 @@ import iTasks.Extensions.GIS.Leaflet
 test :: Task LeafletMap
 test = enterInformation "Test a Leaflet map" []
 
-Start world = startEngine test world
+Start world = doTasks test world
