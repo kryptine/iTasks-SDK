@@ -99,14 +99,13 @@ sequence tasks = foreverStIf
 	//Run the first task and add it to the accumulator
 	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
 	//When done, just return the accumulator
-	@ fst
-	
+	@ reverse o fst
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
-	>>- \tv->case tv of
-		[(_, Value i True)] = treturn i
-		_ = throw "Corrupt parallel in foreverStIf"
+	>>* [OnValue (withValue \v->case v of
+			[(_, Value i True)] = Just (treturn i)
+			_ = Nothing)]
 where
 	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
 	par st Nothing tlist
