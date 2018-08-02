@@ -118,7 +118,7 @@ where
             @! ()
 
     createIncidoneTables db
-        =   (sequence "Creating Incidone tables" [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
+        =   (sequence [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
         >>- viewInformation "Incidone schema created" []) <<@ Title "Creating Incidone tables..."
         >>* [OnAction ActionOk (always (return ()))]
 
@@ -127,7 +127,7 @@ where
         >>? \_ ->
             get (sdsFocus db sqlTables)
         >>- \tables ->
-            sequence "Deleting all tables" [sqlExecuteDropTable db table \\ table <- tables]
+            sequence [sqlExecuteDropTable db table \\ table <- tables]
         >>- viewInformation ("Empty database","All data deleted") []
         >>* [OnAction ActionOk (always (return ()))]
 
@@ -191,7 +191,7 @@ where
             -&&-
             enterInformation "Immediate close the incidents?" []
         >>= \(num,closed) ->
-            sequence "Generating test incidents" (repeatn num (generateTestIncident closed))
+            sequence (repeatn num (generateTestIncident closed))
         @! ()
 
 configureIntegration :: Task ()

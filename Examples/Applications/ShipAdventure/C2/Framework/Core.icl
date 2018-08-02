@@ -57,7 +57,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
     openAssignedTasks ws = whileUnchanged tasksToDo (doOpen ws) // (watch tasksToDo >>* [OnValue (hasValue (doOpen ws))])
       where
       doOpen :: Workspace [(TaskId, WorklistRow)] -> Task ()
-      doOpen ws xs = sequence "openAssignedTasks" (map (\(taskId, _) -> appendOnce taskId (workOn taskId @! ()) ws) xs) @! ()
+      doOpen ws xs = sequence (map (\(taskId, _) -> appendOnce taskId (workOn taskId @! ()) ws) xs) @! ()
 
 	layout = sequenceLayouts
 		[removeSubUIs (SelectByPath [1]) //Don't show the openAssignedTasks UI
