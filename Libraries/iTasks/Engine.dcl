@@ -36,8 +36,13 @@ import iTasks.WF.Definition
 :: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
 
 //Utility functions for creating collections of startable tasks
-onRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
-onStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
+//Common cases:
+onStartup :: (Task a) -> StartableTask | iTask a
+onRequest :: String (Task a) -> StartableTask | iTask a
+
+//Less common cases:
+onStartupWithAttributes :: (Task a) TaskAttributes -> StartableTask | iTask a
+onRequestFromRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
 
 publish :== onRequest //Backwards compatibility
 

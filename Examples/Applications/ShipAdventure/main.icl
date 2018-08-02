@@ -11,22 +11,22 @@ import C2.Apps.ShipAdventure.Core, C2.Apps.ShipAdventure.Types, C2.Apps.ShipAdve
 
 Start :: *World -> *World
 Start world = doTasks
-	[onStartup defaultValue importDemoUsers
-	,onStartup defaultValue importDemoUsersFlow
-	,onStartup defaultValue (installWorkflows myTasks)
-	,onRequest "/" (\_ -> ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
-	,onRequest "/tonic" (\_ -> tonicDashboard [])
-	,onRequest "/debug" (\_ -> showDebug)
-	,onRequest "/adventure" (\_ -> loginAndManageWork "Adventure")
-	,onRequest "/alarm" (\_ -> setSectionDetectors)
-	,onRequest "/log" (\_ -> showLog)
-	//,onRequest "/devices" (\_ -> manageDevices True)
-	,onRequest "/editor" (\_ -> shipEditorTabs)
-	,onRequest "/changeFire" (\_ -> changeFireScript)
-	,onRequest "/changeFlood" (\_ -> changeFloodScript)
-	,onRequest "/changeSmoke" (\_ -> changeSmokeScript)
-	,onRequest "/doffMap" (\_ -> dOffMap)
-	,onRequest "/test" (\_ -> editMaps2D)
+	[onStartup importDemoUsers
+	,onStartup importDemoUsersFlow
+	,onStartup (installWorkflows myTasks)
+	,onRequest "/" (ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
+	,onRequest "/tonic" (tonicDashboard [])
+	,onRequest "/debug" showDebug
+	,onRequest "/adventure" (loginAndManageWork "Adventure")
+	,onRequest "/alarm" (setSectionDetectors)
+	,onRequest "/log" showLog
+	//,onRequest "/devices" (manageDevices True)
+	,onRequest "/editor" shipEditorTabs
+	,onRequest "/changeFire" changeFireScript
+	,onRequest "/changeFlood" changeFloodScript
+	,onRequest "/changeSmoke" changeSmokeScript
+	,onRequest "/doffMap" dOffMap
+	,onRequest "/test" editMaps2D
 	] world
 
 editMaps2D :: Task Maps2D

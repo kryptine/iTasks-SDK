@@ -10,8 +10,8 @@ startMultiUserTasks workflows tasks world
 				] tasks world
 
 startTask taskList tasks world
-	= doTasks [ onStartup defaultValue (installWorkflows taskList)
-	          , onRequest "/" (const browseExamples)
+	= doTasks [ onStartup (installWorkflows taskList)
+	          , onRequest "/" browseExamples
               : tasks
               ] world
 where

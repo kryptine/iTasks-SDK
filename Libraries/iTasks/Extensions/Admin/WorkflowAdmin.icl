@@ -96,8 +96,8 @@ allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <-
 instance Startable WorkflowCollection
 where
 	toStartable {WorkflowCollection|name,workflows} =
-		[onStartup defaultValue (installWorkflows workflows) 
-		,onRequest "/" (const (loginAndManageWork name))
+		[onStartup (installWorkflows workflows) 
+		,onRequest "/" (loginAndManageWork name)
 		]
 
 installWorkflows :: ![Workflow] -> Task ()

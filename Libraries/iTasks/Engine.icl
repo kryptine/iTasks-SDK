@@ -135,11 +135,17 @@ where
 			("Specify the folder containing the sapl files\ndefault: " +++ defaults.saplDirPath)
 		]
 
-onRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
-onRequest path task = WebTask {WebTask|path = path, task = WebTaskWrapper task}
+onStartup :: (Task a) -> StartableTask | iTask a
+onStartup task = StartupTask {StartupTask|attributes = defaultValue, task = TaskWrapper task}
 
-onStartup :: TaskAttributes (Task a) -> StartableTask | iTask a
-onStartup attributes task = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
+onRequest :: String (Task a) -> StartableTask | iTask a
+onRequest path task = WebTask {WebTask|path = path, task = WebTaskWrapper (const task)}
+
+onStartupWithAttributes :: (Task a) TaskAttributes -> StartableTask | iTask a
+onStartupWithAttributes task attributes = StartupTask {StartupTask|attributes = attributes, task = TaskWrapper task}
+
+onRequestFromRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
+onRequestFromRequest path task = WebTask {WebTask|path = path, task = WebTaskWrapper task}
 
 class Startable a
 where
@@ -148,15 +154,15 @@ where
 instance Startable (Task a) | iTask a //Default as web task
 where
 	toStartable task =
-		[onStartup defaultValue viewWebServerInstructions
-		,onRequest "/" (const task)
+		[onStartup viewWebServerInstructions
+		,onRequest "/" task
 		]
 
 instance Startable (HTTPRequest -> Task a) | iTask a //As web task
 where
 	toStartable task =
-		[onStartup defaultValue viewWebServerInstructions
-		,onRequest "/" task
+		[onStartup viewWebServerInstructions
+		,onRequestFromRequest "/" task
 		]
 
 instance Startable StartableTask
