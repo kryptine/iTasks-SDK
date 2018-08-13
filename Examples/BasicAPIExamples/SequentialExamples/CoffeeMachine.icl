@@ -10,7 +10,7 @@ wf a = workflow a "Calculator" coffeemachine
 
 Start :: *World -> *World
 Start world
-	= startEngine coffeemachine world
+	= doTasks coffeemachine world
 
 coffeemachine :: Task (String,EUR)
 coffeemachine

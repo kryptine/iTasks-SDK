@@ -10,7 +10,7 @@ wf a = workflow a "Edit a shared note as a list" sharedNoteAsList
 
 Start :: *World -> *World
 Start world
-	= startEngine sharedNoteAsList world
+	= doTasks sharedNoteAsList world
 
 
 sharedNoteAsList :: Task String

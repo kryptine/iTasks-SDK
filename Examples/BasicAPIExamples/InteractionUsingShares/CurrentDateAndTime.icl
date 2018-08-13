@@ -12,7 +12,7 @@ wf a = workflow a "View the current Date and Time" showDateAndTime
 
 Start :: *World -> *World
 Start world
-	= startEngine showDateAndTime world
+	= doTasks showDateAndTime world
 
 showDateAndTime :: Task Time
 showDateAndTime

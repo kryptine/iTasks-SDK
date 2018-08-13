@@ -15,5 +15,5 @@ derive class iTask TwoFieldRecord, NestedRecord
 test :: Task NestedRecord
 test = testCommonInteractions "NestedRecord"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

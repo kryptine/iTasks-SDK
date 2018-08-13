@@ -6,4 +6,4 @@ test = forever (
     >>| return ()
     )
 
-Start world = startEngine test world
+Start world = doTasks test world

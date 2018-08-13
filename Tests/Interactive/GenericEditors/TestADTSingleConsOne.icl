@@ -7,5 +7,5 @@ derive class iTask ADTSingleCons
 test :: Task ADTSingleCons
 test = testCommonInteractions "ADTSingleCons"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

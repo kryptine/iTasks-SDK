@@ -9,7 +9,7 @@ wf a = workflow a "Enter a list of Integer numbers" enterListOfInt
 
 Start :: *World -> *World
 Start world
-	= startEngine enterListOfInt world
+	= doTasks enterListOfInt world
 
 enterListOfInt :: Task [Int]
 enterListOfInt

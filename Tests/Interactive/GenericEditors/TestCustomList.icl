@@ -7,4 +7,4 @@ derive class iTask List
 test :: Task List
 test = testCommonInteractions "Custom list"
 
-Start world = startEngine test world
+Start world = doTasks test world

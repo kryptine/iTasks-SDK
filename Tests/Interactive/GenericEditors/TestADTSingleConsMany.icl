@@ -7,5 +7,5 @@ derive class iTask ADTSingleConsMany
 test :: Task ADTSingleConsMany
 test = testCommonInteractions "ADTSingleConsMany"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

@@ -9,7 +9,7 @@ wf a = workflow a "Calculate the Sum Stepwise" calculateSumStepwise
 
 Start :: *World -> *World
 Start world
-	= startEngine calculateSumStepwise world
+	= doTasks calculateSumStepwise world
 
 calculateSumStepwise :: Task Int
 calculateSumStepwise

@@ -13,7 +13,7 @@ wf a = workflow a "Plan a meeting" myExample
 
 Start :: *World -> *World
 Start world
-	= startEngine multiUserExample world
+	= doTasks multiUserExample world
 
 multiUserExample
 	=				set (map mkUserAccount players) userAccounts
@@ -21,7 +21,8 @@ multiUserExample
 						(join ", " players)
 					-||-
 					viewInformation "and then Select \"new\" to create a new Task..." [] ""
-	>>|				loginAndManageWorkList "Meeting_4_3 Example" [wf "Meeting date"]
+	>>|				installWorkflows [wf "Meeting date"]
+	>>|				loginAndManageWork "Meeting_4_3 Example"
 where
 	mkUserAccount name
 		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }

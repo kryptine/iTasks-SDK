@@ -13,7 +13,7 @@ wf a = workflow a "Chat with options" genChat
 
 Start :: *World -> *World
 Start world
-	= startEngine multiUserExample world
+	= doTasks multiUserExample world
 
 multiUserExample
 	=				set (map mkUserAccount logins) userAccounts
@@ -21,7 +21,8 @@ multiUserExample
 						(foldl (+++) "" (map (\n -> n +++ ", ") logins))
 					-||-
 					viewInformation "and then Select \"new\" to create a new Task..." [] ""
-	>>|				loginAndManageWorkList "Chat_4_2 Example" [wf "Chat with options"]
+	>>|				installWorkflows [wf "Chat with options"]
+	>>|				loginAndManageWork "Chat_4_2 Example"
 where
 	mkUserAccount name
 		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }

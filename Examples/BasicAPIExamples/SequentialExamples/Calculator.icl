@@ -9,7 +9,7 @@ wf a = workflow a "Calculator" calculator
 
 Start :: *World -> *World
 Start world
-	= startEngine calculator world
+	= doTasks calculator world
 
 :: CalculatorState = { display :: Int, n :: Int}
 

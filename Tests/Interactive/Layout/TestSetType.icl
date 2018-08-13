@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for setting a UI type" @! () >>= return) <
 where
     layout = setUIType UIDebug
 
-Start world = startEngine test world
+Start world = doTasks test world

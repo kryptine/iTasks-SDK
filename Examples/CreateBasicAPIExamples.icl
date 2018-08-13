@@ -39,11 +39,9 @@ makeExs i =
 	, join "\n" ["import qualified " +++ toDots i\\i<-i]
 	, "\n\n"
 	, "Start :: *World -> *World\n"
-	, "Start world = startEngine\n"
-	, "\t[ publish \"/\" (\\_->loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setUIAttributes (titleAttr title)))\n"
-	, "\t] world\n"
+	, "Start world = doTasks {WorkflowCollection|name=name,workflows=basicAPIExamples} world\n"
 	, "where\n"
-	, "\ttitle = \"iTasks Example Collection\"\n"
+	, "\tname = \"iTasks Example Collection\"\n"
 	, "\n"
 	, "basicAPIExamples :: [Workflow]\n"
 	, "basicAPIExamples =\n"

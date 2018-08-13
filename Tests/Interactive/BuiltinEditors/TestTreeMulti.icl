@@ -8,4 +8,4 @@ test = testEditor (tree <<@ multipleAttr True)
         ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}
         ],[]) Update
 
-Start world = startEngine test world
+Start world = doTasks test world

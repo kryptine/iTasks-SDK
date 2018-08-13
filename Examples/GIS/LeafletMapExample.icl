@@ -77,4 +77,4 @@ where
 		withMarkerFromCursor Nothing objects = objects
 		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
 
-Start world = startEngine playWithMaps world
+Start world = doTasks playWithMaps world

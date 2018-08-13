@@ -24,4 +24,4 @@ import MultiUser.Tasks
 
 Start :: *World -> *World
 Start world
-	= StartMultiUserTasks [ workflow "Trax" "Play Trax" play_trax ] [] world
+	= startMultiUserTasks [ workflow "Trax" "Play Trax" play_trax ] [] world

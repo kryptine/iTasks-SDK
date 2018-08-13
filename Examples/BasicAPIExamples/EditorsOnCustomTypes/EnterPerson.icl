@@ -19,7 +19,7 @@ derive class iTask Person, Gender
 
 Start :: *World -> *World
 Start world
-	= startEngine enterPerson world
+	= doTasks enterPerson world
 
 enterPerson :: Task Person
 enterPerson

@@ -10,7 +10,7 @@ wf a = workflow a "Enter a Google map" googleMap
 
 Start :: *World -> *World
 Start world
-	= startEngine googleMap world
+	= doTasks googleMap world
 
 googleMap :: Task GoogleMap
 googleMap

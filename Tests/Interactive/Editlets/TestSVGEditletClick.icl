@@ -26,4 +26,4 @@ where
                                                                                       n -> toString n +++ " clicks"
                                                                 , local = False }
 
-Start world = startEngine testSVGEditletClick world
+Start world = doTasks testSVGEditletClick world

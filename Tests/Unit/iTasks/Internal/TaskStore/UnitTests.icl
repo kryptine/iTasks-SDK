@@ -11,7 +11,7 @@ where
 		# (options,world) = defaultEngineOptions world
 		# iworld = createIWorld options world
 		//Create a task instance
-		# (res,iworld) = createTaskInstance minimalTask iworld
+		# (res,iworld) = createTaskInstance minimalTask defaultValue iworld
 		# world = destroyIWorld iworld
 		= (res,world)
 

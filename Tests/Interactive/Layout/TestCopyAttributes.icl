@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for copying an attribute" @! () >>= return
 where
     layout = copySubUIAttributes SelectAll [0] [1]
 
-Start world = startEngine test world 
+Start world = doTasks test world 

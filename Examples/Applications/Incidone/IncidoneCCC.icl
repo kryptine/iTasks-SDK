@@ -35,11 +35,12 @@ import Incidone.DeviceBased.Tablet
 
 
 Start :: *World -> *World
-Start world = startEngine [publish "/"                 (\_ -> ccPerson)
-						  ,publish "/wall"             (\_ -> viewVideoWallContent)
-						  ,publish "/wall-control"     (\_ -> selectVideoWallContent)
-                          ,publish "/exercise-control" (\_ -> controlExercise)
-						  ] world
+Start world = doTasks
+	[onRequest "/" ccPerson
+	,onRequest "/wall" viewVideoWallContent
+	,onRequest "/wall-control" selectVideoWallContent
+	,onRequest "/exercise-control" controlExercise
+	] world
 where
 	//Main task for command center operators
 	ccPerson :: Task ()

@@ -9,7 +9,7 @@ wf a = workflow a "Enter an Integer" enterInt
 
 Start :: *World -> *World
 Start world
-	= startEngine enterInt world
+	= doTasks enterInt world
 
 enterInt :: Task Int
 enterInt

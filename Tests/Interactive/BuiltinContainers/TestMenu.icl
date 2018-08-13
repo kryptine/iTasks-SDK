@@ -12,4 +12,4 @@ test =   viewInformation () [] "This is the content of the container"
      <<@ ApplyLayout (wrapUI UIMenu)
      <<@ ApplyLayout (setUIAttributes (textAttr "Open menu"))
 
-Start world = startEngine test world
+Start world = doTasks test world

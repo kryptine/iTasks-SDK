@@ -19,13 +19,13 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "100% Clean!" [ViewUsing id (fromSVGEditor
-			                                                                          { initView    = id
-			                                                                          , renderImage = const clean
-			                                                                          , updView     = \m _ = m
-			                                                                          , updModel    = \_ v = v
-			                                                                          })] 0))] world
-
+	= doTasks (viewInformation "100% Clean!"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const clean
+			, updView     = \m _ = m
+			, updModel    = \_ v = v
+			})] 0) world
 
 /** clean model tags = image:
 	@image is inspired by an image that was displayed by Marc Schoolderman during the lab session of friday afternoon, may 22 2015.

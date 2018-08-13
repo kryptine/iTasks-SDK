@@ -24,7 +24,7 @@ derive class iTask Family, Person, Gender
 
 Start :: *World -> *World
 Start world
-	= startEngine enterFamily world
+	= doTasks enterFamily world
 
 enterFamily :: Task Family
 enterFamily
