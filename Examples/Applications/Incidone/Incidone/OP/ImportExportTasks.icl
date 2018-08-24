@@ -6,7 +6,7 @@ import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.ContactManagementTask
 importContactsFromCSVFile :: Document -> Task ()
 importContactsFromCSVFile doc
     =   importCSVDocument doc
-    >>- \csv -> sequence "Importing contacts" (map create (skipHeader csv))
+    >>- \csv -> sequence (map create (skipHeader csv))
     @!  ()
 where
     skipHeader [] = []
