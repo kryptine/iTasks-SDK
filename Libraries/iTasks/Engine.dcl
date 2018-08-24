@@ -44,7 +44,7 @@ onRequest :: String (Task a) -> StartableTask | iTask a
 onStartupWithAttributes :: (Task a) TaskAttributes -> StartableTask | iTask a
 onRequestFromRequest :: String (HTTPRequest -> Task a) -> StartableTask | iTask a
 
-publish :== onRequest //Backwards compatibility
+publish :== onRequestFromRequest //Backwards compatibility
 
 class Startable a
 where
