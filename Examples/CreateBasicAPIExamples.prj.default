@@ -1,8 +1,8 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks
-	Exec:	{Project}/CreateBasicAPIExamples.exe
+	Target:	StdEnv
+	Exec:	{Project}*CreateBasicAPIExamples.exe
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -42,7 +42,6 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
-	OtherPaths
 		Path:	{Application}*lib*Dynamics
 		Path:	{Application}*lib*Platform
 		Path:	{Application}*lib*StdEnv
