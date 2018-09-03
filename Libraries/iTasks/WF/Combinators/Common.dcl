@@ -147,13 +147,12 @@ justdo	:: !(Task (Maybe a)) -> Task a | iTask a
 /**
 * Execute the list of tasks one after another.
 * 
-* @param Label: A label for tracing
 * @param Tasks: The list of tasks to be executed sequentially
 * @return The combined task
 * 
 * @gin-icon sequence
 */
-sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
+sequence	:: ![Task a] 						-> Task [a]		| iTask a
 
 /**
 * Repeats a task until a given predicate holds. The predicate is tested as soon as the

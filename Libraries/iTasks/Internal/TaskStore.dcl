@@ -67,16 +67,16 @@ allInstanceIO           :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map 
 taskEvents :: SDSLens () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
 
 // === Evaluation state of instances: ===
-taskInstanceReduct :: SDSLens InstanceNo TIReduct TIReduct
-taskInstanceValue :: SDSLens InstanceNo TIValue TIValue
-taskInstanceShares :: SDSLens InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
-
+taskInstanceReduct      :: SDSLens InstanceNo TIReduct TIReduct
+taskInstanceValue       :: SDSLens InstanceNo TIValue TIValue
+taskInstanceShares      :: SDSLens InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 //Filtered views on evaluation state of instances:
 
 //Shared source 
 localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
+taskInstanceParallelTaskLists       :: SDSLens InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 
 //Private interface used during evaluation of parallel combinator
@@ -111,7 +111,7 @@ taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 
 //Create a task instance
-createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 
 /**
 * Create a stored task instance in the task store (lazily without evaluating it)

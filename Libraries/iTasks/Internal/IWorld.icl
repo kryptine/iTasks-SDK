@@ -73,7 +73,8 @@ createIWorld options world
         ,attachmentChain        = []
 	    ,nextTaskNo			    = 0
         }
-      ,sdsNotifyRequests    = []
+      ,sdsNotifyRequests    = 'DM'.newMap
+      ,sdsNotifyReqsByTask  = 'DM'.newMap
       ,memoryShares         = 'DM'.newMap
       ,readCache            = 'DM'.newMap
       ,writeCache           = 'DM'.newMap

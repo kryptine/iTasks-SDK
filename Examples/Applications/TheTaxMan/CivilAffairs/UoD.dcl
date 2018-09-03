@@ -40,10 +40,10 @@ import iTasks.Extensions.Document //import :: Document(..), :: DocumentId
 		, houseNumber				:: Int				/** house number */
 		}
 /** Postcode:
-		in the Netherlands this string is formatted as a sequence of four digits (0..9) and two 
+		in the Netherlands this string is formatted as a sequence of four digits (0..9) and two
 		alphabetic characters (A..Z).
 */
-:: Postcode 	
+:: Postcode
 	:== String
 /** Amount:
 		for simplicity, the amount in euros
@@ -57,7 +57,7 @@ import iTasks.Extensions.Document //import :: Document(..), :: DocumentId
 	:== Document
 
 /**	citizenFromSSN ssn all_citizens = Just citizen:
-		@citizen is a member of @all_citizens and @citizen.ssn == @ssn. 
+		@citizen is a member of @all_citizens and @citizen.ssn == @ssn.
 	citizenFromSSN ssn all_citizens = Nothing:
 		@all_citizens does not contain a citizen c for which c.ssn == @ssn.
 */

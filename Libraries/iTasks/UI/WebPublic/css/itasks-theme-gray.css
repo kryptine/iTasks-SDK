@@ -396,6 +396,12 @@ div.itasks-exception {
   position: relative;
   top: 3px; }
 
+.itasks-tab-disabled .itasks-tabicon {
+  opacity: 0.5; }
+
+.itasks-tab-disabled span {
+  color: #aaa; }
+
 .itasks-tabitems {
   z-index: 2;
   border: 1px solid #ccc;
@@ -557,6 +563,13 @@ div.itasks-exception {
 
 .itasks-debug {
   border: 3px solid red; }
+
+.itasks-vsizer {
+  height: 5px;
+  cursor: ns-resize;
+  background-color: #eee; }
+  .itasks-vsizer:hover {
+    background-color: #333; }
 
 .itasks-icon {
   width: 16px;

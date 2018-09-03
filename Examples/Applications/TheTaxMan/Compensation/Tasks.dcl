@@ -45,7 +45,7 @@ editAcceptedSolarPanels :: Task ()
 editSubsidyRequest :: Task ()
 
 /** addToCollectionStore collection:
-		file @collection to *collectionPayments* if @collection.amount is positive, and 
+		file @collection to *collectionPayments* if @collection.amount is positive, and
 		file @collection to *collectionClaims* if @collection.amount is negative.
 		If @collection.amount is zero, nothing happens.
 */

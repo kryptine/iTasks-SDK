@@ -15,10 +15,10 @@ from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: Defer
 from iTasks.Internal.Task             import :: ConnectionTask, :: BackgroundTask
 from iTasks.Internal.TaskEval         import :: TaskTime
 
-from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
+from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
-import iTasks.SDS.Definition
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIdentity
+from iTasks.SDS.Definition import :: SDSSource, :: SDSLens
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -29,23 +29,24 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timespec                                    // Server side clock
-                    , current               :: !TaskEvalState                               // Shared state during task evaluation
+:: *IWorld		=	{ options               :: !EngineOptions                                   // Engine configuration
+                    , clock                 :: !Timespec                                        // Server side clock
+                    , current               :: !TaskEvalState                                   // Shared state during task evaluation
 
-                    , random                :: [Int]                                        // Infinite random stream
+                    , random                :: [Int]                                            // Infinite random stream
 
-                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                          // Notification requests from previously read sds's
-                    , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
-                    , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
-                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
-					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
+                    , sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
+                    , sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentity)                    // Allows to efficiently find notification by taskID for clearing notifications
+                    , memoryShares          :: !Map String Dynamic                              // Run-time memory shares
+                    , readCache             :: !Map (String,String) Dynamic                     // Cached share reads
+                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+					, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
 
-	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
-                    , ioStates              :: !IOStates                                    // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+	                , ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
+                    , ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
                     , sdsEvalStates         :: !SDSEvalStates
 
-					, world					:: !*World									    // The outside world
+					, world					:: !*World									        // The outside world
 
                     //Experimental database connection cache
                     , resources             :: *[*Resource]
@@ -77,10 +78,11 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
+    | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
-    , nextConnectionId      :: !ConnectionId
+    , nextConnectionId      :: !ConnectionId    
     , port                  :: !Int
     , connectionTask        :: !ConnectionTask
     , removeOnClose         :: !Bool            //If this flag is set, states of connections accepted by this listener are removed when the connection is closed
@@ -93,7 +95,14 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , removeOnClose         :: !Bool            //If this flag is set, the connection state is removed when the connection is closed
     }
 
-:: ConnectionId :== Int
+:: ConnectionId             :== Int
+
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
+
 :: IOStates :== Map TaskId IOState
 :: IOState
     = IOActive      !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
@@ -134,7 +143,6 @@ destroyIWorld :: !*IWorld -> *World
 	}
 
 iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
-iworldTimestamp        :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 
 /*
  * Calculate the next fire for the given timespec
@@ -146,6 +154,7 @@ iworldTimestamp        :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 
+iworldTimestamp        :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldLocalDateTime    :: SDSLens () DateTime ()
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)

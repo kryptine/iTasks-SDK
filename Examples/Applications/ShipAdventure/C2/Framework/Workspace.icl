@@ -15,18 +15,18 @@ addOnceToWorkspace identity task workspace
     >>- \items -> case find identity items of
             Nothing         =   appendTask (NamedEmbedded identity) (removeWhenStable task) workspace
                             >>- \taskId ->
-                                focusTask taskId workspace @! () 
+                                focusTask taskId workspace @! ()
             (Just taskId)   =   focusTask taskId workspace @! ()
 
 find identity [] = Nothing
 find identity [p=:{TaskListItem|taskId,attributes}:ps]
-        | maybe False ((==) identity) ('DM'.get "name" attributes)  = Just taskId 
+        | maybe False ((==) identity) ('DM'.get "name" attributes)  = Just taskId
                                                                     = find identity ps
 
 removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
 removeFromWorkspace :: String Workspace -> Task ()
-removeFromWorkspace identity workspace 
+removeFromWorkspace identity workspace
     =   get (taskListMeta workspace)
     >>- \items -> case find identity items of
             Nothing         =   return ()
@@ -36,4 +36,4 @@ removeFromWorkspace identity workspace
                   where mbname = 'DM'.get "name" attributes
                   appstr [] = ""
                   appstr [e:es] = e +++ " " +++ appstr es
-            (Just taskId)   =   removeTask taskId workspace @! () 
+            (Just taskId)   =   removeTask taskId workspace @! ()

@@ -1,7 +1,6 @@
 definition module iTasks.Internal.Tonic
 
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.Engine import :: PublishedTask
 from iTasks.Internal.Task import :: TaskEvalOpts, :: TaskResult
 from iTasks.WF.Definition import :: Task, :: InstanceNo, class iTask
 from iTasks.UI.Tune import class tune

@@ -11,8 +11,6 @@ from iTasks.WF.Definition import :: TaskException, :: TaskId, :: InstanceNo
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 import iTasks.SDS.Definition
 
-:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds
-
 instance Identifiable SDSSource
 instance Readable SDSSource
 instance Writeable SDSSource
@@ -58,6 +56,8 @@ instance Readable SDSRemoteSource
 instance Writeable SDSRemoteSource
 instance Modifiable SDSRemoteSource
 instance Registrable SDSRemoteSource
+
+:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds
 
 //Internal creation functions:
 

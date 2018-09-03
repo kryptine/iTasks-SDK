@@ -27,7 +27,7 @@ derive class iTask Map2D, Section, Borders, Border, Coord2D, Dir, MapAction
 
 derive class iTask Actor, Object
 
-// small utility functions 
+// small utility functions
 
 instance == (Actor o a)  where (==) a1 a2 = a1.userName == a2.userName
 
@@ -80,7 +80,7 @@ sharedGraph = sdsLens "sharedGraph" (const ()) (SDSRead read) (SDSWriteConst wri
 
   write _ _ = Ok Nothing
 
-  notify _ _  = const True
+  notify _ _  = const (const True)
 
 sectionUsersShare :: SectionUsersShare
 sectionUsersShare = sharedStore "sectionUsersShare" 'DM'.newMap
@@ -244,7 +244,7 @@ getMapID idx ms2d
 getMap2DIndex       :: !MapID !Maps2D -> Maybe Maps2DIndex
 getMap2DIndex mapID ms2d
 					= listToMaybe [idx \\ {Map2D | mapId} <- ms2d & idx <- [0..] | mapId == mapID]
-  					
+
 getSection :: !Coord2D !Map2D -> Maybe Section
 getSection {col, row} {Map2D | map2D} = map2D !!! row >>= \cols -> cols !!! col
 
@@ -393,9 +393,9 @@ uiAbove refs = UIAbove refs
 
 
 
+/*
 modifyUI :: (TaskUITree -> TaskUILayout) -> Layout
 modifyUI f = idLayout
-/*
 modifyUI f = \(uichange, json) -> case uichange of
                                     ReplaceUI ui -> (ReplaceUI (toLayout ui (f (uiToRefs ui))), json)
                                     _ -> (uichange, json)
@@ -415,7 +415,7 @@ moveAround :: !(DrawMapForActor r o a) !User
 moveAround viewDeck user inventoryForSectionShare
            shipStatusShare userToActorShare inventoryForAllSectionsShare
   = forever (    walkAround  -||- changeDecks
-            -||- pickUpItems -||- dropItems) <<@ ApplyLayout (modifyUI moveAroundUI)
+            -||- pickUpItems -||- dropItems) //<<@ ApplyLayout (idLayout modifyUI moveAroundUI)
   where
   walkAround :: Task ()
   walkAround
@@ -526,7 +526,7 @@ sectionForSectionNumberShare = sdsLens "sectionForSectionNumberShare" (const ())
   write (floorIdx, c2d) ms2d section = Ok (Just (updMap2D floorIdx (setSection c2d section) ms2d))
 
   notify :: Coord3D Maps2D Section -> SDSNotifyPred Coord3D
-  notify c3d _ _ = \c3d` -> c3d == c3d`
+  notify c3d _ _ = \_ c3d` -> c3d == c3d`
 
 pickupObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectionInventoryShare o)
              -> Task () | iTask o & iTask a
@@ -633,7 +633,7 @@ actorsInSectionShare userActorShare = sdsLens "actorsInSectionShare" (const ()) 
   write c3d (sectionUsersMap, userActorMap) actors = Ok (Just ('DM'.put c3d (map (\a -> a.userName) actors) sectionUsersMap, 'DM'.fromList [(a.userName, a) \\ a <- actors]))
 
   notify :: Coord3D (SectionUsersMap, UserActorMap o a) [Actor o a] -> SDSNotifyPred Coord3D
-  notify c3d _ _ = \c3d` -> c3d == c3d`
+  notify c3d _ _ = \_ c3d` -> c3d == c3d`
 
 actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a | iTask o & iTask a
 actorForUserShare userActorShare = mapMaybeLens "actorForUserShare" userActorShare

@@ -21,7 +21,6 @@ JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					    = True
 gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return ())
 
-
 // Application specific types
 :: WorklistRow =
     { taskNr	 :: Maybe String
@@ -79,8 +78,7 @@ where
 		[wf:_]	= Ok wf
 		_		= Error (exception ("Workflow " +++ path +++ " could not be found"))
 
-	fromPrj nwf wfs
-		= Ok (DoWrite [if (wf.path == path) nwf wf \\ wf <- wfs])
+	fromPrj nwf wfs = Ok (DoWrite [if (wf.Workflow.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: SDSLens () [Workflow] ()
 allowedWorkflows = mapRead filterAllowed ((workflows |*| currentUser) id)
@@ -94,30 +92,23 @@ allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs 
 allowedPersistentWorkflows :: SDSLens () [Workflow] ()
 allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
 
-// MANAGEMENT TASKS
-manageWorkflows :: ![Workflow] ->  Task ()
-manageWorkflows iflows
-	=	installInitialWorkflows iflows
-	>>| forever (catchAll (doAuthenticated manageWorkInSession) viewError)
+instance Startable WorkflowCollection
 where
-	viewError error = viewInformation "Error" [] error >>! \_ -> return ()
+	toStartable {WorkflowCollection|name,workflows} =
+		[onStartup (installWorkflows workflows) 
+		,onRequest "/" (loginAndManageWork name)
+		]
 
-manageWorklist :: ![Workflow] -> Task ()
-manageWorklist iflows
-	=	installInitialWorkflows iflows
-	>>| manageWorkInSession
-
-import StdDebug
-installInitialWorkflows ::[Workflow] -> Task ()
-installInitialWorkflows [] = return ()
-installInitialWorkflows iflows
+installWorkflows :: ![Workflow] -> Task ()
+installWorkflows [] = return ()
+installWorkflows iflows
 	=   try (get workflows) (\(StoreReadBuildVersionError _) -> return [])
 	>>= \flows -> case flows of
 		[]	= set iflows workflows @! ()
 		_	= return ()
 		
-loginAndManageWorkList :: !String ![Workflow] -> Task ()
-loginAndManageWorkList welcome workflows 
+loginAndManageWork :: !String -> Task ()
+loginAndManageWork welcome 
 	= forever
 		(((	viewTitle welcome
 			||-
@@ -129,42 +120,45 @@ loginAndManageWorkList welcome workflows
 					>>| (return Nothing)
 				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
 	 	   ) 
-		>>- browse workflows) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
-		) 
+		>>- browse) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
+		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
 where
-	browse workflows (Just {Credentials|username,password})
+	browse (Just {Credentials|username,password})
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist workflows)
+			Just user 	= workAs user manageWorkOfCurrentUser
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
-	browse workflows Nothing
-		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorklist workflows)
+	browse Nothing
+		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) manageWorkOfCurrentUser
 		
-	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
+	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
 		
-manageWorkInSession:: Task ()
-manageWorkInSession
+manageWorkOfCurrentUser :: Task ()
+manageWorkOfCurrentUser
 	= 	((manageSession -||
-		  (chooseWhatToDo >&> withSelection (viewInformation () [] "Welcome!") (\wf -> unwrapWorkflowTask wf.Workflow.task))
+		  (chooseWhatToDo >&> withSelection
+			(viewInformation () [] "Welcome!")
+			(\wf -> unwrapWorkflowTask wf.Workflow.task)
+		  )
 		)
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
-	layout = foldl1 sequenceLayouts
+	layout = sequenceLayouts
 		[unwrapUI //Get rid of the step
-		,arrangeWithSideBar 0 TopSide 50 True
+		,arrangeWithSideBar 0 TopSide 50 False
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
-		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutWhatToDo)
+		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
 		//Use maximal screen space
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
-	layoutManageSession = foldl1 sequenceLayouts 
+	layoutManageSession = sequenceLayouts
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	layoutWhatToDo = sequenceLayouts (arrangeWithSideBar 0 LeftSide 150 True) (layoutSubUIs (SelectByPath [1]) unwrapUI)
+	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide 150 True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
 manageSession :: Task ()
 manageSession =
@@ -201,7 +195,7 @@ where
 	userRoles (AuthenticatedUser _ roles _)  = roles
 	userRoles _ = []
 
-	layoutManageWork = foldl1 sequenceLayouts
+	layoutManageWork = sequenceLayouts
 		//Split the screen space
 		[ arrangeWithSideBar 0 TopSide 200 True
 		  //Layout all dynamically added tasks as tabs

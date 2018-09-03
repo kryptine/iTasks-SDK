@@ -13,6 +13,7 @@ import iTasks.WF.Tasks.IO
 from   iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 import iTasks.Internal.SDS
+from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUIEffectStage, :: LUINo
 
 from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: AsyncAction
 from iTasks.Internal.TaskEval         import :: TaskEvalInfo(..)

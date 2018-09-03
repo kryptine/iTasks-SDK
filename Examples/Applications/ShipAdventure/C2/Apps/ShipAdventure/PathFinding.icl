@@ -4,7 +4,7 @@ import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Types
 
 // returns: distance, number of objects found, location of object, distance to object, shortest path to obejct
-//shipPathToClosestObject :: Object Coord3D MyMap -> (Int,(Coord3D,Distance, Maybe ([Exit], Distance)))  
+//shipPathToClosestObject :: Object Coord3D MyMap -> (Int,(Coord3D,Distance, Maybe ([Exit], Distance)))
 //shipPathToClosestObject kind actorLoc curMap = pathToClosestObject shipShortestPath kind actorLoc curMap
 
 smartShipPathToClosestObject :: !ObjectType !MySectionInventoryMap !Coord3D !Coord3D !MySectionStatusMap !SectionExitLockMap !SectionHopLockMap !Graph

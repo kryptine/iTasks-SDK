@@ -3,7 +3,8 @@ definition module iTasks.WF.Combinators.Core
 * This module provides the core builtin combinators for composing tasks into workflows
 */
 import iTasks.WF.Definition
-import iTasks.SDS.Definition
+from iTasks.SDS.Definition import :: SDSLens
+from Data.Error import :: MaybeError(Ok)
 from Data.Maybe import :: Maybe
 
 //* Next task actions
@@ -68,9 +69,9 @@ ActionClose		:==	Action "Close"
 * State of another task instance.
 */
 :: AttachmentStatus
-    = ASAttached Stability  //* the task instance is currently attached to this task
-    | ASInUse TaskId 		//* the task instance is already attached to another task 
-    | ASExcepted String           //* the task instance had an uncaught exception
+    = ASAttached !Stability //* the task instance is currently attached to this task
+    | ASInUse !TaskId 		//* the task instance is already attached to another task
+    | ASExcepted String     //* the task instance had an uncaught exception
     | ASDeleted             //* the task instance does not exist anymore
     | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
@@ -78,16 +79,29 @@ ActionClose		:==	Action "Close"
 
 derive class iTask AttachException
 instance toString AttachException
+
 /**
 * Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.
 *
-* @param Function: The transformation function. It works on maybe's to also map over instable tasks.
+* @param Function: The transformation function.
 * @param Task: The task to which the transformation function is added
 *
 * @return The transformed task
 */
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
+transformError :: ((TaskValue a) -> MaybeError TaskException (TaskValue b)) !(Task a) -> Task b
+
+/**
+* Adds a result transformation function to a task.
+* The resulting task is still considered a single step in the workflow.
+*
+* @param Function: The transformation function.
+* @param Task: The task to which the transformation function is added
+*
+* @return The transformed task
+* @type ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
+*/
+transform f :== transformError (\tv->Ok (f tv))
 
 /**
 * The generic sequential combinator.

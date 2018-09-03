@@ -31,7 +31,7 @@ invite_friends
 play_game :: ![(Color,User)] !(Shared GameSt) -> Task (Color,String)
 play_game users game_st
 	= anyTask [  (u,"Play Ligretto") @: play (c,toString u) game_st
-              \\ (c,u) <- users 
+              \\ (c,u) <- users
               ]
 
 play :: !(!Color,!String) !(Shared GameSt) -> Task (Color,String)

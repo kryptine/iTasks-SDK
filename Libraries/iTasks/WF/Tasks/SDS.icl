@@ -8,18 +8,9 @@ import iTasks.Internal.Task
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
 import qualified iTasks.Internal.SDS as SDS
-import qualified iTasks.Internal.AsyncSDS as ASDS
-import StdString, StdInt
-import StdMisc
-import Text.GenJSON
-
-import Data.Maybe
-import Data.Either
+import StdString, Data.Func, Data.Error
+import qualified Data.Set as DS
 import qualified Data.Map as DM
-
-from iTasks.Internal.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-
-import StdDebug
 
 instance toString SharedException
 where
@@ -64,7 +55,7 @@ where
 				= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval _ event opts s=:(TCStable taskId ts enc) iworld 
-	= case fromJSONOfDeferredJSON enc of
+	= case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
@@ -97,7 +88,7 @@ where
 			= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
 		(Ok Done, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
 
-	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
@@ -125,7 +116,7 @@ where
 				(ModifyResult r w _) = (ValueResult (Value w True) {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} (ReplaceUI (ui UIEmpty)) tree, iworld)
 				(AsyncModify sds f) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () ('SDS'.TaskContext taskId))) sdsEvalStates})
 
-	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
@@ -140,16 +131,9 @@ where
 			Error e		= ExceptionResult e
 		= (res,iworld)
 
-	eval _ event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+	eval shared event repAs ttree=:(TCDestroy _) iworld
+		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
+		= (DestroyedResult,iworld)
 
 rep ResetEvent  = ReplaceUI (ui UIEmpty) 
 rep _ 			= NoChange
-
-// TODO: Duplicate
-fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
-fromJSONOfDeferredJSON (DeferredJSON v)
-	= case dynamic v of
-		(v :: a^)
-			-> Just v
-fromJSONOfDeferredJSON (DeferredJSONNode json)
-	= fromJSON json

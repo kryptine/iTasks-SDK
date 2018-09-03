@@ -19,7 +19,10 @@ from Data.Set import :: Set
 
 :: TaskContext = EmptyContext // Used in the internals of the iTasks system
     | TaskContext TaskId // Used when a local task is reading from a share
-    | RemoteTaskContext TaskId String Int // Used when a remote task is reading from a share locally
+    // Used when a remote task is reading from a share locally
+    // The TaskId is the id of the original client on which the task runs. It 
+    // is only used to notify that client which tasks should be refreshed.
+    | RemoteTaskContext TaskId String Int 
 
 :: ReadResult p r w = E. sds: ReadResult r (sds p r w) & RWShared sds & TC r & TC w
     | E. sds: AsyncRead (sds p r w) & RWShared sds & TC r & TC w
@@ -44,12 +47,12 @@ from Data.Set import :: Set
 :: SDSNotifyRequest =
     { reqTaskId     :: TaskId       //Id of the task that read the SDS. This Id also connects a chain of notify requests that were registered together
     , reqSDSId      :: SDSIdentity  //Id of the actual SDS used to create this request (may be a derived one)
-    , reqTimespec   :: Timespec
-    , cmpSDSId      :: SDSIdentity  //Id of the SDS we are saving for comparison
     , cmpParam      :: Dynamic      //Parameter we are saving for comparison
     , cmpParamText  :: String       //String version of comparison parameter for tracing
     , remoteOptions :: (Maybe RemoteNotifyOptions)
     }
+
+instance < SDSNotifyRequest
 
 :: RemoteNotifyOptions = RemoteNotifyOptions String Int
 

@@ -2,9 +2,9 @@ module Trax
 
 /**	This example implements the two-person tile game Trax.
 	When creating a project, include the following paths:
-	
+
 	{Application}\Examples\iTasks\Games\
-	
+
 	To run the example playing as two persons, do the following:
 	(a) first log in as root / root
 	(b) select the 'Manage users' task
@@ -24,4 +24,4 @@ import MultiUser.Tasks
 
 Start :: *World -> *World
 Start world
-	= StartMultiUserTasks [ workflow "Trax" "Play Trax" play_trax ] [] world
+	= startMultiUserTasks [ workflow "Trax" "Play Trax" play_trax ] [] world

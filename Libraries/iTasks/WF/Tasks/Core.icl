@@ -11,7 +11,7 @@ import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
 import qualified iTasks.Internal.AsyncSDS as ASDS
 
-import Data.Error, Data.Maybe, Data.Either
+import Data.Error, Data.Maybe, Data.Func, Data.Either
 import Text.GenJSON
 import StdString, StdBool, StdInt
 import qualified Data.Set as DS
@@ -63,7 +63,9 @@ interact prompt mode shared handlers editor
 =  Task (eval prompt mode shared handlers editor)
 where
 	eval :: !d !EditMode (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-	eval _ _ _ _ _ event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+	eval _ _ _ _ _ event evalOpts tt=:(TCDestroy _) iworld
+		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tt) iworld
+		= (DestroyedResult, iworld)
 
 	eval prompt mode shared handlers editor  (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld=:{sdsEvalStates, current={taskTime}} 
 	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
@@ -83,7 +85,7 @@ where
 							# valid     = not (containsInvalidFields m)
 					        # value     = if valid (Value (l,v) False) NoValue
 					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-					        = (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
+					        = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) m), iworld)
 				AsyncRead sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 			(_, iworld) = (ExceptionResult (exception "Dynamic type mismatch"), iworld)		
 
@@ -97,7 +99,7 @@ where
 			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
 				// We already have the result from executing the modify function, it happened on this machine.
 				ModifyResult _ _ _
-					# value = (Value ((fromJust (fromJSON encl)), (fromJust (fromJSON encv))) False) 
+					# value = (Value ((fromJust (fromDeferredJSON encl)), (fromJust (fromDeferredJSON encv))) False) 
 					= (ValueResult value evalInfo NoChange (TCInteract taskId ts encl encv m), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates })
 				AsyncModify sds f 
 				= (ValueResult NoValue evalInfo NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () (TaskContext taskId))) sdsEvalStates})
@@ -122,7 +124,7 @@ where
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv m)
 				//Just decode the initially stored values
-				= case (fromJSON encl, fromJSON encv) of
+				= case (fromDeferredJSON encl, fromDeferredJSON encv) of
 					(Just l,Just v) = (Ok (Left (taskId,ts,l,v,m)),iworld)
 					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
@@ -150,14 +152,14 @@ where
 		   // so we transition to the TCAwait state
 		   Ok (Right (type, sdsf, l, v, m, change))
 			   	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-			   	# tree = TCAwait type taskId taskTime (TCInteract taskId taskTime (toJSON l) (toJSON v) m)
+			   	# tree = TCAwait type taskId taskTime (TCInteract taskId taskTime (DeferredJSON l) (DeferredJSON v) m)
 			   	= (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId sdsf iworld.sdsEvalStates})
 		   Ok (Left (l,v,change,m,ts))
                 //Construct the result
                 # valid     = not (containsInvalidFields m)
                 # value     = if valid (Value (l,v) False) NoValue
                 # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-                = (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
+                = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) m), iworld)
 
 initMask :: TaskId EditMode (Editor v) v !*IWorld -> (MaybeError TaskException EditMask, !*IWorld)
 initMask taskId mode editor v iworld

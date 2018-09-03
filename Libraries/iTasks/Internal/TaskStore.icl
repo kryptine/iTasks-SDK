@@ -88,7 +88,7 @@ taskInstanceValue :: SDSLens InstanceNo TIValue TIValue
 taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
-taskInstanceShares :: SDSLens InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares :: SDSLens InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 :: TaskOutputMessage 
@@ -143,9 +143,9 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
-createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
+createTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+	# task = if autoLayout (applyLayout defaultSessionLayout task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
@@ -162,7 +162,7 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-  # task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
+  # task = if autoLayout (applyLayout defaultSessionLayout task) task
   # (instanceKey,iworld) = newInstanceKey iworld
   # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
   # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
@@ -188,7 +188,7 @@ where
 	toJSONTask (Task eval) = Task eval`
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
-			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
+			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap DeferredJSON val) ts rep tree, iworld)
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
@@ -364,12 +364,12 @@ localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNoti
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId shares = case 'DM'.get taskId shares of
-        Just json = case fromJSON json of
-            (Just r)    = Ok r
-            Nothing     = Error (exception ("Failed to decode json of local share " <+++ taskId))
+        Just json = case fromDeferredJSON json of
+            Just r  = Ok r
+            Nothing = Error (exception ("Failed to decode json of local share " <+++ taskId))
         Nothing
             = Error (exception ("Could not find local share " <+++ taskId))
-    write taskId shares w = Ok (DoWrite ('DM'.put taskId (toJSON w) shares))
+    write taskId shares w = Ok (DoWrite ('DM'.put taskId (DeferredJSON w) shares))
     notify taskId _ = const ((==) taskId)
     reducer taskId shares = read taskId shares
 
@@ -438,8 +438,8 @@ taskInstanceEmbeddedTask :: SDSLens TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer taskInstanceReduct
 where
     param (TaskId instanceNo _) = instanceNo
-    read taskId {TIReduct|tasks} = case fmap unwrapTask ('DM'.get taskId tasks) of
-        Just task = Ok task
+    read taskId {TIReduct|tasks} = case ('DM'.get taskId tasks) of
+		(Just dyn) = Ok (unwrapTask dyn)
         _         = Error (exception ("Could not find embedded task " <+++ taskId))
 
     write taskId r=:{TIReduct|tasks} w = Ok (DoWrite {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
@@ -465,7 +465,7 @@ where
                      } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
             decode NoValue	= NoValue
-            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
+            decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
 
         write (listId,selfId,listFilter) states []                              = Ok (DoNotWrite states)
         write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok (DoNotWrite states)

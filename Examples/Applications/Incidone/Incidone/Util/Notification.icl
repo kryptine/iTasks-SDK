@@ -4,7 +4,7 @@ import iTasks.Extensions.DateTime
 import Text, System.Time
 import Incidone.Util.TaskPatterns
 
-//Notifications are stored newest first 
+//Notifications are stored newest first
 notifications :: Shared [(DateTime,String)]
 notifications = sharedStore "notifications" []
 
@@ -15,7 +15,7 @@ where
     prj (now,notifications) = [toString dt +++ msg \\ (dt,msg) <- notifications | limit now dt ]
 	limit t1 t2 = False //FIXME: We need an non-pure function to convert the datetime values, we can't do that with a mapRead...
 /*
-		# (Timestamp s1) = datetimeToTimestamp t1 
+		# (Timestamp s1) = datetimeToTimestamp t1
 		# (Timestamp s2) = datetimeToTimestamp t2
 		= s1 - s2 < 3
 */

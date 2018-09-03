@@ -37,11 +37,8 @@ where
 	| i == 0 = Left ()
 	= Right ()
 
-Start world	= startEngineWithOptions opts tests world
+Start world	= doTasks tests world
 where
-	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
-	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
-	opts [a:as] = opts as
 
 	tests = [ publish "/SDSSource" (const sdsSourceTest) 
 			, publish "/SDSRemote" (const sdsRemoteTest)

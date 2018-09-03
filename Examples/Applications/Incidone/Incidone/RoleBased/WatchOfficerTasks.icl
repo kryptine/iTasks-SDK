@@ -40,7 +40,7 @@ where
 
 /*
 * The incident dashboard gives an overview of all open incidents,
-* provides ad-hoc creation of new incidents and provides 
+* provides ad-hoc creation of new incidents and provides
 * a way to open the incident information browsing incident task for open incidents.
 */
 browseIncidents :: Workspace -> Task ()
@@ -91,7 +91,7 @@ where
 	{	status		:: Maybe String
 	,	title		:: Maybe String
 	,	createdOn	:: Maybe String
-	,	createdBy	:: Maybe String	
+	,	createdBy	:: Maybe String
 	}
 
 derive class iTask ActionSet, ActionShort

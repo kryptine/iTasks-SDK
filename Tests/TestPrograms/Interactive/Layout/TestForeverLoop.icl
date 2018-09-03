@@ -1,9 +1,0 @@
-module TestForeverLoop
-
-test = forever (
-        viewInformation () [] "From one screen..."
-    >>| viewInformation () [] "To the next..."
-    >>| return ()
-    )
-
-Start world = startEngine test world

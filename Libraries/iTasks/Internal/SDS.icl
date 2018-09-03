@@ -1,10 +1,14 @@
 implementation module iTasks.Internal.SDS
 
 from StdFunc import const, o, id
-import StdString, StdTuple, StdMisc, StdList, StdBool, StdArray, StdInt
+import StdString, StdTuple, StdMisc, StdBool, StdFunc, StdInt, StdChar, StdArray
+from StdList import flatten, map, take, drop, instance toString [a]
+from Text import class Text, instance Text String
+import qualified Text
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.GenJSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text.GenJSON, Data.Foldable
+from Data.Set import instance Foldable Set, instance < (Set a)
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -55,7 +59,7 @@ createSDS ns id read write = SDSSource
 
 //Construct the identity of an sds
 sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
-sdsIdentity s = concat (nameSDS s [])
+sdsIdentity s = 'Text'.concat (nameSDS s [])
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p iworld = (npred p, iworld)
@@ -68,16 +72,25 @@ readRegister taskId sds iworld = readRegisterSDS sds () (TaskContext taskId) tas
 
 mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
-mbRegister p sds _ (RemoteTaskContext taskId host port) reqSDSId iworld=:{IWorld|sdsNotifyRequests, world}
-    # (ts, world) = nsTime world
-    # req = {SDSNotifyRequest|reqTimespec=ts, reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions = Just (RemoteNotifyOptions host port)}
-    = {iworld & world = world, sdsNotifyRequests = [req:sdsNotifyRequests]}
-
 mbRegister p sds Nothing _ reqSDSId iworld = iworld
-mbRegister p originalSds (Just taskId) _ reqSDSId iworld=:{IWorld|sdsNotifyRequests, world}
+mbRegister p sds (Just taskId) context reqSDSId iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask, world}
     # (ts, world) = nsTime world
-    # req = {SDSNotifyRequest|reqTimespec=ts,reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity originalSds,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions = Nothing}
-    = {iworld & world = world, sdsNotifyRequests = [req:sdsNotifyRequests]}
+    # req = buildRequest context taskId reqSDSId p
+    # sdsId = sdsIdentity sds
+    = { iworld
+	  & world = world
+	  , sdsNotifyRequests = 'DM'.alter (Just o maybe ('DM'.singleton req ts) ('DM'.put req ts))
+	                                   sdsId
+	                                   sdsNotifyRequests
+      , sdsNotifyReqsByTask = case context of 
+      		// We do not store remote requests in the tasks map, the task ID's are not local to this instance.
+      		(RemoteTaskContext _ _ _)   = sdsNotifyReqsByTask
+      		_ 							= ('DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask)
+	  }
+where
+	buildRequest (RemoteTaskContext taskId host port) _ reqSDSId p = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions=Just (RemoteNotifyOptions host port)}
+    buildRequest (TaskContext taskId) _ reqSDSId p = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions=Nothing}
+	buildRequest EmptyContext taskId reqSDSId p = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions = Nothing}
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite () r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld = case writeSDS sds () c w iworld of
@@ -98,13 +111,14 @@ checkRegistrations sdsId pred iworld
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
-	lookupRegistrations sdsId iworld=:{sdsNotifyRequests}
-        = ([reg \\ reg=:{SDSNotifyRequest|cmpSDSId} <- sdsNotifyRequests | cmpSDSId == sdsId],iworld)
+	lookupRegistrations :: String !*IWorld -> (![(!SDSNotifyRequest, !Timespec)], !*IWorld)
+	lookupRegistrations sdsId iworld=:{sdsNotifyRequests} =
+		('DM'.toList $ 'DM'.findWithDefault 'DM'.newMap sdsId sdsNotifyRequests, iworld)
 
 	//Match the notify requests against the predicate to determine two sets:
 	//The registrations that matched the predicate, and those that did not match the predicate
 	matchRegistrations pred [] = ('Set'.newSet,'Set'.newSet)
-	matchRegistrations pred [req=:{SDSNotifyRequest|reqTimespec,reqTaskId,cmpParam}:regs]
+	matchRegistrations pred [(req=:{SDSNotifyRequest|reqTaskId,cmpParam}, reqTimespec):regs]
 		# (match,nomatch) = matchRegistrations pred regs
     	= case cmpParam of
             (p :: p^) = if (pred reqTimespec p)
@@ -129,25 +143,46 @@ queueNotifyEvents sdsId notify iworld
     remotes = queueRemoteRefresh sdsId remotes iworld
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
-clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
-    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId,remoteOptions} <- sdsNotifyRequests | not ('Set'.member reqTaskId taskIds)]}
+clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask}
+	# sdsIdsToClear = foldl
+	    (\sdsIdsToClear taskId -> 'Set'.union ('DM'.findWithDefault 'Set'.newSet taskId sdsNotifyReqsByTask) sdsIdsToClear)
+	    'Set'.newSet
+	    taskIds
+	= { iworld
+	  & sdsNotifyRequests   = foldl clearRegistrationRequests sdsNotifyRequests sdsIdsToClear
+	  , sdsNotifyReqsByTask = foldl (flip 'DM'.del) sdsNotifyReqsByTask taskIds
+	  }
+where
+	clearRegistrationRequests :: (Map SDSIdentity (Map SDSNotifyRequest Timespec))
+	                             SDSIdentity
+                              -> Map SDSIdentity (Map SDSNotifyRequest Timespec)
+	clearRegistrationRequests requests sdsId
+		| 'DM'.null filteredReqsForSdsId = 'DM'.del sdsId requests
+		| otherwise                      = 'DM'.put sdsId filteredReqsForSdsId requests
+	where
+		reqsForSdsId         = fromJust $ 'DM'.get sdsId requests
+		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ -> not $ 'Set'.member req.reqTaskId taskIds) reqsForSdsId
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
-listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList (foldr addReg 'DM'.newMap sdsNotifyRequests),iworld)
+listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList ('DM'.foldrWithKey addRegs 'DM'.newMap sdsNotifyRequests),iworld)
 where
-    addReg {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _),cmpSDSId} list
-        = 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
+    addRegs cmpSDSId reqs list = 'DM'.foldlWithKey addReg list reqs
+	where
+		addReg list {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _)} _
+		    = 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
 formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatSDSRegistrationsList list
-    = join "\n" (flatten [["Task instance " +++ toString i +++ ":"
-                          :["\t"+++toString taskId +++ "->"+++sdsId\\(taskId,sdsId) <- regs]] \\ (i,regs) <- list])
+    = 'Text'.join "\n" ( flatten [ [ "Task instance " +++ toString i +++ ":"
+	                               :["\t"+++toString taskId +++ "->"+++sdsId\\(taskId,sdsId) <- regs]] \\ (i,regs) <- list
+                                 ]
+	                   )
 
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 flushDeferredSDSWrites iworld=:{writeCache}
 	# (errors,iworld) = flushAll ('DM'.toList writeCache) iworld
 	| errors =: [] = (Ok (), {iworld & writeCache = 'DM'.newMap})
-	# msg = join OS_NEWLINE ["Could not flush all deferred SDS writes, some data may be lost":map snd errors]
+	# msg = 'Text'.join OS_NEWLINE ["Could not flush all deferred SDS writes, some data may be lost":map snd errors]
 	= (Error (exception msg),{iworld & writeCache = 'DM'.newMap})
 where
 	flushAll [] iworld = ([],iworld)
@@ -528,7 +563,6 @@ instance Registrable SDSSelect where
 // SDSParallel
 instance Identifiable SDSParallel where
     nameSDS (SDSParallel sds1 sds2 {SDSParallelOptions|name}) acc = ["|",name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
-    nameSDS _ _ = abort "SDSParallel not matching"
 
 instance Readable SDSParallel where
     readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
@@ -667,14 +701,6 @@ instance Readable SDSRemoteService where
 instance Writeable SDSRemoteService where
     writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote service yet"), iworld)
 
-instance < SDSNotifyRequest where
-    (<) r1 r2 = if (r1.reqTaskId == r2.reqTaskId) (cpmOptions r1.remoteOptions r2.remoteOptions) (r1.reqTaskId < r2.reqTaskId)
-    where
-        cpmOptions Nothing Nothing = False
-        cpmOptions (Just _) Nothing = True
-        cpmOptions Nothing (Just _) = True
-        cpmOptions (Just (RemoteNotifyOptions h1 p1)) (Just (RemoteNotifyOptions h2 p2)) = h1 < h2 || p1 < p2
-
 instance Modifiable SDSRemoteService where
     modifySDS _ _ _ _ iworld = (Error (exception "Modifying remote services not possible"), iworld)
 
@@ -690,7 +716,7 @@ instance < (Maybe a) | < a where
 instance < RemoteNotifyOptions where 
     (<) (RemoteNotifyOptions host1 port1) (RemoteNotifyOptions host2 port2) = host1 < host2 || port1 < port2
 
-instance == SDSNotifyRequest where 
+instance == SDSNotifyRequest where
     (==) r1 r2 = r1.reqTaskId == r2.reqTaskId && r1.remoteOptions == r2.remoteOptions 
 
 instance == RemoteNotifyOptions where

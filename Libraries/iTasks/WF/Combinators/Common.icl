@@ -91,17 +91,22 @@ justdo task
 	Just x	= return x
 	Nothing	= throw ("The task returned nothing.")
 
-sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence _ tasks = seqTasks tasks
-where
-	seqTasks []		= return []
-	seqTasks [t:ts]	= t >>- \a -> seqTasks ts >>- \as -> return [a:as]
+sequence :: ![Task a]  -> Task [a] | iTask a
+sequence tasks = foreverStIf
+	//Continue while there are tasks left
+	(not o isEmpty o snd)
+	//Initial state, empty accumulator, all tasks
+	([], tasks)
+	//Run the first task and add it to the accumulator
+	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
+	//When done, just return the accumulator
+	@ reverse o fst
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
-	>>- \tv->case tv of
-		[(_, Value i True)] = treturn i
-		_ = throw "Corrupt parallel in foreverStIf"
+	>>* [OnValue (withValue \v->case v of
+			[(_, Value i True)] = Just (treturn i)
+			_ = Nothing)]
 where
 	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
 	par st Nothing tlist
@@ -200,7 +205,7 @@ whileUnchanged share task
             try (
 					((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))])
 					  -||- (task val @ Just)
-					 ) <<@ ApplyLayout (sequenceLayouts (removeSubUIs (SelectByPath [0])) unwrapUI)) 
+					 ) <<@ ApplyLayout (sequenceLayouts [removeSubUIs (SelectByPath [0]), unwrapUI])) 
                 (\ShareChanged -> (return Nothing) )
           ) <! isJust
         )
