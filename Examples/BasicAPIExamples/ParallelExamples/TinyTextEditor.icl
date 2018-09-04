@@ -33,11 +33,11 @@ editWithStatistics
 							>>*	 [ OnAction (Action "Quit") (always (return ()))
 								 ]
 
-editFile :: String (Shared String)  -> Task ()
+editFile :: String (sds () String String)  -> Task () | RWShared sds
 editFile fileName sharedFile
 	=	updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile @! ()
 
-showStatistics :: (Shared String) -> Task ()
+showStatistics :: (sds () String String) -> Task () | RWShared sds
 showStatistics sharedFile = viewSharedInformation "Statistics:" [ViewAs stat] sharedFile @! ()
 where
 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
@@ -48,7 +48,7 @@ where
 		lengthWords "" 	 = 0
 		lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
-replace :: Replace (Shared String) -> Task ()
+replace :: Replace (sds () String String) -> Task () | RWShared sds
 replace cmnd sharedFile
  = 	(	updateInformation "Replace:" [] cmnd
 	>>*	[ OnAction (Action "Replace") (hasValue substitute)
