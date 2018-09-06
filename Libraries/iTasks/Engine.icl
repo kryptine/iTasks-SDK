@@ -142,6 +142,8 @@ where
 			("Specify the folder containing the temporary files\ndefault: " +++ defaults.tempDirPath)
 		, Option [] ["sapldir"] (ReqArg (\p->fmap \o->{o & saplDirPath=p}) "PATH")
 			("Specify the folder containing the sapl files\ndefault: " +++ defaults.saplDirPath)
+		, Option [] ["distributed"] (NoArg (fmap \o->{o & distributed=True}))
+			"Enable distributed mode (populate the symbols share)"
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
@@ -215,7 +217,7 @@ defaultEngineOptions world
 		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
-		, distributed       = True
+		, distributed       = False
 		, timeout			= Just 500
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
