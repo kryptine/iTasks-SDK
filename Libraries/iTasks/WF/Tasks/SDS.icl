@@ -61,6 +61,7 @@ where
 
 	eval _ event opts tree=:(TCDestroy _) w = (DestroyedResult, w)
 
+import StdDebug
 set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 set val shared = Task (eval val shared)
 where
@@ -74,8 +75,8 @@ where
 		(Just f) = case f iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: AsyncWrite () r^ a^), iworld) = case res of
-				Done = (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), iworld)
-				(Writing sds) = (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
+				Done = trace_n "Set done writing" (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
+				(Writing sds) = trace_n "Set still writing" (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
 
 	eval val shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
@@ -85,8 +86,8 @@ where
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Writing data"))
 			# tree = TCAwait Write taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates
-			= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-		(Ok Done, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
+			= trace_n "Set async writing "(ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
+		(Ok Done, iworld) 			= trace_n "Set local writing done" (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)

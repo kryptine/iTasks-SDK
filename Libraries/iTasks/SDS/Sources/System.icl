@@ -18,7 +18,7 @@ from StdFunc import id, o, const
 
 NS_SYSTEM_DATA :== "SystemData"
 
-currentDateTime :: SDSLens () DateTime ()
+currentDateTime :: SDSParallel () DateTime ()
 currentDateTime = iworldLocalDateTime
 
 currentTime :: SDSLens () Time ()
@@ -37,10 +37,10 @@ currentUTCDate :: SDSLens () Date ()
 currentUTCDate = mapRead (toDate o timestampToGmDateTime) currentTimestamp
 
 currentTimestamp :: SDSLens () Timestamp ()
-currentTimestamp = toReadOnly (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) id
+currentTimestamp = toReadOnly (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp)
 
 currentTimespec :: SDSLens () Timespec ()
-currentTimespec = toReadOnly (sdsFocus {start=zero,interval=zero} iworldTimespec) id
+currentTimespec = toReadOnly (sdsFocus {start=zero,interval=zero} iworldTimespec)
 
 // Workflow processes
 topLevelTasks :: SharedTaskList ()
@@ -48,14 +48,14 @@ topLevelTasks = topLevelTaskList
 
 currentSessions :: SDSLens () [TaskListItem ()] ()
 currentSessions
-    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex) id)
+    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just True,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 currentProcesses :: SDSLens () [TaskListItem ()] ()
 currentProcesses
-    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex) id)
+    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
@@ -78,32 +78,28 @@ currentTaskInstanceAttributes
 		id
 		(\_ no -> no) 
 		(\_ _ -> Right snd)
-		(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
-    (SDSWrite (\no r w -> (Ok (DoWrite w))))
+		(SDSWriteConst (\_ _ -> Ok Nothing))
+    (SDSWrite (\no r w -> (Ok (Just w))))
 		currentTaskInstanceNo
 		taskInstanceAttributes
 
 allTaskInstances :: SDSLens () [TaskInstance] ()
 allTaskInstances
-    = (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok (DoNotWrite ws)) reducer
+    = (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok Nothing) Nothing
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
-    reducer _ _ = Ok ()
-
 detachedTaskInstances :: SDSLens () [TaskInstance] ()
 detachedTaskInstances
-    =  (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok (DoNotWrite ws)) reducer
+    =  (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok Nothing) Nothing
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
-    reducer _ _ = Ok ()
-
 taskInstanceByNo :: SDSLens InstanceNo TaskInstance TaskAttributes
 taskInstanceByNo
-    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) reducer
+    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
 where
     filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
@@ -111,16 +107,12 @@ where
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,_)] a = Ok (DoWrite [(n,c,p,Just a)])
+    writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
     writeItem _ _   = Error (exception "Task instance not found")
-
-    reducer :: p [InstanceData] -> MaybeError TaskException TaskAttributes
-    reducer _ [(_, _, _, (Just attributes))] = Ok (attributes)
-    reducer _ _                              = Error (exception "Task instance not found")
 
 taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributesByNo
-    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) reducer
+    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
 where
     filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
@@ -128,22 +120,16 @@ where
     readItem [(_,_,_,Just a)]    = Ok a
     readItem _      = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,_)] a = Ok (DoWrite [(n,c,p,Just a)])
+    writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
     writeItem _ _   = Error (exception "Task instance not found")
-
-    reducer :: p [InstanceData] -> MaybeError TaskException TaskAttributes
-    reducer _ [(_, _, _, (Just attributes))] = Ok (attributes)
-    reducer _ _                              = Error (exception "Task instance not found")
 
 taskInstancesByAttribute :: SDSLens (!String,!String) [TaskInstance] ()
 taskInstancesByAttribute 
     = 
-      (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok (DoNotWrite ws)) reducer
+      (sdsProject (SDSLensRead readInstances) (SDSLensWrite \_ _. Ok Nothing) Nothing
        (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
-
-    reducer _ _ = Ok ()
 
 currentTopTask :: SDSLens () TaskId ()
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare

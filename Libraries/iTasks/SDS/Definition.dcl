@@ -131,7 +131,7 @@ instance toString (WebServiceShareOptions r)
     , read         :: SDSLensRead p r rs
     , write        :: SDSLensWrite p w rs ws
     , notify       :: SDSLensNotify p p w rs
-    , reducer      :: SDSReducer p ws w
+    , reducer      :: Maybe (SDSReducer p ws w)
     }
 
 :: SDSReducer p ws w :== p ws  -> MaybeError TaskException w
@@ -140,12 +140,9 @@ instance toString (WebServiceShareOptions r)
     = SDSRead       (p rs -> MaybeError TaskException r)  //Read original source and transform
     | SDSReadConst  (p -> r)                              //No need to read the original source
 
-// DoNotWrite because NoWrite and NoChange were already taken.
-:: MaybeSDSWrite w = DoWrite w | DoNotWrite w
-
 :: SDSLensWrite p w rs ws
-    = SDSWrite      (p rs w  -> MaybeError TaskException (MaybeSDSWrite ws)) //Read original source, and write updated version
-    | SDSWriteConst (p w     -> MaybeError TaskException (MaybeSDSWrite ws)) //No need to read the original source
+    = SDSWrite      (p rs w  -> MaybeError TaskException (Maybe ws)) //Read original source, and write updated version
+    | SDSWriteConst (p w     -> MaybeError TaskException (Maybe ws)) //No need to read the original source
 
 :: SDSLensNotify pw pq w rs
     = SDSNotify         (pw rs w -> SDSNotifyPred pq)
@@ -168,7 +165,6 @@ instance toString (WebServiceShareOptions r)
     , read          :: (r1,r2) -> r
     , writel        :: SDSLensWrite p w r1 w1
     , writer        :: SDSLensWrite p w r2 w2
-    , reducer       :: SDSReducer p (w1,w2) w
     }
 
 //Read from and write to two dependent SDS's

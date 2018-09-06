@@ -27,7 +27,7 @@ storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedO
                                   (removeMaybe (Just 'DM'.newMap) memoryShare)
 
 outputForTaskId :: SDSLens (TaskId, ExprId) (TaskId, Int, Task (), TStability) (TaskId, Int, Task (), TStability)
-outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) reducer storedOutputEditors
+outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) storedOutputEditors
   where
 
   reducer p ws = read p  ws
@@ -38,8 +38,8 @@ outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite 
                           Ok ('DM'.get oid trtMap)
 
   write :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
-        -> MaybeError TaskException (MaybeSDSWrite (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)))
-  write tid trtMap bpref = Ok (DoWrite ('DM'.put tid bpref trtMap))
+        -> MaybeError TaskException (Maybe (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
   notify :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
          -> SDSNotifyPred (TaskId, ExprId)
@@ -52,7 +52,7 @@ tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
                              (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 allTonicInstances :: SDSLens TaskId [((ModuleName, FuncName), BlueprintInstance)] ()
-allTonicInstances = sdsLens "allTonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (\_ _ -> Ok ()) tonicSharedRT
+allTonicInstances = sdsLens "allTonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just \_ _ -> Ok ()) tonicSharedRT
 where
   //read :: (TaskId, ModuleName, FuncName) TonicRTMap -> MaybeError TaskException  (Maybe BlueprintInstance) BlueprintInstance
   read tid trtMap = Ok (fromMaybe [] ('DM'.get tid trtMap))
@@ -64,13 +64,13 @@ where
   notify tid oldmap inst = \_ tid` -> False
 
 tonicInstances :: SDSLens (TaskId, ModuleName, FuncName) (Maybe BlueprintInstance) BlueprintInstance
-tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) reducer tonicSharedRT
+tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) tonicSharedRT
 where
   read :: (TaskId, ModuleName, FuncName) TonicRTMap -> MaybeError TaskException (Maybe BlueprintInstance)
   read (tid, mn, fn) trtMap = Ok ('DM'.get tid trtMap >>= 'DM'.get (mn, fn) o 'DM'.fromList)
 
-  write :: (TaskId, ModuleName, FuncName) TonicRTMap BlueprintInstance -> MaybeError TaskException (MaybeSDSWrite TonicRTMap)
-  write (tid, mn, fn) trtMap bpref = Ok (DoWrite (case 'DM'.get tid trtMap of
+  write :: (TaskId, ModuleName, FuncName) TonicRTMap BlueprintInstance -> MaybeError TaskException (Maybe TonicRTMap)
+  write (tid, mn, fn) trtMap bpref = Ok (Just (case 'DM'.get tid trtMap of
                                                  Just im -> let xs    = [if (mn == mn` && fn == fn`) (True, ((mn`, fn`), {bpref & bpi_index = i})) (False, ((mn`, fn`), {bpref` & bpi_index = i})) \\ (i, ((mn`, fn`), bpref`)) <- zip2 [0..] im]
                                                                 elems = map snd xs
                                                              in 'DM'.put tid (if (or (map fst xs))
@@ -94,7 +94,7 @@ tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnable
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 tonicActionsForTaskID :: SDSLens TaskId (Map ExprId [UI]) (Map ExprId [UI])
-tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) reducer tonicEnabledSteps
+tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) tonicEnabledSteps
   where
   read :: TaskId (Map TaskId (Map ExprId [UI])) -> MaybeError TaskException (Map ExprId [UI])
   read tid acts
@@ -102,9 +102,9 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
         Just acts` -> Ok acts`
         _          -> Ok 'DM'.newMap
 
-  write :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> MaybeError TaskException (MaybeSDSWrite (Map TaskId (Map ExprId [UI])))
+  write :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UI])))
   write tid oldmap acts
-    = Ok (DoWrite ('DM'.put tid acts oldmap))
+    = Ok (Just ('DM'.put tid acts oldmap))
 
   notify :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> SDSNotifyPred TaskId
   notify tid oldmap acts = \_ tid` -> case read tid oldmap of
@@ -114,7 +114,7 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
   reducer p ws = read p ws
 
 tonicActionsForTaskIDAndExpr :: SDSLens (TaskId, ExprId) [UI] [UI]
-tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) reducer tonicEnabledSteps
+tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) tonicEnabledSteps
   where
   read :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) -> MaybeError TaskException [UI]
   read (tid, eid) acts
@@ -124,13 +124,13 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
                         _       -> Ok []
         _          -> Ok []
 
-  write :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> MaybeError TaskException (MaybeSDSWrite (Map TaskId (Map ExprId [UI])))
+  write :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UI])))
   write (tid, eid) oldmap acts
     # m = case 'DM'.get tid oldmap of
             Just acts` -> acts`
             _          -> 'DM'.newMap
     # m = 'DM'.put eid acts m
-    = Ok (DoWrite ('DM'.put tid m oldmap))
+    = Ok (Just ('DM'.put tid m oldmap))
 
   notify :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> SDSNotifyPred (TaskId, ExprId)
   notify tid oldmap acts = \_ tid` -> case read tid oldmap of

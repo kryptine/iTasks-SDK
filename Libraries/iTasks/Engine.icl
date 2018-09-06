@@ -47,6 +47,7 @@ derive class iTask EngineOptions
 doTasks :: a !*World -> *World | Startable a
 doTasks startable world = doTasksWithOptions defaultEngineCLIOptions startable world
 
+import StdDebug,StdMisc
 doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World -> *World | Startable a
 doTasksWithOptions initFun startable world
 	# (cli,world)			= getCommandLine world
@@ -57,6 +58,8 @@ doTasksWithOptions initFun startable world
 	# iworld				= createIWorld options world
 	# (res,iworld) 			= initJSCompilerState iworld
 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+	# (symbolsResult, iworld) = initSymbolsShare options.distributed options.appName iworld
+	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld				= serve startupTasks (tcpTasks options.serverPort options.keepaliveTime)
 	                                engineTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
@@ -64,6 +67,11 @@ where
     webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks = [t \\ StartupTask t <- toStartable startable]
 	hasWebTasks = not (webTasks =: [])
+
+	initSymbolsShare False _ iworld = (Ok (), iworld)
+	initSymbolsShare True appName iworld = case storeSymbols appName iworld of
+		(Error (e, s), iworld) = (Error s, iworld)
+		(Ok symbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString symbols] iworld.world})
 
 	//Only run a webserver if there are tasks that are started through the web
 	tcpTasks serverPort keepaliveTime

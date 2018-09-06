@@ -13,7 +13,7 @@ from iTasks.SDS.Definition import :: SDSLens
 
 symbolsShare :: SDSLens () String String
 
-storeSymbols :: String !*IWorld -> (MaybeError TaskException String, !*IWorld)
+storeSymbols :: String !*IWorld -> (MaybeError TaskException Int, !*IWorld)
 
 accSymbols :: ({#Symbol} -> a) -> Task a | iTask a
 

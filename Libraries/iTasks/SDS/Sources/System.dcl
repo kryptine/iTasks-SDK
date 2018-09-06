@@ -29,7 +29,7 @@ from Data.Maybe import :: Maybe
 	}
 
 // Date & time (in task server's local timezone)
-currentDateTime 		:: SDSLens () DateTime ()
+currentDateTime 		:: SDSParallel () DateTime ()
 currentTime				:: SDSLens () Time ()
 currentDate				:: SDSLens () Date ()
 

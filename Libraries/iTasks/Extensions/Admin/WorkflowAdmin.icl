@@ -42,7 +42,7 @@ myWork = workList taskInstancesForCurrentUser
 allWork :: SDSLens () [(TaskId,WorklistRow)] ()
 allWork = workList allTaskInstances
 
-workList instances = mapRead projection ((instances |*| currentTopTask) f)
+workList instances = mapRead projection (instances |*| currentTopTask)
 where
 	projection (instances,ownPid)
 		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
@@ -64,7 +64,6 @@ where
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
 
-	f (l, r) = ((), ())
 // SHARES
 // Available workflows
 
@@ -72,16 +71,16 @@ workflows :: SDSLens () [Workflow] [Workflow]
 workflows = sharedStore "Workflows" []
 
 workflowByPath :: !String -> SDSLens () Workflow Workflow
-workflowByPath path = mapReadWriteError (toPrj,fromPrj) (\_ flows -> toPrj flows) workflows
+workflowByPath path = mapReadWriteError (toPrj,fromPrj) (Just \_ flows -> toPrj flows) workflows
 where
 	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
 		[wf:_]	= Ok wf
 		_		= Error (exception ("Workflow " +++ path +++ " could not be found"))
 
-	fromPrj nwf wfs = Ok (DoWrite [if (wf.Workflow.path == path) nwf wf \\ wf <- wfs])
+	fromPrj nwf wfs = Ok (Just [if (wf.Workflow.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: SDSLens () [Workflow] ()
-allowedWorkflows = mapRead filterAllowed ((workflows |*| currentUser) id)
+allowedWorkflows = mapRead filterAllowed (workflows |*| currentUser)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 
@@ -307,13 +306,11 @@ where
     //Look in the catalog for an entry that has the same path as
     //the 'catalogId' that is stored in the incompatible task instance's properties
     findReplacement taskId
-        =  get (((sdsFocus taskId (taskListEntryMeta topLevelTasks)) |*| workflows) f)
+        =  get ((sdsFocus taskId (taskListEntryMeta topLevelTasks)) |*| workflows)
         @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
     where
         lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
         lookup [] _ = Nothing
-
-        f ({TaskListItem|attributes}, r) = (attributes, r)
 
 appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist

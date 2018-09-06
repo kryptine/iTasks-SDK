@@ -9,7 +9,7 @@ build: RemoteShareExamples $(foreach v,$(shell seq $(INSTANCES)),instances/$v/Re
 
 %.prj:
 	cpm project $(basename $@) create
-	cpm project $@ target iTasks-git
+	cpm project $@ target iTasks-dist
 	cpm project $@ set -h 2000M -s 20M -dynamics
 
 %/RemoteShareExamples: RemoteShareExamples

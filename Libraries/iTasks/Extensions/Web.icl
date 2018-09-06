@@ -60,7 +60,7 @@ serveWebService port handler
     @! ()
 where
 	manageConnections io
-		= tcplisten port False ((currentTimespec |*< io) (const ()))
+		= tcplisten port False (currentTimespec |*< io)
 			{ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
 			
     onConnect client_name (now,io)

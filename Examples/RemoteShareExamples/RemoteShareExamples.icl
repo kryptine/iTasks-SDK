@@ -27,8 +27,8 @@ parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "TEST"
 
 intShare = sharedStore "intShare" 15
 simpleShare = remoteShare intShare {domain="TEST", port=8080}
-projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (DoWrite (r - 2)))) (\_ ws. Ok (ws + 2))  simpleShare
-projectedLocal = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (DoWrite (r - 2)))) (\_ ws. Ok (ws + 2))  intShare
+projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  simpleShare
+projectedLocal = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  intShare
 
 selectShare = sdsSelect "testSelect" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
 		(remoteShare leftShare {domain="TEST", port=8080}) rightShare

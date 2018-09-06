@@ -41,7 +41,7 @@ recordingsShare :: SDSLens () (Map DateTime [TonicMessage]) (Map DateTime [Tonic
 recordingsShare = sharedStore "recordingsShare" 'DM'.newMap
 
 recordingForDateTimeShare :: SDSLens DateTime [TonicMessage] ()
-recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just [])) id
+recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just []))
 
 newRTMapFromMessages :: [TonicMessage] -> Task TonicGenRTMap
 newRTMapFromMessages xs = updRTMapFromMessages xs 'DM'.newMap
@@ -171,7 +171,7 @@ where
   startViewer
     =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
     >&> withSelection noSel (
-    (\bp -> whileUnchanged ((tonicServerShare |*| shViewerSettings) id) 
+    (\bp -> whileUnchanged (tonicServerShare |*| shViewerSettings)
     (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation () [] () >>* [ startAction tms
                                                                             , pauseAction tms
                                                                             , continueAction tms

@@ -18,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIdentity
-from iTasks.SDS.Definition import :: SDSSource, :: SDSLens
+from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -154,8 +154,8 @@ iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 
-iworldTimestamp        :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
-iworldLocalDateTime    :: SDSLens () DateTime ()
+iworldTimestamp         :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
+iworldLocalDateTime     :: SDSParallel () DateTime ()
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

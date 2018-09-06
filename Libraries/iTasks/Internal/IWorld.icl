@@ -141,20 +141,19 @@ where
 	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
-iworldTimestamp = mapReadWrite (timespecToStamp, \w r. DoWrite (timestampToSpec w)) (\_ s. Ok (timespecToStamp s)) 
+iworldTimestamp = mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
-iworldLocalDateTime :: SDSLens () DateTime ()
-iworldLocalDateTime = toReadOnly (SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar) (const ())
+iworldLocalDateTime :: SDSParallel () DateTime ()
+iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallelOptions
              | name   = "iworldLocalDateTime"
              , param  = \p -> (p,p)
              , read   = fst
-             , writel = SDSWrite \_ _ _ -> Ok (DoNotWrite ())
-             , writer = SDSWrite \_ t _ -> Ok (DoNotWrite t)
-             , reducer = \_ _ -> Ok ()
+             , writel = SDSWriteConst \_ _ -> Ok Nothing
+             , writer = SDSWriteConst \_ _ -> Ok Nothing
              }
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)

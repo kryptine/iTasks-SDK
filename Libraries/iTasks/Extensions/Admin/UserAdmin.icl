@@ -16,7 +16,7 @@ userAccounts = sharedStore "UserAccounts" [ROOT_USER]
 users :: SDSLens () [User] ()
 users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.UserAccount.credentials.Credentials.username) a.UserAccount.roles a.UserAccount.title
 									\\ a <- accounts]
-					 , \() accounts -> DoNotWrite accounts) (\_ _ -> Ok ()) userAccounts
+					 , \() _ -> Nothing) (Just \_ _ -> Ok ()) userAccounts
 
 usersWithRole :: !Role -> SDSLens () [User] ()
 usersWithRole role = mapRead (filter (hasRole role)) users
@@ -25,7 +25,7 @@ where
 	hasRole _ _ = False
 
 userAccount :: UserId -> SDSLens () (Maybe UserAccount) (Maybe UserAccount)
-userAccount userId = mapReadWrite (getAccount userId, \w r -> DoWrite (setAccount w r)) (\_ accounts -> Ok (getAccount userId accounts)) userAccounts
+userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) (Just \_ accounts -> Ok (getAccount userId accounts)) userAccounts
 where
 	getAccount :: UserId [UserAccount] -> Maybe UserAccount
 	getAccount userId accounts = case [a \\ a <- accounts | identifyUserAccount a == userId] of

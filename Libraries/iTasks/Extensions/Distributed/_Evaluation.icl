@@ -50,7 +50,7 @@ proxyTask value_share onDestroy = Task eval
                 # (val,iworld)  = readRegister taskId value_share iworld
                 = case val of
                         // TODO: Fix
-                      Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                      //Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
                       Error e           = (ExceptionResult e,iworld)
         eval event repAs (TCDestroy _) iworld 
                 # iworld = onDestroy iworld

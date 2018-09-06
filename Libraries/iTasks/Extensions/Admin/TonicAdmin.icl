@@ -289,8 +289,8 @@ where
   activeBlueprintInstances = editSharedChoiceWithSharedAs
                                (Title "Active blueprint instances")
                                [ChooseFromGrid customView]
-                               (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) ((tonicSharedRT |*| queryShare) f))
-                               setTaskId selectedBlueprint f <<@ ArrangeWithSideBar 0 TopSide 175 True
+                               (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |*| queryShare))
+                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
   where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing
@@ -299,9 +299,6 @@ where
                                               , bpident_compId     = Just (toComp x.bpi_taskId)
                                               }
                   }
-
-    // TODO: Fix!!
-    f p = undef
 
     flattenRTMap :: TonicRTMap -> [BlueprintInstance]
     flattenRTMap trt = 'DM'.elems ('DM'.foldrWithKey f 'DM'.newMap trt)
@@ -312,13 +309,13 @@ where
       g tid ((mn, fn), bpi) acc = 'DM'.put (tid, mn, fn) bpi acc
 
   blueprintViewer
-    = whileUnchanged ((selectedBlueprint |*| navstack) id) (
+    = whileUnchanged (selectedBlueprint |*| navstack) (
         \(bpmeta, ns) -> case bpmeta of
                            Just meta=:{click_target_bpident = {bpident_compId = Just tid, bpident_moduleName, bpident_compName}}
                              # focus = (sdsFocus (comp2TaskId tid, bpident_moduleName, bpident_compName) tonicInstances)
                              =                 get focus
                              >>~ \mbprnt ->    get selectedDetail
-                             >>~ \selDetail -> whileUnchanged ((focus |*| dynamicDisplaySettings) f) (
+                             >>~ \selDetail -> whileUnchanged (focus |*| dynamicDisplaySettings) (
                                                  \shareData ->
                                                     case shareData of
                                                        (Just bpinst, dynSett) ->     viewInstance rs navstack dynSett bpinst selDetail meta

@@ -4,6 +4,7 @@ import iTasks
 
 import StdFile
 import StdDebug
+import StdArray
 import symbols_in_program
 import dynamic_string
 import Text.Encodings.Base64
@@ -15,13 +16,13 @@ import iTasks.Internal.IWorld
 symbolsShare :: SDSLens () String String
 symbolsShare = sharedStore "symbols" ""
 
-storeSymbols :: String !*IWorld -> (MaybeError TaskException String, !*IWorld)
+storeSymbols :: String !*IWorld -> (MaybeError TaskException Int, !*IWorld)
 storeSymbols file iworld
 # (symbols, iworld) = accFiles (read_symbols file) iworld
 # val = base64Encode (copy_to_string symbols)
 # (res, iworld) = write val symbolsShare EmptyContext iworld
 | isError res = (liftError res, iworld)
-= (Ok val, iworld)
+= (Ok (size symbols), iworld)
 
 accSymbols :: ({#Symbol} -> a) -> Task a | iTask a
 accSymbols fun = mkInstantTask eval

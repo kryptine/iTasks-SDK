@@ -282,11 +282,11 @@ where
             //Check which registrations the current parameter matches
             # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) (notifyf p w) iworld 
             = case writef p w of
-                (Error e) = (Error e, iworld)
-                (Ok (DoNotWrite _))
+                Error e = (Error e, iworld)
+                Ok Nothing
                     //We need to decide based on the current parameter if we need to notify or not
                     = (Ok (WriteResult match sds), iworld)
-                (Ok (DoWrite ws)) = case writeSDS sds1 ps c ws iworld of
+                Ok (Just ws) = case writeSDS sds1 ps c ws iworld of
                     (Error e, iworld) = (Error e, iworld)
                     (Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
                     (Ok (WriteResult notify ssds), iworld) 
@@ -307,9 +307,9 @@ where
                     //Check which registrations the current parameter matches
                     # (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) notifyf iworld 
                     = case ws of
-                        (Error e) = (Error e, iworld)
-                        (Ok (DoNotWrite ws)) = (Ok (WriteResult match (SDSLens ssds opts)), iworld)
-                        (Ok (DoWrite ws)) = case writeSDS ssds ps c ws iworld of
+                        Error e         = (Error e, iworld)
+                        Ok Nothing      = (Ok (WriteResult match (SDSLens ssds opts)), iworld)
+                        Ok (Just ws) = case writeSDS ssds ps c ws iworld of
                             (Error e, iworld) = (Error e, iworld)
                             (Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
                             (Ok (WriteResult notify ssds), iworld)
@@ -319,38 +319,49 @@ where
 
 instance Modifiable SDSLens where
     modifySDS f sds=:(SDSLens sds1 opts=:{SDSLensOptions|param, read, write, reducer, notify, name}) p context iworld
-    = case modifySDS sf sds1 (param p) context iworld of
-        (Error e, iworld)                           = (Error e, iworld)
-        (Ok (AsyncModify sds _), iworld)            = (Ok (AsyncModify (SDSLens sds opts) f), iworld)
-        (Ok (ModifyResult rs ws ssds), iworld)           = case reducer p ws of
-            Error e                                     = (Error e, iworld)
-            Ok w
-            # notf = case notify of
-                SDSNotify f         = f p rs w
-                SDSNotifyConst f    = f p w                       
-            # (m, nm, iworld)   = checkRegistrations (sdsIdentity sds) notf iworld
-            = case doRead read p rs of 
-                Error e = (Error e, iworld)
-                Ok r = (Ok (ModifyResult r w (SDSLens ssds opts)), queueNotifyEvents (sdsIdentity sds) m iworld)
-    where
-        sf rs 
-        # readV = doRead read p rs
-        = case readV of
-            (Error e) = (Error e)
-            (Ok r) = case f r of
+    = case reducer of
+        Nothing = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
+            (Error e, iworld)               = (Error e, iworld)
+            (Ok (AsyncRead sds), iworld)    = (Ok (AsyncModify sds f), iworld)
+            (Ok (ReadResult r ssds), iworld)    = case f r of
+                Error e                             = (Error e, iworld)
+                Ok w                                = case writeSDS ssds p context w iworld of
+                    (Error e, iworld)                        = (Error e, iworld)
+                    (Ok (AsyncWrite sds), iworld)            = (Ok (AsyncModify sds f), iworld)
+                    (Ok (WriteResult notify ssds), iworld)   = (Ok (ModifyResult r w ssds), queueNotifyEvents (sdsIdentity sds) notify iworld)
+
+        Just reducer = case modifySDS sf sds1 (param p) context iworld of
+            (Error e, iworld)                           = (Error e, iworld)
+            (Ok (AsyncModify sds _), iworld)            = (Ok (AsyncModify (SDSLens sds opts) f), iworld)
+            (Ok (ModifyResult rs ws ssds), iworld)           = case reducer p ws of
+                Error e                                     = (Error e, iworld)
+                Ok w
+                # notf = case notify of
+                    SDSNotify f         = f p rs w
+                    SDSNotifyConst f    = f p w                       
+                # (m, nm, iworld)   = checkRegistrations (sdsIdentity sds) notf iworld
+                = case doRead read p rs of 
+                    Error e = (Error e, iworld)
+                    Ok r = (Ok (ModifyResult r w (SDSLens ssds opts)), queueNotifyEvents (sdsIdentity sds) m iworld)
+        where
+            sf rs 
+            # readV = doRead read p rs
+            = case readV of
                 (Error e) = (Error e)
-                (Ok w) = case doWrite write p rs w of
-                    Error e = Error e
-                    Ok (DoWrite ws) = Ok ws
-                    Ok (DoNotWrite ws) = Ok ws
+                (Ok r) = case f r of
+                    (Error e) = (Error e)
+                    (Ok w) = case doWrite write p rs w of
+                        Error e = Error e
+                        Ok (Just ws) = Ok ws
+                        _ = abort "Contact not satisfied: write yields Nothing while there is a reducer"
 
-        doRead readf p rs = case readf of 
-            (SDSRead rf) = rf p rs
-            (SDSReadConst rf) = Ok (rf p)
+            doRead readf p rs = case readf of 
+                (SDSRead rf) = rf p rs
+                (SDSReadConst rf) = Ok (rf p)
 
-        doWrite writef p rs w = case writef of
-            (SDSWrite wf) = wf p rs w
-            (SDSWriteConst wf) = wf p w
+            doWrite writef p rs w = case writef of
+                (SDSWrite wf) = wf p rs w
+                (SDSWriteConst wf) = wf p w
 
 instance Registrable SDSLens
 where
@@ -441,12 +452,12 @@ instance Writeable SDSSequence where
             # (npreds1,iworld) = case writel of
                 (SDSWrite f)  = case f p r1 w of
                     Error e             = (Error e, iworld)
-                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
-                    Ok (DoWrite w1)     = writeSDS ssds (paraml p) c w1 iworld
+                    Ok Nothing   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                    Ok (Just w1)     = writeSDS ssds (paraml p) c w1 iworld
                 (SDSWriteConst f) = case f p w of
                     Error e             = (Error e, iworld)
-                    Ok (DoNotWrite _)   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
-                    Ok (DoWrite w1)     = writeSDS ssds (paraml p) c w1 iworld
+                    Ok Nothing   = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                    Ok (Just w1)     = writeSDS ssds (paraml p) c w1 iworld
             | npreds1 =:(Error _) = (liftError npreds1, iworld)
             //Read/write sds2 if necessary
             # (npreds2,iworld) = case writer of
@@ -454,12 +465,12 @@ instance Writeable SDSSequence where
                     (Error e, iworld)               = (Error e, iworld)
                     (Ok (ReadResult r2 ssds),iworld)     = case f p r2 w of
                         Error e                         = (Error e, iworld)
-                        Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet ssds), iworld)
-                        Ok (DoWrite w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
+                        Ok Nothing               = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                        Ok (Just w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
                 (SDSWriteConst f)               = case f p w of
                     Error e                         = (Error e, iworld)
-                    Ok (DoNotWrite _)               = (Ok (WriteResult 'Set'.newSet sds2), iworld)
-                    Ok (DoWrite w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
+                    Ok Nothing               = (Ok (WriteResult 'Set'.newSet sds2), iworld)
+                    Ok (Just w2)                 = writeSDS sds2 (paramr p r1) c w2 iworld
             | npreds2 =:(Error _) = (liftError npreds2, iworld)
             = case (npreds1, npreds2) of
                 (Ok (WriteResult notify1 ssds1), Ok (WriteResult notify2 ssds2))        = (Ok (WriteResult ('Set'.union notify1 notify2) (SDSSequence ssds1 ssds2 opts)), iworld)
@@ -590,12 +601,12 @@ instance Writeable SDSParallel where
             (Ok (AsyncRead ssds), iworld) = (Ok (AsyncWrite ssds), iworld)
             (Ok (ReadResult r1 ssds),iworld)     = case f p r1 w of
                 Error e                 = (Error e, iworld)
-                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet ssds), iworld)
-                Ok (DoWrite w1)         = writeSDS ssds p1 c w1 iworld
+                Ok Nothing              = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                Ok (Just w1)            = writeSDS ssds p1 c w1 iworld
         (SDSWriteConst f) = case f p w of
                 Error e                 = (Error e,iworld)
-                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet sds1),iworld)
-                Ok (DoWrite w1)         = writeSDS sds1 p1 c w1 iworld
+                Ok Nothing              = (Ok (WriteResult 'Set'.newSet sds1),iworld)
+                Ok (Just w1)            = writeSDS sds1 p1 c w1 iworld
     | npreds1 =:(Error _) = (liftError npreds1, iworld)
     //Read/write sds2
     # (npreds2,iworld) = case writer of
@@ -604,12 +615,12 @@ instance Writeable SDSParallel where
             (Ok (AsyncRead ssds), iworld) = (Ok (AsyncWrite ssds), iworld)
             (Ok (ReadResult r2 ssds),iworld)     = case f p r2 w of
                 Error e                 = (Error e, iworld)
-                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet ssds), iworld)
-                Ok (DoWrite w2)         = writeSDS ssds p2 c w2 iworld
+                Ok Nothing              = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+                Ok (Just w2)         = writeSDS ssds p2 c w2 iworld
         (SDSWriteConst f) = case f p w of
                 Error e                 = (Error e,iworld)
-                Ok (DoNotWrite _)       = (Ok (WriteResult 'Set'.newSet sds2), iworld)
-                Ok (DoWrite w2)         = writeSDS sds2 p2 c w2 iworld
+                Ok Nothing              = (Ok (WriteResult 'Set'.newSet sds2), iworld)
+                Ok (Just w2)            = writeSDS sds2 p2 c w2 iworld
     | npreds2 =:(Error _) = (liftError npreds2, iworld)
     = case (npreds1, npreds2) of 
         (Ok (WriteResult n1 ssds1), Ok (WriteResult n2 ssds2)) = (Ok (WriteResult ('Set'.union n1 n2) (SDSParallel ssds1 ssds2 opts)), iworld)

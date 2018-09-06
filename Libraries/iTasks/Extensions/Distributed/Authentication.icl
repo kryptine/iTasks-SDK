@@ -188,16 +188,15 @@ authServerInfoShare :: SDSLens () String String
 authServerInfoShare = sharedStore "authServer" ""
 
 currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)
-currentDistributedUser = sdsParallel "communicationDetailsByNo" param read (SDSWriteConst writel) (SDSWriteConst writer) reducer currentUser authServerInfoShare
+currentDistributedUser = sdsParallel "communicationDetailsByNo" param read (SDSWriteConst writel) (SDSWriteConst writer) currentUser authServerInfoShare
 where
 	param p = (p,p)
 	read (user,domain) = (user,Domain domain)
-	writel _ (x,_) = Ok (DoWrite x)
-	writer _ (_, Domain y) = Ok (DoWrite y) 
-	reducer p (u, d) = Ok (u, Domain d)
+	writel _ (x,_) = Ok (Just x)
+	writer _ (_, Domain y) = Ok (Just y)
 
 currentDomain :: SDSLens () Domain ()
-currentDomain = toReadOnly (mapRead (\domain -> Domain domain) authServerInfoShare) (\(Domain d). d)
+currentDomain = toReadOnly (mapRead (\domain -> Domain domain) authServerInfoShare)
 
 enterDomain :: Task Domain
 enterDomain
