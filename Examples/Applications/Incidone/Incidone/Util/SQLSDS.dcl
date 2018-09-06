@@ -56,12 +56,12 @@ toOrderBySQL        :: [RowOrderDef] -> String
 
 fromSQLWithId       :: [SQLValue] -> (Int,a) | mbFromSQL a
 
-(>++>) infixl 6     :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p & TC r & TC w
+(>++>) infixl 6     :: (sds1 () SQLDatabaseDef SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
 
-sqlReadSDS          :: String -> ROShared (SQLDatabaseDef,QueryDef) [r] | mbFromSQL r
-sqlReadWriteOneSDS  :: String -> RWShared (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
-sqlLinkSDS          :: String String String String-> RWShared (SQLDatabaseDef,Maybe [Int]) [(Int,Int)] [(Int,Int)]
+sqlReadSDS          :: String -> SDSSource (SQLDatabaseDef,QueryDef) [r] () | mbFromSQL r
+sqlReadWriteOneSDS  :: String -> SDSSource (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
+sqlLinkSDS          :: String String String String-> SDSSource (SQLDatabaseDef,Maybe [Int]) [(Int,Int)] [(Int,Int)]
 
 groupByFst          :: [(a,b)] -> Map a [b] | Eq a & Ord a
 ungroupByFst        :: (Map a [b]) -> [(a,b)]
-roMaybe             :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p & TC r
+roMaybe             :: (sds p (Maybe r) ()) -> SDSSelect (Maybe p) (Maybe r) () | iTask p & TC r & RWShared sds

@@ -13,20 +13,20 @@ import qualified Data.Map
 createNewIncident			:: Task (Maybe IncidentNo)
 createNewContact			:: Task (Maybe ContactNo)
 
-indexedStore        :: String v -> RWShared k v v | Eq k & Ord k & iTask k & iTask v
-sdsDeref            :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a]) | iTask p & TC a & TC b & TC c & TC x
+indexedStore        :: String v -> SDSLens k v v | Eq k & Ord k & iTask k & iTask v
+sdsDeref            :: (sds1 p [a] [a]) (a -> Int) (sds2 [Int] [b] x) ([a] [b] -> [c]) -> (SDSSequence p [c] [a]) | iTask p & TC a & TC b & TC c & TC x & RWShared sds1 & RWShared sds2
 
 // Information management
-viewDetails	        :: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c
+viewDetails	        :: !d (sds1 () (Maybe i) ()) (sds2 i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c & RWShared sds1 & RWShared sds2
 
-optionalNewOrOpen   :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyShared (Maybe i)) -> Task () | iTask i
+optionalNewOrOpen   :: (String,Task ()) (String,i -> Task ()) Workspace (sds () (Maybe i) ()) -> Task () | iTask i & RWShared sds
 
-doAddRemoveOpen		:: (Task a) (r -> Task b) (r -> Task c) Workspace (ReadWriteShared (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r
+doAddRemoveOpen     :: (Task a) (r -> Task b) (r -> Task c) Workspace (sds () (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r & RWShared sds & TC w
 
 // Utility
 
 viewAndEdit :: (Task a) (Task b) -> Task b | iTask a & iTask b
-viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
+viewOrEdit :: d (sds () a a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
 
 doOrClose		:: (Task a)						-> Task (Maybe a) | iTask a
 doOrCancel		:: (Task a)						-> Task (Maybe a) | iTask a
@@ -43,7 +43,7 @@ oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toProm
 enterMultiple :: !String !Int (Task a) -> Task [a] | iTask a
 
 //Work on multiple items from a shared list and add
-manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Task ()
+manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (sds () [Int] [Int]) -> Task () | RWShared sds
 
 //Ok/Cancel transition
 (>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
@@ -53,6 +53,6 @@ manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Tas
 manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 
 //Reading network streams
-syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
-consumeNetworkStream    :: ([m] -> Task ()) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
+syncNetworkChannel      :: String Int String (String -> m) (m -> String) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
+consumeNetworkStream    :: ([m] -> Task ()) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 
