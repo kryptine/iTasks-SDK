@@ -51,3 +51,12 @@ deleteDirectory :: !FilePath !Bool -> Task ()
 */
 copyDirectory :: !FilePath !FilePath -> Task ()
 
+/**
+ * A file selection task.
+ *
+ * @param Root directory to select from
+ * @param Prompt
+ * @param Flag for multiple selection
+ * @param Initial selection
+ */
+selectFile :: !FilePath !d !Bool [FilePath]-> Task [FilePath] | toPrompt d

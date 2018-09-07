@@ -1,13 +1,23 @@
 implementation module iTasks.Extensions.Files
 
-import iTasks
+import StdFile, StdArray, StdFunctions
+
+import Control.Applicative
+import Control.Monad.Identity
+import Control.Monad.State
+import Data.Error, Text
+import Data.Functor
+import Data.List
+import Data.Tree
+import System.Directory
 import System.FilePath
+import System.File
+import System.Time
+import qualified Control.Monad as CM
 import qualified System.File as SF
 import qualified System.Directory as SD
-from System.File import instance toString FileError
-from System.File import :: FileInfo{directory}, :: FileError
-import Data.Error, Text
-import StdFile, StdArray
+
+import iTasks
 
 deleteFile :: !FilePath -> Task ()
 deleteFile path = accWorldError ('SF'.deleteFile path) snd 
@@ -21,7 +31,7 @@ copyFile srcPath dstPath = accWorldError (copyFile` srcPath dstPath) id
 //TODO: This is a very stupid way of copying files, should be replaced by a better way
 copyFile` srcPath dstPath world = case 'SF'.readFile srcPath world of
 	(Error e,world) = (Error e,world)
-	(Ok content,world) = 'SF'.writeFile dstPath content world
+	(Ok content,world) = writeFile dstPath content world
 		
 createDirectory :: !FilePath !Bool -> Task ()
 createDirectory path False = accWorldError ('SD'.createDirectory path) snd
@@ -55,7 +65,7 @@ where
 	deleteContent [] world = (Ok (),world)
 	deleteContent [".":rest] world = deleteContent rest world
 	deleteContent ["..":rest] world = deleteContent rest world
-	deleteContent [entry:rest] world = case 'SF'.getFileInfo (path </> entry) world of
+	deleteContent [entry:rest] world = case getFileInfo (path </> entry) world of
 		(Error e,world) = (Error (snd e), world)
 		(Ok {FileInfo|directory},world) 
 		| directory = case deleteDirectoryRecursive (path </> entry) world of
@@ -68,7 +78,7 @@ where
 copyDirectory :: !FilePath !FilePath -> Task ()
 copyDirectory  srcPath dstPath = accWorldError (copyDirectory` srcPath dstPath) id
 
-copyDirectory` srcPath dstPath world = case 'SD'.readDirectory srcPath world of
+copyDirectory` srcPath dstPath world = case readDirectory srcPath world of
 		(Error e,world) = (Error (snd e), world)
 		(Ok content,world) = case 'SD'.createDirectory dstPath world of
 			(Error e,world) = (Error (snd e),world)
@@ -77,7 +87,7 @@ where
 	copyContent [] world  = (Ok (),world)
 	copyContent [".":rest] world = copyContent rest world
 	copyContent ["..":rest] world = copyContent rest world
-	copyContent [entry:rest] world = case 'SF'.getFileInfo (srcPath </> entry) world of
+	copyContent [entry:rest] world = case getFileInfo (srcPath </> entry) world of
 		(Error e,world) = (Error (snd e), world)
 		(Ok {FileInfo|directory},world) 
 			| directory = case copyDirectory` (srcPath </> entry) (dstPath </> entry) world of
@@ -86,3 +96,32 @@ where
 			| otherwise = case copyFile` (srcPath </> entry) (dstPath </> entry) world of
 				(Error e,world) = (Error (toString e), world)
 				(Ok (),world) = copyContent rest world
+
+
+//Why is this necessary?!?!?!?
+derive class iTask RTree, FileInfo, Tm
+
+selectFile :: !FilePath !d !Bool [FilePath]-> Task [FilePath] | toPrompt d
+selectFile root prompt multi initial
+	= accWorld (createDirectoryTree root) @ numberTree
+	>>= \tree->editSelection prompt multi selectOption tree
+		[i\\(i, (f, _))<-leafs tree | elem f initial]
+where
+	selectOption = SelectInTree
+		(\tree->[{foldTree fp2cn tree & label=root}])
+		(\tree sel->[f\\(i, (f, _))<-leafs tree | isMember i sel])
+
+	fp2cn (i, (fp, mfi)) cs =
+		{ id = case mfi of
+			Error e = ~i
+			Ok {directory=True} = ~i
+			_ = i
+		, label=dropDirectory fp
+		, icon=Nothing
+		, expanded=False
+		, children=cs
+		}
+
+	numberTree :: ((RTree a) -> RTree (Int, a))
+	numberTree = flip evalState zero o foldTree \a cs->
+		(\lvs i->RNode (i, a) lvs) <$> 'CM'.sequence cs <*> getState <* modify inc
