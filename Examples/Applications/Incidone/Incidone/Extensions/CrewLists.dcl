@@ -5,7 +5,7 @@ import Incidone.OP.Concepts, Incidone.ActionManagementTasks
 crewListActions :: [CatalogAction]
 
 manageContactCrew :: ContactNo -> Task ()
-manageContactCrewAction :: ActionDefinition ContactNo sds
+manageContactCrewAction :: ActionDefinition ContactNo
 
 manageCrewAliasList :: ContactNo -> Task ()
-manageCrewAliasListAction :: ActionDefinition ContactNo sds
+manageCrewAliasListAction :: ActionDefinition ContactNo

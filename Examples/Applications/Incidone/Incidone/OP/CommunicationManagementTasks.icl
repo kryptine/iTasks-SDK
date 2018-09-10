@@ -133,7 +133,7 @@ relateMessageToIncidents communicationNo
     = manageSharedListWithDetails details add aboutIncidents
 where
     aboutIncidents = sdsFocus communicationNo communicationAboutIncidents
-    communicationAboutIncidents = mapReadWrite (toPrj,fromPrj) communicationByNo
+    communicationAboutIncidents = mapReadWrite (toPrj,fromPrj) Nothing communicationByNo
     where
         toPrj {Communication|aboutIncidents} = aboutIncidents
         fromPrj aboutIncidents c = Just {Communication|c & aboutIncidents = aboutIncidents}
@@ -195,27 +195,27 @@ updateMessageMeta communicationNo
       ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
-phoneCallExternalNo = mapReadWrite (toExternalNo,fromExternalNo) phoneCallByNo
+phoneCallExternalNo = mapReadWrite (toExternalNo,fromExternalNo) Nothing phoneCallByNo
 where
     toExternalNo {PhoneCall|externalNo} = externalNo
     fromExternalNo nexternalNo c=:{PhoneCall|externalNo} = if (nexternalNo =!= externalNo) (Just {PhoneCall|c & externalNo = nexternalNo}) Nothing
 
-radioCallChannel = mapReadWrite (toChannel,fromChannel) radioCallByNo
+radioCallChannel = mapReadWrite (toChannel,fromChannel) Nothing radioCallByNo
 where
     toChannel {RadioCall|channel} = channel
     fromChannel nchannel c=:{RadioCall|channel} = if (nchannel =!= channel) (Just {RadioCall|c & channel = nchannel}) Nothing
 
-communicationTime = mapReadWrite (toTime,fromTime) communicationByNo
+communicationTime = mapReadWrite (toTime,fromTime) Nothing communicationByNo
 where
     toTime {Communication|time} = time
     fromTime ntime c=:{Communication|time} = if (ntime =!= time) (Just {Communication|c & time = ntime}) Nothing
 
-communicationStatus = mapReadWrite (toStatus,fromStatus) communicationByNo
+communicationStatus = mapReadWrite (toStatus,fromStatus) Nothing communicationByNo
 where
     toStatus {Communication|status} = status
     fromStatus nstatus c=:{Communication|status} = if (nstatus =!= status) (Just {Communication|c & status = nstatus}) Nothing
 
-communicationHandledBy = mapReadWrite (toHandledBy,fromHandledBy) communicationByNo
+communicationHandledBy = mapReadWrite (toHandledBy,fromHandledBy) Nothing communicationByNo
 where
     toHandledBy {Communication|handledBy} = handledBy
     fromHandledBy nhandledBy c=:{Communication|handledBy} = if (nhandledBy =!= handledBy) (Just {Communication|c & handledBy = nhandledBy}) Nothing
@@ -296,12 +296,12 @@ where
         =   updateSharedInformation (Title "Notes") [] (callNotes type) //<<@ FillNotes //FIXME
         @! ()
 
-    callNotes PhoneCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) phoneCallByNo)
+    callNotes PhoneCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) Nothing phoneCallByNo)
     where
         toPrj {PhoneCall|callNotes} = callNotes
         fromPrj callNotes c = Just {PhoneCall|c & callNotes = callNotes}
 
-    callNotes RadioCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) radioCallByNo)
+    callNotes RadioCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) Nothing radioCallByNo)
     where
         toPrj {RadioCall|callNotes} = callNotes
         fromPrj callNotes c = Just {RadioCall|c & callNotes = callNotes}
@@ -327,7 +327,7 @@ createP2000Message direction = createCommunication P2000Message direction Nothin
 
 createCommunication	:: CommunicationType CommunicationDirection (Maybe ContactNo)-> Task CommunicationNo
 createCommunication type direction mbWithContact
-	=	get (currentDateTime |+| databaseDef)
+	=	get (currentDateTime |*| databaseDef)
     >>- \(datetime,db) ->
 		sqlExecute db ["allCommunications"] (execInsert "INSERT INTO Communication (time,type,direction,withContact) VALUES (?,?,?,?)" (flatten [toSQL datetime,toSQL type,toSQL direction,mbToSQL mbWithContact]))
     >>- \communicationNo -> case type of
