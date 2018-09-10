@@ -70,11 +70,11 @@ instance == Border where
 
 infinity =: 67108864
 
-maps2DShare :: RWShared () Maps2D Maps2D
+maps2DShare :: SDSLens () Maps2D Maps2D
 maps2DShare = sharedStore "maps2DShare" []
 
-sharedGraph :: RWShared () Graph ()
-sharedGraph = sdsLens "sharedGraph" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) maps2DShare
+sharedGraph :: SDSLens () Graph ()
+sharedGraph = sdsLens "sharedGraph" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing maps2DShare
   where
   read _ m = Ok (maps2DToGraph m)
 
@@ -85,13 +85,13 @@ sharedGraph = sdsLens "sharedGraph" (const ()) (SDSRead read) (SDSWriteConst wri
 sectionUsersShare :: SectionUsersShare
 sectionUsersShare = sharedStore "sectionUsersShare" 'DM'.newMap
 
-sectionForUserShare :: User -> RWShared () (Maybe Coord3D) SectionUsersMap
+sectionForUserShare :: User -> SDSLens () (Maybe Coord3D) SectionUsersMap
 sectionForUserShare user = mapRead (sectionForUser user) sectionUsersShare
 
 focusedSectionUsersShare :: FocusedSectionUsersShare
 focusedSectionUsersShare = mapLens "focusedSectionUsersShare" sectionUsersShare (Just [])
 
-inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> RWShared () (IntMap (Object o)) (IntMap (Object o)) | iTask o
+inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> SDSSequence () (IntMap (Object o)) (IntMap (Object o)) | iTask o
 inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryForUserSection" +++ toString user) id mkP2 (\_ _ -> Right mkr) (SDSWrite write1) (SDSWrite write2) (sectionForUserShare user) inventoryForSectionShare
   where
   mkP2 p (Just c3d) = c3d
@@ -100,16 +100,16 @@ inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryF
   write1 p r1 w = Ok Nothing
   write2 p r2 w = Ok (Just w)
 
-lockedExitsShare :: RWShared () SectionExitLockMap SectionExitLockMap
+lockedExitsShare :: SDSLens () SectionExitLockMap SectionExitLockMap
 lockedExitsShare = sharedStore "lockedExitsShare" 'DM'.newMap
 
-lockStatusForExit :: RWShared Coord3D [Dir] [Dir]
+lockStatusForExit :: SDSLens Coord3D [Dir] [Dir]
 lockStatusForExit = mapLens "lockStatusForExit" lockedExitsShare (Just [])
 
-lockedHopsShare :: RWShared () SectionHopLockMap SectionHopLockMap
+lockedHopsShare :: SDSLens () SectionHopLockMap SectionHopLockMap
 lockedHopsShare = sharedStore "lockedHopsShare" 'DM'.newMap
 
-lockStatusForHop :: RWShared Coord3D [Coord3D] [Coord3D]
+lockStatusForHop :: SDSLens Coord3D [Coord3D] [Coord3D]
 lockStatusForHop = mapLens "lockStatusForHop" lockedHopsShare (Just [])
 
 maps2DToGraph :: !Maps2D -> Graph
@@ -457,16 +457,16 @@ moveAround viewDeck user inventoryForSectionShare
   prettyPrintHops = ChooseFromGrid prettyHop
   prettyPrintItems = ChooseFromGrid prettyItem
 
-  nearbyHops :: ReadOnlyShared [(Coord3D, Coord3D)]
+  nearbyHops :: SDSLens () [(Coord3D, Coord3D)] ()
   nearbyHops = toReadOnly (mapRead getHops (roomNoForCurrentUserShare |*| maps2DShare))
 
-  roomNoForCurrentUserShare :: ReadOnlyShared (Maybe Coord3D)
+  roomNoForCurrentUserShare :: SDSLens () (Maybe Coord3D) ()
   roomNoForCurrentUserShare = toReadOnly (sectionForUserShare user)
 
-  inventoryShare :: (UserActorShare o a) -> ReadOnlyShared [Object o] | iTask o & iTask a
+  inventoryShare :: (UserActorShare o a) -> SDSLens () [Object o] () | iTask o & iTask a
   inventoryShare userToActorShare = toReadOnly (mapRead carriedObjects (sdsFocus user (actorForUserShare userToActorShare)))
 
-  nearbyItemsShare :: (FocusedSectionInventoryShare o) -> ReadOnlyShared [Object o] | iTask o
+  nearbyItemsShare :: (FocusedSectionInventoryShare o) -> SDSLens () [Object o] () | iTask o
   nearbyItemsShare inventoryForSectionShare = toReadOnly (mapRead 'DIS'.elems (inventoryForUserSection user inventoryForSectionShare))
 
   getHops :: (Maybe Coord3D, Maps2D) -> [(Coord3D, Coord3D)]
@@ -515,8 +515,8 @@ moveAround viewDeck user inventoryForSectionShare
           _ = False
   changeDeck _ = Nothing
 
-sectionForSectionNumberShare :: RWShared Coord3D (Maybe Section) Section
-sectionForSectionNumberShare = sdsLens "sectionForSectionNumberShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) maps2DShare
+sectionForSectionNumberShare :: SDSLens Coord3D (Maybe Section) Section
+sectionForSectionNumberShare = sdsLens "sectionForSectionNumberShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing maps2DShare
   where
   read :: Coord3D Maps2D -> MaybeError TaskException (Maybe Section)
   read c3d ms2d = Ok (getSectionFromMap c3d ms2d)
@@ -587,8 +587,8 @@ getObjectOfType {Actor | carrying} objType` = case [obj \\ obj <- carrying | obj
 
 autoMove :: !Coord3D !Coord3D
             !(Coord3D Coord3D (SectionStatusMap r) SectionExitLockMap SectionHopLockMap Graph -> Maybe ([Coord3D], Distance))
-            !User !(Shared (SectionStatusMap r)) !(UserActorShare o a)
-         -> Task Bool | iTask r & iTask o & iTask a
+            !User !(sds () (SectionStatusMap r) (SectionStatusMap r)) !(UserActorShare o a)
+         -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 autoMove thisSection target pathFun user shipStatusShare userToActorShare
   | thisSection == target = return True
   | otherwise
@@ -622,8 +622,8 @@ updActorStatus user upd userToActorShare
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 sectionForUser u sectionUsersMap = listToMaybe [k \\ (k, us) <- 'DM'.toList sectionUsersMap, u` <- us | u` == u]
 
-actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
-actorsInSectionShare userActorShare = sdsLens "actorsInSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (sectionUsersShare >*< userActorShare)
+actorsInSectionShare :: (UserActorShare o a) -> SDSLens Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
+actorsInSectionShare userActorShare = sdsLens "actorsInSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing (sectionUsersShare >*< userActorShare)
   where
   read :: Coord3D (SectionUsersMap, UserActorMap o a) -> MaybeError TaskException [Actor o a]
   read c3d (sectionUsersMap, userActorMap) = Ok [a \\ Just us <- ['DM'.get c3d sectionUsersMap], u <- us, Just a <- ['DM'.get u userActorMap]]

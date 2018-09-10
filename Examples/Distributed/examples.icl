@@ -92,7 +92,7 @@ updateMyShared
 
 derive class iTask ServerRole
 
-serverRoleShare :: Shared ServerRole
+serverRoleShare :: SDSLens () ServerRole ServerRole
 serverRoleShare = sharedStore "serverRoleShare" NoneServer
 
 getDomain :: Task Domain
@@ -106,7 +106,9 @@ startMode :: String -> Task ()
 startMode executable
 	=   get serverRoleShare 
 	>>- \role = case role of
-			DomainServer domain -> startAuthEngine domain >>| loginAndManageWorkList "Service engineer application" (myTasks True)
+			DomainServer domain -> startAuthEngine domain 
+				>>| installWorkflows (myTasks True)
+				>>| loginAndManageWork "Service engineer application"
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
 			_ -> viewInformation "Welcome" [] "Chose what this iTasks instance is."
 		             >>* [ OnAction (Action "Domain server") (always (domainServer))
@@ -124,7 +126,8 @@ where
 		= enterDomain
 		>>= \domain -> set (DomainServer domain) serverRoleShare
 		>>| startAuthEngine domain
-		>>| loginAndManageWorkList "Service engineer application" (myTasks True)
+		>>| installWorkflows (myTasks True)
+		>>| loginAndManageWork "Service engineer application"
 
 loginRemote :: ![Workflow] -> Task ()
 loginRemote workflows 
@@ -137,14 +140,8 @@ where
 	browseAuthenticated workflows {Credentials|username,password}
 		= remoteAuthenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist workflows)
+			Just user 	= workAs user manageWorkOfCurrentUser
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 
 Start :: *World -> *World
-Start world
-	= startEngineWithOptions opts   [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))
-			] world
-where
-	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
-	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
-	opts [a:as] = opts as
+Start world	= doTasks [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))] world
