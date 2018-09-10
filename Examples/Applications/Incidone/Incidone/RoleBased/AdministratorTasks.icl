@@ -238,7 +238,7 @@ configureWebLinks
 where
     exportConfig
         =   doOrClose (
-                get (webLinksConfig |+| currentDateTime)
+                get (webLinksConfig |*| currentDateTime)
             >>- \(config,now) -> createJSONFile ("Incidone-weblinks-" +++ paddedDateTimeString now +++ ".json") config
             >>- viewInformation "An export file has been created" []
             @!  ()

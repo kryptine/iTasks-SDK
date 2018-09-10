@@ -1,7 +1,8 @@
 implementation module iTasks.Extensions.Device.Features
 
-from iTasks.SDS.Sources.Store import :: SDS, sharedStore
-from iTasks.Internal.SDS import :: ReadWriteShared, :: RWShared, :: Shared
+import iTasks.SDS.Definition
+import iTasks.SDS.Sources.Store
+import iTasks.Internal.SDS
 from iTasks.WF.Tasks.SDS import get, set
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Definition      import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
@@ -21,7 +22,7 @@ derive class iTask DeviceFeatures
 hasCamera :: DeviceFeatures -> Bool
 hasCamera {DeviceFeatures|camera} = camera
 
-device :: RWShared () DeviceFeatures DeviceFeatures
+device :: SDSLens () DeviceFeatures DeviceFeatures
 device = sharedStore "deviceFeaturs" {DeviceFeatures| camera = False }
 
 manageDeviceFeaturs :: Task DeviceFeatures

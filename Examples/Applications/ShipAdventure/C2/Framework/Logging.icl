@@ -4,7 +4,7 @@ import iTasks
 
 derive class iTask Log
 
-myLog :: Shared [Log]						// logging events
+myLog :: SDSLens () [Log] [Log]						// logging events
 myLog = sharedStore "myLog" []
 
 addLog :: !a !b !c -> Task () | toString a & toString b & toString c

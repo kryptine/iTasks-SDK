@@ -130,11 +130,11 @@ where
 				= case res of
 					(Ok ())
 						//Collect output
-						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceOutput) iworld
+						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 						# world = destroyIWorld iworld
 						//Compare result
 						# verdict = case res of
-							Ok queue = comparison exp (toList queue)
+							Ok ('SDS'.ReadResult queue _) = comparison exp (toList queue)
 							(Error (_,e)) = Failed (Just Crashed)
 						= (verdict,world)
 					(Error e)

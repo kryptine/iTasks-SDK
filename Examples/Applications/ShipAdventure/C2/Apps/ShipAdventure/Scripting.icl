@@ -12,13 +12,13 @@ import qualified Data.Map as DM
 
 derive class iTask Target, Script, Condition
 
-handleFireScript :: Shared [Script]
+handleFireScript :: SDSLens () [Script] [Script]
 handleFireScript = sharedStore "handleFireScript" []
 
-handleFloodScript :: Shared [Script]
+handleFloodScript :: SDSLens () [Script] [Script]
 handleFloodScript = sharedStore "handleFloodScript" []
 
-handleSmokeScript :: Shared [Script]
+handleSmokeScript :: SDSLens () [Script] [Script]
 handleSmokeScript = sharedStore "handleSmokeScript" []
 
 changeFireScript :: Task ()
@@ -30,7 +30,7 @@ changeFloodScript = changeScript "Handling Flood" handleFloodScript
 changeSmokeScript :: Task ()
 changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript
 
-changeScript :: !String !(Shared [Script]) -> Task ()
+changeScript :: !String !(sds () [Script] [Script]) -> Task () | RWShared sds
 changeScript prompt script
   =   viewSharedInformation ("Current Script: " <+++ prompt) [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
   >>* [ OnAction (Action "Fine") (always (return ()))

@@ -7,7 +7,7 @@ import Text, Text.HTML, Data.List, iTasks.Internal.HtmlUtil
 
 derive class iTask WallContent
 
-wallContent :: Shared WallContent
+wallContent :: SDSLens () WallContent WallContent
 wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 
 viewVideoWallContent :: Task WallContent
@@ -15,7 +15,7 @@ viewVideoWallContent
     = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
-        = viewSharedInformation () [ViewAs view] (currentTime |+| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
+        = viewSharedInformation () [ViewAs view] (currentTime |*| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
     where
         view (local,utc) = "LOCAL: " + lpad (toString local.Time.hour) 2 '0' + ":" + lpad (toString local.Time.min) 2 '0' + " "
                          + "UTC: " + lpad (toString utc.Time.hour) 2 '0' + ":" + lpad (toString utc.Time.min) 2 '0'
@@ -31,7 +31,7 @@ where
 formatTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; padding-top: 200px;"] [Text (toString time)]
 formatDateTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; padding-top: 200px;"] [Text (toString time)]
 
-mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
+mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
 
 viewWallOverview perspective
     = ((viewSharedInformation (Title "Open Incidents") [ViewAs formatIncidents] openIncidentsDetails)

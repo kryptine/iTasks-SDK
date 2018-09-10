@@ -16,23 +16,22 @@ from C2.Framework.ContactPosition import :: ContactMapPerspective
 
 derive class iTask MapState
 
-mapState :: RWShared () MapState MapState
+mapState :: SDSLens () MapState MapState
 
-entityMap :: RWShared () EntityMap EntityMap
+entityMap :: SDSLens () EntityMap EntityMap
 
 registerEntity :: (Int -> Entity) -> Task Entity
 
 updateEntity :: Int (Entity -> Entity) -> Task ()
 
-contactWithId :: RWShared Int (Maybe Entity) Entity
+contactWithId :: SDSLens Int (Maybe Entity) Entity
 
-selectedContactShare :: RWShared () (Maybe Entity) Entity
+selectedContactShare :: SDSLens () (Maybe Entity) Entity
 
 resetMapState :: Task ()
 
 periodicallyUpdateEntity :: !Int -> Task ()
 
-mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w
+mapView :: (sds () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w & RWShared sds
 
-
-userMapState :: User -> Shared MapState
+userMapState :: User -> SDSLens () MapState MapState 

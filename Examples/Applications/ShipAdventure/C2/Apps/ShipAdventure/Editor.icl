@@ -53,7 +53,7 @@ importShip
   doImport :: !String -> Task ()
   doImport mapName
     =            getMap mapName
-    >>- \data -> set data (myInventoryMap >+< myNetwork >+< myCables >+< myDevices >+< maps2DShare)
+    >>- \data -> set data (myInventoryMap >*< myNetwork >*< myCables >*< myDevices >*< maps2DShare)
     >>|          viewInformation "Ship imported" [] "Ship imported"
     >>|          importShip @! ()
 
@@ -101,11 +101,11 @@ mapTitleFontSize    =: 10.0
 ********************************************************************************************************************/
 viewLayout = updateMapStatus EditMode @! ()
 
-sharedMapAction :: RWShared () (MapAction SectionStatus) (MapAction SectionStatus)
+sharedMapAction :: SDSLens () (MapAction SectionStatus) (MapAction SectionStatus)
 sharedMapAction = sharedStore "sharedMapAction" (FocusOnMap 0)	// start at the top-level (all maps)
 
-sharedEditShip :: RWShared () (Maps2D,MapAction SectionStatus) (Maps2D,MapAction SectionStatus)
-sharedEditShip = maps2DShare >+< sharedMapAction
+sharedEditShip :: SDSParallel () (Maps2D,MapAction SectionStatus) (Maps2D,MapAction SectionStatus)
+sharedEditShip = maps2DShare >*< sharedMapAction
 
 manageDevices :: Task ()
 manageDevices
@@ -170,7 +170,7 @@ derive class iTask EditDeviceType, EditDevice
 manageCables :: Task ()
 manageCables = intMapCrudWith "Cables" [ChooseFromGrid id] [] [] [] (\cable -> cable.Cable.cableId) myCables @! ()
 
-intMapCrud :: !String !(r -> Int) !(RWShared () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrud :: !String !(r -> Int) !(SDSLens () (IntMap r) (IntMap r)) -> Task r | iTask r
 intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
@@ -178,7 +178,7 @@ intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkI
   delItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   delItem mkId item allItems = 'DIS'.del (mkId item) allItems
 
-intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(RWShared () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(SDSLens () (IntMap r) (IntMap r)) -> Task r | iTask r
 intMapCrudWith descr cos eos vos uos mkId share = crudWith descr cos eos vos uos 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
@@ -261,17 +261,17 @@ editSectionContents
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) devicesInSectionShare
                              in  updateSectionEditor (mkDesc mid c2d "Devices")
                                    [ChooseFromCheckGroup (\d -> d.Device.description)]
-                                   (mapRead mrf (myDevices |+< focusedShare)) focusedShare
+                                   (mapRead mrf (myDevices |*< focusedShare)) focusedShare
                )
              , withSelectedSection (
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) cablesInSectionShare
                              in  updateSectionEditor (mkDesc mid c2d "Cables")
                                    [ChooseFromCheckGroup (\d -> d.Cable.description)]
-                                   (mapRead ('DIS'.elems o fst) (myCables |+< focusedShare)) focusedShare
+                                   (mapRead ('DIS'.elems o fst) (myCables |*< focusedShare)) focusedShare
                )
              ] @! () //TODO <<@ ApplyLayout layout @! ()
   where
-  updateSectionEditor :: !String ![ChoiceOption a] (Shared [a]) (Shared [a]) -> Task [a] | iTask a
+  updateSectionEditor :: !String ![ChoiceOption a] (sds1 () [a] [a]) (sds2 () [a] [a]) -> Task [a] | iTask a & RWShared sds1 & RWShared sds2
   updateSectionEditor d updOpts listShare focusedShare
 	= editSharedMultipleChoiceWithShared (Title d) updOpts listShare focusedShare
 

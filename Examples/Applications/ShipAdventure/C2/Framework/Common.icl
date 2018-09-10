@@ -23,11 +23,11 @@ defSettings =
   , selection   = -1
   }
 
-mapState :: RWShared () MapState MapState
+mapState :: SDSLens () MapState MapState
 mapState = sharedStore "mapState" defSettings
 
-selectedContactShare :: RWShared () (Maybe Entity) Entity
-selectedContactShare = sdsLens "selectedContactShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) mapState
+selectedContactShare :: SDSLens () (Maybe Entity) Entity
+selectedContactShare = sdsLens "selectedContactShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing mapState
   where
   read :: () MapState -> MaybeError TaskException (Maybe Entity)
   read _ {selection, entities} = Ok ('DIS'.get selection entities)
@@ -38,10 +38,10 @@ selectedContactShare = sdsLens "selectedContactShare" (const ()) (SDSRead read) 
   notify :: () MapState Entity -> SDSNotifyPred ()
   notify _ _ _ = \_ _ -> False
 
-userMapState :: User -> Shared MapState
+userMapState :: User -> SDSLens () MapState MapState
 userMapState u = sharedStore ("userMapState" +++ toString u) defSettings
 
-entityMap :: RWShared () EntityMap EntityMap
+entityMap :: SDSLens () EntityMap EntityMap
 entityMap = sharedStore "entityMap" 'DIS'.newMap
 
 registerEntity :: (Int -> Entity) -> Task Entity
@@ -60,8 +60,8 @@ updateEntity n f
                Just e -> set (f e) focus @! ()
                _      -> return ()
 
-contactWithId :: RWShared Int (Maybe Entity) Entity
-contactWithId = sdsLens "contactWithId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) mapState
+contactWithId :: SDSLens Int (Maybe Entity) Entity
+contactWithId = sdsLens "contactWithId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing mapState
   where
   read :: Int MapState -> MaybeError TaskException (Maybe Entity)
   read idx {entities} = Ok ('DIS'.get idx entities)
@@ -79,7 +79,7 @@ periodicallyUpdateEntity :: !Int -> Task ()
 periodicallyUpdateEntity n = updateEntity n moveEntity // TODO FIXME PERFORMANCE doTaskPeriodically 1 (updateEntity n moveEntity) <<@ NoUserInterface
 
 mapView` :: User [Entity] -> Task ()
-mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (userMapState currentUser >+< entityMap) @! ())
+mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (userMapState currentUser >*< entityMap) @! ())
   where
   toMap :: (MapState, EntityMap) -> LeafletMap
   toMap ({MapState | perspective}, markers)
@@ -104,7 +104,7 @@ mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (
         _ = (markers, st)
 
 
-mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w
+mapView :: (sds () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w & RWShared sds
 mapView sh radarWorks currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (mapState >*| sh) @! ())
   where
   toMap ({perspective, entities = markers}, shval)

@@ -14,7 +14,7 @@ import Incidone.OP.Concepts
 derive class iTask WallContent
 
 //Current content of the video wall
-wallContent :: Shared WallContent
+wallContent :: SDSLens () WallContent WallContent
 
 //View content that was selected for viewing on the video wall
 viewVideoWallContent :: Task WallContent

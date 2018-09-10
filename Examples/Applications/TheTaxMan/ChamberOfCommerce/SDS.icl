@@ -2,8 +2,8 @@ implementation module ChamberOfCommerce.SDS
 
 import ChamberOfCommerce.UoD
 
-companies :: Shared [Company]
+companies :: SDSLens () [Company] [Company] 
 companies = sharedStore "companies" []
 
-companiesOfType :: CompanyType -> Shared [Company]
+companiesOfType :: CompanyType -> SDSLens () [Company] [Company]
 companiesOfType type = mapRead (filter (companyHasType type)) companies

@@ -20,20 +20,20 @@ import qualified iTasks.Extensions.User as U
 from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes, :: Password, :: Username, workAs, :: Credentials{..}, users
-from iTasks.SDS.Definition import :: ReadWriteShared, :: RWShared, :: ReadOnlyShared
+from iTasks.SDS.Definition import class RWShared(..), class ROShared(..), class WOShared(..)
 from iTasks.WF.Tasks.Core import accWorld
 import iTasks.Internal.Distributed.Symbols
 from iTasks.Internal.Distributed.Instance import instanceServer, instanceClient, instanceFilter, instanceClameFilter
 from Data.Map import :: Map
-from iTasks.Extensions.Admin.WorkflowAdmin import workflow, class toWorkflow(..), :: Workflow, publish, :: PublishedTask{..}, :: TaskWrapper(..), manageWorklist, instance toWorkflow (Task a), instance toWorkflow (WorkflowContainer a), instance toWorkflow (a -> Task b), instance toWorkflow (ParamWorkflowContainer a b), :: WorkflowContainer, :: ParamWorkflowContainer
+from iTasks.Extensions.Admin.WorkflowAdmin import installWorkflows, loginAndManageWork,manageWorkOfCurrentUser, workflow, class toWorkflow(..), :: Workflow, publish, :: TaskWrapper(..), instance toWorkflow (Task a), instance toWorkflow (WorkflowContainer a), instance toWorkflow (a -> Task b), instance toWorkflow (ParamWorkflowContainer a b), :: WorkflowContainer, :: ParamWorkflowContainer
 from System.FilePath import :: FilePath, </>
-from iTasks.Engine import startEngineWithOptions, :: EngineOptions(..), startEngine, class Publishable, instance Publishable [PublishedTask], :: WebTaskWrapper
+from iTasks.Engine import doTasksWithOptions, doTasks, :: StartableTask, onRequestFromRequest, startEngineWithOptions, :: EngineOptions(..), startEngine, class Startable, instance Startable [StartableTask], :: WebTaskWrapper
 from Internet.HTTP import :: HTTPRequest(..), :: HTTPUpload, :: HTTPProtocol, :: HTTPMethod
 import iTasks.WF.Combinators.Common
 from iTasks.WF.Combinators.Common import :: TaskCont
 from iTasks.WF.Tasks.Interaction import enterInformation, :: EnterOption, :: ViewOption, enterChoice, :: ChoiceOption, viewInformation, enterChoiceWithShared, updateInformationWithShared, updateSharedInformation, :: UpdateOption
 from iTasks.Extensions.DateTime import :: DateTime, :: Time, waitForTimer
-from iTasks.Extensions.Admin.UserAdmin import manageUsers, loginAndManageWorkList
+from iTasks.Extensions.Admin.UserAdmin import manageUsers
 from iTasks.SDS.Sources.System import currentTime
 from iTasks.SDS.Sources.Store import sharedStore
 from iTasks.WF.Combinators.SDS import withShared

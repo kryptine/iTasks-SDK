@@ -4,27 +4,27 @@ import iTasks, iTasks.Extensions.SQLDatabase, iTasks.Extensions.Web
 derive class iTask DBConfig, AISConfig, AsteriskConfig, SMTPConfig, WebLinksConfig, WebLink
 
 //Shared stores
-databaseConfig :: Shared DBConfig
+databaseConfig :: SDSLens () DBConfig DBConfig
 databaseConfig = sharedStore "databaseConfig" InternalSQLiteDB
 
-aisLinkConfig :: Shared AISConfig
+aisLinkConfig :: SDSLens () AISConfig AISConfig
 aisLinkConfig = sharedStore "aisLinkConfig" {AISConfig|host="localhost",port=2000}
 
-asteriskLinkConfig :: Shared AsteriskConfig
+asteriskLinkConfig :: SDSLens () AsteriskConfig AsteriskConfig
 asteriskLinkConfig = sharedStore "asteriskLinkConfig" {AsteriskConfig|host="localhost",port=5038,username="admin",password="secret"}
 
-smtpConfig :: Shared SMTPConfig
+smtpConfig :: SDSLens () SMTPConfig SMTPConfig
 smtpConfig = sharedStore "smtpConfig" {SMTPConfig|host="localhost",port=25}
 
-webLinksConfig :: Shared WebLinksConfig
+webLinksConfig :: SDSLens () WebLinksConfig WebLinksConfig
 webLinksConfig = sharedStore "webLinksConfig" {WebLinksConfig|weatherWidgets=Nothing,vesselLinks=[]}
 
-adminPassword :: Shared Password
+adminPassword :: SDSLens () Password Password
 adminPassword = sharedStore "adminPassword" (Password "admin")
 
 //Derived configuration shares
-databaseDef :: RWShared () SQLDatabaseDef SQLDatabaseDef
-databaseDef = mapReadWrite (toDatabaseDef,\_ _ -> Nothing) (toReadOnly databaseConfig)
+databaseDef :: SDSLens () SQLDatabaseDef SQLDatabaseDef
+databaseDef = mapReadWrite (toDatabaseDef,\_ r -> Nothing) Nothing (toReadOnly databaseConfig)
 
 //Conversion functions
 toDatabaseDef :: DBConfig -> SQLDatabaseDef
