@@ -1,7 +1,6 @@
 definition module C2.Framework.ContactPosition
 //This module provides a type for representing geographic positions of contacts
 import iTasks
-import iTasks.Extensions.GIS.GoogleMap
 import iTasks.Extensions.GIS.Leaflet
 import iTasks.Extensions.Platform
 from C2.Framework.GeoRoutines import :: LatLng
@@ -49,15 +48,9 @@ TILESERVER :== "http://c.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
     | CMSelf
     | CMHVU
 
-googleMapContactPosition    :: LatLng -> GoogleMapPosition
+leafletMapContactPosition    :: LatLng -> LeafletLatLng
 
-defaultPerspective          :: ContactMapPerspective
-
-toGoogleMap                 :: ContactMap -> GoogleMap
-toGoogleMapPerspective      :: ContactMapPerspective -> GoogleMapPerspective
-
-fromGoogleMap               :: GoogleMap -> ContactMap
-fromGoogleMapPerspective    :: GoogleMapPerspective -> ContactMapPerspective
+defaultPerspective           :: ContactMapPerspective
 
 toLeafletMap                :: ContactMap -> LeafletMap
 toLeafletPerspective        :: ContactMapPerspective -> LeafletPerspective

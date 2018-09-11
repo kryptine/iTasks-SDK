@@ -1,4 +1,4 @@
-definition module BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.GoogleMap
+definition module BasicAPIExamples.InteractionUsingShares.BrowseAndViewLeafletMap
 
 from iTasks.Extensions.Admin.WorkflowAdmin import :: Workflow
 

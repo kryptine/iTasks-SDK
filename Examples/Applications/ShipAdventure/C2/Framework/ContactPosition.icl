@@ -1,6 +1,5 @@
 implementation module C2.Framework.ContactPosition
 import iTasks
-import iTasks.Extensions.GIS.GoogleMap
 import iTasks.Extensions.GIS.Leaflet
 import qualified Data.Map as DM
 import Data.Functor, Text
@@ -62,8 +61,8 @@ where
     frac        = ('PK'.symbol '.' 'PD'. <:&> nums) 'PK'. <!> 'PK'.yield []
     nums        = 'PD'. <!+> ('PK'.satisfy isDigit)
 
-googleMapContactPosition :: LatLng -> GoogleMapPosition
-googleMapContactPosition (lat, lng) = {GoogleMapPosition|lat=toDeg lat,lng= toDeg lng}
+leafletMapContactPosition :: LatLng -> LeafletLatLng
+leafletMapContactPosition (lat, lng) = {LeafletLatLng|lat=toDeg lat,lng= toDeg lng}
 
 derive class iTask ContactMap, ContactMapMarker, ContactMapMarkerType
 
@@ -97,32 +96,6 @@ where
     type _ _                                        = CMOther
 */
 
-toGoogleMap :: ContactMap -> GoogleMap
-toGoogleMap {ContactMap|perspective,markers}
-    = {GoogleMap|defaultValue
-      &perspective = toGoogleMapPerspective perspective
-      ,markers = convMarkers markers
-      }
-where
-    convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
-    where
-        conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-            = {GoogleMapMarker
-              |markerId=markerId
-              ,position = googleMapContactPosition position
-              ,title = title
-              ,icon = fmap (\t -> icon heading t selected) type
-              ,infoWindow = Nothing
-              ,draggable = False
-              ,selected = selected
-              }
-
-	    icon heading type selected
-		    = GoogleMapComplexIcon
-                {image = "ship-icons-sprite.png", size = (24,24)
-		        ,origin = (cat type * 24, ((maybe 24 (\d -> toInt d / 15) heading) * 24)  + (if selected 600 0))
-				,anchor = (12,12)
-                }
 
 cat CMAIS       = 0
 cat CMUnit      = 0
@@ -133,20 +106,6 @@ cat CMSuspect   = 2
 cat CMSelf      = 0
 cat CMHVU       = 1
 cat _           = 0
-
-toGoogleMapPerspective :: ContactMapPerspective -> GoogleMapPerspective
-toGoogleMapPerspective {ContactMapPerspective|center=(lat,lng),zoom}
-    = {GoogleMapPerspective|type=ROADMAP,center={GoogleMapPosition|lat=toDeg lat,lng=toDeg lng},zoom=zoom}
-
-fromGoogleMap :: GoogleMap -> ContactMap
-fromGoogleMap {GoogleMap|perspective,markers}
-    //For now, just update the perspective
-    = {ContactMap|perspective = fromGoogleMapPerspective perspective
-                 ,markers = []}
-
-fromGoogleMapPerspective :: GoogleMapPerspective -> ContactMapPerspective
-fromGoogleMapPerspective {GoogleMapPerspective|center,zoom}
-    = {ContactMapPerspective|center=(deg center.GoogleMapPosition.lat, deg center.GoogleMapPosition.lng),zoom=zoom,cursor=Nothing}
 
 toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,markers}

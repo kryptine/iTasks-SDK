@@ -10,7 +10,7 @@ import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
 
 import qualified Data.Map as DM
-import  Data.Tuple, Data.Functor, Data.List, Data.Either, Text, Text.HTML
+import  Data.Tuple, Data.Functor, Data.List, Data.Either, Text, Text.HTML, Data.Func
 
 //Extensions
 import Incidone.Extensions.CrewLists
@@ -228,7 +228,7 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = emptyEditor
+gEditor{|ActionTasks|} = emptyEditor $ ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 
 instance toString ActionProgress
 where
