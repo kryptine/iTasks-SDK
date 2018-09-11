@@ -40,8 +40,8 @@ authServer port = tcplisten port True authServerShare {ConnectionHandlers
 	, onDisconnect 		= onDisconnect
 	} -|| (process authServerShare) @! ()
 where
-	onConnect :: String AuthShare -> (MaybeErrorString AuthServerState, Maybe AuthShare, [String], Bool)
-	onConnect host share
+	onConnect :: ConnectionId String AuthShare -> (MaybeErrorString AuthServerState, Maybe AuthShare, [String], Bool)
+	onConnect connId host share
 		# clientId = share.lastId + 1
 		= ( Ok {AuthServerState| id = clientId, buffer = "" }
 		  , Just { share & lastId = clientId, clients = share.clients ++ [{Communication| id = clientId, requests = [], responses = []}] }
@@ -139,8 +139,8 @@ where
 					[resp:_]  -> return (fromJSON (fromString (base64Decode resp)))
 					_         -> return Nothing
 
-	onConnect :: String () -> (MaybeErrorString ([String], String, Bool), Maybe (), [String], Bool)
-	onConnect host store
+	onConnect :: ConnectionId String () -> (MaybeErrorString ([String], String, Bool), Maybe (), [String], Bool)
+	onConnect connId host store
 		= (Ok ([], "", False), Just store, [request +++ "\n"], False)
 
 	onData :: String ([String], String,Bool) () -> (MaybeErrorString ([String], String, Bool), Maybe (), [String], Bool)

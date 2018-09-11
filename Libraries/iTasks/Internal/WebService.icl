@@ -133,7 +133,7 @@ httpServer :: !Int !Timespec ![WebService r w] (sds () r w) -> ConnectionTask | 
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
-    onConnect host r iworld=:{IWorld|world,clock}
+    onConnect connId host r iworld=:{IWorld|world,clock}
         = (Ok (NTIdle host clock),Nothing,[],False,{IWorld|iworld & world = world})
 
     onData data connState=:(NTProcessingRequest request localState) r env

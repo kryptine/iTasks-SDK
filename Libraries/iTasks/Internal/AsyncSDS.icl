@@ -24,7 +24,7 @@ derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
 createRequestString req = serializeToBase64 req
 
-onConnect reqq _ _  
+onConnect _ reqq _ _  
 # rs = createRequestString reqq 
 = (Ok (Left []), Nothing, [ rs +++ "\n"], False) 
 
@@ -80,7 +80,7 @@ where
         onShareChange = onShareChange,
         onDisconnect = onDisconnect}
 
-    onConnect _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Close" req.HTTPRequest.req_headers}], False) 
+    onConnect _ _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Close" req.HTTPRequest.req_headers}], False) 
 
     onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 

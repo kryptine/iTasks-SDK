@@ -90,8 +90,8 @@ instanceServer port domain = tcplisten port True instanceServerShared {Connectio
 	, onDisconnect 		= onDisconnect
 	} -|| (instanceClient` "127.0.0.1" port domain True) -|| (process instanceServerShared) @! ()
 where
-	onConnect :: String InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
-	onConnect host share=:{InstanceServerShare|lastId,clients}
+	onConnect :: ConnectionId String InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
+	onConnect connId host share=:{InstanceServerShare|lastId,clients}
 		= ( Ok {InstanceServerState| id = -1, buffer = "" }, Nothing, [], False)
 
 	onData :: String InstanceServerState InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
@@ -486,8 +486,8 @@ where
                                                       } @! Nothing)
                 -||- (viewInformation () [] () >>* [OnAction (Action "reset") (always (return Nothing))])
 
-        onConnect :: String String ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)
-        onConnect helloMessage host store
+        onConnect :: String ConnectionId String ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)
+        onConnect helloMessage connId host store
                 = (Ok "", Just store, [helloMessage +++ "\n"] ++ [(toString nr) +++ "#!#" +++ resp +++ "\n" \\ (nr,resp) <- store.out], False)
 
         onData :: String ClientState ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)

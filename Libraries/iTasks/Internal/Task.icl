@@ -46,8 +46,8 @@ wrapConnectionTask :: (ConnectionHandlers l r w) (sds () r w) -> ConnectionTask 
 wrapConnectionTask {ConnectionHandlers|onConnect,onData,onShareChange,onDisconnect} sds
     = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where
-    onConnect` host (r :: r^) env
-        # (mbl, mbw, out, close) = onConnect host r
+    onConnect` connId host (r :: r^) env
+        # (mbl, mbw, out, close) = onConnect connId host r
         = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
     onData` data (l :: l^) (r :: r^) env
@@ -70,8 +70,8 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect,onData,onShareChange,onTick,onDisconnect} sds
     = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where
-    onConnect` host (r :: r^) env
-        # (mbl, mbw, out, close, env) = onConnect host r env
+    onConnect` connId host (r :: r^) env
+        # (mbl, mbw, out, close, env) = onConnect connId host r env
         = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
     onData` data (l :: l^) (r :: r^) env

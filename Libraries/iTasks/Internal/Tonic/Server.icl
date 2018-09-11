@@ -17,6 +17,7 @@ import iTasks.Extensions.DateTime
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Tonic.Images
+from iTasks.Internal.IWorld import :: ConnectionId
 
 :: ViewerSettings =
   { recording         :: Bool
@@ -313,9 +314,9 @@ acceptTonicTraces tonicShare
                                    , onDisconnect  = onDisconnect
                                    }
   where
-    onConnect :: String TMessageStore
+    onConnect :: ConnectionId String TMessageStore
               -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
-    onConnect host olderMessages
+    onConnect connId host olderMessages
     = ( Ok { oldData = ""
            , clientIp = host}
       , Just olderMessages

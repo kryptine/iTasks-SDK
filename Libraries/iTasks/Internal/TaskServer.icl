@@ -174,7 +174,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (directResult (fromOk mbr)) iworld
+                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (lopts.nextConnectionId + 1) (toString ip) (directResult (fromOk mbr)) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
@@ -458,8 +458,8 @@ where
                     Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
                     Just channel = (Ok (ip, channel), {iworld & world = world})
 
-    onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
-    onInitHandler ip r iworld = handlers.ConnectionHandlersIWorld.onConnect (toString ip) r iworld
+    onInitHandler :: ConnectionId !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onInitHandler connId ip r iworld = handlers.ConnectionHandlersIWorld.onConnect connId (toString ip) r iworld
 
     mkIOTaskInstance :: ConnectionId !IPAddress !*TCP_DuplexChannel -> *IOTaskInstance
     mkIOTaskInstance connectionId ip channel
@@ -470,11 +470,11 @@ addIOTask :: !TaskId
              !(sds () Dynamic Dynamic)
              !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
              !(IOTaskOperations .ioChannels readData closeInfo)
-             !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+             !(ConnectionId initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
              !(ConnectionId initInfo .ioChannels -> *IOTaskInstance)
              !*IWorld
           -> (!MaybeError TaskException (ConnectionId, Dynamic), !*IWorld) | Readable sds
-addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
+addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld=:{ioStates}
     # (mbInitRes, iworld) = init iworld
     = case mbInitRes of
         Error e = (Error (exception e), iworld)
@@ -482,8 +482,9 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             // Read share
             # (mbr, iworld) = 'SDS'.read sds EmptyContext iworld
             | isError mbr = (liftError mbr, iworld)
+            # newConnectionId = connId taskId ioStates
             // Evaluate onInit handler
-            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (directResult (fromOk mbr)) iworld
+            # (mbl, mbw, out, close, iworld) = onInitHandler newConnectionId initInfo (directResult (fromOk mbr)) iworld
             // Check initialization of local state 
             = case mbl of   
                 Error e = (Error (exception e), iworld)
@@ -503,6 +504,10 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             			# ioStates = 'DM'.put taskId connectionMap ioStates
             			# {done, todo} = iworld.ioTasks
                         = (Ok (connectionId, l), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}})
+where
+    connId taskId ioStates = case 'DM'.get taskId ioStates of
+        Nothing = 0
+        (Just (IOActive connectionMap)) = inc ('DL'.maximum ('DM'.keys connectionMap))
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)

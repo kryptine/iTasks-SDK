@@ -22,13 +22,6 @@ import Text, Text.GenJSON, StdString, StdInt, StdBool, StdList, StdTuple, Data.T
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 
-:: ConnectionHandlers l r w = 
-    { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onData            :: !(String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onShareChange     :: !(       l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onDisconnect      :: !(       l r -> (!MaybeErrorString l, Maybe w                  ))
-	}
-
 :: ExitCode = ExitCode !Int
 :: ExternalProcessHandlers l r w =
     { onStartup     :: !(           r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))

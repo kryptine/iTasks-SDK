@@ -51,24 +51,24 @@ where
     	, onDisconnect = onDisconnect
 		}
 
-	onConnect    :: String String   *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
-	onConnect clientName sdsValue iworld = (Ok clientName, Nothing, [], False, iworld)
+	onConnect    :: ConnectionId String String   *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
+	onConnect connId clientName sdsValue iworld = (Ok clientName, Nothing, [], False, iworld)
 
 	onData       :: {#Symbol} !String String r *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
 	onData symbols receivedData state sdsValue iworld
 	= case deserializeFromBase64 receivedData symbols of 
  		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
 				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
-				(Ok (ReadResult v _), iworld)				= trace_n "Got read" (Ok state, Nothing, [serializeToBase64 v], True, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n "Got read" (Ok state, Nothing, [serializeToBase64 v +++ "\n"], True, iworld)
 		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId "test" port) (Just taskId) reqSDSId iworld of
 				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
-				(Ok (ReadResult v _), iworld)				= trace_n "Got register" (Ok state, Nothing, [serializeToBase64 v], True, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n "Got register" (Ok state, Nothing, [serializeToBase64 v +++ "\n"], True, iworld)
 		(SDSWriteRequest sds p val)						= case writeSDS sds p EmptyContext val iworld of
 				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
-				(Ok (WriteResult notify _), iworld)			= trace_n "Got write" (Ok state, Nothing, [serializeToBase64 ()], True, queueNotifyEvents (sdsIdentity sds) notify iworld)
+				(Ok (WriteResult notify _), iworld)			= trace_n "Got write" (Ok state, Nothing, [serializeToBase64 () +++ "\n"], True, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
 				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
-				(Ok (ModifyResult r w _), iworld)			= trace_n "Got modify" (Ok state, Nothing, [serializeToBase64 (r,w)], True, iworld)
+				(Ok (ModifyResult r w _), iworld)			= trace_n "Got modify" (Ok state, Nothing, [serializeToBase64 (r,w) +++ "\n"], True, iworld)
 		(SDSRefreshRequest taskId sdsId)
 			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (Ok state, Nothing, ["Refresh queued"], True, iworld)

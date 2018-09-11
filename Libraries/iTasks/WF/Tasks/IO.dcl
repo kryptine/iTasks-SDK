@@ -5,13 +5,14 @@ definition module iTasks.WF.Tasks.IO
 */
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
+from iTasks.Internal.IWorld import :: ConnectionId
 from iTasks.UI.Prompt import class toPrompt
 from System.FilePath import :: FilePath
 from System.Process import :: ProcessPtyOptions
 from Data.Error import :: MaybeError, :: MaybeErrorString
 
 :: ConnectionHandlers l r w = 
-    { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    { onConnect         :: !(ConnectionId String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onData            :: !(String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onShareChange     :: !(       l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onDisconnect      :: !(       l r -> (!MaybeErrorString l, Maybe w                  ))

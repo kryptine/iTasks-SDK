@@ -10,6 +10,7 @@ from iTasks.WF.Tasks.IO import :: ConnectionHandlers
 from iTasks.Internal.TaskState			import :: TaskTree
 import  iTasks.SDS.Definition 
 from iTasks.UI.Definition import :: UIChange
+from iTasks.Internal.IWorld import :: ConnectionId
 from Data.Map			import :: Map
 from Data.Maybe         import :: Maybe
 from Data.CircularStack import :: CircularStack
@@ -28,7 +29,7 @@ derive gEq				Task
 
 //Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
 :: ConnectionHandlersIWorld l r w =
-    { onConnect     :: !(String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    { onConnect     :: !(ConnectionId String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onData        :: !(String l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onShareChange :: !(       l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onTick        :: !(       l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
