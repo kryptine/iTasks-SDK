@@ -1,19 +1,19 @@
-implementation module BasicAPIExamples.InteractionUsingShares.BrowseAndViewGoogleMap
+implementation module BasicAPIExamples.InteractionUsingShares.BrowseAndViewLeafletMap
 
-// Browse a Google map while viewing it
+// Browse a Leaflet map while viewing it
 
 import iTasks
-import iTasks.Extensions.GIS.GoogleMap
+import iTasks.Extensions.GIS.Leaflet
 
 wf :: String -> Workflow
-wf a = workflow a "Browse a shared GoogleMap" browseAndViewGoogleMap
+wf a = workflow a "Browse a shared LeafletMap" browseAndViewLeafletMap
 
 Start :: *World -> *World
 Start world
-	= doTasks browseAndViewGoogleMap world
+	= doTasks browseAndViewLeafletMap world
 
-browseAndViewGoogleMap :: Task GoogleMap
-browseAndViewGoogleMap
+browseAndViewLeafletMap :: Task LeafletMap
+browseAndViewLeafletMap
 	= withShared defaultValue 												// create shared default value for the map
 		(\smap -> 	updateSharedInformation "Browse Map" [] smap 			// update it here
 					-||

@@ -4,7 +4,6 @@ import iTasks
 import iTasks.Extensions.Admin.TonicAdmin, iTasks.Internal.Tonic
 import Text, C2.Framework.Core, C2.Framework.Util, C2.Framework.Entity
 import iTasks.Extensions.Document
-import iTasks.Extensions.GIS.GoogleMap
 from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Framework.ContactPosition

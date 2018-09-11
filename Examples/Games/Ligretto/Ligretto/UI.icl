@@ -10,6 +10,7 @@ import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 derive JSEncode GameSt, Player, Color, Hand, Card, SideUp
+derive JSDecode GameSt, Player, Color, Hand, Card, SideUp
 
 ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
 ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
