@@ -18,7 +18,7 @@ import StdString, StdList, StdArray
 import qualified Data.Map as DM
 import Data.Maybe, Data.Error
 import Text.GenJSON, Text.URI
-import StdMisc, graph_to_sapl_string
+import StdMisc, StdDebug
 import Data.Queue, Data.Functor
  
 import iTasks.Extensions.Distributed._Formatter
@@ -26,57 +26,58 @@ import iTasks.SDS.Definition
 import iTasks.Internal.Distributed.Symbols
 
 from iTasks.Internal.TaskStore import queueRefresh
-import StdDebug
+import iTasks.Internal.TaskState
+import iTasks.Internal.Task
+import iTasks.Internal.TaskServer
+import iTasks.Internal.TaskEval
 import qualified Data.Set as Set
-import Text.GenPrint
 
-derive gPrint HTTPRequest, Map, HTTPUpload, HTTPMethod, HTTPProtocol
-
-derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
-
-sdsService :: WebService a a
-sdsService = { urlMatchPred    = matchFun
-             , completeRequest = True
-             , onNewReq        = reqFun
-             , onData          = dataFun
-             , onShareChange   = onShareChange
-             , onTick          = onTick
-             , onDisconnect    = disconnectFun
-             }
+sdsServiceTask :: Int -> Task ()
+sdsServiceTask port = Task eval
 where
-    matchFun :: String -> Bool
-    matchFun reqUrl = case pathToSegments reqUrl of
-    					["","sds",_] = True
-    							  	 = False
-
-	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)	
-	reqFun req=:{req_data, server_name} _ iworld
+	eval event evalOpts tree=:(TCInit taskId ts) iworld
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
-	= case deserializeFromBase64 req_data symbols of
-		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
-				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v _), iworld)				= trace_n ("Got read") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
-		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId server_name port) (Just taskId) reqSDSId iworld of
-				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ReadResult v _), iworld)				= trace_n ("Got register") (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+	# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask (handlers symbols) (sharedStore "sdsServiceTaskShare" "empty")) iworld
+	| mbError=:(Error _) = (ExceptionResult (fromError mbError), iworld)
+	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts (DeferredJSONNode JSONNull) False), iworld)
+
+	eval event evalOpts (TCBasic taskId ts data bla) iworld = (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts data bla), iworld)
+	
+	handlers symbols = {ConnectionHandlersIWorld|onConnect = onConnect
+    	, onData = onData symbols
+    	, onShareChange = onShareChange
+    	, onTick = onTick
+    	, onDisconnect = onDisconnect
+		}
+
+	onConnect    :: String String   *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
+	onConnect clientName sdsValue iworld = (Ok clientName, Nothing, [], False, iworld)
+
+	onData       :: {#Symbol} !String String r *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
+	onData symbols receivedData state sdsValue iworld
+	= case deserializeFromBase64 receivedData symbols of 
+ 		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
+				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n "Got read" (Ok state, Nothing, [serializeToBase64 v], True, iworld)
+		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId "test" port) (Just taskId) reqSDSId iworld of
+				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
+				(Ok (ReadResult v _), iworld)				= trace_n "Got register" (Ok state, Nothing, [serializeToBase64 v], True, iworld)
 		(SDSWriteRequest sds p val)						= case writeSDS sds p EmptyContext val iworld of
-				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (WriteResult notify _), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
+				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
+				(Ok (WriteResult notify _), iworld)			= trace_n "Got write" (Ok state, Nothing, [serializeToBase64 ()], True, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
-				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-				(Ok (ModifyResult r w _), iworld)			= trace_n ("Got modify") (base64Response (serializeToBase64 (r,w)), Nothing, Nothing, iworld)
+				(Error (_, e), iworld) 						= (Error e, Nothing, [], True, iworld)
+				(Ok (ModifyResult r w _), iworld)			= trace_n "Got modify" (Ok state, Nothing, [serializeToBase64 (r,w)], True, iworld)
 		(SDSRefreshRequest taskId sdsId)
 			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
-			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	
+			= (Ok state, Nothing, ["Refresh queued"], True, iworld)
 
-	plainResponse string
-		= {okResponse & rsp_headers = [("Content-Type","text/plain"), ("Content-Length", toString (size string))], rsp_data = string}
+	onShareChange :: !       String r *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
+	onShareChange state sdsValue iworld = (Ok state, Nothing, [], False, iworld)
 
-	base64Response string = {okResponse & rsp_headers = [("Content-Type","text/plain;base64"), ("Content-Length", toString (size string))], rsp_data = string}
-				
-    dataFun req _ data instanceNo iworld =  ([], True, instanceNo, Nothing, iworld)
+	onTick        :: !       String r *IWorld -> *(!MaybeErrorString String, Maybe w, ![String], !Bool, !*IWorld)
+	onTick state sdsValue iworld = (Ok state, Nothing, [], False,iworld)
 
-    onShareChange _ _ s iworld = ([], True, s, Nothing, iworld)
-    onTick _ _ instanceNo iworld =([], True, instanceNo, Nothing, iworld)
-	disconnectFun _ _ _ iworld = (Nothing,iworld)
+	onDisconnect  :: !       String r *IWorld -> *(!MaybeErrorString String, Maybe w,                   !*IWorld)
+	onDisconnect state sdsValue iworld = (Ok state, Nothing, iworld)

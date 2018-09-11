@@ -47,7 +47,6 @@ derive class iTask EngineOptions
 doTasks :: a !*World -> *World | Startable a
 doTasks startable world = doTasksWithOptions defaultEngineCLIOptions startable world
 
-import StdDebug,StdMisc
 doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World -> *World | Startable a
 doTasksWithOptions initFun startable world
 	# (cli,world)			= getCommandLine world
@@ -94,7 +93,6 @@ where
 	engineWebService webtasks =
 		[taskUIService webtasks
 		,documentService
-		,sdsService
 		,staticResourceService [path \\ {WebTask|path} <- webtasks]
 		]
 

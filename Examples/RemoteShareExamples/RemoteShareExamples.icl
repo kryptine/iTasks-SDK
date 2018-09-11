@@ -14,24 +14,24 @@ derive class iTask TestRecord
 :: TestRecord = {number :: Int, numbers :: [Int], text :: String, texts :: [String]}
 
 testShare = sharedStore "sharedStoreNamebla" {number = 37, numbers = [1, 2, 3], text = "Test", texts = ["een", "twee", "drie", "vier"]}
-remoteTestShare = remoteShare testShare {domain = "TEST", port = 8080}
+remoteTestShare = remoteShare testShare {domain = "TEST", port = 9999}
 
 leftShare = sharedStore "leftShare" (1, 2, 3)
 rightShare = sharedStore "rightShare" (10, 20, 30)
 
 parallelShare = leftShare >*< rightShare
-remoteParallelShare = remoteShare parallelShare {domain = "TEST", port = 8080}
+remoteParallelShare = remoteShare parallelShare {domain = "TEST", port = 9999}
 
-parallelWithLeftRemote = (remoteShare leftShare {domain = "TEST", port = 8080}) >*< rightShare
-parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "TEST", port = 8080})
+parallelWithLeftRemote = (remoteShare leftShare {domain = "TEST", port = 9999}) >*< rightShare
+parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "TEST", port = 9999})
 
 intShare = sharedStore "intShare" 15
-simpleShare = remoteShare intShare {domain="TEST", port=8080}
+simpleShare = remoteShare intShare {domain="TEST", port=9999}
 projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  simpleShare
 projectedLocal = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  intShare
 
 selectShare = sdsSelect "testSelect" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
-		(remoteShare leftShare {domain="TEST", port=8080}) rightShare
+		(remoteShare leftShare {domain="TEST", port=9999}) rightShare
 where
 	param i
 	| i == 0 = Left ()
@@ -50,7 +50,8 @@ where
 			, publish "/SDSRemoteService"  (const sdsRemoteServiceTest)
 			, publish "/SDSSelect"  (const sdsSelectTest)
 			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
-			, publish "/all" (\_. viewAll)]
+			, publish "/all" (\_. viewAll)
+			, publish "/host" (const hostShares)]
 
 	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
 		-&&-
@@ -143,6 +144,9 @@ where
 		-&&- viewSharedInformation "Value of rightShare" [] rightShare
 		-&&- viewSharedInformation "Value of intShare" [] intShare)
 		@! ())
+
+	hostShares = enterInformation "Please enter the share host port" [] 
+		>>= \port. sdsServiceTask port
 
 // ======= Definitions required for defining a remote service =======
 // TODO: Create HTTP request by focussing the parameter

@@ -38,8 +38,8 @@ defaultTonicOpts :: TonicOpts
 
 //Additional information passed up from the tree when evaluating a task
 :: TaskEvalInfo =
-	{ lastEvent			:: !TaskTime	        //When was the last edit, action or focus event in this task
-    , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
+	{ lastEvent			    :: !TaskTime	        //When was the last edit, action or focus event in this task
+  , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 

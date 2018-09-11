@@ -24,7 +24,9 @@ derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
 createRequestString req = serializeToBase64 req
 
-onConnect reqq _ _  = (Ok (Left []), Nothing, [createRequestString reqq], False) 
+onConnect reqq _ _  
+# rs = createRequestString reqq 
+= (Ok (Left []), Nothing, [ rs +++ "\n"], False) 
 
 onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
@@ -45,11 +47,8 @@ where
 
     onDisconnect (Left acc) _
     # rawResponse = concat acc
-    = case parseResponse rawResponse of
-        Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
-        (Just parsed)
-        # r = deserializeFromBase64 parsed.rsp_data symbols
-        = (Ok (Right r), Nothing)
+    # r = deserializeFromBase64 rawResponse symbols
+    = (Ok (Right r), Nothing)
 
 queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
 queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
@@ -66,11 +65,8 @@ where
 
     onDisconnect (Left acc) _
     # rawResponse = concat acc
-    = case parseResponse rawResponse of
-        Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
-        (Just parsed)
-        # r = deserializeFromBase64 parsed.rsp_data symbols
-        = (Ok (Right r), Nothing)
+    # r = deserializeFromBase64 rawResponse symbols
+    = (Ok (Right r), Nothing)
 
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
