@@ -65,14 +65,11 @@ where
     addNew          idx new = [(i, InsertChild (toUI x)) \\ i <- [idx..] & x <- new]
 
 chooseWithDropdown :: [String] -> Editor Int
-chooseWithDropdown labels = bijectEditorValue (\i -> (options,[i])) selection
-                            (withChangedEditMode editModeFor dropdown <<@ multipleAttr False)
+chooseWithDropdown labels = bijectEditorValue (\i -> [i]) selection
+                            (withConstantChoices options dropdown <<@ multipleAttr False)
 where
-	editModeFor Enter = Update (options, [])
-    editModeFor other = other
-
-	selection (_,[x]) = x
-	selection _ = 0
+	selection [x] = x
+	selection _   = 0
 
 	options = [{ChoiceText|id=i,text=t} \\ t <- labels & i <- [0..]]
 
