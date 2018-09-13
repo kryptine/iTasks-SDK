@@ -103,7 +103,7 @@ derive class iTask RTree, FileInfo, Tm
 
 selectFile :: !FilePath !d !Bool [FilePath]-> Task [FilePath] | toPrompt d
 selectFile root prompt multi initial
-	= accWorld (createDirectoryTree root) @ numberTree
+	= accWorld (createDirectoryTree root Nothing) @ numberTree
 	>>= \tree->editSelection prompt multi selectOption tree
 		[i\\(i, (f, _))<-leafs tree | elem f initial]
 where
