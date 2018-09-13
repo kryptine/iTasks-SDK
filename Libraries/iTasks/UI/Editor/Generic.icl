@@ -530,7 +530,7 @@ gEditor{|String|} = selectByMode
 						textView
 						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField <<@ minlengthAttr 1))
 						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField <<@ minlengthAttr 1))
-gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) (withChangedEditMode (const $ Update False) checkBox) checkBox
+gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
 gEditor{|[]|} ex _ tjx _ = listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
 
