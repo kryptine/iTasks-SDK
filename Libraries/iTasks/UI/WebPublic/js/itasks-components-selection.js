@@ -341,7 +341,7 @@ itasks.Tree = Object.assign({
         } else {
             label.classList.add(me.cssPrefix + 'default-' + (option.children.length ? 'folder' : 'leaf'));
         }
-        label.innerHTML = option.text;
+        label.innerHTML = option.text == "" ? "&nbsp;" : option.text;
 
 		if (me.attributes['enabled'] !== false) {
 		    label.addEventListener('click',function(e) {
