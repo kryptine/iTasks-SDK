@@ -3,7 +3,7 @@ implementation module iTasks.WF.Combinators.Common
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON, Data.Func
 import iTasks.Internal.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
@@ -102,17 +102,20 @@ sequence tasks = foreverStIf
 	@ reverse o fst
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
-	>>* [OnValue (withValue \v->case v of
-			[(_, Value i True)] = Just (treturn i)
-			_ = Nothing)]
+foreverStIf pred st t = parallel [(Embedded, par st Nothing)] [] @? fromParValue
 where
-	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
+	par st (Just tid) tlist = removeTask tid tlist >>| par st Nothing tlist
 	par st Nothing tlist
 		| not (pred st) = treturn st
-		= get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
-			>>- \(_, [{TaskListItem|taskId}])->t st
-			>>- \st`->appendTask Embedded (par st` (Just taskId)) tlist @? const NoValue
+		= step
+			(t st)
+			id
+			[ OnValue $ ifStable \st` -> get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
+			                             appendTask Embedded (par st` (Just taskId)) tlist    @! st`
+		    ]
+
+	fromParValue (Value [(_, val=:Value _ _)] _) = val
+	fromParValue _                               = NoValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
