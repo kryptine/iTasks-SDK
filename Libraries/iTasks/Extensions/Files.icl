@@ -101,27 +101,54 @@ where
 //Why is this necessary?!?!?!?
 derive class iTask RTree, FileInfo, Tm
 
-selectFile :: !FilePath !d !Bool [FilePath]-> Task [FilePath] | toPrompt d
-selectFile root prompt multi initial
+selectFileTree :: !Bool !d !Bool !FilePath [FilePath]-> Task [FilePath] | toPrompt d
+selectFileTree exp prompt multi root initial
 	= accWorld (createDirectoryTree root Nothing) @ numberTree
 	>>= \tree->editSelection prompt multi selectOption tree
 		[i\\(i, (f, _))<-leafs tree | elem f initial]
 where
 	selectOption = SelectInTree
-		(\tree->[{foldTree fp2cn tree & label=root}])
+		(\tree->[{foldTree (fp2cn exp) tree & label=root}])
 		(\tree sel->[f\\(i, (f, _))<-leafs tree | isMember i sel])
 
-	fp2cn (i, (fp, mfi)) cs =
-		{ id = case mfi of
-			Error e = ~i
-			Ok {directory=True} = ~i
-			_ = i
-		, label=dropDirectory fp
-		, icon=Nothing
-		, expanded=False
-		, children=cs
-		}
+selectFileTreeLazy :: !d !Bool !FilePath -> Task [FilePath] | toPrompt d
+selectFileTreeLazy d multi root = accWorld (createDirectoryTree root (Just 1)) >>= \tree->
+	withShared tree \stree->let numberedtree = mapRead numberTree stree in
+	withShared [] \ssel->
+	editSharedSelectionWithShared d multi selOpt numberedtree ssel
+	-|| whileUnchanged (ssel >*< numberedtree) (\(sel, tree)->case sel of
+		[i] = case find ((==)i o fst) (leafs tree) of
+			Just (i, (fp, Ok {directory=True}))
+				= accWorld (createDirectoryTree fp (Just 1))
+				@ flip (mergeIn i) tree
+				>>= \newtree->set ([], newtree) (ssel >*< stree) @? const NoValue
+			_ = unstable ()
+		_ = unstable ()
+	)
+	@ map (fst o snd)
+where
+	mergeIn j newtree = foldTree \(i, t) cs->if (i == j) newtree (RNode t cs)
 
-	numberTree :: ((RTree a) -> RTree (Int, a))
-	numberTree = flip evalState zero o foldTree \a cs->
-		(\lvs i->RNode (i, a) lvs) <$> 'CM'.sequence cs <*> getState <* modify inc
+	unstable a = treturn a @? \(Value a _)->Value a False
+
+	selOpt :: SelectOption (RTree (Int, (FilePath, MaybeOSError FileInfo))) (Int, (FilePath, MaybeOSError FileInfo))
+	selOpt = SelectInTree
+		(\tree->[{foldTree (fp2cn True) tree & label=root}])
+		(\tree sel->[t\\t=:(i, _)<-leafs tree | isMember i sel])
+
+fp2cn :: Bool (Int, (FilePath, MaybeOSError FileInfo)) [ChoiceNode] -> ChoiceNode
+fp2cn exp (i, (fp, mfi)) cs =
+	{ id=i
+	, label=dropDirectory fp +++ if (isError mfi) (" (" +++ snd (fromError mfi) +++ ")") ""
+	, icon=icon mfi
+	, expanded=exp
+	, children=cs
+	}
+where
+	icon (Ok {directory=True}) = Just "folder"
+	icon (Ok _) = Just "document"
+	icon _ = Just "document-error"
+
+numberTree :: ((RTree a) -> RTree (Int, a))
+numberTree = flip evalState zero o foldTree \a cs->
+	(\lvs i->RNode (i, a) lvs) <$> 'CM'.sequence cs <*> getState <* modify inc
