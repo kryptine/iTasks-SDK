@@ -213,7 +213,7 @@ syncNetworkChannel      :: String Int String (String -> m) (m -> String) (sds ()
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
     = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect} @! ()
 where
-    onConnect _ (received,receiveStopped,send,sendStopped)
+    onConnect _ _ (received,receiveStopped,send,sendStopped)
         = (Ok "",if (not (isEmpty send)) (Just (received,False,[],sendStopped)) Nothing, map encodeFun send,False)
 
 	onData newData acc (received,receiveStopped,send,sendStopped)

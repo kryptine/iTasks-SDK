@@ -37,6 +37,8 @@ where
 	| i == 0 = Left ()
 	= Right ()
 
+doubleRemote = remoteShare simpleShare {domain="TEST", port=9998}
+
 Start world	= doTasks tests world
 where
 
@@ -51,7 +53,8 @@ where
 			, publish "/SDSSelect"  (const sdsSelectTest)
 			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
 			, publish "/all" (\_. viewAll)
-			, publish "/host" (const hostShares)]
+			, publish "/host" (const hostShares)
+			, publish "/doubleRemote" (const doubleRemoteTest)]
 
 	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
 		-&&-
@@ -148,6 +151,14 @@ where
 	hostShares = enterInformation "Please enter the share host port" [] 
 		>>= \port. sdsServiceTask port
 
+	doubleRemoteTest = ((enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" [])
+		-&&-
+		//(get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []))
+		//-&&-
+		(enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote) >>= viewInformation "Updated value" [])
+		//-&&-
+		//(viewSharedInformation "View value by viewSharedInformation" [] doubleRemote))
+		@! ()
 // ======= Definitions required for defining a remote service =======
 // TODO: Create HTTP request by focussing the parameter
 

@@ -651,13 +651,19 @@ instance Identifiable SDSRemoteSource where
 instance Readable SDSRemoteSource where
     readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote SDS without task id"), iworld)
 
-    readSDS (SDSRemoteSourceQueued connectionId sds opts) p (TaskContext taskId) register reqSDSId iworld=:{ioStates}
+    readSDS (SDSRemoteSourceQueued connectionId sds opts) p context register reqSDSId iworld=:{ioStates}
+    # taskId = case context of 
+        (TaskContext taskId ) = taskId
+        (RemoteTaskContext taskId _ _ ) = taskId
     = case getAsyncReadValue sds taskId connectionId ioStates of
         Left error          = (Error (exception error), iworld)
         Right Nothing       = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld) 
         Right (Just value)  = (Ok (ReadResult value (SDSValue False value sds)), iworld)
 
-    readSDS sds=:(SDSRemoteSource _ opts) p (TaskContext taskId) register reqSDSId iworld 
+    readSDS sds=:(SDSRemoteSource _ opts) p context register reqSDSId iworld
+     # taskId = case context of 
+        (TaskContext taskId ) = taskId
+        (RemoteTaskContext taskId _ _ ) = taskId 
     = case queueRead sds p taskId (isJust register) reqSDSId iworld of
         (Error e, iworld)                  = (Error e, iworld)
         (Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld)

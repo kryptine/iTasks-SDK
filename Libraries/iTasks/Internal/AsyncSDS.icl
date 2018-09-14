@@ -20,22 +20,25 @@ from iTasks.SDS.Sources.Core import unitShare
 
 import qualified Data.Map as DM
 
+import StdDebug
+
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
 createRequestString req = serializeToBase64 req
 
-onConnect _ reqq _ _  
+onConnect reqq connId _ _  
+| not (trace_tn ("SDS onConnect: " +++ toString connId))= undef
 # rs = createRequestString reqq 
 = (Ok (Left []), Nothing, [ rs +++ "\n"], False) 
 
-onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
+onData data (Left acc) _ = trace_n ("SDS onData: " +++ data) (Ok (Left (acc ++ [data])), Nothing, [], False)
 
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
-queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
+queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException !ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env = case addConnection taskId host port connectionTask env of
     (Error e, env)  = (Error e, env)
-    (Ok (id, _), env)     = (Ok id, env)
+    (Ok (id, _), env)     = trace_n ("Queuing SDS request: " +++ toString taskId +++ ", " +++ toString id)(Ok id, env)
 where
     connectionTask = wrapConnectionTask (handlers req) unitShare
 
@@ -46,7 +49,9 @@ where
         onDisconnect = onDisconnect}
 
     onDisconnect (Left acc) _
+    | not (trace_tn "Disconnecting before responds") = undef
     # rawResponse = concat acc
+    | not (trace_tn ("Disconnecting, got response: " +++ rawResponse)) = undef
     # r = deserializeFromBase64 rawResponse symbols
     = (Ok (Right r), Nothing)
 
@@ -64,7 +69,9 @@ where
         onDisconnect = onDisconnect}
 
     onDisconnect (Left acc) _
+    | not (trace_tn "Disconnecting before response modify") = undef
     # rawResponse = concat acc
+    | not (trace_tn ("Disconnecting modify, got response: " +++ rawResponse)) = undef
     # r = deserializeFromBase64 rawResponse symbols
     = (Ok (Right r), Nothing)
 
@@ -135,7 +142,9 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 = queueModifyRequest request domain port taskId symbols env
 
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
-getAsyncReadValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of        
+getAsyncReadValue _ taskId connectionId ioStates 
+| not (trace_tn ("Retrieving read value for " +++ toString taskId +++ ":" +++ toString connectionId)) = undef
+=  case 'DM'.get taskId ioStates of        
         Nothing                             = Left "No iostate for this task"
         (Just ioState)                      = case ioState of
             (IOException exc)                   = Left exc
@@ -144,9 +153,10 @@ getAsyncReadValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioState
 where
     getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
         (Just (value :: Either [String] r^, _)) = case value of
-            (Left _)                                    = Right Nothing
-            (Right val)                                 = (Right (Just val))
-        (Just _)= Left "Dynamic not of the correct read type"
+            (Left _)                                = Right Nothing
+            (Right val)                             = (Right (Just val))
+        (Just _)                            = Left "Dynamic not of the correct read type"
+        Nothing                             = Right Nothing 
 
 getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe w) | TC w
 getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
@@ -161,6 +171,7 @@ where
             (Left _)                                    = Right Nothing
             (Right val)                                 = (Right (Just val))
         (Just _)= Left "Dynamic not of the correct write type"
+        Nothing                             = Right Nothing
 
 getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe (r,w)) | TC w & TC r
 getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
@@ -169,10 +180,11 @@ getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioSta
             (IOException exc)                   = Left exc
             (IOActive connectionMap)            = getValue connectionId connectionMap
             (IODestroyed connectionMap)         = getValue connectionId connectionMap
+        Nothing                             = Right Nothing
 where
     getValue connectionId connectionMap 
     = case 'DM'.get connectionId connectionMap of
         (Just (value :: Either [String] (r^, w^), _)) = case value of
-            (Left _)                                    = Right Nothing
-            (Right val)                                 = (Right (Just val))
+            (Left _)                                    = trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Waiting") (Right Nothing)
+            (Right val)                                 = trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Value") (Right (Just val))
         (Just (dyn, _))= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))

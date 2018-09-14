@@ -12,7 +12,7 @@ from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId
 from iTasks.Internal.IWorld	  import :: IWorld
 from iTasks.Internal.Task     import :: ConnectionTask, :: TaskException
-from iTasks.Internal.IWorld   import :: IWorld
+from iTasks.Internal.IWorld   import :: IWorld, :: IOStates, :: IOState
 from iTasks.Internal.IWorld	  import :: IWorld, :: BackgroundTaskId
 from iTasks.Internal.Task     import :: ConnectionTask, :: BackgroundTask, :: TaskException
 from iTasks.Engine            import :: StartupTask
@@ -31,3 +31,5 @@ addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException Back
 
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+
+ioStateString :: IOStates -> String

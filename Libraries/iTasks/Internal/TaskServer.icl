@@ -2,7 +2,7 @@ implementation module iTasks.Internal.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
 import Data.Maybe, Data.Functor, Data.Func, Data.Error, System.Time, Text, Data.Tuple
-from StdFunc import seq
+from StdFunc import seq, o
 from Data.Map import :: Map (..)
 import System.CommandLine
 import qualified Data.List as DL
@@ -17,6 +17,7 @@ import iTasks.Internal.TaskEval
 from iTasks.Internal.TaskStore import queueRefresh
 import iTasks.WF.Tasks.IO
 import iTasks.SDS.Combinators.Common
+import StdDebug
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
@@ -71,7 +72,7 @@ where
 	connect port ct world
     	# (success, mbListener, world) = openTCP_Listener port world
     	| not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
-    	# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
+    	# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, port=port, connectionTask=ct, removeOnClose = True}
 		= (ListenerInstance opts (fromJust mbListener),world)
  
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
@@ -174,7 +175,8 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (lopts.nextConnectionId + 1) (toString ip) (directResult (fromOk mbr)) iworld
+                    | not (trace_tn ("New connection, ioStates: " +++ ioStateString ioStates)) = undef
+                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (nextConnId ('DM'.keys conStates)) (toString ip) (directResult (fromOk mbr)) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
@@ -183,7 +185,9 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                     | isError mbSdsErr
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
-                    # conStates = 'DM'.put lopts.ListenerInstanceOpts.nextConnectionId (fromOk mbConState,close) conStates
+                    # connId = nextConnId ('DM'.keys conStates)
+                    | not (trace_tn ("Add new listener with connId " +++ toString connId)) = undef
+                    # conStates = 'DM'.put connId (fromOk mbConState,close) conStates
                     # (sChannel,world) = case out of
                         []          = (sChannel,world)
                         data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
@@ -193,20 +197,20 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         # world = closeChannel sChannel world
                         //Remove the connection state if configured in the connection listener options
                         # conStates = if lopts.ListenerInstanceOpts.removeOnClose
-                            ('DM'.del lopts.ListenerInstanceOpts.nextConnectionId conStates)
+                            (trace_n "RemoveOnClose" ('DM'.del connId conStates))
                             conStates
                         # ioStates  = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOActive conStates) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
                     | otherwise 
                     //Persist the connection
                         # copts = {ConnectionInstanceOpts|taskId = lopts.ListenerInstanceOpts.taskId
-                                  ,connectionId = lopts.ListenerInstanceOpts.nextConnectionId
+                                  ,connectionId = connId
                                   ,remoteHost = ip, connectionTask = lopts.ListenerInstanceOpts.connectionTask
                                   ,removeOnClose = lopts.ListenerInstanceOpts.removeOnClose}
                         # todo = todo ++ [ConnectionInstance copts {rChannel=rChannel,sChannel=sChannel}]
-                        # lopts = {lopts & nextConnectionId = lopts.nextConnectionId + 1}
-                        # ioStates  = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOActive conStates) ioStates
-                        = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
+                        = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}
+                            , ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOActive conStates) ioStates
+                            , world=world}
                 //We did not properly accept a connection
                 | otherwise
                     = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, world=world}
@@ -217,7 +221,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
         Just (IODestroyed conStates)
  	        # world = closeRChannel listener world
             //If there are no connections belonging to this listener we can clean up, if there are the last connection will cleanup
-            # ioStates = if ('DM'.mapSize conStates == 0) ('DM'.del lopts.ListenerInstanceOpts.taskId ioStates) ioStates
+            # ioStates = if ('DM'.mapSize conStates == 0) (trace_n "Remove destroyed" ('DM'.del lopts.ListenerInstanceOpts.taskId ioStates)) ioStates
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
         //There was an exception or the state has already been removed
         _
@@ -306,7 +310,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             # mbTaskState = 'DM'.get connectionId taskStates
             | isNothing mbTaskState
                 # iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
-                # ioStates = 'DM'.put taskId (IOException "Missing IO task state") ioStates
+                # ioStates = 'DM'.put taskId (IOException ("Missing IO task state for task " +++ toString connectionId +++ ". We have: " +++  (concat $ map (\k. toString k +++ ",") $ 'DM'.keys taskStates))) ioStates
                 = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
             # taskState = fst (fromJust mbTaskState)
 
@@ -370,14 +374,15 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                     = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
                 IODData data
                     # (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
+                    # (connectionMap, iworld) = connMapForTask taskId iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
                     // write data
                     # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
                     | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
                     | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-                    # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
-                    | close = closeConnection taskStates ioStates ioOps.closeIO (ioChannels, iworld)
+                    # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) connectionMap)) ioStates
+                    | close = closeConnection connectionMap ioStates ioOps.closeIO (ioChannels, iworld)
                     | otherwise
                         // persist connection
                         # {done, todo} = iworld.ioTasks
@@ -385,12 +390,16 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
         Just (IODestroyed taskStates)
             # iworld = ioOps.closeIO (ioChannels, iworld)
             //Remove the state for this connection
-            # taskStates = 'DM'.del connectionId taskStates
+            # taskStates = trace_n "Remote IODestroyed" ('DM'.del connectionId taskStates)
             //If this is the last connection for this task, we can clean up.
-            # ioStates = if ('DM'.mapSize taskStates == 0) ('DM'.del taskId ioStates) ioStates
+            # ioStates = if ('DM'.mapSize taskStates == 0) (trace_n "Cleaning connection" ('DM'.del taskId ioStates)) ioStates
             = {iworld & ioStates = ioStates}
         _ = ioOps.closeIO (ioChannels, iworld)
 where
+    connMapForTask :: !TaskId !*IWorld -> (!Map ConnectionId (!Dynamic,!Bool), !*IWorld)
+    connMapForTask taskId iworld=:{ioStates} = case 'DM'.get taskId ioStates of 
+        (Just (IOActive connectionMap)) = (connectionMap, iworld)
+
     taskStateException :: (MaybeError String Dynamic)
                           InstanceNo
                           (Map TaskId IOState)
@@ -419,12 +428,13 @@ where
                        *(!.ioChannels, !*IWorld)
                     -> *IWorld
     closeConnection taskStates ioStates closeIO (ioChannels, iworld)
+        | not (trace_tn "Closing connection") = undef
         //Remove the connection state if configured in the connection listener options
         # taskStates = if removeOnClose
-            ('DM'.del connectionId taskStates)
+            (trace_n "Remove connectionState" ('DM'.del connectionId taskStates))
             taskStates
         # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
-        = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
+        = closeIO (ioChannels, {iworld & ioStates = ioStates})
 
 writeShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & Writeable sds
 writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
@@ -438,7 +448,7 @@ addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done
     # (success, mbListener, world) = openTCP_Listener port world
     | not success
         = (Error (exception ("Error: port "+++ toString port +++ " already in use.")), {iworld & ioTasks = {done=done,todo=todo},world = world})
-    # opts = {ListenerInstanceOpts|taskId = taskId, nextConnectionId = 0, port = port, connectionTask= connectionTask, removeOnClose = removeOnClose}
+    # opts = {ListenerInstanceOpts|taskId = taskId, port = port, connectionTask= connectionTask, removeOnClose = removeOnClose}
     # todo = todo ++ [ListenerInstance opts (fromJust mbListener)]
     # ioStates = 'DM'.put taskId (IOActive 'DM'.newMap) ioStates
     = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
@@ -501,9 +511,13 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld=:{ioStates
                         # (connectionId, connectionMap) = case 'DM'.get taskId ioStates of
                             Nothing                             = (0, IOActive ('DM'.fromList [(0,(l, False))]))
                             (Just (IOActive connectionMap))    = let key = inc ('DL'.maximum ('DM'.keys connectionMap)) in (key, IOActive ('DM'.put key (l, False) connectionMap))
+                        | not (trace_tn ("addIOTask " +++ toString connectionId +++ " connectionMap: " +++ (concat $ map (\k. toString k +++ ",") $ (\(IOActive mapje). 'DM'.keys mapje) $ connectionMap))) = undef
             			# ioStates = 'DM'.put taskId connectionMap ioStates
+                        # iworld = {iworld & ioStates = ioStates}
+                        | not (trace_tn ("IO states: " +++ (ioStateString ioStates))) = undef
             			# {done, todo} = iworld.ioTasks
-                        = (Ok (connectionId, l), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}})
+                        # iworld = {iworld & ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}}
+                        = (Ok (connectionId, l), iworld)
 where
     connId taskId ioStates = case 'DM'.get taskId ioStates of
         Nothing = 0
@@ -548,3 +562,17 @@ halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:t
     = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
 halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
+
+nextConnId :: [ConnectionId] -> ConnectionId
+nextConnId [] = 0
+nextConnId m = inc ('DL'.maximum m)
+
+ioStateString :: IOStates -> String
+ioStateString ioStates
+# list =  'DM'.toList ioStates
+# l = map (appFst toString) list
+# l = map (appSnd cMapString) l
+= concat (map (\(taskIdS, connectionsS). taskIdS +++ ": " +++ connectionsS) l)
+where
+    cMapString (IOActive mapje) = concat (map ((\s. s +++ " ") o toString o fst) ('DM'.toList mapje))
+    cMapString _ = "Destroyed"
