@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	BasicAPIExamples.SequentialExamples.Palindrome
+	Name:	BasicAPIExamples.SequentialExamples.PalindromeMain
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

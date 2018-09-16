@@ -8,9 +8,8 @@ import iTasks.Extensions.Admin.WorkflowAdmin
 wf :: String -> Workflow
 wf a = workflow a "Chat with other users" myExample
 
-Start :: *World -> *World
-Start world
-	= doTasks multiUserExample world
+main :: Task ()
+main = myExample @! ()
 
 multiUserExample
 	=				set (map mkUserAccount players) userAccounts

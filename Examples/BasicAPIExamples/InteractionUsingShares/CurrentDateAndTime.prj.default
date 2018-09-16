@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	BasicAPIExamples.InteractionUsingShares.CurrentDateAndTime
+	Name:	BasicAPIExamples.InteractionUsingShares.CurrentDateAndTimeMain
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

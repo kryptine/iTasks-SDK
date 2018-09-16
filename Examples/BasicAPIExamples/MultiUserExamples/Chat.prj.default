@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	BasicAPIExamples.MultiUserExamples.Chat
+	Name:	BasicAPIExamples.MultiUserExamples.ChatMain
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
