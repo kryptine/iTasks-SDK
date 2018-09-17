@@ -35,6 +35,12 @@ onData data (Left acc) _ = trace_n ("SDS onData: " +++ data) (Ok (Left (acc ++ [
 
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
+rtt (SDSReadRequest _ _) = "SDSReadRequest"
+rtt (SDSRegisterRequest _ _ _ _ _) = "SDSRegisterRequest"
+rtt (SDSWriteRequest _ _ _) = "SDSWriteRequest"
+rtt (SDSModifyRequest _ _ _) = "SDSModifyRequest"
+rtt (SDSRefreshRequest _ _) = "SDSRefreshRequest"
+
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException !ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env = case addConnection taskId host port connectionTask env of
     (Error e, env)  = (Error e, env)
@@ -62,7 +68,7 @@ queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = 
 where
     connectionTask = wrapConnectionTask (handlers req) unitShare
 
-    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (r, w)) () () | TC r
+    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (r, w)) () () | TC r & TC w
     handlers _ = {ConnectionHandlers| onConnect = onConnect req,
         onData = onData,
         onShareChange = onShareChange,
@@ -109,7 +115,7 @@ queueRead rsds=:(SDSRemoteSource sds {SDSShareOptions|domain, port}) p taskId re
 # (request, env) = buildRequest register env
 = queueSDSRequest request domain port taskId symbols env
 where
-    buildRequest True env=:{options}= (SDSRegisterRequest sds p reqSDSId taskId options.serverPort, env)
+    buildRequest True env=:{options}= (SDSRegisterRequest sds p reqSDSId taskId options.sdsPort, env)
     buildRequest False env = (SDSReadRequest sds p, env) 
 
 queueRemoteRefresh :: !SDSIdentity [SDSNotifyRequest] !*IWorld -> *IWorld

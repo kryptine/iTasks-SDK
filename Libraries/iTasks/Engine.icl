@@ -59,18 +59,19 @@ doTasksWithOptions initFun startable world
 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# (symbolsResult, iworld) = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
-	# iworld				= serve startupTasks (tcpTasks options.serverPort options.keepaliveTime)
+	# iworld				= serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime)
 	                                engineTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
-	startupTasks = [t \\ StartupTask t <- toStartable startable]
+	startupTasks {distributed, sdsPort} = [t \\ StartupTask t <- toStartable startable] 
+		++ (if distributed [case onStartup (sdsServiceTask sdsPort) of StartupTask t = t;] [])
 	hasWebTasks = not (webTasks =: [])
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols appName iworld of
 		(Error (e, s), iworld) = (Error s, iworld)
-		(Ok symbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString symbols] iworld.world})
+		(Ok noSymbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString noSymbols] iworld.world})
 
 	//Only run a webserver if there are tasks that are started through the web
 	tcpTasks serverPort keepaliveTime
@@ -117,7 +118,7 @@ where
 		[ Option ['?'] ["help"] (NoArg $ const Nothing)
 			"Display this message"
 		, Option ['p'] ["port"] (ReqArg (\p->fmap \o->{o & serverPort=toInt p}) "PORT")
-			("Specify the HTTP port (default: " +++ toString defaults.serverPort)
+			("Specify the HTTP port (default: " +++ toString defaults.serverPort +++ ")")
 		, Option [] ["timeout"] (OptArg (\mp->fmap \o->{o & timeout=fmap toInt mp}) "MILLISECONDS")
 			"Specify the timeout in ms (default: 500)\nIf not given, use an indefinite timeout."
 		, Option [] ["keepalive"] (ReqArg (\p->fmap \o->{o & keepaliveTime={tv_sec=toInt p,tv_nsec=0}}) "SECONDS")
@@ -142,6 +143,8 @@ where
 			("Specify the folder containing the sapl files\ndefault: " +++ defaults.saplDirPath)
 		, Option [] ["distributed"] (NoArg (fmap \o->{o & distributed=True}))
 			"Enable distributed mode (populate the symbols share)"
+		, Option ['s'] ["sdsPort"] (ReqArg (\p->fmap \o->{o & sdsPort=toInt p}) "SDSPORT")
+			("Specify the SDS port (default: " +++ toString defaults.sdsPort +++ ")")
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
@@ -216,6 +219,7 @@ defaultEngineOptions world
         , persistTasks      = False
 		, autoLayout        = True
 		, distributed       = False
+		, sdsPort			= 9090
 		, timeout			= Just 500
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
@@ -244,7 +248,7 @@ determineAppPath world
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = timeGm x > timeGm y
 
-//By default, we use the modification time of the applaction executable as version id
+//By default, we use the modification time of the application executable as version id
 determineAppVersion :: !FilePath!*World -> (!String,!*World)	
 determineAppVersion appPath world
 	# (res,world)       = getFileInfo appPath world

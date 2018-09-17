@@ -53,7 +53,6 @@ where
 			, publish "/SDSSelect"  (const sdsSelectTest)
 			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
 			, publish "/all" (\_. viewAll)
-			, publish "/host" (const hostShares)
 			, publish "/doubleRemote" (const doubleRemoteTest)]
 
 	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
@@ -148,17 +147,12 @@ where
 		-&&- viewSharedInformation "Value of intShare" [] intShare)
 		@! ())
 
-	hostShares = enterInformation "Please enter the share host port" [] 
-		>>= \port. sdsServiceTask port
-
-	doubleRemoteTest = ((enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" [])
-		-&&-
-		//(get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []))
-		//-&&-
-		(enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote) >>= viewInformation "Updated value" [])
-		//-&&-
-		//(viewSharedInformation "View value by viewSharedInformation" [] doubleRemote))
-		@! ()
+	doubleRemoteTest
+	# setV = enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" []
+	# getV = get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []
+	# updV = enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote >>= viewInformation "Updated value" []
+	//# shaV = viewSharedInformation "View value by viewSharedInformation" [] doubleRemote
+ 	= (setV -&&- getV -&&- updV) @! ()
 // ======= Definitions required for defining a remote service =======
 // TODO: Create HTTP request by focussing the parameter
 

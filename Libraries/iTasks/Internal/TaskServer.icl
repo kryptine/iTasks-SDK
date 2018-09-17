@@ -522,6 +522,8 @@ where
     connId taskId ioStates = case 'DM'.get taskId ioStates of
         Nothing = 0
         (Just (IOActive connectionMap)) = inc ('DL'.maximum ('DM'.keys connectionMap))
+        (Just (IOException s)) = trace_n ("EXCEPTION: " +++ s) 0
+        (Just (IODestroyed connectionMap)) = inc ('DL'.maximum ('DM'.keys connectionMap))
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
