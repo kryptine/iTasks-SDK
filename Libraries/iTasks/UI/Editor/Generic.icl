@@ -250,8 +250,7 @@ where
 	valueFromState _ [_, childSt] = mapMaybe OBJECT $ exValueFromState childSt
 	valueFromState _ _            = Nothing
 
-gEditor{|EITHER|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
-                  {Editor|genUI=eyGenUI,onEdit=eyOnEdit,onRefresh=eyOnRefresh,valueFromState=eyValueFromState} _ _ _
+gEditor{|EITHER|} ex _ _ _ ey _ _ _
 	// the additional boolean state represents the LEFT/RIGHT choice (LEFT = False, RIGHT = True)
 	= compoundEditorToEditor
 		{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -259,47 +258,47 @@ where
 	genUI dp mode vst=:{pathInEditMode} = case (mode, pathInEditMode) of
 		(Enter, [nextChoiceIsRight: restOfPath])
 			# vst = {vst & pathInEditMode = restOfPath}
-			| nextChoiceIsRight = attachInfoToChildResult True  viewMode $ eyGenUI dp Enter vst
-			| otherwise         = attachInfoToChildResult False viewMode $ exGenUI dp Enter vst
-		(Update (LEFT x),  _) = attachInfoToChildResult False viewMode $ exGenUI dp (Update x) vst
-		(Update (RIGHT y), _) = attachInfoToChildResult True  viewMode $ eyGenUI dp (Update y) vst
-		(View   (LEFT x),  _) = attachInfoToChildResult False viewMode $ exGenUI dp (View x)   vst
-		(View   (RIGHT y), _) = attachInfoToChildResult True  viewMode $ eyGenUI dp (View y)   vst
+			| nextChoiceIsRight = attachInfoToChildResult True  viewMode $ ey.Editor.genUI dp Enter vst
+			| otherwise         = attachInfoToChildResult False viewMode $ ex.Editor.genUI dp Enter vst
+		(Update (LEFT x),  _) = attachInfoToChildResult False viewMode $ ex.Editor.genUI dp (Update x) vst
+		(Update (RIGHT y), _) = attachInfoToChildResult True  viewMode $ ey.Editor.genUI dp (Update y) vst
+		(View   (LEFT x),  _) = attachInfoToChildResult False viewMode $ ex.Editor.genUI dp (View x)   vst
+		(View   (RIGHT y), _) = attachInfoToChildResult True  viewMode $ ey.Editor.genUI dp (View y)   vst
 	where
 		viewMode = mode =: View _
 
 	//Special case to create a LEFT, after a constructor switch
 	onEdit dp ([-1],e)    (_, viewMode) [childSt] vst = (Ok (NoChange, (False, viewMode), [childSt]),vst)
-	onEdit dp ([-1:ds],e) (_, viewMode) [childSt] vst = attachInfoToChildResult False viewMode $ exOnEdit dp (ds,e) childSt vst
+	onEdit dp ([-1:ds],e) (_, viewMode) [childSt] vst = attachInfoToChildResult False viewMode $ ex.Editor.onEdit dp (ds,e) childSt vst
 	//Special cases to create a RIGHT, after a constructor switch
 	onEdit dp ([-2],e)    (_, viewMode) [childSt] vst = (Ok (NoChange, (True, viewMode), [childSt]),vst)
-	onEdit dp ([-2:ds],e) (_, viewMode) [childSt] vst = attachInfoToChildResult True viewMode $ eyOnEdit dp (ds,e) childSt vst
+	onEdit dp ([-2:ds],e) (_, viewMode) [childSt] vst = attachInfoToChildResult True viewMode $ ey.Editor.onEdit dp (ds,e) childSt vst
 	//Just pass the edit event through 
 	onEdit dp (tp,e) (isRight, viewMode) [childSt] vst =
 		attachInfoToChildResult isRight viewMode $ childOnEdit dp (tp,e) childSt vst
 	where
-		childOnEdit = if isRight eyOnEdit exOnEdit
+		childOnEdit = if isRight ey.Editor.onEdit ex.Editor.onEdit
 	onEdit _ _ _ _ vst = (Error "Corrupt edit state in generic EITHER editor", vst)
 
 	//Same choice is for previous value is made
 	onRefresh dp (LEFT new) (False, viewMode) [childSt] vst =
-		attachInfoToChildResult False viewMode $ exOnRefresh dp new childSt vst
+		attachInfoToChildResult False viewMode $ ex.Editor.onRefresh dp new childSt vst
 	onRefresh dp (RIGHT new) (True, viewMode) [childSt] vst =
-		attachInfoToChildResult True  viewMode $ eyOnRefresh dp new childSt vst
+		attachInfoToChildResult True  viewMode $ ey.Editor.onRefresh dp new childSt vst
 
 	//A different constructor is selected -> generate a new UI
 	//We use a negative selConsIndex to encode that the constructor was changed
-	onRefresh dp (RIGHT new) (False, viewMode) _ vst = case eyGenUI dp (if viewMode View Update $ new) vst of
+	onRefresh dp (RIGHT new) (False, viewMode) _ vst = case ey.Editor.genUI dp (if viewMode View Update $ new) vst of
 		(Ok (ui,childSt),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (True, viewMode), [childSt]),{vst & selectedConsIndex = -1 - selectedConsIndex})
 		(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 
-	onRefresh dp (LEFT new) (True, viewMode) _ vst = case exGenUI dp (if viewMode View Update $ new) vst of
+	onRefresh dp (LEFT new) (True, viewMode) _ vst = case ex.Editor.genUI dp (if viewMode View Update $ new) vst of
 		(Ok (ui,childSt),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (False, viewMode), [childSt]),{vst & selectedConsIndex = -1 - selectedConsIndex})
 		(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 	onRefresh _ _ _ _ vst = (Error "Corrupt edit state in generic EITHER editor", vst)
 
-	valueFromState (False, _) [childSt] = LEFT  <$> exValueFromState childSt
-	valueFromState (True,  _) [childSt] = RIGHT <$> eyValueFromState childSt
+	valueFromState (False, _) [childSt] = LEFT  <$> ex.Editor.valueFromState childSt
+	valueFromState (True,  _) [childSt] = RIGHT <$> ey.Editor.valueFromState childSt
 	valueFromState _          _         = Nothing
 
     attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState), !*VSt)
