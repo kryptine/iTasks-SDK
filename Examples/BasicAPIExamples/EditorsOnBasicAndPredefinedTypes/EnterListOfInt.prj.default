@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.EnterListOfInt
+	Name:	BasicAPIExamples.EditorsOnBasicAndPredefinedTypes.EnterListOfIntMain
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

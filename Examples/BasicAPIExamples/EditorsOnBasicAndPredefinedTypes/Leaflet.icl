@@ -8,9 +8,8 @@ import iTasks.Extensions.GIS.Leaflet
 wf :: String -> Workflow
 wf a = workflow a "Enter a Leaflet map" leafletMap
 
-Start :: *World -> *World
-Start world
-	= doTasks leafletMap world
+main :: Task ()
+main = leafletMap @! ()
 
 leafletMap :: Task LeafletMap
 leafletMap

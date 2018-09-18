@@ -8,10 +8,8 @@ import Text
 wf :: String -> Workflow
 wf a = workflow a "Edit a shared note as a list" sharedNoteAsList
 
-Start :: *World -> *World
-Start world
-	= doTasks sharedNoteAsList world
-
+main :: Task ()
+main = sharedNoteAsList @! ()
 
 sharedNoteAsList :: Task String
 sharedNoteAsList

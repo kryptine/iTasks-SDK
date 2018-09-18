@@ -8,9 +8,8 @@ import iTasks.Extensions.GIS.Leaflet
 wf :: String -> Workflow
 wf a = workflow a "Browse a shared LeafletMap" browseAndViewLeafletMap
 
-Start :: *World -> *World
-Start world
-	= doTasks browseAndViewLeafletMap world
+main :: Task ()
+main = browseAndViewLeafletMap @! ()
 
 browseAndViewLeafletMap :: Task LeafletMap
 browseAndViewLeafletMap

@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Calculate sum in share" calculateSumInRecord
 
-Start :: *World -> *World
-Start world
-	= doTasks calculateSumInRecord world
+main :: Task ()
+main = calculateSumInRecord @! ()
 
 :: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Int}
 

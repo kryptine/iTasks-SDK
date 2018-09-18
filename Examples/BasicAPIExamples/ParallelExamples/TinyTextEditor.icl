@@ -8,9 +8,8 @@ import Text, Data.Maybe
 wf :: String -> Workflow
 wf a = workflow a "Tiny text editor" editWithStatistics
 
-Start :: *World -> *World
-Start world
-	= doTasks editWithStatistics world
+main :: Task ()
+main = editWithStatistics @! ()
 
 :: Statistics 	= 	{	lineCount :: Int
 					,	wordCount :: Int
