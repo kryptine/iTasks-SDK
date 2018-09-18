@@ -14,7 +14,7 @@ from Data.GenEq import generic gEq
 *
 * @result the empty editor
 */
-emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditor :: Editor a
 
 /**
 * Editor that does nothing and gives a default value in enter mode.

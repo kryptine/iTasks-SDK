@@ -7,14 +7,12 @@ import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTas
 import Data.Tuple, Data.Error, Text, Text.GenJSON, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
-emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
-emptyEditor = leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+emptyEditor :: Editor a
+emptyEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onEdit,valueFromState=valueFromState}
 where
-	// store initial value in state
-	genUI _ mode vst           = (Ok (ui UIEmpty, editModeValue mode),vst)
-	onEdit _ (_, ()) mbVal vst = (Ok (NoChange, mbVal),vst)   // ignore edit events
-	onRefresh _ val _ vst      = (Ok (NoChange, Just val),vst)   // just use new value
-	valueFromState mbVal       = mbVal
+	genUI _ _ vst       = (Ok (ui UIEmpty, LeafState {touched=False,state=JSONNull}),vst)
+	onEdit _ _ _ vst    = (Ok (NoChange, LeafState {touched=False,state=JSONNull}),vst)
+	valueFromState _    = Nothing
 
 emptyEditorWithDefaultInEnterMode :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditorWithDefaultInEnterMode defaultValue = emptyEditorWithDefaultInEnterMode_ JSONEncode{|*|} JSONDecode{|*|} defaultValue
