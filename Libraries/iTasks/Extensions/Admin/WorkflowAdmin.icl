@@ -14,7 +14,7 @@ import iTasks.Extensions.DateTime
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} 						= emptyEditor $ WorkflowTask $ return ()
+gEditor{|WorkflowTaskContainer|} 						= emptyEditorWithDefaultInEnterMode $ WorkflowTask $ return ()
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)

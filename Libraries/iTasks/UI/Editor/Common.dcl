@@ -10,16 +10,23 @@ import iTasks.Internal.Generic.Defaults
 from Data.GenEq import generic gEq
 
 /**
-* Editor that does nothing
+* Editor that does nothing.
+*
+* @result the empty editor
+*/
+emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+
+/**
+* Editor that does nothing and gives a default value in enter mode.
 *
 * @param default value used when editor is generated in edit mode
 * @result the empty editor
 */
-emptyEditor :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithDefaultInEnterMode :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
-emptyEditor_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !a -> Editor a
+emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !a -> Editor a
 
 /**
 * Editor that does nothing and gives an error in enter mode.
