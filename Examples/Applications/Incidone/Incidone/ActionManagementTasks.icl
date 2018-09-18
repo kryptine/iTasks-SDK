@@ -228,7 +228,7 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = emptyEditor $ ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
+gEditor{|ActionTasks|} = emptyEditorWithDefaultInEnterMode $ ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 
 instance toString ActionProgress
 where

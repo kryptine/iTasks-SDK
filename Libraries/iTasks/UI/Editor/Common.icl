@@ -7,11 +7,20 @@ import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTas
 import Data.Tuple, Data.Error, Text, Text.GenJSON, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
-emptyEditor :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
-emptyEditor defaultValue = emptyEditor_ JSONEncode{|*|} JSONDecode{|*|} defaultValue
+emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditor = leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+where
+	// store initial value in state
+	genUI _ mode vst           = (Ok (ui UIEmpty, editModeValue mode),vst)
+	onEdit _ (_, ()) mbVal vst = (Ok (NoChange, mbVal),vst)   // ignore edit events
+	onRefresh _ val _ vst      = (Ok (NoChange, Just val),vst)   // just use new value
+	valueFromState mbVal       = mbVal
 
-emptyEditor_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !a -> Editor a
-emptyEditor_ jsonEncode jsonDecode defaultValue = leafEditorToEditor_
+emptyEditorWithDefaultInEnterMode :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithDefaultInEnterMode defaultValue = emptyEditorWithDefaultInEnterMode_ JSONEncode{|*|} JSONDecode{|*|} defaultValue
+
+emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !a -> Editor a
+emptyEditorWithDefaultInEnterMode_ jsonEncode jsonDecode defaultValue = leafEditorToEditor_
 	jsonEncode jsonDecode
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where

@@ -17,7 +17,7 @@ import Data.GenEq, Data.Func, Control.GenBimap, Data.Functor, Data.Tuple
 generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor, MaybeError
 
-gEditor{|UNIT|} = emptyEditor_ (\_ _ -> [JSONNull]) (\_ [JSONNull: json] -> (Just UNIT, json)) UNIT
+gEditor{|UNIT|} = emptyEditorWithDefaultInEnterMode_ (\_ _ -> [JSONNull]) (\_ [JSONNull: json] -> (Just UNIT, json)) UNIT
 
 gEditor{|RECORD of {grd_arity}|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
 	= compoundEditorToEditor
@@ -533,7 +533,7 @@ gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) (withChangedEd
 
 gEditor{|[]|} ex _ tjx _ = listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
 
-gEditor{|()|} = emptyEditor ()
+gEditor{|()|} = emptyEditorWithDefaultInEnterMode ()
 gEditor{|(->)|} _ _ tjx fjx _ _ tjy fjy =
 	emptyEditorWithErrorInEnterMode_  (JSONEncode{|* -> * -> *|} tjx tjy)
 	                                  (JSONDecode{|* -> * -> *|} fjx fjy)
