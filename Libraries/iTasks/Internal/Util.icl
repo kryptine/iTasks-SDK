@@ -18,6 +18,9 @@ show lines world
 	# (_,world)			= fclose console world
 	= world
 
+iShow :: ![String] !*IWorld -> *IWorld
+iShow lines iworld = {iworld & world = show lines iworld.world}
+
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year

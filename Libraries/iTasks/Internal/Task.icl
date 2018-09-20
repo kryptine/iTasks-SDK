@@ -20,8 +20,6 @@ from iTasks.Internal.TaskEval         import :: TaskEvalInfo(..)
 from iTasks.SDS.Combinators.Common import toDynamic
 from iTasks.Internal.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-import StdDebug
-
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
 	= case make_dynamic v of
@@ -68,7 +66,6 @@ where
 		= (Ok l, Nothing, [], False, env)
 
 	onDisconnect` (l :: l^) (r :: r^) env
-		| not (trace_tn "Disconnecting wrapConnectionTask") = undef
 		# (mbl, mbw) = onDisconnect l r
 		= (toDyn <$> mbl, toDyn <$> mbw, env)
 	onDisconnect` l r env = abort ("onDisconnect does not match with type l=" +++ toString (typeCodeOfDynamic l) +++ ", r=" +++ toString (typeCodeOfDynamic r))
@@ -105,7 +102,7 @@ where
 	onDisconnect` l r env = abort ("onDisconnect does not match with type l=" +++ toString (typeCodeOfDynamic l) +++ ", r=" +++ toString (typeCodeOfDynamic r))
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
-mkInstantTask iworldfun = trace_n "Making instant task" (Task (evalOnce iworldfun))
+mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f event repOpts (TCInit taskId ts) iworld = case f taskId iworld of
 		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) (TCStable taskId ts (DeferredJSON a)), iworld)

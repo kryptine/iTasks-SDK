@@ -80,7 +80,6 @@ mbRegister p sds (Just taskId) context reqSDSId iworld=:{IWorld|sdsNotifyRequest
 	# (ts, world) = nsTime world
 	# req = buildRequest context taskId reqSDSId p
 	# sdsId = sdsIdentity sds
-	| not (trace_tn ("mbRegister: " +++ toSingleLineText (taskId, req) +++ "\nSDSID: " +++ sdsId)) = undef
 	= { iworld
 	  & world = world
 	  , sdsNotifyRequests = 'DM'.alter (Just o maybe ('DM'.singleton req ts) ('DM'.put req ts))

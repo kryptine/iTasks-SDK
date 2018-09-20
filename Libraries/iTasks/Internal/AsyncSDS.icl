@@ -21,33 +21,21 @@ import iTasks.Internal.SDSService
 
 import qualified Data.Map as DM
 
-import StdDebug
-
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
 createRequestString req = serializeToBase64 req
 
-onConnect reqq connId _ _
-| not (trace_tn ("SDS onConnect: " +++ toString connId))= undef
-# rs = createRequestString reqq
-= (Ok (Left []), Nothing, [ rs +++ "\n"], False)
+onConnect reqq connId _ _ = (Ok (Left []), Nothing, [createRequestString reqq +++ "\n"], False)
 
-onData data (Left acc) _ = trace_n ("SDS onData: " +++ data) (Ok (Left (acc ++ [data])), Nothing, [], False)
+onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
-rtt (SDSReadRequest _ _) = "SDSReadRequest"
-rtt (SDSRegisterRequest _ _ _ _ _ _) = "SDSRegisterRequest"
-rtt (SDSWriteRequest _ _ _) = "SDSWriteRequest"
-rtt (SDSModifyRequest _ _ _) = "SDSModifyRequest"
-rtt (SDSRefreshRequest _ _) = "SDSRefreshRequest"
-
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException !ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env
-| not (trace_tn ("Queue SDS request: " +++ toSingleLineText (host, port, taskId))) = undef
 = case addConnection taskId host port connectionTask env of
-	(Error e, env)  = (Error e, env)
-	(Ok (id, _), env)     = trace_n ("Queuing SDS request: " +++ toString taskId +++ ", " +++ toString id)(Ok id, env)
+	(Error e, env)  		= (Error e, env)
+	(Ok (id, _), env)     	= (Ok id, env)
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
@@ -58,10 +46,7 @@ where
 		onDisconnect = onDisconnect}
 
 	onDisconnect (Left acc) _
-	| not (trace_tn "Disconnecting before responds") = undef
-	# rawResponse = concat acc
-	| not (trace_tn ("Disconnecting, got response: " +++ rawResponse)) = undef
-	# r = deserializeFromBase64 rawResponse symbols
+	# r = deserializeFromBase64 (concat acc) symbols
 	= (Ok (Right r), Nothing)
 
 queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
@@ -78,9 +63,7 @@ where
 		onDisconnect = onDisconnect}
 
 	onDisconnect (Left acc) _
-	| not (trace_tn "Disconnecting before response modify") = undef
 	# rawResponse = concat acc
-	| not (trace_tn ("Disconnecting modify, got response: " +++ rawResponse)) = undef
 	# r = deserializeFromBase64 rawResponse symbols
 	= (Ok (Right r), Nothing)
 
@@ -128,7 +111,6 @@ queueRemoteRefresh [notifyRequest : reqs] iworld=:{options}
 	(Ok (ReadResult r _), iworld) = (readSymbols r, iworld)
 # (host, port, sdsId) = case notifyRequest.remoteOptions of
 	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
-| not (trace_tn ("Queue remote refresh at " +++ host +++ ":" +++ toString port +++ " for " +++ sdsId)) = undef
 # request = reqq notifyRequest.reqTaskId sdsId
 = case queueSDSRequest request host port SDSSERVICE_TASK_ID symbols iworld of
 	(_, iworld) = queueRemoteRefresh reqs iworld
@@ -153,7 +135,6 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
 getAsyncReadValue _ taskId connectionId ioStates
-| not (trace_tn ("Retrieving read value for " +++ toString taskId +++ ":" +++ toString connectionId)) = undef
 =  case 'DM'.get taskId ioStates of
 		Nothing                             = Left "No iostate for this task"
 		(Just ioState)                      = case ioState of
@@ -195,7 +176,7 @@ where
 	getValue connectionId connectionMap
 	= case 'DM'.get connectionId connectionMap of
 		(Just (value :: Either [String] (r^, w^), _)) = case value of
-			(Left _)						= trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Waiting") (Right Nothing)
-			(Right val)						= trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Value") (Right (Just val))
+			(Left _)						= Right Nothing
+			(Right val)						= Right (Just val)
 		(Just (dyn, _))					= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))
 		Nothing 						= Right Nothing
