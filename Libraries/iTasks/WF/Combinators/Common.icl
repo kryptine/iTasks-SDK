@@ -191,6 +191,23 @@ where
 
     allStable cur (_,Value _ s) = cur && s
     allStable cur _             = False
+
+allTasksInPool :: Int [Task a] -> Task [a] | iTask a
+allTasksInPool maxworkers tasks =
+	parallel [(Embedded, transform (\_->Value Nothing False) o executor)] []
+	@? \tv->case tv of
+		NoValue = NoValue
+		//All threads are stable
+		Value tvs _ = Value [a\\(_, Value (Just a) True)<-tvs] (all (\(_, t)->t=:(Value _ True)) tvs)
+where
+	executor stl =
+		foreverStIf (not o isEmpty) tasks \[t:ts]->
+		        watch (sdsFocus {defaultValue & includeValue=True} stl)
+			>>* [OnValue $ ifValue ((>) maxworkers o dec o nrUnstables o snd)
+					\_->appendTask Embedded (\_->t @ Just) stl @! ()
+			] >>- \_->treturn ts
+
+	nrUnstables = length o filter \t->not t=:{TaskListItem|value=Value _ True}
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
