@@ -17,6 +17,7 @@ import iTasks.Extensions.Distributed._Formatter
 
 from iTasks.Internal.TaskServer import addConnection
 from iTasks.SDS.Sources.Core import unitShare
+import iTasks.Internal.SDSService
 
 import qualified Data.Map as DM
 
@@ -129,8 +130,7 @@ queueRemoteRefresh [notifyRequest : reqs] iworld=:{options}
 	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
 | not (trace_tn ("Queue remote refresh at " +++ host +++ ":" +++ toString port +++ " for " +++ sdsId)) = undef
 # request = reqq notifyRequest.reqTaskId sdsId
-// TODO: Remove hardcoded taskId
-= case queueSDSRequest request host port (TaskId 1 1) symbols iworld of
+= case queueSDSRequest request host port SDSSERVICE_TASK_ID symbols iworld of
 	(_, iworld) = queueRemoteRefresh reqs iworld
 where
 	// Hack to get it to compile. The Refresh Request alternative does not use any of the parameters.

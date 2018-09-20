@@ -17,7 +17,7 @@ from Data.Set import :: Set, newSet
 import qualified Data.Map as DM
 from System.OS import IF_POSIX_OR_WINDOWS, OS_NEWLINE
 
-import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text 
+import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil
@@ -64,8 +64,7 @@ doTasksWithOptions initFun startable world
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
-	startupTasks {distributed, sdsPort} = [t \\ StartupTask t <- toStartable startable] 
-		++ (if distributed [case onStartup (sdsServiceTask sdsPort) of StartupTask t = t;] [])
+	startupTasks {distributed, sdsPort} = (if distributed [case onStartup (sdsServiceTask sdsPort) of StartupTask t = t;] []) ++ [t \\ StartupTask t <- toStartable startable]
 	hasWebTasks = not (webTasks =: [])
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
@@ -78,7 +77,7 @@ where
 		| webTasks =: [] = []
 		| otherwise
 			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
-	
+
 	engineTasks =
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
@@ -90,7 +89,7 @@ where
 		]
 
 	// The iTasks engine consist of a set of HTTP Web services
-	engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)] 
+	engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)]
 	engineWebService webtasks =
 		[taskUIService webtasks
 		,documentService
@@ -104,7 +103,7 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-defaultEngineCLIOptions :: [String] EngineOptions -> MaybeError [String] EngineOptions 
+defaultEngineCLIOptions :: [String] EngineOptions -> MaybeError [String] EngineOptions
 defaultEngineCLIOptions [argv0:argv] defaults
 	# (settings, positionals, errs) = getOpt Permute opts argv
 	| not (errs =: []) = Error errs
@@ -204,11 +203,11 @@ viewWebServerInstructions
 
 defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
 defaultEngineOptions world
-	# (appPath,world)    = determineAppPath world	
+	# (appPath,world)    = determineAppPath world
 	# (appVersion,world) = determineAppVersion appPath world
 	# appDir             = takeDirectory appPath
 	# appName            = (dropExtension o dropDirectory) appPath
-	# options =	
+	# options =
 		{ appName			= appName
 		, appPath			= appPath
 		, appVersion        = appVersion
@@ -231,28 +230,28 @@ defaultEngineOptions world
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
-	# ([arg:_],world) = getCommandLine world 
+	# ([arg:_],world) = getCommandLine world
 	| dropDirectory arg <> "ConsoleClient.exe"	= toCanonicalPath arg world
-	//Using dynamic linker:	
-	# (res, world)				= getCurrentDirectory world	
-	| isError res				= abort "Cannot get current directory."	
+	//Using dynamic linker:
+	# (res, world)				= getCurrentDirectory world
+	| isError res				= abort "Cannot get current directory."
 	# currentDirectory			= fromOk res
-	# (res, world)				= readDirectory currentDirectory world	
-	| isError res				= abort "Cannot read current directory."	
+	# (res, world)				= readDirectory currentDirectory world
+	| isError res				= abort "Cannot read current directory."
 	# batchfiles				= [f \\ f <- fromOk res | takeExtension f == "bat" ]
-	| isEmpty batchfiles		= abort "No dynamic linker batch file found."	
-	# (infos, world)			= seqList (map getFileInfo batchfiles) world	
-	| any isError infos	 		= abort "Cannot get file information."	
-	= (currentDirectory </> (fst o hd o sortBy cmpFileTime) (zip2 batchfiles infos), world)	
-	where		
+	| isEmpty batchfiles		= abort "No dynamic linker batch file found."
+	# (infos, world)			= seqList (map getFileInfo batchfiles) world
+	| any isError infos	 		= abort "Cannot get file information."
+	= (currentDirectory </> (fst o hd o sortBy cmpFileTime) (zip2 batchfiles infos), world)
+	where
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = timeGm x > timeGm y
 
 //By default, we use the modification time of the application executable as version id
-determineAppVersion :: !FilePath!*World -> (!String,!*World)	
+determineAppVersion :: !FilePath!*World -> (!String,!*World)
 determineAppVersion appPath world
 	# (res,world)       = getFileInfo appPath world
-	| res =: (Error _)  = ("unknown",world) 
+	| res =: (Error _)  = ("unknown",world)
 	# tm				= (fromOk res).lastModifiedTime
 	# version           = strfTime "%Y%m%d-%H%M%S" tm
 	= (version,world)
