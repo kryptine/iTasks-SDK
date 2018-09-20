@@ -121,7 +121,7 @@ listStoreNames namespace iworld
         Ok keys     = (Ok [dropExtension k \\ k <- keys | not (k == "." || k == "..")], {iworld & world = world})
 
 emptyStore :: !*IWorld -> *IWorld
-emptyStore iworld 
+emptyStore iworld
 	# (namespaces,iworld) = listStoreNamespaces iworld
 	= foldl (\w ns -> emptyNamespace ns w) iworld namespaces
 where

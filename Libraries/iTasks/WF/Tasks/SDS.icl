@@ -39,7 +39,7 @@ where
 
 		(Error e, iworld) 				= (ExceptionResult e, iworld)
 
-	// The task is awaiting the result of a read operation 
+	// The task is awaiting the result of a read operation
 	eval shared event opts tree=:(TCAwait Read taskId time subtree) iworld=:{IWorld|sdsEvalStates}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
@@ -49,12 +49,12 @@ where
 			# evalInfo = {TaskEvalInfo|lastEvent=time,removedTasks=[], refreshSensitive=False}
 			= case res of
 				(ReadResult val _) = (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) subtree, iworld)
-				(AsyncRead sds) 
+				(AsyncRead sds)
 				# ui = NoChange
 				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.read sds ('SDS'.TaskContext taskId))) sdsEvalStates
 				= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval _ event opts s=:(TCStable taskId ts enc) iworld 
+	eval _ event opts s=:(TCStable taskId ts enc) iworld
 	= case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
@@ -82,7 +82,7 @@ where
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
 	= case 'SDS'.write val shared ('SDS'.TaskContext taskId) iworld of
 		(Error e, iworld) 		= (ExceptionResult e, iworld)
-		(Ok (Writing sds), iworld) 
+		(Ok (Writing sds), iworld)
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Writing data"))
 			# tree = TCAwait Write taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates
@@ -98,12 +98,12 @@ upd fun shared = Task (eval fun shared)
 where
 	eval :: (r -> w) (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult w, !*IWorld) | iTask r & iTask w & RWShared sds
 	eval fun shared event _ tree=:(TCDestroy _) w = trace_n "upd destroyed" (DestroyedResult, w)
-	eval fun shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates} 
+	eval fun shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
-	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of 
+	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of
 		(Error (d, s), iworld) 						=  trace_n ("upd init exception" +++ s) (ExceptionResult (d, s), iworld)
 		(Ok (ModifyResult r w _), iworld)		= trace_n "upd init result" (ValueResult (Value w True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
-		(Ok (AsyncModify sds _), iworld) 			
+		(Ok (AsyncModify sds _), iworld)
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
 			# tree = TCAwait Modify taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify fun sds ('SDS'.TaskContext taskId))) sdsEvalStates
@@ -136,5 +136,5 @@ where
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
 		= (DestroyedResult,iworld)
 
-rep ResetEvent  = ReplaceUI (ui UIEmpty) 
+rep ResetEvent  = ReplaceUI (ui UIEmpty)
 rep _ 			= NoChange

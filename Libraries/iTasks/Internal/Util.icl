@@ -10,14 +10,14 @@ from iTasks.Extensions.DateTime import :: Date{..}, :: Time{..}, :: DateTime(..)
 import qualified Control.Monad as M
 import qualified Data.Map as DM
 from Data.Map import :: Map
-	
+
 show :: ![String] !*World -> *World
 show lines world
 	# (console,world)	= stdio world
 	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
 	# (_,world)			= fclose console world
 	= world
-	
+
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
@@ -66,7 +66,7 @@ where
 		# path = join {pathSeparator} next
 		# (exists,world) = fileExists path world
 		| exists = create next rest world //This part exists, continue
-		# (res, world) = createDirectory path world 
+		# (res, world) = createDirectory path world
 		| isError res = (False,world) //Can't create the directory
 		= create next rest world //Created the directory, continue
 

@@ -2,7 +2,7 @@ definition module iTasks.Internal.TaskStore
 /**
 * This module provides storage of task instances
 * It contains two types of task instances:
-* Session instances: temporary tasks for each interactive session between a user and the server. 
+* Session instances: temporary tasks for each interactive session between a user and the server.
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
 
@@ -17,16 +17,16 @@ from Data.Queue 	import :: Queue
 from System.Time    import :: Timestamp
 
 :: InstanceFilter =
-    { //'Vertical' filters
-      onlyInstanceNo    :: !Maybe [InstanceNo]
-    , notInstanceNo     :: !Maybe [InstanceNo]
-    , onlySession       :: !Maybe Bool
+	{ //'Vertical' filters
+	  onlyInstanceNo    :: !Maybe [InstanceNo]
+	, notInstanceNo     :: !Maybe [InstanceNo]
+	, onlySession       :: !Maybe Bool
 	, matchAttribute 	:: !Maybe (!String,!String)
-      //'Horizontal' filters
-    , includeConstants  :: !Bool
-    , includeProgress   :: !Bool
-    , includeAttributes :: !Bool
-    }
+	  //'Horizontal' filters
+	, includeConstants  :: !Bool
+	, includeProgress   :: !Bool
+	, includeAttributes :: !Bool
+	}
 
 :: InstanceData :== (!InstanceNo,!Maybe InstanceConstants,!Maybe InstanceProgress,!Maybe TaskAttributes)
 
@@ -59,7 +59,7 @@ taskInstanceAttributes  :: SDSLens InstanceNo TaskAttributes TaskAttributes
 topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
-allInstanceIO           :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec)) 
+allInstanceIO           :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec))
 
 //=== Task instance input: ===
 
@@ -72,7 +72,7 @@ taskInstanceValue       :: SDSLens InstanceNo TIValue TIValue
 taskInstanceShares      :: SDSLens InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 //Filtered views on evaluation state of instances:
 
-//Shared source 
+//Shared source
 localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
@@ -92,16 +92,16 @@ parallelTaskList                    :: SDSSequence (!TaskId,!TaskId,!TaskListFil
 //When task instances are evaluated, their output consists of instructions to modify the user interface
 //of that instance to reflect the instance's new state
 
-:: TaskOutputMessage 
+:: TaskOutputMessage
 	= TOUIChange !UIChange
-    | TOException !String
+	| TOException !String
 	| TODetach !InstanceNo
 
 derive gEq TaskOutputMessage
 
 :: TaskOutput :== Queue TaskOutputMessage
 
-taskOutput          :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput) 
+taskOutput          :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)
 taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 
 //=== Access functions: ===
@@ -146,11 +146,11 @@ deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*
 * events are applied in FIFO order when the task instance is evaluated
 *
 * By splitting up event queuing and instance evaluation, events can come in asynchronously without
-* the need to directly processing them. 
+* the need to directly processing them.
 */
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 
-/** 
+/**
 * Convenience function for queueing multiple refresh multiple refresh events at once
 */
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld

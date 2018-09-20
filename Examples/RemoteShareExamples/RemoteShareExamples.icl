@@ -42,7 +42,7 @@ doubleRemote = remoteShare simpleShare {domain="TEST", port=9998}
 Start world	= doTasks tests world
 where
 
-	tests = [ publish "/SDSSource" (const sdsSourceTest) 
+	tests = [ publish "/SDSSource" (const sdsSourceTest)
 			, publish "/SDSRemote" (const sdsRemoteTest)
 			, publish "/SDSLens"  (const sdsLensTest)
 			, publish "/SDSLens/remote"  (const sdsLensRemoteTest)
@@ -53,7 +53,8 @@ where
 			, publish "/SDSSelect"  (const sdsSelectTest)
 			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
 			, publish "/all" (\_. viewAll)
-			, publish "/doubleRemote" (const doubleRemoteTest)]
+			, publish "/doubleRemote" (const doubleRemoteTest)
+			, publish "/singleRemote" (const singleRemoteTest)]
 
 	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
 		-&&-
@@ -130,7 +131,7 @@ where
 		@! ()
 
 	// We can get, set, and upd the value of a top-level remote source,
-	sdsRemoteTest = 
+	sdsRemoteTest =
 		((enterInformation "Enter the value to be SET for SDSRemote" [] >>= \v. set v remoteTestShare)
 		-&&-
 		(get remoteTestShare >>= viewInformation "View the value gotten for SDSRemote by GET" []))
@@ -141,29 +142,31 @@ where
 		@! ()
 
 
-	viewAll = forever ((viewSharedInformation "Value of testShare" [] testShare
-		-&&- viewSharedInformation "Value of leftShare" [] leftShare
-		-&&- viewSharedInformation "Value of rightShare" [] rightShare
-		-&&- viewSharedInformation "Value of intShare" [] intShare)
+	viewAll = forever ((updateSharedInformation "Value of testShare" [] testShare
+		-&&- updateSharedInformation "Value of leftShare" [] leftShare
+		-&&- updateSharedInformation "Value of rightShare" [] rightShare
+		-&&- updateSharedInformation "Value of intShare" [] intShare)
 		@! ())
 
+	singleRemoteTest = updateSharedInformation "Update value by viewSharedInformation" [] simpleShare @! ()
+
 	doubleRemoteTest
-	# setV = enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" []
-	# getV = get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []
-	# updV = enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote >>= viewInformation "Updated value" []
-	//# shaV = viewSharedInformation "View value by viewSharedInformation" [] doubleRemote
- 	= (setV -&&- getV -&&- updV) @! ()
+	//# setV = enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" []
+	//# getV = get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []
+	//# updV = enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote >>= viewInformation "Updated value" []
+	# shaV = updateSharedInformation "Update value by viewSharedInformation" [] doubleRemote
+ 	= shaV @! ()
 // ======= Definitions required for defining a remote service =======
 // TODO: Create HTTP request by focussing the parameter
 
-:: OpenWeatherRequest = 
+:: OpenWeatherRequest =
 	{ apiKey :: String
 	, type :: OpenWeatherRequestType
 	}
 
 :: OpenWeatherRequestType = ByCityName String | ByCoordinates Real Real
 
-:: OpenWeatherResponse = 
+:: OpenWeatherResponse =
 	{ id :: Int
 	, main :: String
 	, description :: String
@@ -185,7 +188,7 @@ where
 			Nothing = Left "Could not transform JSON"
 			(Just v) = Right v
 
-	query (ByCityName name) 		= "?q=" +++ name 
+	query (ByCityName name) 		= "?q=" +++ name
 	query (ByCoordinates lat long) 	= "?lat=" +++ toString lat +++ "&lon=" +++ toString long
 
 weatherService = remoteService (weatherOptions {apiKey = "1160ac287072c67ae44708dee89f9a8b" , type = ByCityName "Nijmegen"})

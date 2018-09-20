@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.SDSService
 
 import iTasks
- 
+
 import iTasks.Extensions.Distributed._Formatter
 import iTasks.SDS.Definition
 import iTasks.Internal.AsyncSDS
@@ -41,8 +41,9 @@ where
 	| not (trace_tn ("SDS server listening on " +++ toString port)) = undef
 	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts (DeferredJSONNode JSONNull) False), iworld)
 
-	eval (RefreshEvent taskIds cause) evalOpts tree=:(TCBasic taskId ts data bla) iworld 
+	eval (RefreshEvent taskIds cause) evalOpts tree=:(TCBasic taskId ts data bla) iworld
 	| not ('Set'.member taskId taskIds) = (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCBasic taskId ts data bla), iworld)
+	| not (trace_tn ("Refresh SDS Service: " +++ cause)) = undef
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
 	# (readResult, iworld) = read share EmptyContext iworld
@@ -57,7 +58,7 @@ where
 	# (writeResult, iworld) = write ('Map'.fromList (fromOk results)) share EmptyContext iworld
 	| writeResult=:(Error _) = trace_n "Error writing to share" (ExceptionResult (fromError writeResult), iworld)
 	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
-	
+
 	handlers symbols taskId = {ConnectionHandlersIWorld|onConnect = onConnect
     	, onData = onData symbols taskId
     	, onShareChange = onShareChange
@@ -71,7 +72,7 @@ where
 		reevaluateShares` symbols taskId [] acc iworld = (Ok acc, iworld)
 		reevaluateShares` symbols taksId [(connId, (done, host, val)):rest] acc iworld
 		# (result, iworld) = performRequest symbols taskId host val iworld
-		= case result of 
+		= case result of
 			Error e 		= trace_n ("Evaluated got error: " +++ e) (Error e, iworld)
 			Ok (Left val)	= trace_n ("Evaluated share for " +++ host +++ ":" +++ toString connId +++ ": Done") (reevaluateShares` symbols taskId rest [(connId, (True, host, val)) : acc] iworld)
 			Ok (Right val)
@@ -80,7 +81,7 @@ where
 			= trace_n ("Evaluated share for " +++ host +++ ":" +++ toString connId +++ ": Busy") (reevaluateShares` symbols taskId rest [(connId, (False, host, val)) : acc] iworld)
 
 	onConnect :: !ConnectionId !String !SDSEvaluations !*IWorld -> *(!MaybeErrorString SDSServiceState, Maybe SDSEvaluations, ![String], !Bool, !*IWorld)
-	onConnect connId clientName sdsValue iworld 
+	onConnect connId clientName sdsValue iworld
 	| not (trace_tn ("Received new connection from " +++ clientName +++ ". Connection id: " +++ toString connId)) = undef
 	= (Ok (SDSProcessing clientName connId []), Nothing, [], False, iworld)
 
@@ -102,7 +103,7 @@ where
 		// Not yet completed evaluating the sds, do nothing.
 		Just (False, _, result) = trace_n ("Share change for " +++ host +++ ":" +++ toString connId +++ ": Not done") (Ok state, Nothing, [], False, iworld)
 		// We have completed evaluating the SDS, send the result to the client.
-		Just (True, _, result) = trace_n ("Share change for " +++ host +++ ":" +++ toString connId +++ ": Replying with [" +++ result +++ "\n]") (Ok state, Just ('Map'.del connId sdsValue), [result +++ "\n"], True, iworld) 
+		Just (True, _, result) = trace_n ("Share change for " +++ host +++ ":" +++ toString connId +++ ": Replying with [" +++ result +++ "\n]") (Ok state, Just ('Map'.del connId sdsValue), [result +++ "\n"], True, iworld)
 
 	onTick        :: !SDSServiceState !SDSEvaluations !*IWorld -> *(!MaybeErrorString SDSServiceState, Maybe SDSEvaluations, ![String], !Bool, !*IWorld)
 	onTick state sdsValue iworld = (Ok state, Nothing, [], False, iworld)
@@ -113,20 +114,20 @@ where
 	// Left: Done
 	// Right: Still need to do work..
 	performRequest :: !{#Symbol} !TaskId !String !String !*IWorld -> !(MaybeErrorString !(Either !String !String), !*IWorld)
-	performRequest symbols taskId host request iworld 
+	performRequest symbols taskId host request iworld
 	| newlines (fromString request) > 1 = abort ("Multiple requests: " +++ request)
 	= case deserializeFromBase64 request symbols of
-		(SDSReadRequest sds p)							
+		(SDSReadRequest sds p)
 		# ioStates = iworld.IWorld.ioStates
 		| not (trace_tn ("performRequest " +++ ioStateString ioStates)) = undef
 		= trace_n ("Got read for task " +++ toString taskId) (case readSDS sds p (TaskContext taskId) Nothing (sdsIdentity sds) iworld of
 			(Error (_, e), iworld)							= (Error e, iworld)
 			(Ok (ReadResult v _), iworld)					= trace_n "Done reading" (Ok (Left (serializeToBase64 v)), iworld)
 			(Ok (AsyncRead sds), iworld)					= trace_n "Async read" (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld))
-		(SDSRegisterRequest sds p reqSDSId reqTaskId port) = trace_n "Got register" (case readSDS sds p (RemoteTaskContext reqTaskId host port) (Just taskId) reqSDSId iworld of
+		(SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port) = trace_n ("Got register for " +++ remoteSDSId) (case readSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) (Just taskId) reqSDSId iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
 			(Ok (ReadResult v _), iworld)					= trace_n "Done registering" (Ok (Left (serializeToBase64 v)), iworld)
-			(Ok (AsyncRead sds), iworld)					= trace_n "Async register" (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId taskId port))), iworld))
+			(Ok (AsyncRead sds), iworld)					= trace_n "Async register" (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld))
 		(SDSWriteRequest sds p val) 					= trace_n "Got write" (case writeSDS sds p (TaskContext taskId) val iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
 			(Ok (WriteResult notify _), iworld)				= trace_n "Done writing" (Ok (Left (serializeToBase64 ())), queueNotifyEvents (sdsIdentity sds) notify iworld)
@@ -135,8 +136,22 @@ where
 			(Error (_, e), iworld) 							= (Error e, iworld)
 			(Ok (ModifyResult r w _), iworld)				= trace_n "Done modifying" (Ok (Left (serializeToBase64 (r,w))), iworld)
 			(Ok (AsyncModify sds f), iworld)				= trace_n "Async modify" (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld))
-		(SDSRefreshRequest taskId sdsId)					= trace_n ("Got refresh for " +++ toSingleLineText taskId +++ sdsId) (Ok (Left "Refresh queued"), queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
+		(SDSRefreshRequest refreshTaskId sdsId)
+		// If we receive a request to refresh the sds service task, we find all remote registrations for the SDS id and send requests to refresh them.
+		| taskId == refreshTaskId = refreshRemoteTasks sdsId host iworld
+		= trace_n ("Got refresh for " +++ toSingleLineText refreshTaskId +++ sdsId) (Ok (Left "Refresh queued"), queueRefresh [(refreshTaskId, "Notification for remote write of " +++ sdsId)] iworld)
 	where
 		newlines [] = 0
 		newlines ['\n':xs] = inc (newlines xs)
 		newlines [x: xs] = newlines xs
+
+		refreshRemoteTasks sdsId host iworld=:{sdsNotifyRequests}
+		// We need to adjust the SDS id so that with the host information from which we received the refresh message.
+		| not (trace_tn ("refreshRemoteTasks: " +++ sdsId)) = undef
+		| not (trace_tn ("Requests: " +++ concat (map (\s. s +++ "\n") ('Map'.keys sdsNotifyRequests)))) = undef
+		= case 'Map'.get sdsId sdsNotifyRequests of
+			Nothing = (Ok (Left ("No requests available")), iworld)
+			Just requestsToTime
+			# notifyRequests = 'Map'.keys requestsToTime
+			| not (trace_tn ("Notify requests for sds: " +++ concat (map (\s. toSingleLineText s +++ "\n") notifyRequests))) = undef
+			= (Ok (Left "Requests re-queued"), queueNotifyEvents sdsId ('Set'.fromList notifyRequests) iworld)

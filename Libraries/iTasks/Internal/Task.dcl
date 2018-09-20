@@ -8,7 +8,7 @@ from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 from iTasks.WF.Tasks.IO import :: ConnectionHandlers
 
 from iTasks.Internal.TaskState			import :: TaskTree
-import  iTasks.SDS.Definition 
+import  iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UIChange
 from iTasks.Internal.IWorld import :: ConnectionId
 from Data.Map			import :: Map

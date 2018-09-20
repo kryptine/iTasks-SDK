@@ -71,7 +71,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
 	| TCStable					!TaskId !TaskTime !DeferredJSON
 	| TCLayout					!(!LUI,!LUIMoves) !TaskTree
-	| TCNop			
+	| TCNop
 	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
@@ -86,7 +86,7 @@ derive JSONEncode DeferredJSON
 derive JSONDecode DeferredJSON
 derive gEq        DeferredJSON
 derive gText      DeferredJSON
-	
+
 :: ParallelTaskState =
 	{ taskId			:: !TaskId					//Identification
     , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)

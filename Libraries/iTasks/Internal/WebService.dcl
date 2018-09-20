@@ -22,7 +22,7 @@ from System.Time                    import :: Timespec
 :: WebSockState =
 	{ cur_frame    :: !{#Char}   //The fram
 	, message_text :: !Bool     // True -> text message, False -> binary
-	, message_data :: ![String] // Message data from previous frames 
+	, message_data :: ![String] // Message data from previous frames
 	}
 
 :: WebSockEvent
