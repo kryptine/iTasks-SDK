@@ -16,7 +16,7 @@ from iTasks.Internal.Task             import :: ConnectionTask, :: BackgroundTas
 from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
-from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
+from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem
 from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIdentity
 from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
@@ -89,7 +89,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: ConnectionInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the connection
     , connectionId          :: !ConnectionId    //Unique connection id (per listener/outgoing connection)
-    , remoteHost            :: !IPAddress      
+    , remoteHost            :: !IPAddress
     , connectionTask        :: !ConnectionTask  //The io task definition that defines how the connection is handled
     , removeOnClose         :: !Bool            //If this flag is set, the connection state is removed when the connection is closed
     }
@@ -125,7 +125,7 @@ createIWorld :: !EngineOptions !*World -> *IWorld
 
 /**
 * Initialize the SAPL->JS compiler state
-* 
+*
 */
 initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
 

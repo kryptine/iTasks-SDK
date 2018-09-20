@@ -122,14 +122,15 @@ where
 
 queueRemoteRefresh :: ![SDSNotifyRequest] !*IWorld -> *IWorld
 queueRemoteRefresh [] iworld = iworld
-queueRemoteRefresh [notifyRequest : reqs] iworld
+queueRemoteRefresh [notifyRequest : reqs] iworld=:{options}
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 	(Ok (ReadResult r _), iworld) = (readSymbols r, iworld)
 # (host, port, sdsId) = case notifyRequest.remoteOptions of
 	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
 | not (trace_tn ("Queue remote refresh at " +++ host +++ ":" +++ toString port +++ " for " +++ sdsId)) = undef
 # request = reqq notifyRequest.reqTaskId sdsId
-= case queueSDSRequest request host port notifyRequest.reqTaskId symbols iworld of
+// TODO: Remove hardcoded taskId
+= case queueSDSRequest request host port (TaskId 1 1) symbols iworld of
 	(_, iworld) = queueRemoteRefresh reqs iworld
 where
 	// Hack to get it to compile. The Refresh Request alternative does not use any of the parameters.
@@ -194,6 +195,7 @@ where
 	getValue connectionId connectionMap
 	= case 'DM'.get connectionId connectionMap of
 		(Just (value :: Either [String] (r^, w^), _)) = case value of
-			(Left _)                                    = trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Waiting") (Right Nothing)
-			(Right val)                                 = trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Value") (Right (Just val))
-		(Just (dyn, _))= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))
+			(Left _)						= trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Waiting") (Right Nothing)
+			(Right val)						= trace_n ("getAsyncModifyValue " +++ toString connectionId +++ ": Value") (Right (Just val))
+		(Just (dyn, _))					= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))
+		Nothing 						= Right Nothing

@@ -52,7 +52,7 @@ where
 	| not (trace_tn ("Re-evaluate " +++ toString (length shareValue) +++ " shares")) = undef
 	| not (trace_tn ("Share value before: \n" +++ concat (map (\(connid, (done, host, received)). "\t" +++toString connid +++ ": " +++ toString done +++ ", " +++ host +++ "\n") shareValue))) = undef
 	# (results, iworld) = reevaluateShares symbols  taskId shareValue iworld
-	| results=:(Error _) = (ExceptionResult (exception (fromError results)), iworld)
+	| results=:(Error _) = trace_n ("SDSService: Error evaluating shared: " +++ fromError results) (ExceptionResult (exception (fromError results)), iworld)
 	| not (trace_tn ("Evaluated " +++ toString (length (fromOk results)) +++ " shares")) = undef
 	| not (trace_tn ("Share value after: \n" +++ concat (map (\(connid, (done, host, received)). "\t" +++toString connid +++ ": " +++ toString done +++ ", " +++ host +++ "\n") (fromOk results)))) = undef
 	# (writeResult, iworld) = write ('Map'.fromList (fromOk results)) share EmptyContext iworld
@@ -87,7 +87,9 @@ where
 
 	onData :: {#Symbol} !TaskId !String !SDSServiceState !SDSEvaluations !*IWorld -> *(!MaybeErrorString SDSServiceState, Maybe SDSEvaluations, ![String], !Bool, !*IWorld)
 	onData symbols taskId receivedData state=:(SDSProcessing host connId received) sdsValue iworld
-	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId [receivedData]), Nothing, [], False, iworld)
+	| not (trace_tn ("SDS service onData received: " +++ (concat received))) = undef
+	| not (trace_tn ("SDS service onData received data: " +++ receivedData)) = undef
+	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId (received ++ [receivedData])), Nothing, [], False, iworld)
 	# receivedData = concat (received ++ [receivedData])
 	| not (trace_tn ("Received request " +++ host +++ ":" +++ toString connId +++ " [" +++ receivedData +++ "]")) = undef
 	= case performRequest symbols taskId host receivedData iworld of

@@ -89,7 +89,7 @@ mbRegister p sds (Just taskId) context reqSDSId iworld=:{IWorld|sdsNotifyRequest
 	  , sdsNotifyReqsByTask = case context of
 			// We do not store remote requests in the tasks map, the task ID's are not local to this instance.
 			(RemoteTaskContext _ _ _ _ _)   = sdsNotifyReqsByTask
-			_ 							= ('DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask)
+			_ 								= ('DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask)
 	  }
 where
 	buildRequest (RemoteTaskContext reqTaskId currTaskId remoteSDSId host port) _ reqSDSId p
@@ -132,7 +132,7 @@ where
 	//Match the notify requests against the predicate to determine two sets:
 	//The registrations that matched the predicate, and those that did not match the predicate
 	matchRegistrations pred [] = ('Set'.newSet,'Set'.newSet)
-	matchRegistrations pred [(req=:{SDSNotifyRequest|reqTaskId,cmpParam}, reqTimespec):regs]
+	matchRegistrations pred [(req=:{SDSNotifyRequest|cmpParam}, reqTimespec):regs]
 		# (match,nomatch) = matchRegistrations pred regs
 		= case cmpParam of
 			(p :: p^) = if (pred reqTimespec p)
@@ -173,7 +173,7 @@ where
 		| otherwise                      = 'DM'.put sdsId filteredReqsForSdsId requests
 	where
 		reqsForSdsId         = fromJust $ 'DM'.get sdsId requests
-		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ -> not $ 'Set'.member req.reqTaskId taskIds) reqsForSdsId
+		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ ->(isJust $ req.remoteOptions) || (not $ 'Set'.member req.reqTaskId taskIds)) reqsForSdsId
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList ('DM'.foldrWithKey addRegs 'DM'.newMap sdsNotifyRequests),iworld)

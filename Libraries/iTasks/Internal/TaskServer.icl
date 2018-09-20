@@ -177,7 +177,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
 						= process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
 					| not (trace_tn ("New connection, ioStates: " +++ ioStateString ioStates)) = undef
 					# (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (nextConnId ('DM'.keys conStates)) (toString ip) (directResult (fromOk mbr)) iworld
-					# iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
+					# iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++taskId)] iworld) iworld
 					# (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
 					| mbConState =:(Error _)
 						# ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
@@ -309,8 +309,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			// get task state
 			# mbTaskState = 'DM'.get connectionId taskStates
 			| isNothing mbTaskState
+				| not (trace_tn ("No task state for " +++ toString connectionId)) = undef
 				# iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
-				# ioStates = 'DM'.put taskId (IOException ("Missing IO task state for task " +++ toString connectionId +++ ". We have: " +++  (concat $ map (\k. toString k +++ ",") $ 'DM'.keys taskStates))) ioStates
+				# ioStates = 'DM'.put taskId (IOException ("Missing IO task state for task " +++ toString taskId +++ ". We have: " +++  (concat $ map (\k. toString k +++ ",") $ 'DM'.keys taskStates) +++ ". Required: " +++ toString connectionId)) ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# taskState = fst (fromJust mbTaskState)
 
@@ -407,6 +408,7 @@ where
 						  *(!.ioChannels, !*IWorld)
 					   -> *IWorld
 	taskStateException mbTaskState instanceNo ioStates closeIO (ioChannels, iworld)
+		| not (trace_tn ("taskStateException: " +++ fromError mbTaskState)) = undef
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
@@ -418,6 +420,7 @@ where
 					*(!.ioChannels, !*IWorld)
 					-> *IWorld
 	sdsException mbSdsErr instanceNo ioStates closeIO (ioChannels, iworld)
+		| not (trace_tn ("SDSException: " +++ snd (fromError mbSdsErr))) = undef
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
@@ -572,7 +575,7 @@ nextConnId :: [ConnectionId] -> ConnectionId
 nextConnId [] = 0
 nextConnId m = inc ('DL'.maximum m)
 
-ioStateString :: IOStates -> String
+ioStateString :: !IOStates -> String
 ioStateString ioStates
 # list =  'DM'.toList ioStates
 # l = map (appFst toString) list
@@ -580,4 +583,5 @@ ioStateString ioStates
 = concat (map (\(taskIdS, connectionsS). taskIdS +++ ": " +++ connectionsS) l)
 where
 	cMapString (IOActive mapje) = concat (map ((\s. s +++ " ") o toString o fst) ('DM'.toList mapje))
+	cMapString (IOException str) = "Exception: " +++ str
 	cMapString _ = "Destroyed"
