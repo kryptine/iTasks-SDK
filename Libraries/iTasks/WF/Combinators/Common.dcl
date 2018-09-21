@@ -298,6 +298,15 @@ anyTask				:: ![Task a]			-> Task a				| iTask a
 allTasks			:: ![Task a]			-> Task [a]				| iTask a
 
 /**
+ * Execute the tasks in a thread pool
+ *
+ * @param Maximum number of concurrent tasks
+ * @param Tasks to execute
+ * @result Values from the completed tasks
+ */
+allTasksInPool :: Int [Task a] -> Task [a] | iTask a
+
+/**
 * Group two tasks in parallel of which only one needs to be completed.
 * The tasks can have different types. The 'Either' results indicates which task completed.
 *
