@@ -49,7 +49,7 @@ where
 
 	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
 	notSelf ownPid _ = False
-		
+
 	isActive {TaskInstance|value} = value === Unstable
 
 	mkRow {TaskInstance|instanceNo,attributes,listId} =
@@ -94,7 +94,7 @@ allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <-
 instance Startable WorkflowCollection
 where
 	toStartable {WorkflowCollection|name,workflows} =
-		[onStartup (installWorkflows workflows) 
+		[onStartup (installWorkflows workflows)
 		,onRequest "/" (loginAndManageWork name)
 		]
 
@@ -105,9 +105,9 @@ installWorkflows iflows
 	>>= \flows -> case flows of
 		[]	= set iflows workflows @! ()
 		_	= return ()
-		
+
 loginAndManageWork :: !String -> Task ()
-loginAndManageWork welcome 
+loginAndManageWork welcome
 	= forever
 		(((	viewTitle welcome
 			||-
@@ -118,7 +118,7 @@ loginAndManageWork welcome
 					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
 					>>| (return Nothing)
 				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-	 	   ) 
+	 	   )
 		>>- browse) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
 		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
 where
@@ -129,9 +129,9 @@ where
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 	browse Nothing
 		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) manageWorkOfCurrentUser
-		
+
 	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
-		
+
 manageWorkOfCurrentUser :: Task ()
 manageWorkOfCurrentUser
 	= 	((manageSession -||
@@ -161,24 +161,24 @@ where
 
 manageSession :: Task ()
 manageSession =
-		(viewSharedInformation () [ViewAs view] currentUser	
+		(viewSharedInformation () [ViewAs view] currentUser
 	>>* [OnAction (Action "Log out") (always (return ()))])
 		 <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
 where
-	view user	= "Welcome " +++ toString user		
+	view user	= "Welcome " +++ toString user
 
 chooseWhatToDo = updateChoiceWithShared (Title "Menu") [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
 where
 	addManageWork wfs = [manageWorkWf:wfs]
 	manageWorkWf = transientWorkflow "My work" "Manage your worklist"  manageWork
-	
+
 manageWork :: Task ()
 manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
-	
+
 	manageList taskList
 		= get currentUser @ userRoles
-		>>- \roles -> 
+		>>- \roles ->
 			forever
 			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
 				>>* (continuations roles taskList)
@@ -204,7 +204,7 @@ where
 		]
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
-addNewTask list 
+addNewTask list
 	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
 	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
 		,OnAction ActionCancel (always (return ()))
@@ -213,7 +213,7 @@ addNewTask list
 chooseWorkflow :: Task Workflow
 chooseWorkflow
 	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) <<@ Title "Workflow Catalogue"
-	@? tvHd 
+	@? tvHd
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
 	toTree workflows = snd (seq (map add (zip ([0..],workflows))) (-1,[]))
@@ -232,7 +232,7 @@ where
 		    add` wfpath path=:[nodeP:pathR] (folderId,[])
 				# (folderId`,children) = add` wfpath pathR (folderId - 1,[])
                 = (folderId`,[{ChoiceNode|id = folderId, label=nodeP, icon=Nothing, children=children,expanded=False}])
-		    add` wfpath path (folderId,[node:nodesR]) 
+		    add` wfpath path (folderId,[node:nodesR])
 				# (folderId,rest) = add` wfpath path (folderId,nodesR)
 				= (folderId,[node:rest])
 
@@ -249,7 +249,7 @@ viewWorkflowDetails sel
 	@? onlyJust
 where
 	view = maybe "" (\wf -> wf.Workflow.description)
-	
+
 	onlyJust (Value (Just v) s) = Value v s
 	onlyJust _					= NoValue
 
@@ -271,7 +271,7 @@ where
     userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
-unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @! ())		
+unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @! ())
 
 openTask :: !(SharedTaskList ()) !TaskId -> Task ()
 openTask taskList taskId
@@ -350,12 +350,12 @@ restrictedTransientWorkflow path description roles task = toWorkflow path descri
 
 inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
 inputWorkflow name desc inputdesc tfun
-	= workflow name desc (enterInformation inputdesc [] >>= tfun)  
-	
+	= workflow name desc (enterInformation inputdesc [] >>= tfun)
+
 instance toWorkflow (Task a) | iTask a
 where
 	toWorkflow path description roles transient task = toWorkflow path description roles transient (Workflow defaultValue task)
-	
+
 instance toWorkflow (WorkflowContainer a) | iTask a
 where
 	toWorkflow path description roles transient (Workflow managerP task) = mkWorkflow path description roles transient (WorkflowTask task) managerP
@@ -363,11 +363,11 @@ where
 instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
 	toWorkflow path description roles transient paramTask = toWorkflow path description roles transient (ParamWorkflow defaultValue paramTask)
-	
+
 instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where
 	toWorkflow path description roles transient (ParamWorkflow managerP paramTask) = mkWorkflow path description roles transient (ParamWorkflowTask paramTask) managerP
-	
+
 mkWorkflow path description roles transient taskContainer managerProps =
 	{ Workflow
 	| path	= path

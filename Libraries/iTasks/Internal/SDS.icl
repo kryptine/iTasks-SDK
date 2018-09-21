@@ -597,10 +597,10 @@ instance Readable SDSParallel where
 	| res2 =:(Error _)
 		= (liftError res2, iworld)
 	= case (fromOk res1, fromOk res2) of
-		(ReadResult r1 ssds1, ReadResult r2 ssds2) = (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
-		(AsyncRead sds1, ReadResult r2 ssds2) = (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
-		(ReadResult r1 ssds1, AsyncRead sds2) = (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
-		(AsyncRead sds1, AsyncRead sds2) = (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
 
 instance Writeable SDSParallel where
 	writeSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,writel,writer,name}) p c w iworld

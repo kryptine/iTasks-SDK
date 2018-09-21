@@ -1,6 +1,6 @@
 definition module iTasks.WF.Tasks.Core
 /**
-* This module provis the builtin basic tasks 
+* This module provis the builtin basic tasks
 */
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
@@ -18,7 +18,7 @@ from iTasks.UI.Prompt import class toPrompt
 * @param Value: The value to be returned
 *				@default ()
 * @return A task that will return the value defined by the parameter
-* 
+*
 * @gin-icon return
 * @gin-shape return
 */
@@ -30,7 +30,7 @@ treturn :: !a -> Task a | iTask a
 *
 * @param Value: The exception value
 * @return The combined task
-* 
+*
 * @gin-title Raise exception
 * @gin-icon error
 */
@@ -41,7 +41,7 @@ throw :: !e -> Task a | iTask a & iTask, toString e
 *
 * @param World function: The function to evaluate
 * @return A () task that evaluates the function
-* 
+*
 * @gin False
 */
 appWorld :: !(*World -> *World)			-> Task () //TODO (All of these versions should be one core)
@@ -51,7 +51,7 @@ appWorld :: !(*World -> *World)			-> Task () //TODO (All of these versions shoul
 *
 * @param World function: The function to evaluate
 * @return A task that evaluates the function and yield a
-* 
+*
 * @gin False
 */
 accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
@@ -63,7 +63,7 @@ accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 * @param Error function: Error transformation function
 *
 * @return A  task that evaluates the function
-* 
+*
 * @gin False
 */
 accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
@@ -75,7 +75,7 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 * @param Error function: Error transformation function
 *
 * @return A task that evaluates the function
-* 
+*
 * @gin False
 */
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
@@ -86,7 +86,7 @@ instance toString OSException
 /**
 * Core interaction task. All other interaction tasks are derived from this one.
 */
-:: InteractionHandlers l r w v = 
+:: InteractionHandlers l r w v =
     { onInit    :: !(r -> (l,v))
     , onEdit    :: !(v l v -> (l, v, Maybe (r -> w)))
     , onRefresh :: !(r l v -> (l, v, Maybe (r -> w)))
