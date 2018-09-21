@@ -301,11 +301,10 @@ allTasks			:: ![Task a]			-> Task [a]				| iTask a
  * Execute the tasks in a thread pool
  *
  * @param Maximum number of concurrent tasks
- * @param Remove stable tasks
  * @param Tasks to execute
  * @result Values from the completed tasks
  */
-allTasksInPool :: Int Bool [Task a] -> Task [a] | iTask a
+allTasksInPool :: Int [Task a] -> Task [a] | iTask a
 
 /**
 * Group two tasks in parallel of which only one needs to be completed.

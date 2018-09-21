@@ -13,6 +13,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 from iTasks.Extensions.DateTime import waitForTimer
 from iTasks.UI.Definition import :: UIType(UILoader)
+import iTasks.Internal.Generic.Defaults
 
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
@@ -90,15 +91,7 @@ justdo task
 	Nothing	= throw ("The task returned nothing.")
 
 sequence :: ![Task a]  -> Task [a] | iTask a
-sequence tasks =foreverStIf
-	//Continue while there are tasks left
-	(not o isEmpty o snd)
-	//Initial state, empty accumulator, all tasks
-	([], tasks)
-	//Run the first task and add it to the accumulator
-	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
-	//When done, just return the accumulator
-	@ reverse o fst 
+sequence tasks = allTasksInPool 1 tasks
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 foreverStIf pred st t = parallel [(Embedded, par st Nothing)] [] @? fromParValue
@@ -191,28 +184,28 @@ where
     allStable cur (_,Value _ s) = cur && s
     allStable cur _             = False
 
-allTasksInPool :: Int Bool [Task a] -> Task [a] | iTask a
-allTasksInPool maxworkers rmStable tasks =
-	parallel
-		[(Embedded, \stl->executor stl @? \_->Value Nothing False)
-		,(Embedded, \stl->janitor stl @? \_->Value Nothing False)
-		] []
+allTasksInPool :: Int [Task a] -> Task [a] | iTask a
+allTasksInPool maxworkers tasks =
+	parallel [(Embedded, \stl->executor stl @? \_->Value Nothing False)] []
 	@? \tv->case tv of
 		NoValue = NoValue
-		Value tvs _ = Value [a\\(_, Value (Just a) True)<-tvs] (all (\(_, t)->t=:(Value _ True)) tvs)
+		Value tvs _ = Value
+			//All non-executor values are stables
+			[a\\(_, Value (Just a) True)<-tvs]
+			//Stability is is only if everyone is stable (including executor)
+			(all (\(_, t)->t=:(Value _ True)) tvs)
 where
-	executor stl =
+	executor stl = tune NoUserInterface $
+		//If there are tasks left
 		foreverStIf (not o isEmpty) tasks \[t:ts]->
-		        watch (sdsFocus {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False} stl)
-			>>* [OnValue $ ifValue ((>) maxworkers o if rmStable dec id o dec o nrUnstables o snd)
+			//Look at the process table
+			    watch (sdsFocus {defaultValue & includeValue=True} stl)
+			//If there are less tasks not ready than the maximum number of threads
+			>>* [OnValue $ ifValue ((>) maxworkers o dec o nrUnstables o snd)
+					//Add a new task
 					\_->appendTask Embedded (\_->t @ Just) stl @! ()
+			//Return the updated task queue
 			] >>- \_->treturn ts
-
-	janitor stl = forever $
-		    watch (mapRead stableIDs $ sdsFocus {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False} stl)
-		>>* [OnValue $ ifValue (not o isEmpty) $ sequence o map (flip removeTask stl)]
-
-	stableIDs _ = []
 
 	nrUnstables = length o filter \t->not t=:{TaskListItem|value=Value _ True}
 				
