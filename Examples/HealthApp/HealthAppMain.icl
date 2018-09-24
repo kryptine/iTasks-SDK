@@ -7,7 +7,7 @@ import HealthApp.SDS
 import HealthApp.Task
 
 workflows = [ workflow "View medication for user" "Medication" viewMedication
-			, workflow "Update address for user" "Address" updateAddess
+			, workflow "Update address for user" "Address" updateAddress
 			, workflow "Create new user" "Create user" createClient
 			, workflow "Register new medication" "Medication" registerMedication
 			, workflow "Create new appointment" "Appointment" createAppointment]

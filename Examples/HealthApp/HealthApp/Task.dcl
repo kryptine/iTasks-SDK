@@ -4,7 +4,7 @@ import iTasks
 
 viewMedication :: Task ()
 
-updateAddess :: Task ()
+updateAddress :: Task ()
 
 createClient :: Task ()
 

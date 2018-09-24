@@ -31,6 +31,7 @@ derive class iTask Address, SSN, AppointmentLength, Appointment, Medication, Cli
 
 :: ClientPhoto = ClientPhoto
 
+:: ClientId :== Int
 :: Client =
 	{ name :: String
 	, address :: Address

@@ -31,8 +31,8 @@ ActionEdit		:== Action "Edit"
 ActionDelete	:== Action "Delete"
 ActionRefresh	:== Action "Refresh"
 ActionClose		:==	Action "Close"
-	
-:: ParallelTaskType	
+
+:: ParallelTaskType
 	= Embedded                                    //Simplest embedded
     | NamedEmbedded !String                       //Embedded with name
 	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
@@ -75,7 +75,7 @@ ActionClose		:==	Action "Close"
     | ASDeleted             //* the task instance does not exist anymore
     | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
-:: AttachException		= InstanceNotFound | InstanceEvalError 
+:: AttachException		= InstanceNotFound | InstanceEvalError
 
 derive class iTask AttachException
 instance toString AttachException

@@ -3,7 +3,7 @@ definition module iTasks.WF.Tasks.Interaction
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: Action
 from iTasks.UI.Prompt import class toPrompt
-from iTasks.UI.Editor.Controls import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
+from iTasks.UI.Editor.Controls import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode
 import iTasks.SDS.Definition
 
 from Data.Functor import class Functor
@@ -23,7 +23,7 @@ from Data.Functor import class Functor
                         //to specify how the view must be updated when both the share changed and
                         //the user changed the view simultaneously. This conflict resolution function
                         //is applied before the new 'b' is generated from the view ('v') value
-                        | E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v)  & iTask v 
+                        | E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v)  & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s     = SelectInDropdown   (c -> [ChoiceText]) (c [Int] -> [s])
@@ -31,7 +31,7 @@ from Data.Functor import class Functor
      					| SelectInList       (c -> [ChoiceText]) (c [Int] -> [s])
      					| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
      					| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
-	
+
 //Choosing from lists
 :: ChoiceOption o	    = E.v: ChooseFromDropdown (o -> v)   & iTask v
 						| E.v: ChooseFromCheckGroup (o -> v) & iTask v
@@ -51,7 +51,7 @@ from Data.Functor import class Functor
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 
 /**
-* Ask the user to update predefined information. 
+* Ask the user to update predefined information.
 *
 * @param Description:		A description of the task to display to the user
 * @param Views:				Interaction views; if no view is defined a default view with the id lens is used
@@ -59,10 +59,10 @@ enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 *
 * @return					Value updated by the user
 */
-updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m 
+updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 
 /**
-* Show information to the user. 
+* Show information to the user.
 *
 * @param Description:		A description of the task to display to the user
 * @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
@@ -176,9 +176,9 @@ wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & R
 /*** Special tasks for choosing actions ***/
 
 /**
-* Ask the user to choose an action. 
+* Ask the user to choose an action.
 *
-* @param Action list:	A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
+* @param Action list:	A list of actions the user can choose from. Each actions yields the given result if it's chosen.
 *
 * @return 				Value associated with chosen action
 */

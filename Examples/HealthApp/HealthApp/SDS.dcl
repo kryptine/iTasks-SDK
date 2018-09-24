@@ -2,4 +2,10 @@ definition module HealthApp.SDS
 
 import HealthApp.Definition
 
-clientShare :: SDSLens () [Client] [Client]
+clientsShare :: SDSLens () [Client] [Client]
+
+clientsIndexedShare :: SDSLens () [(ClientId, Client)] [(ClientId, Client)]
+
+clientAddresShare :: ClientId -> SDSLens () Address Address
+
+clientMedicationShare :: ClientId -> SDSLens () [Medication] [Medication]
