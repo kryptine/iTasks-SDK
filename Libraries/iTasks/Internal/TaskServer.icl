@@ -14,6 +14,7 @@ import iTasks.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.I
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
+import iTasks.Internal.Util
 from iTasks.Internal.TaskStore import queueRefresh
 import iTasks.WF.Tasks.IO
 import iTasks.SDS.Combinators.Common
@@ -403,6 +404,7 @@ where
 						  *(!.ioChannels, !*IWorld)
 					   -> *IWorld
 	taskStateException mbTaskState instanceNo ioStates closeIO (ioChannels, iworld)
+		# iworld = iShow ["Exception in TaskServer: taskStateException: " +++ fromError mbTaskState] iworld
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
@@ -414,6 +416,7 @@ where
 					*(!.ioChannels, !*IWorld)
 					-> *IWorld
 	sdsException mbSdsErr instanceNo ioStates closeIO (ioChannels, iworld)
+		# iworld = iShow ["Exception in TaskServer: sdsException: " +++ snd (fromError mbSdsErr)] iworld
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})

@@ -4,6 +4,7 @@ import iTasks
 
 from Data.Func import $
 from StdMisc import abort
+import StdArray
 
 import iTasks.Extensions.Distributed._Formatter
 import iTasks.SDS.Definition
@@ -37,7 +38,7 @@ where
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
 	# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask (handlers symbols taskId) share) iworld
-	| mbError=:(Error _) = (ExceptionResult (fromError mbError), iworld)
+	| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
 	# iworld = iShow ["SDS server listening on " +++ toString port] iworld
 	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts (DeferredJSONNode JSONNull) False), iworld)
 
@@ -46,13 +47,17 @@ where
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
 	# (readResult, iworld) = read share EmptyContext iworld
-	| readResult=:(Error _) = (ExceptionResult (fromError readResult), iworld)
+	| readResult=:(Error _) = showException "read from symbols share" (fromError readResult) iworld
 	# shareValue = 'Map'.toList (directResult (fromOk readResult))
 	# (results, iworld) = reevaluateShares symbols  taskId shareValue iworld
-	| results=:(Error _) = (ExceptionResult (exception (fromError results)), iworld)
+	| results=:(Error _) = showException "re-evaluating share values" (exception (fromError results)) iworld
 	# (writeResult, iworld) = write ('Map'.fromList (fromOk results)) share EmptyContext iworld
-	| writeResult=:(Error _) = (ExceptionResult (fromError writeResult), iworld)
+	| writeResult=:(Error _) = showException "writing result share values" (fromError writeResult) iworld
 	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
+
+	showException base taskException=:(_, str) iworld
+	# iworld = iShow ["SDSService exception during " +++ base +++ ": " +++ str] iworld
+	= (ExceptionResult taskException, iworld)
 
 	handlers symbols taskId = {ConnectionHandlersIWorld|onConnect = onConnect
     	, onData = onData symbols taskId
@@ -104,7 +109,8 @@ where
 	// Right: Still need to do work..
 	performRequest :: !{#Symbol} !TaskId !String !String !*IWorld -> !(MaybeErrorString !(Either !String !String), !*IWorld)
 	performRequest symbols taskId host request iworld
-	| newlines (fromString request) > 1 = abort ("Multiple requests: " +++ request)
+	| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
+	| size request == 0 = (Error "Received empty request", iworld)
 	= case deserializeFromBase64 request symbols of
 		(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) Nothing (sdsIdentity sds) iworld of
 			(Error (_, e), iworld)							= (Error e, iworld)

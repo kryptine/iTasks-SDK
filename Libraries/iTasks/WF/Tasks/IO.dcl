@@ -11,7 +11,7 @@ from System.FilePath import :: FilePath
 from System.Process import :: ProcessPtyOptions
 from Data.Error import :: MaybeError, :: MaybeErrorString
 
-:: ConnectionHandlers l r w = 
+:: ConnectionHandlers l r w =
     { onConnect         :: !(ConnectionId String   r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onData            :: !(			  String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onShareChange     :: !(                    l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))

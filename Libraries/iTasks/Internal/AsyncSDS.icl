@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.AsyncSDS
 
-import Data.Maybe, Data.Either, Data.List
+import Data.Maybe, Data.Either, Data.List, Data.Func
 import Text, Text.GenJSON
 import StdMisc, StdArray
 import Internet.HTTP
@@ -46,8 +46,9 @@ where
 		onDisconnect = onDisconnect}
 
 	onDisconnect (Left acc) _
-	# r = deserializeFromBase64 (concat acc) symbols
-	= (Ok (Right r), Nothing)
+	# textResponse = concat acc
+	| size textResponse < 1 = (Error ("queueSDSRequest: Server " +++ host +++ " disconnected without responding"), Nothing)
+	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
 queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
@@ -63,9 +64,9 @@ where
 		onDisconnect = onDisconnect}
 
 	onDisconnect (Left acc) _
-	# rawResponse = concat acc
-	# r = deserializeFromBase64 rawResponse symbols
-	= (Ok (Right r), Nothing)
+	# textResponse = concat acc
+	| size textResponse == 0 = (Error ("queueModifyRequest: Server" +++ host +++ " disconnected without responding"), Nothing)
+	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
@@ -86,9 +87,10 @@ where
 	onShareChange acc _ = (Ok acc, Nothing, [], False)
 
 	onDisconnect (Left acc) _
-	# rawResponse = concat acc
-	= case parseResponse rawResponse of
-		Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
+	# textResponse = concat acc
+	| size textResponse == 0 = (Error ("queueServiceRequest: Server" +++ req.server_name +++ ":" +++ toString req.server_port +++ " disconnected without responding"), Nothing)
+	= case parseResponse textResponse of
+		Nothing = (Error ("Unable to parse HTTP response, got: " +++ textResponse), Nothing)
 		(Just parsed) = case parse parsed of
 			(Left error) = (Error error, Nothing)
 			(Right a) = (Ok (Right a), Nothing)
@@ -171,7 +173,6 @@ getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioSta
 			(IOException exc)                   = Left exc
 			(IOActive connectionMap)            = getValue connectionId connectionMap
 			(IODestroyed connectionMap)         = getValue connectionId connectionMap
-		Nothing                             = Right Nothing
 where
 	getValue connectionId connectionMap
 	= case 'DM'.get connectionId connectionMap of
