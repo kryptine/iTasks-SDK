@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Enter a palindrome" palindrome
 
-Start :: *World -> *World
-Start world
-	= doTasks palindrome world
+main :: Task ()
+main = palindrome @! ()
 
 palindrome :: Task (Maybe String)
 palindrome

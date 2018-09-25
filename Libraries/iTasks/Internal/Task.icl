@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.Task
 
 from StdFunc import const, id
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc, Data.Func
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Text.HTML, Internet.HTTP, Data.Error, Data.Functor, Text.GenJSON
@@ -35,7 +35,9 @@ JSONDecode{|Task|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ _ c = (Nothing,c)
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ = emptyEditor
+gEditor{|Task|} _ _ tj fj =
+	emptyEditorWithErrorInEnterMode_  (JSONEncode{|* -> *|} tj) (JSONDecode{|* -> *|} fj) "Tasks cannot be entered."
+
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx = Task (\_ -> abort error)

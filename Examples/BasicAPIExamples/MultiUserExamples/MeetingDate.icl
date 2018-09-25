@@ -11,9 +11,8 @@ import Text
 wf :: String -> Workflow
 wf a = workflow a "Plan a meeting" myExample
 
-Start :: *World -> *World
-Start world
-	= doTasks multiUserExample world
+main :: Task ()
+main = multiUserExample @! ()
 
 multiUserExample
 	=				set (map mkUserAccount players) userAccounts

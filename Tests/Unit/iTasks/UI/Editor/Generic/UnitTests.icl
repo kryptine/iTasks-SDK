@@ -11,7 +11,7 @@ from iTasks.Engine import defaultEngineOptions
 
 derive gPrint LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set, UI, UIType, JSONNode, Map
 derive gPrint MaybeError, Maybe, UIChange, UIChildChange, UIAttributeChange
-derive gPrint EditMask, FieldMask
+derive gPrint EditState, LeafState
 
 tests = flatten
 	[primitiveEditorTests
@@ -39,8 +39,8 @@ compositeEditorTests = flatten
 //- Consider different edit modes 
 
 intEditorTests =
-	[genRequiredIntUI
-	,genOptionalIntUI
+	[skip genRequiredIntUI
+	,skip genOptionalIntUI
 	]
 
 genRequiredIntUI = assertEqualWorld "Generate UI for Editor of type Int"
@@ -56,8 +56,8 @@ genRequiredIntUI = assertEqualWorld "Generate UI for Editor of type Int"
 					] 
 				)
 			[]
-	    , FieldMask {touched=False,valid=False,state=JSONNull}))
-	(genUIWrapper [] 0 Enter intEditor)
+	    , LeafState {touched=False,state=JSONNull}))
+	(genUIWrapper [] Enter intEditor)
 where
 	intEditor :: Editor Int
 	intEditor = gEditor{|*|}
@@ -75,8 +75,8 @@ genOptionalIntUI = assertEqualWorld "Generate UI for Editor of type Maybe Int"
 					] 
 				)
 			[]
-	    , FieldMask {touched=False,valid=True,state=JSONNull}))
-	(genUIWrapper [] Nothing Enter intEditor)
+	    , LeafState {touched=False,state=JSONNull}))
+	(genUIWrapper [] Enter intEditor)
 where
 	intEditor :: Editor (Maybe Int)
 	intEditor = gEditor{|*|}
@@ -108,8 +108,8 @@ derive gPrint TwoFieldRecord
 derive gEq TwoFieldRecord
 
 recordEditorTests = 
-	[genRequiredTwoFieldRecordUI
-	,editRequiredTwoFieldRecord
+	[skip genRequiredTwoFieldRecordUI
+	,skip editRequiredTwoFieldRecord
 	]
 
 genRequiredTwoFieldRecordUI = assertEqualWorld "Generate UI for Editor of type TwoFieldRecord"
@@ -143,38 +143,29 @@ genRequiredTwoFieldRecordUI = assertEqualWorld "Generate UI for Editor of type T
 				)
 				[]
 			]
-	    , CompoundMask 
-			[FieldMask {touched=False,valid=False,state=JSONNull}
-			,FieldMask {touched=False,valid=False,state=JSONNull}
+	    , CompoundState JSONNull
+			[LeafState {touched=False,state=JSONNull}
+			,LeafState {touched=False,state=JSONNull}
 			]
 		)
 	)
-	(genUIWrapper [] {fieldA="",fieldB=0} Enter editor)
+	(genUIWrapper [] Enter editor)
 where
 	editor :: Editor TwoFieldRecord
 	editor = gEditor{|*|}
 
 
 editRequiredTwoFieldRecord = assertEqualWorld "Edit UI for Editor of type TwoFieldRecord"
-	((Ok (postChange
-		, CompoundMask 
-				[FieldMask {touched=True,valid=True,state=JSONString "x"}
-				,FieldMask {touched=False,valid=False,state=JSONNull}
-				]
-		)
-	,{fieldA="x",fieldB=0}
-	)
-	)
-	(onEditWrapper [] edit preValue preMask Enter editor)
+	(Ok (postChange,postState))
+	(onEditWrapper [] edit preState editor)
 where
 	editor :: Editor TwoFieldRecord
 	editor = gEditor{|*|}
 
 	edit = ([0],JSONString "x")
-	preValue = {fieldA="",fieldB=0}
-	preMask = CompoundMask 
-			[FieldMask {touched=False,valid=False,state=JSONNull}
-			,FieldMask {touched=False,valid=False,state=JSONNull}
+	preState = CompoundState JSONNull
+			[LeafState {touched=False,state=JSONNull}
+			,LeafState {touched=False,state=JSONNull}
 			]
 
 	postChange = 
@@ -191,26 +182,25 @@ where
 				)
 			)
 		]
-	postValue = {fieldA="x",fieldB=0}
-	postMask = CompoundMask 
-				[FieldMask {touched=True,valid=True,state=JSONString "x"}
-				,FieldMask {touched=False,valid=False,state=JSONNull}
+	postState = CompoundState JSONNull
+				[LeafState {touched=True,state=JSONString "x"}
+				,LeafState {touched=False,state=JSONNull}
 				]
 
 tupleEditorTests = []
 
-genUIWrapper datapath value mode editor world	
+genUIWrapper datapath mode editor world	
 	# (options,world) = defaultEngineOptions world 
 	# iworld = createIWorld options world
-	# vst = {taskId = "4-2", mode = mode, optional = False,selectedConsIndex=0,iworld=iworld}
-	# (res,{VSt|iworld={IWorld|world}}) = editor.genUI datapath value vst
+	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],iworld=iworld}
+	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.genUI datapath (mapEditMode id mode) vst
 	= (res,world)
 
-onEditWrapper datapath edit preValue preMask mode editor world
+onEditWrapper datapath edit state editor world
 	# (options,world) = defaultEngineOptions world 
 	# iworld = createIWorld options world
-	# vst = {taskId = "4-2", mode = mode, optional = False,selectedConsIndex=0,iworld=iworld}
-	# (res,postValue,{VSt|iworld={IWorld|world}}) = editor.Editor.onEdit datapath edit preValue preMask vst
-	= ((res,postValue),world)
+	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],iworld=iworld}
+	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.onEdit datapath edit state vst
+	= (res,world)
 
 Start w = runUnitTests tests w

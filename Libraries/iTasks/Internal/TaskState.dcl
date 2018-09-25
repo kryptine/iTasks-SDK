@@ -6,7 +6,7 @@ from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskEx
 from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
-from iTasks.UI.Editor import :: EditMask
+from iTasks.UI.Editor import :: EditState
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUINo, :: LUIEffectStage
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Map import :: Map
@@ -64,7 +64,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !DeferredJSON !Bool 									//Encoded value and stable indicator
 	| TCAwait					!AsyncAction !TaskId !TaskTime !TaskTree
-	| TCInteract	            !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditMask
+	| TCInteract	            !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
 	| TCStep					!TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree

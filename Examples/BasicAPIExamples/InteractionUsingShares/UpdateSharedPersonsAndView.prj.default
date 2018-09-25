@@ -45,7 +45,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	BasicAPIExamples.InteractionUsingShares.UpdateSharedPersonsAndView
+	Name:	BasicAPIExamples.InteractionUsingShares.UpdateSharedPersonsAndViewMain
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

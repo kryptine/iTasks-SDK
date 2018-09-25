@@ -8,9 +8,8 @@ import iTasks.Extensions.Currency, Text.HTML
 wf :: String -> Workflow
 wf a = workflow a "Calculator" coffeemachine
 
-Start :: *World -> *World
-Start world
-	= doTasks coffeemachine world
+main :: Task ()
+main = coffeemachine @! ()
 
 coffeemachine :: Task (String,EUR)
 coffeemachine

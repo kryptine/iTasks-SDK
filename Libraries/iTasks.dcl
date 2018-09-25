@@ -1,11 +1,11 @@
 definition module iTasks
 
 /**
-* Main iTask module exporting all end user iTask modules 
+* Main iTask module exporting all end user iTask modules
 */
-import	
+import
     // iTasks engine
-        iTasks.Engine				
+        iTasks.Engine
     // iTasks API
     ,   iTasks.SDS.Definition
     ,   iTasks.SDS.Sources.Core
@@ -39,11 +39,11 @@ import
 	,	Text.GenJSON							// JSON is used for serializing/deserializing strings
 	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
-	
+
 	//	API extensions for user  & workflow management
 	,	iTasks.Extensions.Admin.UserAdmin
 	,	iTasks.Extensions.Admin.WorkflowAdmin
-	
+
 	//StdEnv modules
 	,	StdInt
 	,	StdBool

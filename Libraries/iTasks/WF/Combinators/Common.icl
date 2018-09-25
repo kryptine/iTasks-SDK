@@ -2,10 +2,9 @@ implementation module iTasks.WF.Combinators.Common
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON
+import StdEnv
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON, Data.Func
 import iTasks.Internal.Util
-from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
 import iTasks.SDS.Combinators.Common
@@ -14,6 +13,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 from iTasks.Extensions.DateTime import waitForTimer
 from iTasks.UI.Definition import :: UIType(UILoader)
+import iTasks.Internal.Generic.Defaults
 
 import iTasks.Internal.SDS
 import iTasks.WF.Tasks.Core
@@ -92,28 +92,23 @@ justdo task
 	Nothing	= throw ("The task returned nothing.")
 
 sequence :: ![Task a]  -> Task [a] | iTask a
-sequence tasks = foreverStIf
-	//Continue while there are tasks left
-	(not o isEmpty o snd)
-	//Initial state, empty accumulator, all tasks
-	([], tasks)
-	//Run the first task and add it to the accumulator
-	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
-	//When done, just return the accumulator
-	@ reverse o fst
+sequence tasks = allTasksInPool 1 tasks
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
-	>>* [OnValue (withValue \v->case v of
-			[(_, Value i True)] = Just (treturn i)
-			_ = Nothing)]
+foreverStIf pred st t = parallel [(Embedded, par st Nothing)] [] @? fromParValue
 where
 	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
 	par st Nothing tlist
 		| not (pred st) = treturn st
-		= get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
-			>>- \(_, [{TaskListItem|taskId}])->t st
-			>>- \st`->appendTask Embedded (par st` (Just taskId)) tlist @? const NoValue
+		= step
+			(t st)
+			id
+			[ OnValue $ ifStable \st` -> get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
+			                             appendTask Embedded (par st` (Just taskId)) tlist    @! st`
+		    ]
+
+	fromParValue (Value [(_, val=:Value _ _)] _) = val
+	fromParValue _                               = NoValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
@@ -189,6 +184,31 @@ where
 
     allStable cur (_,Value _ s) = cur && s
     allStable cur _             = False
+
+allTasksInPool :: Int [Task a] -> Task [a] | iTask a
+allTasksInPool maxworkers tasks =
+	parallel [(Embedded, \stl->executor stl @? \_->Value Nothing False)] []
+	@? \tv->case tv of
+		NoValue = NoValue
+		Value tvs _ = Value
+			//All non-executor values are stables
+			[a\\(_, Value (Just a) True)<-tvs]
+			//Stability is is only if everyone is stable (including executor)
+			(all (\(_, t)->t=:(Value _ True)) tvs)
+where
+	executor stl = tune NoUserInterface $
+		//If there are tasks left
+		foreverStIf (not o isEmpty) tasks \[t:ts]->
+			//Look at the process table
+			    watch (sdsFocus {defaultValue & includeValue=True} stl)
+			//If there are less tasks not ready than the maximum number of threads
+			>>* [OnValue $ ifValue ((>) maxworkers o dec o nrUnstables o snd)
+					//Add a new task
+					\_->appendTask Embedded (\_->t @ Just) stl @! ()
+			//Return the updated task queue
+			] >>- \_->treturn ts
+
+	nrUnstables = length o filter \t->not t=:{TaskListItem|value=Value _ True}
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)

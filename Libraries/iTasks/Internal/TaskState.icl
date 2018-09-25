@@ -48,7 +48,7 @@ taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 taskIdFromTaskTree (TCInit                  taskId _)         = Ok taskId
 taskIdFromTaskTree (TCAwait 				_ taskId _ _ )  = Ok taskId
 taskIdFromTaskTree (TCBasic                 taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCInteract              taskId _ _ _ _)   = Ok taskId
+taskIdFromTaskTree (TCInteract              taskId _ _ _ _ _) = Ok taskId
 taskIdFromTaskTree (TCStep                  taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCParallel              taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCShared                taskId _ _)       = Ok taskId

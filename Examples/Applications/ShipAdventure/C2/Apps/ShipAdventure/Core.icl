@@ -23,7 +23,14 @@ derive JSEncode Map2D, Network, Coord2D, Cable, CableType, Section, Borders, Bor
 derive JSEncode Device, SectionStatus, DeviceType, DeviceKind, User, Dir, Availability
 derive JSEncode Actor, ActorStatus, ActorEnergy, ActorHealth, Object, ObjectType
 derive JSEncode MapAction
-derive JSEncode Maybe, Map, IntMap
+derive JSEncode Map, IntMap
+
+derive JSDecode Map2D, Network, Coord2D, Cable, CableType, Section, Borders, Border
+derive JSDecode Device, SectionStatus, DeviceType, DeviceKind, User, Dir, Availability
+derive JSDecode Actor, ActorStatus, ActorEnergy, ActorHealth, Object, ObjectType
+derive JSDecode MapAction
+derive JSDecode Map, IntMap
+
 
 // the next function should be placed in the library somewhere
 mkTable :: [String] ![a] -> (ChoiceGrid,[Int]) | gText{|*|} a

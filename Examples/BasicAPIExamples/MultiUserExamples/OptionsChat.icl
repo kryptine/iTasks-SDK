@@ -11,9 +11,8 @@ import iTasks.Extensions.Document
 wf :: String -> Workflow
 wf a = workflow a "Chat with options" genChat
 
-Start :: *World -> *World
-Start world
-	= doTasks multiUserExample world
+main :: Task ()
+main = multiUserExample @! ()
 
 multiUserExample
 	=				set (map mkUserAccount logins) userAccounts

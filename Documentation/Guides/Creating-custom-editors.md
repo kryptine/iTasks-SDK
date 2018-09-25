@@ -51,8 +51,8 @@ In the example of the previous section we have seen the `slider` editor. This ed
 Creating editors for basic values is useful, but more often we want to construct editors for composite datastructures such as records. Let's expand the slider example to show how you can compose editors.
 
 ```Clean
-myTask4 :: Task Int
-myTask4 = updateInformation "Change the magic number"
+myTask :: Task Int
+myTask = updateInformation "Change the magic number"
     [UpdateUsing (\x -> ("Mylabel",x)) (\_ (_,x) -> x) editor] 42
 where
     editor :: Editor (String,Int)
@@ -64,8 +64,8 @@ When you run this example, you'll see the same slider as before, but this time w
 If we want to create more complex editors, it will quickly become very messy if we pass all labels and other static elements in the mapping of `UpdateUsing`. Luckily, there is a way we can embed this mapping in the editor itself. Let's take a look:
 
 ```Clean
-myTask5 :: Task Int
-myTask5 = updateInformation "Change the magic number"
+myTask :: Task Int
+myTask = updateInformation "Change the magic number"
     [UpdateUsing (\x -> x) (\_ x -> x) editor] 42
 where
     editor :: Editor Int
@@ -86,8 +86,8 @@ In the next example, we'll take it one step further and create a nice little for
     }
 derive class iTask MyRecord
 
-myTask6 :: Task MyRecord
-myTask6 = enterInformation "Enter your data" [EnterUsing id editor]
+myTask :: Task MyRecord
+myTask = enterInformation "Enter your data" [EnterUsing id editor]
 where
     editor = bijectEditorValue (\{foo,bar} -> (foo,bar)) (\(foo,bar) -> {foo=foo,bar=bar})
                 (panel2
@@ -95,7 +95,7 @@ where
                     (row "Barmagic:" slider)
                 ) <<@ heightAttr WrapSize
     row l e = bijectEditorValue (\x -> (l,x)) snd
-                ((container2 label e) <<@ directionAttr Horizontal)
+                ((container2 (viewConstantValue l label) e) <<@ directionAttr Horizontal)
 ```
 
 This example is a little more complex, but uses only things we have already seen. By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
@@ -107,15 +107,15 @@ One of the nice features of the generic editors is that they work for any type o
 When you choose between different constructors of an ADT, the editor for the fields of the ADT depends on the selected constructor. You can create similar behaviour in your custom editors with the `containerc`/`panelc`/… combinators. The following example shows how this is done for a custom list type `MyList a`.
 
 ```
-::: MyList a = MyNil | MyCons a (MyList a)
+:: MyList a = MyNil | MyCons a (MyList a)
 derive class iTask MyList
 
-myTask7 :: Task (MyList String)
-myTask7 = enterInformation "Enter the list" [EnterUsing id editor]
+myTask :: Task (MyList String)
+myTask = enterInformation "Enter the list" [EnterUsing id editor]
 where
     editor = injectEditorValue (\x -> (0,x)) (Ok o snd)
         (containerc (chooseWithDropdown ["Nil","Cons"])
-            [(const MyNil, emptyEditor)
+            [(const MyNil, emptyEditor MyNil)
             ,(const (MyCons gDefault{|*|} MyNil), consEditor)
             ] <<@ heightAttr WrapSize)
 
