@@ -12,21 +12,21 @@ memoryShare_ name default = sdsFocus name (memoryStore name (Just default))
 repeatClient :: (Task (Maybe a)) -> Task (Maybe a) | iTask a
 repeatClient task
 	= (try task) <! isJust
-where   
+where
 	try :: (Task (Maybe a)) -> Task (Maybe a) | iTask a
 	try task
 		= catchAll task (\_ -> return Nothing)
 		>>- \result -> if (isNothing result) tryAgain (return result)
-                
+
 	tryAgain :: Task (Maybe a) | iTask a
 	tryAgain
 		= waitForTimer` timeout @! Nothing
-	where   
+	where
 		timeout = 60
-                
+
 waitForTimer` :: !Int -> Task DateTime
-waitForTimer` interval 
-	= get currentDateTime 
+waitForTimer` interval
+	= get currentDateTime
 	>>- \now -> endTime interval now
 	>>- \later -> waitForDateTime` later
 where

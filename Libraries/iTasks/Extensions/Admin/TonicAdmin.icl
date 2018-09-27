@@ -202,7 +202,7 @@ tonicDynamicBrowser rs
                          , (Embedded, \_ -> filterQuery)
                          , (Embedded, \_ -> activeUsers)
                          , (Embedded, \_ -> taskViewer)
-                         ] [] /*<<@ ArrangeCustom layout*/ 
+                         ] [] /*<<@ ArrangeCustom layout*/
                )) @! ()
   where
 /*
@@ -329,9 +329,6 @@ where
                            _ = viewInformation () [] "Please select a blueprint" @! ()
       )<<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Back","previous"),("Parent task","open")])))
      where
-
-     // TODO: Fix!
-     f _ = undef
 
      navigateBackwards :: !DynamicDisplaySettings !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) NavStack a -> Maybe (Task ())
      navigateBackwards _ _ [] _ = Nothing

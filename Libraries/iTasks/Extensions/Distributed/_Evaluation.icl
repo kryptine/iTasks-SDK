@@ -45,20 +45,19 @@ where
 
 proxyTask :: (sds () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 proxyTask value_share onDestroy = Task (eval value_share)
-        where
-        eval :: (sds () (TaskValue a) (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
-        eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
-                # (val,iworld)  = readRegister taskId value_share iworld
-                = case val of
-                        // TODO: Fix
-                      Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
-                      Error e           = (ExceptionResult e,iworld)
-        eval value_share event repAs (TCDestroy _) iworld
-                # iworld = onDestroy iworld
-                = (DestroyedResult,iworld)
+where
+    eval :: (sds () (TaskValue a) (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
+    eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
+            # (val,iworld)  = readRegister taskId value_share iworld
+            = case val of
+                  Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                  Error e           = (ExceptionResult e,iworld)
+    eval value_share event repAs (TCDestroy _) iworld
+            # iworld = onDestroy iworld
+            = (DestroyedResult,iworld)
 
-        rep ResetEvent = ReplaceUI (ui UIEmpty)
-        rep _          = NoChange
+    rep ResetEvent = ReplaceUI (ui UIEmpty)
+    rep _          = NoChange
 
 taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))

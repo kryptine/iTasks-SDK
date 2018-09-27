@@ -72,7 +72,6 @@ readRegister    :: !TaskId !(sds () r w) !*IWorld
 	-> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
 readRegister taskId sds iworld = readRegisterSDS sds () (TaskContext taskId) taskId iworld
 
-import StdDebug
 mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
 mbRegister p sds Nothing _ reqSDSId iworld = iworld
@@ -430,7 +429,7 @@ instance Modifiable SDSCache where
 			(Error e)   = (Error e, iworld)
 			(Ok w)      = case writeSDS ssds p context w iworld of
 				(Error e, iworld)   = (Error e, iworld)
-				// TODO: Async
+				(Ok (AsyncWrite sds), iworld)            = (Ok (AsyncModify sds f), iworld)
 				(Ok (WriteResult notify ssds), iworld) = (Ok (ModifyResult r w (SDSCache ssds opts)), queueNotifyEvents (sdsIdentity sds) notify iworld)
 
 instance Registrable SDSCache where

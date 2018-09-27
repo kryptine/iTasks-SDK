@@ -25,7 +25,7 @@ from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor M
 	{ id :: Int
 	, buffer :: String
 	}
-	
+
 derive class iTask Communication
 derive class iTask AuthShare
 derive class iTask AuthServerState
@@ -53,58 +53,58 @@ where
 	onData newData st=:{id,buffer} share
 		= let (requests, newBuffer) = getRequests (buffer +++ newData) in
 			(Ok {AuthServerState| st & buffer = newBuffer}, Just { share & clients = [ if (clientid == id) ({Communication| c & requests = c.requests ++ requests}) c \\ c=:{Communication|id=clientid} <- share.clients] }, [], False)
-	
+
 	onShareChange state=:{AuthServerState|id} share
 		# responses = flatten [ c.responses \\ c=:{Communication|id=clientid} <- share.clients | clientid == id ]
 		| isEmpty responses = (Ok state, Just share, responses, False)
 		# share = {share & clients = [ if (clientid == id) {Communication| c & responses = []} c \\ c=:{Communication|id=clientid} <- share.clients ] }
 		= (Ok state, Just share, [ r +++ "\n" \\ r <- responses ], False) // Only replay on requests.
-	
+
 	onDisconnect :: AuthServerState AuthShare -> (MaybeErrorString AuthServerState, Maybe AuthShare)
 	onDisconnect state share
 		= (Ok state, Just share)
-		
+
 	process :: (sds () AuthShare AuthShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where
 		hasRequests :: AuthShare -> Bool
 		hasRequests {AuthShare|clients} = not (isEmpty (flatten [requests \\ c=:{Communication|requests}<-clients | not (isEmpty requests)]))
-	
+
 		changed :: Task Bool
 		changed
 			= get share
 			>>= \{AuthShare|clients} -> processClients clients
 			>>= \newClients -> upd (\s -> {AuthShare| s & clients = newClients}) share
 			>>| return True
-			
+
 		processClients :: [Communication] -> Task [Communication]
 		processClients [] = return []
 		processClients [c=:{Communication|id, requests}:rest]
 			= case requests of
 				[]		= processClients rest >>= \rest -> return [c:rest]
 				data	= processClients rest >>= \rest -> appendTopLevelTask ('DM'.fromList []) True (handleClient id data) >>| return [{Communication| c & requests = []}:rest]
-				
+
 		handleClient :: Int [String] -> Task ()
 		handleClient id requests
 			= handleClientRequests id requests
-			>>= \responses -> upd (\s -> {AuthShare| s & clients = [if (clientid == id) ({Communication| c & responses=responses}) c \\ c=:{Communication|id=clientid} <- s.clients]}) share @! ()			
-				
+			>>= \responses -> upd (\s -> {AuthShare| s & clients = [if (clientid == id) ({Communication| c & responses=responses}) c \\ c=:{Communication|id=clientid} <- s.clients]}) share @! ()
+
 		handleClientRequests :: Int [String] -> Task [String]
-		handleClientRequests id [] 
+		handleClientRequests id []
 			= return []
 		handleClientRequests id [request:rest]
 			= handleClientRequest id ('T'.split " " request)
-			>>= \responses -> handleClientRequests id rest 
+			>>= \responses -> handleClientRequests id rest
 			>>= \other -> return (responses ++ other)
-				
+
 		handleClientRequest :: Int [String] -> Task [String]
-		handleClientRequest id ["auth", username, password] 
+		handleClientRequest id ["auth", username, password]
 			# username = base64Decode username
 			# password = base64Decode password
 			= authenticateUser (Username username) (Password password)
 			>>= \user -> return [(base64Encode (toString (toJSON user)))]
-		handleClientRequest id ["users"] 
+		handleClientRequest id ["users"]
 			= get users
 			>>= \users -> return [(base64Encode (toString (toJSON users)))]
 		handleClientRequest _ _ = return []
@@ -118,7 +118,7 @@ remoteAuthenticateUser (Username username) (Password password)
 	>>- \user -> return (fromMaybe Nothing user)
 
 getUsers :: String Int -> Task [User]
-getUsers host port 
+getUsers host port
 	= request host port "users"
 	>>= \users -> return (fromMaybe [] users)
 
@@ -128,7 +128,7 @@ request host port request
 where
 	client :: Task (Maybe a) | iTask a
 	client
-		= ((tcpconnect host port (constShare ())  
+		= ((tcpconnect host port (constShare ())
                         { ConnectionHandlers
                         | onConnect      = onConnect
                         , onData	 = onData
@@ -157,7 +157,7 @@ where
                 = (Ok state, Just share)
 
 	taskResult (Value (r1,r2,True) _) = Value (r1,r2) True
-	taskResult _                      = NoValue	
+	taskResult _                      = NoValue
 
 getRequests :: String -> ([String], String)
 getRequests input
@@ -173,7 +173,7 @@ DEFAULT_AUTH_PORT = 2018
 
 domainAuthServer :: Task ()
 domainAuthServer
-	= authServer DEFAULT_AUTH_PORT 
+	= authServer DEFAULT_AUTH_PORT
 
 usersOf :: Domain -> Task [User]
 usersOf (Domain domain)

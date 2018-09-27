@@ -101,7 +101,7 @@ where
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
 	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of
 		(Error (d, s), iworld) 						= (ExceptionResult (d, s), iworld)
-		(Ok (ModifyResult r w _), iworld)		= (ValueResult (Value w True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
+		(Ok (ModifyResult r w _), iworld)			= (ValueResult (Value w True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
 		(Ok (AsyncModify sds _), iworld)
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
 			# tree = TCAwait Modify taskId ts (TCInit taskId ts)
@@ -124,12 +124,23 @@ watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch shared = Task (eval shared)
 where
 	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult r, !*IWorld) | iTask r & TC w & Readable, Registrable sds
-	eval shared event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
-		# res = case val of
-			Ok (ReadResult val _)		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts)
-			Error e		= ExceptionResult e
-		= (res,iworld)
+	eval shared event evalOpts (TCInit taskId ts) iworld=:{sdsEvalStates} = case 'SDS'.readRegister taskId shared iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (ReadResult val _), iworld) = (ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts), iworld)
+		(Ok (AsyncRead sds), iworld)
+		# ei = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+		# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
+		= (ValueResult NoValue ei (rep event) (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
+
+	eval shared event evalOpts (TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates} = case 'DM'.get taskId sdsEvalStates of
+		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
+		Just val = case val iworld of
+			(Error e, iworld) = (ExceptionResult e, iworld)
+			(Ok (res :: ReadResult () r^ w^), iworld) = case res of
+				ReadResult v _ = (ValueResult (Value v False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange subtree, {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
+				AsyncRead sds
+				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
+				= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval shared event repAs ttree=:(TCDestroy _) iworld
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
