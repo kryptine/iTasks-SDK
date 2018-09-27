@@ -1,7 +1,7 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks-dist
+	Target:	iTasks
 	Exec:	{Project}/RemoteShareExamples
 	CodeGen
 		CheckStacks:	False
@@ -37,9 +37,9 @@ Global
 		GenerateSymbolTable:	True
 		GenerateLinkMap:	True
 		LinkResources:	False
-		ResourceSource:	
+		ResourceSource:
 		GenerateDLL:	False
-		ExportedNames:	
+		ExportedNames:
 	Paths
 		Path:	{Project}
 	OtherPaths
@@ -51,8 +51,8 @@ Global
 		Path:	{Application}*lib*Sapl
 		Path:	{Application}*lib*StdEnv
 		Path:	{Application}*lib*TCPIP
-	Precompile:	
-	Postlink:	
+	Precompile:
+	Postlink:
 MainModule
 	Name:	RemoteShareExamples
 	Dir:	{Project}

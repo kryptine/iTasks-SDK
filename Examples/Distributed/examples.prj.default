@@ -21,10 +21,10 @@ Global
 		Profile
 			Memory:	False
 			MemoryMinimumHeapSize:	0
-			Time:	False
-			Stack:	False
-			Dynamics:	False
-			DescExL:	False
+			Time:	True
+			Stack:	True
+			Dynamics:	True
+			DescExL:	True
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -36,13 +36,13 @@ Global
 		GenerateSymbolTable:	True
 		GenerateLinkMap:	True
 		LinkResources:	False
-		ResourceSource:	
+		ResourceSource:
 		GenerateDLL:	False
-		ExportedNames:	
+		ExportedNames:
 	Paths
 		Path:	{Project}
-	Precompile:	
-	Postlink:	
+	Precompile:
+	Postlink:
 MainModule
 	Name:	examples
 	Dir:	{Project}
