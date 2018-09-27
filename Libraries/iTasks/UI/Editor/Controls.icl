@@ -12,31 +12,31 @@ import iTasks.UI.Editor.Modifiers
 disableOnView e = selectByMode (e <<@ enabledAttr False) e e
 
 textField :: Editor String
-textField = fieldComponent UITextField
+textField = fieldComponent UITextField Nothing
 
 textArea :: Editor String
-textArea = fieldComponent UITextArea
+textArea = fieldComponent UITextArea Nothing
 
 passwordField :: Editor String
-passwordField = fieldComponent UIPasswordField
+passwordField = fieldComponent UIPasswordField Nothing
 
 integerField :: Editor Int
-integerField = fieldComponent UIIntegerField
+integerField = fieldComponent UIIntegerField Nothing
 
 decimalField :: Editor Real
-decimalField = fieldComponent UIDecimalField
+decimalField = fieldComponent UIDecimalField Nothing
 
 documentField :: Editor (!String,!String,!String,!String,!Int)
-documentField = fieldComponent UIDocumentField
+documentField = fieldComponent UIDocumentField Nothing
 
 checkBox :: Editor Bool
-checkBox = fieldComponent UICheckbox
+checkBox = fieldComponent UICheckbox $ Just False
 
 slider :: Editor Int
-slider = fieldComponent UISlider
+slider = fieldComponent UISlider Nothing
 
 button :: Editor Bool
-button = fieldComponent UIButton
+button = fieldComponent UIButton Nothing
 
 label :: Editor String
 label = viewComponent textAttr UILabel
@@ -102,15 +102,14 @@ derive JSONEncode ChoiceNode
 derive JSONDecode ChoiceNode
 
 //Field like components for which simply knowing the UI type is sufficient
-fieldComponent :: UIType -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
-fieldComponent type = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)
+fieldComponent :: !UIType !(Maybe a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
+fieldComponent type mbEditModeInitValue = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)
 where 
-	leafEditor :: (a -> JSONNode) -> LeafEditor (Maybe a) (Maybe a) a | JSONEncode{|*|}, JSONDecode{|*|}, gEq{|*|} a
 	leafEditor toJSON =
 		{LeafEditor|genUI=genUI toJSON,onEdit=onEdit,onRefresh=onRefresh toJSON,valueFromState=valueFromState}
 
 	genUI toJSON dp mode vst=:{VSt|taskId,optional}
-		# mbVal   = editModeValue mode
+		# mbVal   = maybe mbEditModeInitValue Just $ editModeValue mode
 		# jsonVal = maybe JSONNull toJSON mbVal
 		# attr    = 'DM'.unions [ optionalAttr optional
 		                        , taskIdAttr taskId
