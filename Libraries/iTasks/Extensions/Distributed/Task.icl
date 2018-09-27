@@ -74,7 +74,7 @@ where
 
 instance @. worker Domain | toUserConstraint worker & gText{|*|} worker & toString worker
 where
-	(@.) worker domain 
+	(@.) worker domain
 		= (DomainUser worker domain)
 
 gText{|DomainUser|} format user = maybe [""] (\(DomainUser worker _) -> gText{|*|} format (Just worker)) user

@@ -23,7 +23,7 @@ currentDateTime = iworldLocalDateTime
 
 currentTime :: SDSLens () Time ()
 currentTime = mapRead toTime iworldLocalDateTime
-		
+
 currentDate :: SDSLens () Date ()
 currentDate = mapRead toDate iworldLocalDateTime
 
@@ -74,9 +74,9 @@ currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} 
 
 currentTaskInstanceAttributes :: SDSSequence () TaskAttributes TaskAttributes
 currentTaskInstanceAttributes
-	= sdsSequence "currentTaskInstanceAttributes" 
+	= sdsSequence "currentTaskInstanceAttributes"
 		id
-		(\_ no -> no) 
+		(\_ no -> no)
 		(\_ _ -> Right snd)
 		(SDSWriteConst (\_ _ -> Ok Nothing))
     (SDSWrite (\no r w -> (Ok (Just w))))
@@ -124,8 +124,8 @@ where
     writeItem _ _   = Error (exception "Task instance not found")
 
 taskInstancesByAttribute :: SDSLens (!String,!String) [TaskInstance] ()
-taskInstancesByAttribute 
-    = 
+taskInstancesByAttribute
+    =
       (sdsProject (SDSLensRead readInstances) (SDSLensWrite \_ _. Ok Nothing) Nothing
        (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
 where
@@ -133,7 +133,7 @@ where
 
 currentTopTask :: SDSLens () TaskId ()
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
-		
+
 applicationName :: SDSSource () String ()
 applicationName = createReadOnlySDS appName
 where

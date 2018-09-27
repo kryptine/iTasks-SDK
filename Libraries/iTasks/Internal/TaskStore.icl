@@ -446,7 +446,6 @@ where
 	notify taskId _ = const ((==) taskId)
 	reducer p reduct = read p reduct
 
-import StdMisc, StdDebug
 parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
 	= sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
@@ -476,7 +475,6 @@ where
 		notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 		lensReducer (listId, selfId, listFilter) ws
-		| not (trace_tn "Lens reducer PTL") = undef
 		= (Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing

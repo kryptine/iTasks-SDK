@@ -16,9 +16,9 @@ examples 	:== base +++ "Examples/"
 
 myTasks :: Bool -> [Workflow]
 myTasks domainServer =
-	[] ++ (if (domainServer) domainServerWork serverWork) 
+	[] ++ (if (domainServer) domainServerWork serverWork)
 where
-	domainServerWork = 
+	domainServerWork =
 		[ workflow (manage +++ "Manage users") 		"Manage system users"	manageUsers
 		, workflow "Auth server"    		        "Auth server" 		domainAuthServer
 		, workflow "Task pool server"   		"Task pool server"      hostTaskPoolServer
@@ -27,7 +27,7 @@ where
 		]
 
 	serverWork =
-		[ workflow "Intermediate task pool"	"Intermediate task pool" intermediateTaskPoolServer 
+		[ workflow "Intermediate task pool"	"Intermediate task pool" intermediateTaskPoolServer
 		, workflow "Task pool client"   	"Task pool client" 	 connectToTaskPoolServer
 		]
 
@@ -58,7 +58,7 @@ askQuestion
 	= get currentDomain
 	>>- \domain -> usersOf domain
 	>>- \users -> enterChoice "Select a user" [] users
-	>>= \user -> enterInformation "Question" [] 
+	>>= \user -> enterInformation "Question" []
 	>>= \question -> user @. domain @: (answer question)
 	>>- \answer -> viewInformation "Anser" [] answer
 where
@@ -78,7 +78,7 @@ sharedExample
 	=		enterDomain
 	>>= \domain  -> usersOf domain
 	>>=		enterChoice "Task for:" []
-	>>= \user    -> ((user @. domain) @: updateMyShared) 
+	>>= \user    -> ((user @. domain) @: updateMyShared)
 	||-		viewSharedInformation "myShare" [] myShared
 
 updateMyShared :: Task TestRecord
@@ -104,9 +104,9 @@ getDomain
 
 startMode :: String -> Task ()
 startMode executable
-	=   get serverRoleShare 
+	=   get serverRoleShare
 	>>- \role = case role of
-			DomainServer domain -> startAuthEngine domain 
+			DomainServer domain -> startAuthEngine domain
 				>>| installWorkflows (myTasks True)
 				>>| loginAndManageWork "Service engineer application"
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
@@ -117,7 +117,7 @@ startMode executable
 where
 	server :: Task ()
 	server
-		= enterDomain 
+		= enterDomain
 		>>= \domain -> set (Server domain) serverRoleShare
 		>>| startAuthEngine domain >>| loginRemote (myTasks False)
 
@@ -130,7 +130,7 @@ where
 		>>| loginAndManageWork "Service engineer application"
 
 loginRemote :: ![Workflow] -> Task ()
-loginRemote workflows 
+loginRemote workflows
 	= forever (
 		enterInformation "Enter your credentials and login" []
 		>>* 	[OnAction (Action "Login") (hasValue (browseAuthenticated workflows))

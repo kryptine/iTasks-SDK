@@ -8,7 +8,6 @@ import Text.Encodings.Base64
 import iTasks.Extensions.Distributed._Formatter
 import iTasks.Extensions.Distributed._Util
 import iTasks.Extensions.Distributed._Types
-import iTasks.Extensions.Distributed._SDS
 import iTasks.Internal.Distributed.Symbols
 import iTasks.Extensions.Distributed._Evaluation
 from iTasks.Extensions.Distributed.Task import :: Domain(..)
@@ -24,7 +23,7 @@ from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor M
 	  | Server Int InstanceNo
 
 :: DistributedTaskInstance =
-	{ id :: Int 
+	{ id :: Int
 	, key :: String
 	, task :: String
 	, attributes :: TaskAttributes
@@ -65,7 +64,7 @@ distributedInstances = sharedStore "distributedInstances" {DistributedTaskInstan
 	{ id :: Int
 	, buffer :: String
 	}
-	
+
 gText{|ClientFilters|} _ _             = []
 gEditor{|ClientFilters|}               = emptyEditor
 JSONEncode{|ClientFilters|} _ c        = [dynamicJSONEncode c]
@@ -74,7 +73,7 @@ JSONDecode{|ClientFilters|} _ r        = (Nothing,r)
 gEq{|ClientFilters|} _ _               = True
 gDefault{|ClientFilters|}              = { ClientFilters| id = -1, viewFilter = (const False), clameFilter = (const False) }
 
-derive class iTask InstanceServerShare 
+derive class iTask InstanceServerShare
 derive class iTask InstanceServerState
 derive class iTask Communication
 
@@ -116,7 +115,7 @@ where
 		| isEmpty responses = (Ok state, Nothing, responses, False)
 		# share = {InstanceServerShare| share & clients = [ if (clientid == id) {Communication| c & responses = []} c \\ c=:{Communication|id=clientid} <- clients ] }
 		= (Ok state, Just share, [ r +++ "\n" \\ r <- responses ], False) // Only replay on requests.
-	
+
 	onDisconnect :: InstanceServerState InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare)
 	onDisconnect state share
 		= (Ok state, Just share)
@@ -136,53 +135,53 @@ where
 			_			  -> case notConnectedClientRequest rest of
 							(Just (id, reqs)) -> (Just (id, [request:reqs]))
 							Nothing            -> Nothing
-		
+
 	process :: (sds () InstanceServerShare InstanceServerShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where
 		hasRequests :: InstanceServerShare -> Bool
 		hasRequests {InstanceServerShare|clients} = not (isEmpty (flatten [requests \\ c=:{Communication|requests}<-clients | not (isEmpty requests)]))
-	
+
 		changed :: Task Bool
 		changed
 			= get share
 			>>= \{InstanceServerShare|clients} -> processClients clients
 			>>= \newClients -> upd (\s -> {InstanceServerShare| s & clients = newClients}) share
 			>>| return True
-			
+
 		processClients :: [Communication] -> Task [Communication]
 		processClients [] = return []
 		processClients [c=:{Communication|id, requests}:rest]
 			= case requests of
 				[]		= processClients rest >>= \rest -> return [c:rest]
 				data	= processClients rest >>= \rest -> appendTopLevelTask ('DM'.fromList []) True (handleClient id data) >>| return [{Communication| c & requests = []}:rest]
-				
+
 		handleClient :: Int [String] -> Task ()
 		handleClient id requests
 			= handleClientRequests id requests
-			>>= \responses -> upd (\s=:{InstanceServerShare|clients} -> {InstanceServerShare| s & clients = [if (clientid == id) ({Communication| c & responses=orgresponses ++ responses}) c \\ c=:{Communication|id=clientid,responses=orgresponses} <- clients]}) share @! () 		
-				
+			>>= \responses -> upd (\s=:{InstanceServerShare|clients} -> {InstanceServerShare| s & clients = [if (clientid == id) ({Communication| c & responses=orgresponses ++ responses}) c \\ c=:{Communication|id=clientid,responses=orgresponses} <- clients]}) share @! ()
+
 		handleClientRequests :: Int [String] -> Task [String]
-		handleClientRequests id [] 
+		handleClientRequests id []
 			= return []
 		handleClientRequests id [request:rest]
 			= handleClientRequest id ('T'.split " " request)
-			>>= \responses -> handleClientRequests id rest 
+			>>= \responses -> handleClientRequests id rest
 			>>= \other -> return (responses ++ other)
-				
+
 		handleClientRequest :: Int [String] -> Task [String]
 		handleClientRequest id ["instance", "add", clientId, data]
 			= withSymbols (\symbols -> case deserializeFromBase64 data symbols of
 				(Remote_Task _ attributes taskid)
 					= addTask (Client id (toInt clientId)) data attributes
 					>>| return []
-				_ 
+				_
 					= return [])
 		handleClientRequest id ["instance", "destory", taskid]
 			= destroyTask id (toInt taskid) @! []
 		handleClientRequest id ["filter", "view", data]
-			= withSymbols (\symbols -> let filter = deserializeFromBase64 data symbols in 
+			= withSymbols (\symbols -> let filter = deserializeFromBase64 data symbols in
 				updateViewFilter id filter >>| return [])
 		handleClientRequest id ["filter", "clame", data]
 			= withSymbols (\symbols -> let filter = deserializeFromBase64 data symbols in
@@ -191,8 +190,6 @@ where
 			= getInstanceById id (toInt instanceid) False
 		handleClientRequest id ["instance", "get-force", instanceid]
 			= getInstanceById id (toInt instanceid) True
-		handleClientRequest id request=:["share" : data]
-			= forwardRequest id request @! []
 		handleClientRequest id request=:["value", instanceid : data]
 			= forwardRequest id request @! []
 		handleClientRequest _ request = return []
@@ -203,15 +200,6 @@ where
 			>>= \v -> case v of
 					(Just (Client creatorClient creatorRef, _)) -> sendToClient creatorClient ('T'.join " " ["value", (toString creatorRef) : data])
 					(Just (Server creatorServer instanceNo, _)) -> sendToInstanceServer creatorServer ('T'.join " " ["value", (toString instanceNo) : data])
-		forwardRequest clientid request=:["share", ref, clientref, "value" : data]
-			= getCreatorAndAssignedTo (toInt ref)
-			>>= \v -> case v of
-					(Just (_, assignedTo)) -> sendToClient assignedTo ('T'.join " " request)
-		forwardRequest clientid request=:["share", ref, clientRef : data]
-			= getCreatorAndAssignedTo (toInt ref)
-			>>= \w -> case w of 
-					(Just (Client creatorClient _, _)) -> sendToClient creatorClient ('T'.join " " request)
- 					(Just (Server creatorServer instanceNo, _)) -> sendToInstanceServer creatorServer ('T'.join " " ["share", (toString instanceNo), ("forward:" +++ (toString clientid) +++ ":" +++ clientRef) : data])
 
 /*
  * Update the clients filter AND notify about all the task that match this (new) filter.
@@ -248,7 +236,7 @@ where
 		= data ++ [{ClientFilters| id = clientid, viewFilter = (const False), clameFilter = filter}]
 
 sendToClient :: Int String -> Task ()
-sendToClient clientid message 
+sendToClient clientid message
         = upd (\s=:{InstanceServerShare|clients} ->
                 {InstanceServerShare| s & clients = [ if (id==clientid) (sendToClient c message) c \\ c=:{Communication|id} <- clients]
                 }) instanceServerShared @! ()
@@ -266,9 +254,9 @@ getCreatorAndAssignedTo instanceno
 
 addTask :: Source String TaskAttributes -> Task InstanceNo
 addTask creator task attributes
-	= clameTask attributes 
+	= clameTask attributes
 	>>- \clame -> let assignedTo = fromMaybe 0 clame in
-	   upd (\s=:{DistributedTaskInstances|lastId,instances} -> 
+	   upd (\s=:{DistributedTaskInstances|lastId,instances} ->
 		{ s & lastId = lastId + 1
 		, instances = instances ++ [pack (lastId + 1) task attributes assignedTo]
 		}) distributedInstances
@@ -286,7 +274,7 @@ where
 
 destroyTask :: Int InstanceNo -> Task ()
 destroyTask clientId taskId
-	= getTaskInfo clientId taskId 
+	= getTaskInfo clientId taskId
 	>>- \id -> case id of
 			Nothing 	-> return ()
 			(Just (tid,at))	-> notifyDestory tid at
@@ -329,12 +317,12 @@ getInstanceById clientid instanceno force
 	= upd (\i=:{DistributedTaskInstances|instances} -> {i & instances = [if (id==instanceno) { s & assignedTo = if (to==0 || force) clientid to } s \\ s=:{DistributedTaskInstance|id,assignedTo=to} <- instances] })  distributedInstances
 	>>= \{DistributedTaskInstances|instances} -> case [i \\ i=:{DistributedTaskInstance|id}<- instances | id == instanceno ] of
 		[{DistributedTaskInstance|id,task,assignedTo}:_] -> if (assignedTo==clientid) (return ["instance data " +++ (toString instanceno) +++ " " +++ task]) (return ["instance assigned " +++ (toString instanceno)])
-		_ -> return [] 
+		_ -> return []
 
 notifyChange :: InstanceNo TaskAttributes -> Task ()
 notifyChange instanceno attributes
 	= get instanceServerFilters
-	>>- \filters -> upd (\s=:{InstanceServerShare|clients} -> 
+	>>- \filters -> upd (\s=:{InstanceServerShare|clients} ->
                 {InstanceServerShare| s & clients = [ notifyClient c instanceno attributes filters \\ c <- clients]
                 }) instanceServerShared @! ()
 where
@@ -344,7 +332,7 @@ where
 		= {Communication|c & responses = responses ++ [  getNotifyMessage instanceno attributes] }
 
 	clientFilter :: Int [ClientFilters] TaskAttributes -> Bool
-	clientFilter clientid filters attrb 
+	clientFilter clientid filters attrb
 		= case [viewFilter \\ {ClientFilters|id,viewFilter} <- filters | id == clientid ] of
 			[x:_] -> x attrb
 			_     -> False
@@ -355,8 +343,8 @@ notifyDestory instanceno attributes
 	>>- \filters -> upd (\s=:{InstanceServerShare|clients} ->
 		{InstanceServerShare| s & clients = [ notifyClient c instanceno attributes filters \\ c <- clients]
 		}) instanceServerShared @! ()
-where           
-	notifyClient :: Communication InstanceNo TaskAttributes [ClientFilters] -> Communication 
+where
+	notifyClient :: Communication InstanceNo TaskAttributes [ClientFilters] -> Communication
 	notifyClient c=:{Communication|id,responses} instanceno attributes filters
 		| not (clientFilter id filters attributes) = c
 		= {Communication|c & responses = responses ++ [  getDestroyNotifyMessage instanceno ] }
@@ -384,22 +372,22 @@ getRequests input
         = ([], input)
 
 extractAckMsgs :: Int [String] [(Int, String)] -> (Int, [String], [(Int, String)])
-extractAckMsgs ack input pending 
+extractAckMsgs ack input pending
 	# newPending = merge pending (extract input)
 	# ack` = newAck ack [nr \\ (nr,_) <- newPending]
-	= (ack`, [s \\ (id,s) <- newPending | id == -1 || (id <= ack` && id > ack)], [i \\ i=:(id,_) <- newPending | id > ack`])	
+	= (ack`, [s \\ (id,s) <- newPending | id == -1 || (id <= ack` && id > ack)], [i \\ i=:(id,_) <- newPending | id > ack`])
 where
 	extract :: [String] -> [(Int, String)]
 	extract input
 		= [extractItem i \\ i <- input]
-	
+
 	extractItem :: String -> (Int, String)
 	extractItem input
 		# splitpoint = 'T'.indexOf "#!#" input
 		| splitpoint == -1 = (-1, input)
 		# ack = 'T'.subString 0 splitpoint input
 		# rest = 'T'.dropChars (splitpoint + 3) input
-		= (toInt ack, rest)	
+		= (toInt ack, rest)
 
 	merge :: [(Int, String)] [(Int, String)] -> [(Int, String)]
 	merge list [] = list
@@ -411,9 +399,9 @@ where
 	newAck ack acks = if (isMember (ack + 1) acks) (newAck (ack + 1) acks) ack
 
 extractAck :: Int [String] -> (Int, [String])
-extractAck ack input 
+extractAck ack input
 	# acks  = [extract i \\ i <- input | 'T'.indexOf "#ACK" i == 0]
-	# input = [i \\ i <- input | 'T'.indexOf "#ACK" i <> 0] 
+	# input = [i \\ i <- input | 'T'.indexOf "#ACK" i <> 0]
 	= case acks of
 		[x:_] -> (x,input)
 		_     -> (ack,input)
@@ -462,7 +450,7 @@ getClientId (Domain domain)
 
 getClientIdByDomain :: Domain -> Task (Maybe Int)
 getClientIdByDomain (Domain domain)
-	= get clientsShare 
+	= get clientsShare
 	>>- \{ClientsShare|clients} -> case [ id \\ (d, id) <- clients | d == domain] of
 					[x] -> return (Just x)
 					_ -> return Nothing
@@ -497,7 +485,7 @@ where
                 | isEmpty new_requests = (Ok received_data, Nothing, [], False)
                 # (newack, input) = extractAck ack new_requests
                 = (Ok other, Just {ClientShare| store & requests = requests ++ input, out = [ i \\ i=:(nr,_) <- store.out | nr <= newack], ack = newack}, [], False)
-        
+
         onShareChange state store=:{ClientShare|responses}
                 | isEmpty responses = (Ok state, Nothing, [], False)
                 # newOut = [(i, resp) \\ resp <- responses & i <- [store.outNr..]]
@@ -551,16 +539,10 @@ where
                         = callTaskHandler (toInt instanceno) data @! (Nothing, [])
                 handleRequest ["instance", "assigned", instanceno] _
                         = callTaskHandler (toInt instanceno) "ASSIGNED" @! (Nothing, [])
-                handleRequest request=:["share", ref, refClient, "value" : rest] _
-                        = case ('T'.split ":" refClient) of
-                              ["forward", serverClientId : serverClientRef] -> sendToClient (toInt serverClientId) ('T'.join " "  ["share", ref, ('T'.join ":" serverClientRef), "value" : rest]) @! (Nothing, [])
-                              _ -> shareOperation ref refClient ["value" : rest] (sendToInstanceServer clientId) @! (Nothing, [])
-                handleRequest request=:["share", ref, refClient : rest] _
-                        = shareOperation ref refClient rest (sendToInstanceServer clientId) @! (Nothing, [])
                 handleRequest request=:["value", ref, data] symbols
                         = case (deserializeFromBase64 data symbols) of
                               (Remote_TaskValue value) -> set value (taskValueShare (toInt ref)) @! (Nothing, [])
-                handleRequest ["connected", id : rest] _ 
+                handleRequest ["connected", id : rest] _
                         = return (Just (toInt id), [])
                 handleRequest _ _
                         = return (Nothing, [])
@@ -573,7 +555,7 @@ storeInPool serverId instanceno taskdata
 // Is local instance server (TODO: Fix this check).
 hasLocalInstanceServer :: Task Bool
 hasLocalInstanceServer
-	= get instanceServerShared 
+	= get instanceServerShared
 	>>- \{InstanceServerShare|lastId} -> return (lastId == 0)
 
 instanceFilter :: (TaskAttributes -> Bool) Domain -> Task ()
@@ -603,7 +585,7 @@ newRemoteTaskId
 
 sendDistributedInstance :: InstanceNo (Task a) TaskAttributes Domain -> Task a | iTask a
 sendDistributedInstance _ task attributes domain
-	= newRemoteTaskId 
+	= newRemoteTaskId
 	>>- \id -> let valueShare = taskValueShare id in getClientIdByDomain domain
 	>>- \clientId -> upd (\s=:{ClientShare|responses=or} -> {ClientShare| s & responses = or ++ ["instance add " +++ (toString id) +++ " " +++ (serializeToBase64 (Remote_Task task attributes id))]}) (instanceClientShare (fromMaybe 0 clientId))
 	>>| proxyTask valueShare (onDestroy id (instanceClientShare (fromMaybe 0 clientId)))

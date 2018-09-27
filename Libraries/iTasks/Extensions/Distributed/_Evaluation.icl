@@ -28,13 +28,13 @@ from Data.Map import :: Map
 from Data.Maybe import :: Maybe(..)
 from Data.Error import :: MaybeError(..)
 from StdFunc import const
-from StdString import instance toString Int, instance +++ {#Char}   
+from StdString import instance toString Int, instance +++ {#Char}
 import StdOverloaded
 
 evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 evalRemoteTask task handleValue
 	= get currentTaskInstanceNo
-	>>= \taskid -> let share = taskValueShare taskid in 
+	>>= \taskid -> let share = taskValueShare taskid in
 		(customEval share task ||- whileUnchanged share (changeTask handleValue))
 where
 	changeTask :: ((TaskValue a) -> Task ()) (TaskValue a) -> Task a | iTask a
@@ -44,15 +44,16 @@ where
 		= handleValue value @? const NoValue
 
 proxyTask :: (sds () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
-proxyTask value_share onDestroy = Task eval
+proxyTask value_share onDestroy = Task (eval value_share)
         where
-        eval event evalOpts tree=:(TCInit taskId ts) iworld
+        eval :: (sds () (TaskValue a) (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
+        eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
                 # (val,iworld)  = readRegister taskId value_share iworld
                 = case val of
                         // TODO: Fix
-                      //Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                      Ok (ReadResult val _)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
                       Error e           = (ExceptionResult e,iworld)
-        eval event repAs (TCDestroy _) iworld 
+        eval value_share event repAs (TCDestroy _) iworld
                 # iworld = onDestroy iworld
                 = (DestroyedResult,iworld)
 
@@ -62,7 +63,7 @@ proxyTask value_share onDestroy = Task eval
 taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))
 where
-	store_name = "taskValueShare_" +++ (toString taskid) 
+	store_name = "taskValueShare_" +++ (toString taskid)
 
 customEval :: (sds () (TaskValue a) (TaskValue a)) (Task a) -> (Task a) | iTask a & RWShared sds
 customEval value_share (Task eval) = Task eval`
