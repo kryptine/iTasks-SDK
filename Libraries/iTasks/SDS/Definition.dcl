@@ -101,8 +101,6 @@ where
 	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> *(!MaybeError TaskException !(ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
-class ROShared sds | Readable sds
-class WOShared sds | Writeable sds
 
 :: SDSShareOptions =
 	{ domain :: String
