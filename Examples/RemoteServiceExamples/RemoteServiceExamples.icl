@@ -3,20 +3,22 @@ module RemoteServiceExamples
 import iTasks
 import Internet.HTTP
 
-:: OpenWeatherRequest = 
+import Data.Either
+
+:: OpenWeatherRequest =
 	{ apiKey :: String
 	, type :: OpenWeatherRequestType
 	}
 
 :: OpenWeatherRequestType = ByCityName String | ByCoordinates Real Real
 
-:: OpenWeatherResponse = 
+:: OpenWeatherResponse =
 	{ id :: Int
 	, main :: String
 	, description :: String
 	, icon :: String }
 
-derive class iTask OpenWeatherResponse 
+derive class iTask OpenWeatherResponse
 
 Start world = startEngine serviceTask world
 where
@@ -36,7 +38,7 @@ where
 			Nothing = Left "Could not transform JSON"
 			(Just v) = Right v
 
-	query (ByCityName name) 		= "?q=" +++ name 
+	query (ByCityName name) 		= "?q=" +++ name
 	query (ByCoordinates lat long) 	= "?lat=" +++ toString lat +++ "&lon=" +++ toString long
 
 weatherService = remoteService (weatherOptions {apiKey = "1160ac287072c67ae44708dee89f9a8b" , type = ByCityName "Nijmegen"})

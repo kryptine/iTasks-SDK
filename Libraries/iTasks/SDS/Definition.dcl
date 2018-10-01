@@ -189,8 +189,7 @@ instance toString (WebServiceShareOptions r)
 	}
 
 // TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writeable for SDSCache. iTask p seems to solve this for unknown reasons.
-// TODO: I don't think the SDSSource restriction is applicable any more, because we should also be able to cache the results of reading from a remote share.
-:: SDSCache p r w = E. sds: SDSCache (sds p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w & RWShared sds
+:: SDSCache p r w = E. sds: SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w
 :: SDSCacheOptions p r w  =
 	{ write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}

@@ -392,8 +392,7 @@ instance Readable SDSCache where
 		Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
 			(Error e,iworld) = (Error e, iworld)
 			//Read and add to cache
-			(Ok (ReadResult val ssds),iworld)  = (Ok (ReadResult val (SDSCache ssds opts)), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
-			(Ok (AsyncRead sds), iworld) = (Ok (AsyncRead (SDSCache sds opts)), iworld)
+			(Ok (ReadResult val ssds),iworld)  = (Ok (ReadResult val sds), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
 
 instance Writeable SDSCache where
 	writeSDS sds=:(SDSCache sds1 opts=:{SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
@@ -415,7 +414,7 @@ instance Writeable SDSCache where
 		NoWrite = (Ok (WriteResult'Set'.newSet sds), {iworld & readCache = readCache})
 		WriteNow = case writeSDS sds1 p c w {iworld & readCache = readCache} of
 			(Error e, iworld) = (Error e, iworld)
-			(Ok (WriteResult r ssds), iworld) = (Ok (WriteResult r (SDSCache ssds opts)), iworld)
+			(Ok (WriteResult r ssds), iworld) = (Ok (WriteResult r sds), iworld)
 		WriteDelayed
 			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
 			= (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache, writeCache = writeCache})
@@ -429,8 +428,7 @@ instance Modifiable SDSCache where
 			(Error e)   = (Error e, iworld)
 			(Ok w)      = case writeSDS ssds p context w iworld of
 				(Error e, iworld)   = (Error e, iworld)
-				(Ok (AsyncWrite sds), iworld)            = (Ok (AsyncModify sds f), iworld)
-				(Ok (WriteResult notify ssds), iworld) = (Ok (ModifyResult r w (SDSCache ssds opts)), queueNotifyEvents (sdsIdentity sds) notify iworld)
+				(Ok (WriteResult notify ssds), iworld) = (Ok (ModifyResult r w sds), queueNotifyEvents (sdsIdentity sds) notify iworld)
 
 instance Registrable SDSCache where
 	readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
