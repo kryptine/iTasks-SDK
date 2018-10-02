@@ -106,7 +106,7 @@ where
 	eval event evalOpts (TCInit taskId ts) iworld=:{options={appVersion,tempDirPath}}
 		# tmpDir 			= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
-		# (ok ,world)		= ensureDir tmpDir world
+		# (ok ,world)		= ensureDirectoryExists tmpDir world
 		| ok 
 			= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 		| otherwise
