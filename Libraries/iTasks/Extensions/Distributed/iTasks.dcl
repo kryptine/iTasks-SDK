@@ -20,7 +20,7 @@ import qualified iTasks.Extensions.User as U
 from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes, :: Password, :: Username, workAs, :: Credentials{..}, users
-from iTasks.SDS.Definition import class RWShared(..), class ROShared(..), class WOShared(..)
+from iTasks.SDS.Definition import class RWShared(..)
 from iTasks.WF.Tasks.Core import accWorld
 import iTasks.Internal.Distributed.Symbols
 from iTasks.Internal.Distributed.Instance import instanceServer, instanceClient, instanceFilter, instanceClameFilter
