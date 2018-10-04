@@ -83,6 +83,28 @@ leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe st,
 
 compoundEditorToEditor :: !(CompoundEditor st a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|} st
 
+/*
+*	Definition of an editor modifier using an additional typed state, next to the child state.
+*	Modifiers without additional state can be directly defined in terms of the `Editor` type.
+*	This is an auxiliary type to define an `Editor` with an untyped state.
+*	The function work on the typed additional state and the untyped child state.
+*/
+:: EditorModifierWithState st a =
+	//Generating the initial UI
+	{ genUI :: !DataPath (EditMode a) *VSt ->
+		*(!MaybeErrorString (!UI, !st, !EditState), !*VSt)
+	//React to edit events
+	, onEdit :: !DataPath (!DataPath, !JSONNode) st EditState *VSt ->
+		*(!MaybeErrorString (!UIChange, !st, !EditState), !*VSt)
+	//React to a new model value
+	, onRefresh :: !DataPath a st EditState *VSt ->
+		*(!MaybeErrorString (!UIChange, !st, !EditState), !*VSt)
+	//Get the typed value from the editor state, if the state represents a valid value
+	, valueFromState :: !st EditState -> Maybe a
+	}
+
+editorModifierWithStateToEditor :: !(EditorModifierWithState st a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|} st
+
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]
 
@@ -96,8 +118,9 @@ derive bimap EditMode
 *   During editing, values can be in an inconsistent, or even untypable state
 */  
 :: EditState
-	= LeafState     !LeafState            //Edit state of single fields/controls
-	| CompoundState !JSONNode ![EditState] //Compound structure of multiple editors with additional extra state
+	= LeafState      !LeafState             //* Edit state of single fields/controls
+	| CompoundState  !JSONNode ![EditState] //* Compound structure of multiple editors with additional extra state
+	| AnnotatedState !JSONNode !EditState   //* Edit state annotated with additional information, used for modifiers
 
 :: LeafState =
 	{ touched :: !Bool

@@ -56,13 +56,13 @@ where
 
 	onEdit dp e (CompoundState jsonSt childSts) vst = case fromJSON jsonSt of
 		Just st = mapRes $ compoundEditor.CompoundEditor.onEdit dp e st childSts vst
-		_       = (Error "Corrupt internal state in compound editor with state", vst)
-	onEdit _ _ _ vst = (Error "Corrupt editor state in compound editor with state", vst)
+		_       = (Error "Corrupt internal state in compound editor", vst)
+	onEdit _ _ _ vst = (Error "Corrupt editor state in compound editor", vst)
 
 	onRefresh dp val (CompoundState jsonSt childSts) vst = case fromJSON jsonSt of
 		Just st = mapRes $ compoundEditor.CompoundEditor.onRefresh dp val st childSts vst
-		_       = (Error "Corrupt internal state in compound editor with state", vst)
-	onRefresh _ _ _ vst = (Error "Corrupt editor state in compound editor with state", vst)
+		_       = (Error "Corrupt internal state in compound editor", vst)
+	onRefresh _ _ _ vst = (Error "Corrupt editor state in compound", vst)
 
 	valueFromState (CompoundState jsonSt childSts) = case fromJSON jsonSt of
 		Just st = case compoundEditor.CompoundEditor.valueFromState st childSts of
@@ -74,6 +74,33 @@ where
 	mapRes :: !(!MaybeErrorString (!ui, !st, ![EditState]), !*VSt) -> (!MaybeErrorString (!ui, !EditState), !*VSt)
 	        | JSONEncode{|*|} st
 	mapRes (mbRes, vst) = ((\(ui, st, childSts) -> (ui, CompoundState (toJSON st) childSts)) <$> mbRes, vst)
+
+editorModifierWithStateToEditor :: !(EditorModifierWithState st a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|} st
+editorModifierWithStateToEditor modifier =
+	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+where
+	genUI dp val vst = mapRes $ modifier.EditorModifierWithState.genUI dp val vst
+
+	onEdit dp e (AnnotatedState jsonSt childSt) vst = case fromJSON jsonSt of
+		Just st = mapRes $ modifier.EditorModifierWithState.onEdit dp e st childSt vst
+		_       = (Error "Corrupt internal state in editor modifier", vst)
+	onEdit _ _ _ vst = (Error "Corrupt editor state in editor modifier", vst)
+
+	onRefresh dp val (AnnotatedState jsonSt childSt) vst = case fromJSON jsonSt of
+		Just st = mapRes $ modifier.EditorModifierWithState.onRefresh dp val st childSt vst
+		_       = (Error "Corrupt internal state in editor modifier", vst)
+	onRefresh _ _ _ vst = (Error "Corrupt editor state in editor modifier", vst)
+
+	valueFromState (AnnotatedState jsonSt childSt) = case fromJSON jsonSt of
+		Just st = case modifier.EditorModifierWithState.valueFromState st childSt of
+			Just val = Just val
+			_        = Nothing
+		_ = Nothing
+	valueFromState _ = Nothing
+
+	mapRes :: !(!MaybeErrorString (!ui, !st, !EditState), !*VSt) -> (!MaybeErrorString (!ui, !EditState), !*VSt)
+	        | JSONEncode{|*|} st
+	mapRes (mbRes, vst) = ((\(ui, st, childSt) -> (ui, AnnotatedState (toJSON st) childSt)) <$> mbRes, vst)
 
 editModeValue :: !(EditMode a) -> Maybe a
 editModeValue Enter        = Nothing
@@ -110,12 +137,14 @@ s2dp str
 						= map toInt (split "-" (subString 1 (textSize str) str))
 
 isTouched :: !EditState -> Bool
-isTouched (LeafState     {LeafState|touched}) = touched
-isTouched (CompoundState _ fields)            = or (map isTouched fields)
+isTouched (LeafState      {LeafState|touched}) = touched
+isTouched (CompoundState  _ childSts)          = or (map isTouched childSts)
+isTouched (AnnotatedState _ childSt)           = isTouched childSt
 
 isCompound :: !EditState -> Bool
-isCompound (LeafState _)    = False
-isCompound _                = True
+isCompound (LeafState _)              = False
+isCompound (AnnotatedState _ childSt) = isCompound childSt
+isCompound (CompoundState _ _)        = True
 
 withClientSideInit ::
 	((JSObj ()) *JSWorld -> *JSWorld)

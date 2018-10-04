@@ -120,7 +120,7 @@ grid          :: Editor (ChoiceGrid,   [Int])
 */
 tree          :: Editor ([ChoiceNode], [Int])
 
-fieldComponent :: UIType -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
+fieldComponent :: !UIType !(Maybe a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
 
 //Convenient types for describing the values of grids and trees
 :: ChoiceText =
