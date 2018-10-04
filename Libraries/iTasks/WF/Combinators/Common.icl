@@ -197,7 +197,7 @@ allTasksInPool maxworkers tasks =
 where
 	executor stl = tune NoUserInterface $
 		//If there are tasks left
-		foreverStIf (not o isEmpty) tasks \[t:ts]->
+		foreverStIf (not o isEmpty) tasks \[t:ts]->trace_n "executor loop" $
 			//Look at the process table
 			    watch (sdsFocus {defaultValue & includeValue=True} stl)
 			//If there are less tasks not ready than the maximum number of threads
@@ -208,6 +208,7 @@ where
 			] >>- \_->treturn ts
 
 	nrUnstables = length o filter \t->not t=:{TaskListItem|value=Value _ True}
+import StdDebug, StdMisc
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
