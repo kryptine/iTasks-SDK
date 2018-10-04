@@ -78,19 +78,20 @@ createReadOnlySDSError ::
 	->
 	SDSSource p r ()
 
-//Internal access functions
+// Helper to immediately get the read value from a share. Use only when reading in an EmptyContext.
 directResult :: (ReadResult p r w) -> r
 
+//Internal access functions
 sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
 
 /*
  * Read the SDS. TaskContext is used to determine whether a read is done in the
- * context of a task. The read is performed asynchronously when there is a task 
- * context and the share is a remote share.
+ * context of a task. The read is performed asynchronously when there is a task
+ * context and the share is a asynchronous share.
  *
- * @return A ReadResult, either Queued (a asynchronous read is queued and the 
- *	task will be notified when it is ready), or a direct result in the case of 
- *	a blocking read. 
+ * @return A ReadResult, either Queued (a asynchronous read is queued and the
+ *	task will be notified when it is ready), or a direct result in the case of
+ *	a blocking read.
  */
 read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException !(ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
 
@@ -120,4 +121,6 @@ formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
+// Used to turn any read/write/modified operation (with all arguments except the environment
+// curried in) into one which returns a dynamic. Use to store sdsEvalStates in the environment.
 dynamicResult :: (*IWorld -> (MaybeError TaskException a, !*IWorld)) !*IWorld -> (MaybeError TaskException Dynamic, !*IWorld) | TC a
