@@ -137,6 +137,11 @@ where
 
 class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
 
+/**
+ * A SDS with no parameters and equal read and write types.
+ */
+:: Shared sds a :== sds () a a
+
 :: SDSShareOptions =
 	{ domain :: String
 	, port :: Int
@@ -164,6 +169,12 @@ instance toString (WebServiceShareOptions r)
 	, read          :: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
 	, write         :: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
 	}
+
+/**
+ * A SDSLens with no parameter and equal read and write type.
+ */
+:: SimpleSDSLens a :== SDSLens () a a
+
 //Lenses select and transform data
 :: SDSLens p r w  = E. ps rs ws sds: SDSLens (sds ps rs ws) (SDSLensOptions p r w ps rs ws) & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
 :: SDSLensOptions p r w ps rs ws =
