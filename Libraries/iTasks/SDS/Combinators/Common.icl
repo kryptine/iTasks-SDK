@@ -87,7 +87,7 @@ where
     reducer p ws = read ws
 
 toReadOnly :: !(sds p r w) -> SDSLens p r () | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-toReadOnly sds = sdsProject (SDSLensRead Ok) (SDSLensWrite \_ _. Ok Nothing) Nothing sds
+toReadOnly sds = sdsProject (SDSLensRead Ok) (SDSBlindWrite \_. Ok Nothing) Nothing sds
 
 toDynamic :: !(sds p r w) -> (SDSLens p Dynamic Dynamic) | gText{|*|} p & TC p & TC r & TC w & RWShared sds //FIXME: Use 1 lens directly
 toDynamic sds = mapRead (\r -> (dynamic r :: r^)) (mapWrite (\(w :: w^) _ -> Just w) (Just reducer) sds)

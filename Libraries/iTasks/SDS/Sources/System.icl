@@ -85,14 +85,14 @@ currentTaskInstanceAttributes
 
 allTaskInstances :: SDSLens () [TaskInstance] ()
 allTaskInstances
-    = (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok Nothing) Nothing
+    = (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
 detachedTaskInstances :: SDSLens () [TaskInstance] ()
 detachedTaskInstances
-    =  (sdsProject (SDSLensRead readInstances) (SDSLensWrite \ws _. Ok Nothing) Nothing
+    =  (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
@@ -126,7 +126,7 @@ where
 taskInstancesByAttribute :: SDSLens (!String,!String) [TaskInstance] ()
 taskInstancesByAttribute
     =
-      (sdsProject (SDSLensRead readInstances) (SDSLensWrite \_ _. Ok Nothing) Nothing
+      (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
        (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)

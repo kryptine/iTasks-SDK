@@ -393,7 +393,7 @@ inventoryInSectionShare = mapLens "inventoryInSectionShare" myInventoryMap (Just
 
 allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
 allAvailableActors
-  = /*toReadOnly */ (sdsProject (SDSLensRead readActors) (SDSLensWrite \_ _. Ok Nothing) Nothing (sectionUsersShare |*| myUserActorMap))
+  = /*toReadOnly */ (sdsProject (SDSLensRead readActors) (SDSBlindWrite \_. Ok Nothing) Nothing (sectionUsersShare |*| myUserActorMap))
   where
   readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(!Coord3D, !MyActor)]
   readActors (sectionUsersMap, userActorMap)
@@ -404,7 +404,7 @@ allAvailableActors
 
 allActiveAlarms :: SDSLens () [(!Coord3D, !SectionStatus)] ()
 allActiveAlarms
-  = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) (SDSLensWrite \_ _. Ok Nothing) Nothing myStatusMap)
+  = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) (SDSBlindWrite \_. Ok Nothing) Nothing myStatusMap)
   where
   readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(!Coord3D, !SectionStatus)]
   readAlarms statusMap = Ok [ (number, status) \\ (number, status) <- 'DM'.toList statusMap
