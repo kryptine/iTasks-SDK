@@ -109,8 +109,8 @@ where
 	// Right: Still need to do work..
 	performRequest :: !{#Symbol} !TaskId !String !String !*IWorld -> !(MaybeErrorString !(Either !String !String), !*IWorld)
 	performRequest symbols taskId host request iworld
-	| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 	| size request == 0 = (Error "Received empty request", iworld)
+	| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 	= case deserializeFromBase64 request symbols of
 		(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) Nothing (sdsIdentity sds) iworld of
 			(Error (_, e), iworld)							= (Error e, iworld)
