@@ -135,7 +135,7 @@ where
 	 */
 	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> *(!MaybeError TaskException !(ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
+class RWShared sds | Modifiable, Registrable sds
 
 /**
  * A SDS with no parameters and equal read and write types.

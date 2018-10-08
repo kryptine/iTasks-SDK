@@ -15,7 +15,6 @@ instance html		URL
 derive gEditor    URL
 derive gText      URL
 derive JSONEncode URL
-derive JSONDecode URL
 derive gDefault	  URL
 derive gEq        URL
 
@@ -38,5 +37,5 @@ serveFile :: [FilePath] HTTPRequest -> Task HTTPResponse
 * @gin-title Call web service
 * @gin-icon webservice
 */
-callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
+callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a

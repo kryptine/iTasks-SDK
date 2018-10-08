@@ -39,7 +39,7 @@ queueSDSRequest req host port taskId symbols env
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
-	handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] r) () () | TC r
+	handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (MaybeError TaskException r)) () () | TC r
 	handlers _ = {ConnectionHandlers| onConnect = onConnect req,
 		onData = onData,
 		onShareChange = onShareChange,
@@ -57,7 +57,7 @@ queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = 
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
-	handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (r, w)) () () | TC r & TC w
+	handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (MaybeError TaskException (r, w))) () () | TC r & TC w
 	handlers _ = {ConnectionHandlers| onConnect = onConnect req,
 		onData = onData,
 		onShareChange = onShareChange,
@@ -135,49 +135,52 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 # request = SDSModifyRequest sds p f
 = queueModifyRequest request domain port taskId symbols env
 
-getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
+getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r
 getAsyncReadValue _ taskId connectionId ioStates
 =  case 'DM'.get taskId ioStates of
-		Nothing                             = Left "No iostate for this task"
+		Nothing                             = Error (exception "No iostate for this task")
 		(Just ioState)                      = case ioState of
-			(IOException exc)                   = Left exc
+			(IOException exc)                   = Error (exception exc)
 			(IOActive connectionMap)            = getValue connectionId connectionMap
 			(IODestroyed connectionMap)         = getValue connectionId connectionMap
 where
 	getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
-		(Just (value :: Either [String] r^, _)) = case value of
-			(Left _)                                = Right Nothing
-			(Right val)                             = (Right (Just val))
-		(Just _)                            = Left "Dynamic not of the correct read type"
-		Nothing                             = Right Nothing
+		(Just (value :: Either [String] (MaybeError TaskException r^), _)) = case value of
+			(Left _)                                = Ok Nothing
+			(Right (Ok val))                        = Ok (Just val)
+			(Right (Error e))						= Error e
+		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct write type, got" +++ toString (typeCodeOfDynamic dyn)))
+		Nothing                             	= Ok Nothing
 
-getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe w) | TC w
+getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe w) | TC w
 getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
-		Nothing                             = Left "No iostate for this task"
+		Nothing                             = Error (exception "No iostate for this task")
 		(Just ioState)                      = case ioState of
-			(IOException exc)                   = Left exc
+			(IOException exc)                   = Error (exception exc)
 			(IOActive connectionMap)            = getValue connectionId connectionMap
 			(IODestroyed connectionMap)         = getValue connectionId connectionMap
 where
 	getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
-		(Just (value :: Either [String] w^, _)) = case value of
-			(Left _)                                    = Right Nothing
-			(Right val)                                 = (Right (Just val))
-		(Just _)= Left "Dynamic not of the correct write type"
-		Nothing                             = Right Nothing
+		(Just (value :: Either [String] (MaybeError TaskException w^), _)) = case value of
+			(Left _)                                    = Ok Nothing
+			(Right (Ok val))                            = Ok (Just val)
+			(Right (Error e))							= Error e
+		(Just (dyn, _))						= Error (exception ("Dynamic not of the correct write type, got" +++ toString (typeCodeOfDynamic dyn)))
+		Nothing                             = Ok Nothing
 
-getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe (r,w)) | TC w & TC r
+getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe (r,w)) | TC w & TC r
 getAsyncModifyValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
-		Nothing                             = Left "No iostate for this task"
+		Nothing                             = Error (exception "No iostate for this task")
 		(Just ioState)                      = case ioState of
-			(IOException exc)                   = Left exc
+			(IOException exc)                   = Error (exception exc)
 			(IOActive connectionMap)            = getValue connectionId connectionMap
 			(IODestroyed connectionMap)         = getValue connectionId connectionMap
 where
 	getValue connectionId connectionMap
 	= case 'DM'.get connectionId connectionMap of
-		(Just (value :: Either [String] (r^, w^), _)) = case value of
-			(Left _)						= Right Nothing
-			(Right val)						= Right (Just val)
-		(Just (dyn, _))					= Left ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn))
-		Nothing 						= Right Nothing
+		(Just (value :: Either [String] (MaybeError TaskException (r^, w^)), _)) = case value of
+			(Left _)						= Ok Nothing
+			(Right (Ok val))				= Ok (Just val)
+			(Right (Error e))				= Error e
+		(Just (dyn, _))					= Error (exception ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn)))
+		Nothing 						= Ok Nothing

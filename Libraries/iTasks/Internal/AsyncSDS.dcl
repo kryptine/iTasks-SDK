@@ -73,7 +73,7 @@ queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !Ta
  *		Nothing: No value yet, asynchronous action is still pending.
  *		Just: A value of type r is found.
  */
-getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
+getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r
 
 /**
  * Queries IOStates to see whether a write operation has yielded a result.
@@ -87,7 +87,7 @@ getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either Strin
  *		Nothing: No value yet, asynchronous action is still pending.
  *		Just: A value of type w is found.
  */
-getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe w) | TC w
+getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe w) | TC w
 
 /**
  * Queries IOStates to see whether a modify operation has yielded a result.
@@ -101,4 +101,4 @@ getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either Stri
  *		Nothing: No value yet, asynchronous action is still pending.
  *		Just: A value of type (r,w) is found.
  */
-getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe (r,w)) | TC w & TC r
+getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe (r,w)) | TC w & TC r

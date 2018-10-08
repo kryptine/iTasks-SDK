@@ -73,9 +73,9 @@ where
 		reevaluateShares` symbols taksId [(connId, (done, host, val)):rest] acc iworld
 		# (result, iworld) = performRequest symbols taskId host val iworld
 		= case result of
-			Error e 		= (Error e, iworld)
+			Error e 		= reevaluateShares` symbols taskId rest [(connId, (True, host, serializeToBase64 (Error e))) : acc] iworld
 			Ok (Left val)	= reevaluateShares` symbols taskId rest [(connId, (True, host, val)) : acc] iworld
-			Ok (Right val)	= (reevaluateShares` symbols taskId rest [(connId, (False, host, val)) : acc] iworld)
+			Ok (Right val)	= reevaluateShares` symbols taskId rest [(connId, (False, host, val)) : acc] iworld
 
 	onConnect :: !ConnectionId !String !SDSEvaluations !*IWorld -> *(!MaybeErrorString SDSServiceState, Maybe SDSEvaluations, ![String], !Bool, !*IWorld)
 	onConnect connId clientName sdsValue iworld = (Ok (SDSProcessing clientName connId []), Nothing, [], False, iworld)
@@ -85,7 +85,7 @@ where
 	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId (received ++ [receivedData])), Nothing, [], False, iworld)
 	# receivedData = concat (received ++ [receivedData])
 	= case performRequest symbols taskId host receivedData iworld of
-		(Error e, iworld) 					= (Error e, Nothing, [], True, iworld)
+		(Error e, iworld) 					= (Error e, Nothing, [serializeToBase64 (Error e)], True, iworld)
 		(Ok (Left response), iworld) 		= (Ok state, Nothing, [response +++ "\n"], True, iworld)
 		(Ok (Right continuation), iworld=:{ioStates})
 		# sdsValue = 'Map'.put connId (False, host, continuation) sdsValue
@@ -114,22 +114,23 @@ where
 	= case deserializeFromBase64 request symbols of
 		(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) Nothing (sdsIdentity sds) iworld of
 			(Error (_, e), iworld)							= (Error e, iworld)
-			(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 v)), iworld)
+			(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 (Ok v))), iworld)
 			(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld)
 		(SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port) = case readSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) (Just taskId) reqSDSId iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
-			(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 v)), iworld)
+			(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 (Ok v))), iworld)
 			(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld)
 		(SDSWriteRequest sds p val) 					= case writeSDS sds p (TaskContext taskId) val iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
-			(Ok (WriteResult notify _), iworld)				= (Ok (Left (serializeToBase64 ())), queueNotifyEvents (sdsIdentity sds) notify iworld)
+			(Ok (WriteResult notify _), iworld)				= (Ok (Left (serializeToBase64 (Ok ()))), queueNotifyEvents (sdsIdentity sds) notify iworld)
 			(Ok (AsyncWrite sds), iworld)					= (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p (TaskContext taskId) iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
-			(Ok (ModifyResult r w _), iworld)				= (Ok (Left (serializeToBase64 (r,w))), iworld)
+			(Ok (ModifyResult r w _), iworld)				= (Ok (Left (serializeToBase64 (Ok (r,w)))), iworld)
 			(Ok (AsyncModify sds f), iworld)				= (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld)
 		(SDSRefreshRequest refreshTaskId sdsId)
-		// If we receive a request to refresh the sds service task, we find all remote registrations for the SDS id and send requests to refresh them to their respective clients.
+		// If we receive a request to refresh the sds service task, we find all remote
+		// registrations for the SDS id and send requests to refresh them to their respective clients.
 		| taskId == refreshTaskId = refreshRemoteTasks sdsId host iworld
 		= (Ok (Left "Refresh queued"), queueRefresh [(refreshTaskId, "Notification for remote write of " +++ sdsId)] iworld)
 	where

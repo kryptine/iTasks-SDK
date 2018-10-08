@@ -49,6 +49,8 @@ instance Registrable SDSParallel
 instance Identifiable SDSRemoteService
 instance Readable SDSRemoteService
 instance Writeable SDSRemoteService
+instance Modifiable SDSRemoteService
+instance Registrable SDSRemoteService
 
 instance Identifiable SDSRemoteSource
 instance Readable SDSRemoteSource
