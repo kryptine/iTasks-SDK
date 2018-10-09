@@ -73,7 +73,9 @@ where
 		reevaluateShares` symbols taksId [(connId, (done, host, val)):rest] acc iworld
 		# (result, iworld) = performRequest symbols taskId host val iworld
 		= case result of
-			Error e 		= reevaluateShares` symbols taskId rest [(connId, (True, host, serializeToBase64 (Error e))) : acc] iworld
+			Error e
+				# exception = serializeToBase64 $ Error $ exception $ "Exception reevaluateShares: " +++ e
+				= reevaluateShares` symbols taskId rest [(connId, (True, host, exception)) : acc] iworld
 			Ok (Left val)	= reevaluateShares` symbols taskId rest [(connId, (True, host, val)) : acc] iworld
 			Ok (Right val)	= reevaluateShares` symbols taskId rest [(connId, (False, host, val)) : acc] iworld
 
@@ -85,7 +87,9 @@ where
 	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId (received ++ [receivedData])), Nothing, [], False, iworld)
 	# receivedData = concat (received ++ [receivedData])
 	= case performRequest symbols taskId host receivedData iworld of
-		(Error e, iworld) 					= (Error e, Nothing, [serializeToBase64 (Error e)], True, iworld)
+		(Error e, iworld)
+			# exception = serializeToBase64 $ Error $ exception $ "Exception onData:" +++ e
+			= (Error e, Nothing, [exception], True, iworld)
 		(Ok (Left response), iworld) 		= (Ok state, Nothing, [response +++ "\n"], True, iworld)
 		(Ok (Right continuation), iworld=:{ioStates})
 		# sdsValue = 'Map'.put connId (False, host, continuation) sdsValue
@@ -107,7 +111,7 @@ where
 
 	// Left: Done
 	// Right: Still need to do work..
-	performRequest :: !{#Symbol} !TaskId !String !String !*IWorld -> !(MaybeErrorString !(Either !String !String), !*IWorld)
+	performRequest :: !{#Symbol} !TaskId !String !String !*IWorld -> (MaybeErrorString (Either String String), !*IWorld)
 	performRequest symbols taskId host request iworld
 	| size request == 0 = (Error "Received empty request", iworld)
 	| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
@@ -131,15 +135,14 @@ where
 		(SDSRefreshRequest refreshTaskId sdsId)
 		// If we receive a request to refresh the sds service task, we find all remote
 		// registrations for the SDS id and send requests to refresh them to their respective clients.
-		| taskId == refreshTaskId = refreshRemoteTasks sdsId host iworld
+		| taskId == refreshTaskId = refreshRemoteTasks sdsId iworld
 		= (Ok (Left "Refresh queued"), queueRefresh [(refreshTaskId, "Notification for remote write of " +++ sdsId)] iworld)
 	where
 		newlines [] = 0
 		newlines ['\n':xs] = inc (newlines xs)
 		newlines [x: xs] = newlines xs
 
-		refreshRemoteTasks sdsId host iworld=:{sdsNotifyRequests}
-		// We need to adjust the SDS id so that with the host information from which we received the refresh message.
+		refreshRemoteTasks sdsId iworld=:{sdsNotifyRequests}
 		= case 'Map'.get sdsId sdsNotifyRequests of
 			Nothing = (Ok (Left ("No requests available")), iworld)
 			Just requestsToTime = (Ok (Left "Requests re-queued"), queueNotifyEvents sdsId ('Set'.fromList $ 'Map'.keys requestsToTime) iworld)

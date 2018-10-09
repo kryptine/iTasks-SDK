@@ -95,26 +95,26 @@ sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
  *	task will be notified when it is ready), or a direct result in the case of
  *	a blocking read.
  */
-read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException !(ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
+read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
 
 //Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException !(ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
+readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
 
 :: AsyncWrite p r w = Done
 	| E. sds: Writing (sds p r w) & Writeable sds & TC p & TC r & TC w
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite () r w), !*IWorld)	| TC r & TC w & Writeable sds
+write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite () r w), !*IWorld)	| TC r & TC w & Writeable sds
 
 //Read followed by write. The 'a' typed value is a result that is returned
-modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> !(!MaybeError TaskException !(ModifyResult () r w), !*IWorld) | TC r & TC w & Modifiable sds
+modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (ModifyResult () r w), !*IWorld) | TC r & TC w & Modifiable sds
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued
 //for evaluation anyway, it no longer make sense to notify it again.
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 
-queueNotifyEvents :: !String !(Set SDSNotifyRequest) !*IWorld -> !*IWorld
+queueNotifyEvents :: !String !(Set SDSNotifyRequest) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)

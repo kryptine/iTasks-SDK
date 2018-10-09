@@ -459,11 +459,11 @@ where
 	init iworld
 		# (mbIP, world) = lookupIPAddress host iworld.world
 		= case mbIP of
-			Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+			Nothing = (Error ("Failed to connect to host " +++ host +++ ": lookup failed"), {iworld & world = world})
 			Just ip
 				# (tReport, mbConn, world) = connectTCP_MT Nothing (fromJust mbIP,port) world
 				= case mbConn of
-					Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+					Nothing = (Error ("Failed to connect to host " +++ host +++ ":" +++ toString port), {iworld & world = world})
 					Just channel = (Ok (ip, channel), {iworld & world = world})
 
 	onInitHandler :: ConnectionId !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)

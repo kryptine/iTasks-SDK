@@ -108,7 +108,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     | IODestroyed   !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
     | IOException   !String
 
-:: SDSEvalStates :== Map TaskId (!*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))
+:: SDSEvalStates :== Map TaskId (*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 

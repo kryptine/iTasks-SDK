@@ -31,7 +31,7 @@ onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
-queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException !ConnectionId, !*IWorld) | TC r
+queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env
 = case addConnection taskId host port connectionTask env of
 	(Error e, env)  		= (Error e, env)
