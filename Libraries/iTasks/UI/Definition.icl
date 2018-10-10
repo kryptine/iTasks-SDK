@@ -1,6 +1,7 @@
 implementation module iTasks.UI.Definition
 
-import Text.GenJSON, StdList, StdOrdList, StdBool, StdTuple, Data.GenEq, StdFunc, Text.HTML, Text
+import StdEnv
+import Text.GenJSON, Data.GenEq, Text.HTML, Text, Data.Maybe
 from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
@@ -14,7 +15,6 @@ from iTasks.UI.Editor.Generic import generic gEditor
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 
 import Text.HTML
-import StdMisc
 
 derive class iTask UI, UIType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
