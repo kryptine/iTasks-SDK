@@ -1,7 +1,6 @@
 implementation module iTasks.Internal.SDS
 
-from StdFunc import const, o, id
-import StdString, StdTuple, StdMisc, StdBool, StdFunc, StdInt, StdChar, StdArray
+import StdString, StdTuple, StdMisc, StdBool, StdInt, StdChar, StdFunctions, StdArray
 from StdList import flatten, map, take, drop, instance toString [a]
 from Text import class Text, instance Text String
 import qualified Text

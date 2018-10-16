@@ -3,7 +3,7 @@ implementation module Administration.Tasks
 import iTasks
 import Text
 import Text.HTML
-import Data.Either
+import Data.Either, Data.Maybe
 import Task.Extensions
 import System.Directory, System.FilePath
 import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS

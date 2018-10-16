@@ -1,9 +1,8 @@
 implementation module iTasks.UI.Editor.Controls
 
-import StdMisc, StdTuple
+import StdEnv
 import iTasks.UI.Definition, iTasks.UI.Editor
-import StdFunc, StdBool, Data.GenEq, StdList
-import Data.Error, Text.GenJSON, Text.HTML, Data.Func, Data.Functor, Data.Tuple, Data.List
+import Data.GenEq, Data.Error, Text.GenJSON, Text.HTML, Data.Func, Data.Functor, Data.Tuple, Data.List, Data.Maybe
 import qualified Data.Map as DM
 
 import iTasks.UI.Definition

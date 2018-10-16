@@ -8,7 +8,7 @@ import iTasks.UI.Prompt
 import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import StdReal
-from   StdFunc import id
+from   StdFunctions import id, const
 
 //	shorthand definitions for the used colours in these examples
 none			= toSVGColor "none"
