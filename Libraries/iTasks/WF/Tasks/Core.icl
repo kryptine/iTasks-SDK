@@ -58,7 +58,6 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-import StdDebug,StdMisc
 interact :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interact prompt shared handlers editor
 =  Task (eval prompt shared handlers editor)
@@ -113,7 +112,6 @@ where
 
 	// Handle all other events normally
 	eval prompt shared handlers editor event evalOpts tree iworld=:{current={taskTime}, sdsEvalStates}
-		| not (trace_tn ("Other event " +++ toSingleLineText event)) = undef
 		//Decode or initialize state
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)

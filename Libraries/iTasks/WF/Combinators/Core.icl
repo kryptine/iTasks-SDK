@@ -274,7 +274,7 @@ where
           (Ok (taskList,embeddedTasks),iworld)
             //Write the local task list
             # taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-            # (e,iworld) = trace_n "write task list" (write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
+            # (e,iworld) = (write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
             | isError e = (ExceptionResult (fromError e),iworld)
             //Write the local embedded tasks
             # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
@@ -285,7 +285,7 @@ where
 			= (ExceptionResult err, iworld)
       where
       	writeAll [] sds iworld = (Ok WritingDone,iworld)
-      	writeAll [(f,w):ws] sds iworld = case trace_n "write all" (write w (sdsFocus f sds) EmptyContext iworld) of
+      	writeAll [(f,w):ws] sds iworld = case (write w (sdsFocus f sds) EmptyContext iworld) of
           (Ok _,iworld) = writeAll ws sds iworld
           err = err
 
@@ -433,7 +433,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
                       | mbError =:(Error _)       = (liftError mbError,iworld)
                       # taskId                    = state.ParallelTaskState.taskId
                       //Store the task function
-                      # (mbError,iworld)          = trace_n "write parallel task function" (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+                      # (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
                       | mbError =:(Error _)       = (liftError mbError,iworld)
                       = evalParallelTasks listId taskTrees ResetEvent evalOpts conts completed [state] iworld //Continue
                     err = (liftError err, iworld)
@@ -698,7 +698,7 @@ where
               | mbError =:(Error _) = (liftError mbError,iworld)
               //If the task is an embedded one, we also need to store the task function
               | mbTask =:(Just _)
-                  # (mbError,iworld) = trace_n "store task function" (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+                  # (mbError,iworld) = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
                   | mbError =:(Error _) = (liftError mbError,iworld)
                   = (Ok taskId, iworld)
               | otherwise
@@ -805,7 +805,6 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-import StdDebug, StdMisc
 attach :: !InstanceNo !Bool -> Task AttachmentStatus
 attach instanceNo steal = Task eval
 where
@@ -826,9 +825,9 @@ where
 			//Take over the instance. We generate a new key, so the other instance will no longer have access
 			# (newKey,iworld) = newInstanceKey iworld
 	        # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
-			# (_,iworld)	= trace_n "Write progress" (write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld)
+			# (_,iworld)	= (write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld)
 			//Clear all input and output of that instance
-			# (_,iworld)    = trace_n "Write newQueue" (write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld)
+			# (_,iworld)    = (write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld)
 			# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld
 			= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
 

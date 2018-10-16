@@ -518,13 +518,11 @@ where
 			mergeReason x y = concat [x , "; " , y]
 		_ = Nothing
 
-import StdDebug,StdMisc
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 queueRefresh [] iworld = iworld
 queueRefresh tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
 	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
-	| not (trace_tn ("Queue refresh event for " +++ concat (map (toSingleLineText o fst)  tasks))) = undef
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 

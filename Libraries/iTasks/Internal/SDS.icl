@@ -78,7 +78,6 @@ mbRegister p sds (Just taskId) context reqSDSId iworld=:{IWorld|sdsNotifyRequest
 	# (ts, world) = nsTime world
 	# req = buildRequest context taskId reqSDSId p
 	# sdsId = sdsIdentity sds
-	| not (trace_tn ("Registering " +++ toString taskId +++ " for changes in " +++ sdsId)) = undef
 	= { iworld
 	  & world = world
 	  , sdsNotifyRequests = 'DM'.alter (Just o maybe ('DM'.singleton req ts) ('DM'.put req ts))
@@ -103,13 +102,11 @@ where
 		, cmpParam=dynamic p
 		, cmpParamText=toSingleLineText p
 		, remoteOptions = mbRemoteOptions}
-import StdDebug
+
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite () r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld
-| not (trace_tn ("Writing to " +++ sdsIdentity sds)) = undef
 = case writeSDS sds () c w iworld of
 		(Ok (WriteResult notify _), iworld)
-		| not (trace_tn ("Notifying " +++ toSingleLineText ('Set'.toList notify) +++ " of changes")) = undef
 		= (Ok WritingDone, queueNotifyEvents (sdsIdentity sds) notify iworld)
 		(Ok (AsyncWrite sds), iworld) = (Ok (Writing sds), iworld)
 		(Error e,iworld)    = (Error e,iworld)
@@ -145,9 +142,6 @@ where
 
 modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
 modify f sds context iworld
-| not (trace_tn ("Modify ")) = undef
-# (registrations, iworld) = listAllSDSRegistrations iworld
-| not (trace_tn ("Notify requests in IWorld: \n" +++ formatRegistrations registrations )) = undef
 = case modifySDS (\r. Ok (f r)) sds () context iworld of
 	(Error e, iworld) 					= (Error e, iworld)
 	(Ok (AsyncModify sds _), iworld) 		= (Ok (Modifying sds f), iworld)
@@ -229,7 +223,6 @@ instance Identifiable SDSSource
 where
 	nameSDS (SDSSource {SDSSourceOptions|name}) acc = ["$", name, "$":acc]
 	nameSDS (SDSValue done mr sds) acc = nameSDS sds acc
-	nameSDS _ _ = abort "SDSSource not matching"
 
 instance Readable SDSSource
 where
@@ -259,7 +252,6 @@ where
 
 instance Modifiable SDSSource where
 	modifySDS f sds=:(SDSSource {SDSSourceOptions|name}) p context iworld
-	| not (trace_tn ("Modify SDSSource: " +++ sdsIdentity sds)) = undef
 	= case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 		(Error e, iworld)               = (Error e, iworld)
 		(Ok (ReadResult r ssds), iworld)     =  case f r of
@@ -345,7 +337,6 @@ where
 
 instance Modifiable SDSLens where
 	modifySDS f sds=:(SDSLens sds1 opts=:{SDSLensOptions|param, read, write, reducer, notify, name}) p context iworld
-	| not (trace_tn ("Modify SDSLens: " +++ sdsIdentity sds)) = undef
 	= case reducer of
 		Nothing = case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 			(Error e, iworld)               = (Error e, iworld)
@@ -356,7 +347,6 @@ instance Modifiable SDSLens where
 					(Error e, iworld)                        = (Error e, iworld)
 					(Ok (AsyncWrite sds), iworld)            = (Ok (AsyncModify sds f), iworld)
 					(Ok (WriteResult notify ssds), iworld)
-					| not (trace_tn ("Notify no reducer: " +++ formatSDSRegistrationsList ('Set'.toList notify)))
 					= (Ok (ModifyResult notify r w ssds), iworld)
 
 		Just reducer = case modifySDS sf sds1 (param p) context iworld of
@@ -373,11 +363,6 @@ instance Modifiable SDSLens where
 					Ok r
 					# (match, nomatch, iworld) = checkRegistrations (sdsIdentity sds) notf iworld
 					# notify = 'Set'.union match ('Set'.difference toNotify ('Set'.difference nomatch match))
-					| not (trace_tn ("Match: " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
-					| not (trace_tn ("No match: " +++ formatSDSRegistrationsList ('Set'.toList nomatch))) = undef
-					| not (trace_tn ("Not notifying: " +++ formatSDSRegistrationsList ('Set'.toList ('Set'.difference nomatch match)))) = undef
-					| not (trace_tn ("toNotify: " +++ formatSDSRegistrationsList ('Set'.toList toNotify))) = undef
-					| not (trace_tn ("Notify: " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 					= (Ok (ModifyResult notify r w (SDSLens ssds opts)), iworld)
 		where
 			sf rs
@@ -447,7 +432,6 @@ instance Writeable SDSCache where
 
 instance Modifiable SDSCache where
 	modifySDS f sds=:(SDSCache _ opts) p context iworld
-	| not (trace_tn ("Modify SDSCache: " +++ sdsIdentity sds)) = undef
 	= case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 		(Error e, iworld)               = (Error e, iworld)
 		(Ok (AsyncRead sds), iworld)    = (Ok (AsyncModify sds f), iworld)
@@ -513,7 +497,6 @@ instance Writeable SDSSequence where
 
 instance Modifiable SDSSequence where
 	modifySDS f sds p context iworld
-	| not (trace_tn ("Modify SDSSequence: " +++ sdsIdentity sds)) = undef
 	= case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 		(Error e, iworld)               = (Error e, iworld)
 		(Ok (AsyncRead sds), iworld)    = (Error (exception "SDSSequence cannot be modified asynchronously in the left SDS."), iworld)
@@ -594,7 +577,6 @@ instance Writeable SDSSelect where
 
 instance Modifiable SDSSelect where
 	modifySDS f sds=:(SDSSelect sds1 sds2 opts=:{select}) p context iworld
-	| not (trace_tn ("Modify SDSSelect: " +++ sdsIdentity sds)) = undef
 	= case select p of
 		(Left p1)       = case modifySDS f sds1 p1 context iworld of
 			(Error e, iworld)                   		= (Error e, iworld)
@@ -669,7 +651,6 @@ instance Writeable SDSParallel where
 
 instance Modifiable SDSParallel where
 	modifySDS f sds p context iworld
-	| not (trace_tn ("Modify SDSParallel: " +++ sdsIdentity sds)) = undef
 	= case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 		(Error e, iworld)               = (Error e, iworld)
 		(Ok (AsyncRead sds), iworld)    = (Ok (AsyncModify sds f), iworld)
@@ -759,7 +740,6 @@ instance Registrable SDSRemoteSource where
 instance Identifiable SDSRemoteService where
 	nameSDS (SDSRemoteService opts) acc = ["SERVICE%" +++ toString opts +++ "%" : acc]
 	nameSDS (SDSRemoteServiceQueued connectionId sds opts) acc = ["SQ%" +++ toString opts +++ "%" : nameSDS sds acc]
-	nameSDS _ _ = abort "SDSRemoteService not matching"
 
 instance Readable SDSRemoteService where
 	readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote service without task id"), iworld)
