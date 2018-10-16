@@ -99,14 +99,14 @@ where
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 				= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
-			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
+			(Ok (res :: AsyncModify r^ w^), iworld) = case res of
 				// We already have the result from executing the modify function, it happened on this machine.
-				ModifyResult _ _ _ _
+				ModifyingDone _
 					# value = (Value ((fromJust (fromDeferredJSON encl)), (fromJust (fromDeferredJSON encv))) False)
 					= (ValueResult value evalInfo NoChange (TCInteract taskId ts encl encv st viewmode), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates })
-				AsyncModify sds f
-				= (ValueResult NoValue evalInfo NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () (TaskContext taskId))) sdsEvalStates})
-			(_, iworld)							= (ExceptionResult (exception "Dynamic type mismatch"), iworld)
+				Modifying sds f
+				= (ValueResult NoValue evalInfo NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify f sds (TaskContext taskId))) sdsEvalStates})
+			(Ok (dyn), iworld)							= (ExceptionResult (exception ("Dynamic type mismatch, type was " +++ toString (typeCodeOfDynamic dyn))), iworld)
 
     // Ignore all other events when waiting on an async operation.
 	eval _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)

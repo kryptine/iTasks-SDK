@@ -150,7 +150,7 @@ modify f sds context iworld
 | not (trace_tn ("Notify requests in IWorld: \n" +++ formatRegistrations registrations )) = undef
 = case modifySDS (\r. Ok (f r)) sds () context iworld of
 	(Error e, iworld) 					= (Error e, iworld)
-	(Ok (AsyncModify sds f), iworld) 		= (Ok (Modifying sds f), iworld)
+	(Ok (AsyncModify sds _), iworld) 		= (Ok (Modifying sds f), iworld)
 	(Ok (ModifyResult notify r w _), iworld)
 	# iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
 	= (Ok (ModifyingDone w), iworld)
@@ -194,7 +194,7 @@ where
 formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
 formatSDSRegistrationsList list = 'Text'.join "\n" lines
 where
-	lines = [ "Task id " +++ toString reqTaskId +++ ": " +++ reqSDSId \\ {reqTaskId, reqSDSId} <- list]
+	lines = [ "Task id " +++ toString reqTaskId +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText} <- list]
 
 formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
@@ -340,7 +340,7 @@ where
 							(Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
 							(Ok (WriteResult notify ssds), iworld)
 								//Remove the registrations that we can eliminate based on the current parameter
-								# notify = 'Set'.difference notify ('Set'.difference nomatch match)
+								# notify = 'Set'.union match ('Set'.difference notify ('Set'.difference nomatch match))
 								= (Ok (WriteResult notify (SDSLens ssds opts)), iworld)
 
 instance Modifiable SDSLens where
@@ -372,7 +372,7 @@ instance Modifiable SDSLens where
 					Error e = (Error e, iworld)
 					Ok r
 					# (match, nomatch, iworld) = checkRegistrations (sdsIdentity sds) notf iworld
-					# notify = 'Set'.difference toNotify ('Set'.difference nomatch match)
+					# notify = 'Set'.union match ('Set'.difference toNotify ('Set'.difference nomatch match))
 					| not (trace_tn ("Match: " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
 					| not (trace_tn ("No match: " +++ formatSDSRegistrationsList ('Set'.toList nomatch))) = undef
 					| not (trace_tn ("Not notifying: " +++ formatSDSRegistrationsList ('Set'.toList ('Set'.difference nomatch match)))) = undef
@@ -600,12 +600,12 @@ instance Modifiable SDSSelect where
 			(Error e, iworld)                   		= (Error e, iworld)
 			(Ok (AsyncModify sds f), iworld)    		= (Ok (AsyncModify (SDSSelect sds sds2 opts) f), iworld)
 			// TODO: Use applicable notify function.
-			(Ok (ModifyResult notify r w ssds), iworld) = (Ok (ModifyResult 'Set'.newSet r w (SDSSelect ssds sds2 opts)), iworld)
+			(Ok (ModifyResult notify r w ssds), iworld) = (Ok (ModifyResult notify r w (SDSSelect ssds sds2 opts)), iworld)
 		(Right p2)      = case modifySDS f sds2 p2 context iworld of
 			(Error e, iworld)                  			= (Error e, iworld)
 			(Ok (AsyncModify sds f), iworld)    		= (Ok (AsyncModify (SDSSelect sds1 sds opts) f), iworld)
 			// TODO: Use applicable notify function.
-			(Ok (ModifyResult notify r w ssds), iworld) = (Ok (ModifyResult 'Set'.newSet r w (SDSSelect sds1 ssds opts)), iworld)
+			(Ok (ModifyResult notify r w ssds), iworld) = (Ok (ModifyResult notify r w (SDSSelect sds1 ssds opts)), iworld)
 
 instance Registrable SDSSelect where
 	readRegisterSDS sds p c taskId iworld = readSDS sds p c (Just taskId) (sdsIdentity sds) iworld
@@ -775,18 +775,18 @@ instance Readable SDSRemoteService where
 			= (Error (exception errorString), iworld)
 		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteServiceQueued connectionId sds opts)), iworld)
 
-// TODO: Remove, is currently needed due to a shared interact function between viewSharedInformation, updateSharedInformation.
 instance Writeable SDSRemoteService where
 	writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote services yet"), iworld)
 
 instance Modifiable SDSRemoteService where
 	modifySDS _ _ _ _ iworld = (Error (exception "modifying remote services not possible"), iworld)
 
+// TODO: Remove, is currently needed due to a shared interact function between viewSharedInformation, updateSharedInformation.
 instance Registrable SDSRemoteService where
 	readRegisterSDS _ _ _ _ iworld = (Error (exception "registering remote services not possible"), iworld)
 
 instance == SDSNotifyRequest where
-	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId, r1.cmpParamText) == (r2.reqTaskId, r2.reqSDSId, r2.cmpParamText) && r1.remoteOptions == r2.remoteOptions
+	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId) == (r2.reqTaskId, r2.reqSDSId) && r1.remoteOptions == r2.remoteOptions
 
 instance == RemoteNotifyOptions where
 	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)

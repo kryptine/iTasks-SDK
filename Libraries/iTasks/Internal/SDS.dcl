@@ -108,7 +108,7 @@ write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskEx
 
 
 :: AsyncModify r w = ModifyingDone w & TC w
-	| E. sds: Modifying (sds () r w) (r -> MaybeError TaskException w) & Modifiable sds & TC r & TC w
+	| E. sds: Modifying (sds () r w) (r -> w) & Modifiable sds & TC r & TC w
 //Read followed by write. The 'a' typed value is a result that is returned
 modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
 
