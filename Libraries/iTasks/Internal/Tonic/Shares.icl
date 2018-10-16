@@ -14,7 +14,7 @@ sdsUnsafeRead :: (sds () a b) *IWorld -> *(a, *IWorld) | TC a & RWShared sds & T
 sdsUnsafeRead focus iworld
   # (res, iworld) = 'DSDS'.read focus 'DSDS'.EmptyContext iworld
   = case res of
-      Ok ('DSDS'.ReadResult x _) -> (x, iworld)
+      Ok ('DSDS'.ReadingDone x) -> (x, iworld)
 
 selectedBlueprint :: SDSLens () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)
@@ -78,7 +78,7 @@ where
                                                                                 (elems ++ [((mn, fn), {bpref & bpi_index = length elems})])) trtMap
                                                  _       -> 'DM'.put tid [((mn, fn), bpref)] trtMap))
 
-  reducer p ws = case read p ws of 
+  reducer p ws = case read p ws of
     (Error e) -> (Error e)
     Ok Nothing -> Error (exception "No Blueprint avaialbe?")
     Ok (Just v) -> (Ok v)

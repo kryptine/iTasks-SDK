@@ -519,9 +519,9 @@ evalDetachedParallelTask listId taskTrees event evalOpts {ParallelTaskState|task
     = case readRegister listId (sdsFocus instanceNo taskInstanceValue) iworld of
         (Error e,iworld)
             = (Error e,iworld)
-        (Ok (ReadResult (TIException dyn msg) _),iworld)
+        (Ok (ReadingDone (TIException dyn msg)),iworld)
             = (Ok (ExceptionResult (dyn,msg)),iworld)
-        (Ok (ReadResult (TIValue encValue) _),iworld)
+        (Ok (ReadingDone (TIValue encValue)),iworld)
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
@@ -539,7 +539,7 @@ destroyParallelTasks listId=:(TaskId instanceNo _) taskTrees iworld
 		(Error e,iworld)
 			//TODO: Still try to cleanup as much as possible based on the taskIds in the taskTrees
 			= (ExceptionResult e, iworld)
-		(Ok (ReadResult taskStates _),iworld)
+		(Ok (ReadingDone taskStates),iworld)
 			//1. Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
 			# (result,exceptions,iworld) = foldl (destroyParallelTask listId taskTrees) (DestroyedResult,[],iworld) taskStates
 			//2. Remove the (shared) tasklist
@@ -571,7 +571,7 @@ destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId taskTrees iworl
 	// Evaluate with a TCDestroy state to destroy subtasks
 	# (errs,destroyResult,iworld) = case read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld of
 		(Error e,iworld) = ([e],DestroyedResult,iworld)
-		(Ok (ReadResult (Task eval) _),iworld)
+		(Ok (ReadingDone (Task eval)),iworld)
     		# taskTree = fromMaybe (TCInit taskId taskTime) ('DM'.get taskId taskTrees)
 			= case eval ResetEvent {mkEvalOpts & noUI = True} (TCDestroy taskTree) iworld of
 				(res=:(DestroyedResult),iworld) = ([],res,iworld)
@@ -836,7 +836,7 @@ where
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok (ReadResult progress=:{InstanceProgress|attachedTo=[attachedId:_],value} _))
+			(Ok (ReadingDone progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
 			    | build <> appVersion    = ASIncompatible
 				| value =:(Exception _) = case value of (Exception s) = ASExcepted s
 				| attachedId <> taskId   = ASInUse attachedId

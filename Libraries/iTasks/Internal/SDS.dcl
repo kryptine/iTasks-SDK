@@ -81,10 +81,13 @@ createReadOnlySDSError ::
 	SDSSource p r ()
 
 // Helper to immediately get the read value from a share. Use only when reading in an EmptyContext.
-directResult :: (ReadResult p r w) -> r
+directResult :: (AsyncRead r w) -> r
 
 //Internal access functions
 sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
+
+:: AsyncRead r w = ReadingDone r
+	| E. sds: Reading (sds () r w) & TC r & TC w & Readable sds & Registrable sds
 
 /*
  * Read the SDS. TaskContext is used to determine whether a read is done in the
@@ -95,20 +98,21 @@ sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
  *	task will be notified when it is ready), or a direct result in the case of
  *	a blocking read.
  */
-read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
+read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable sds
 
 //Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
+readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
 
-:: AsyncWrite p r w = WritingDone
-	| E. sds: Writing (sds p r w) & Writeable sds & TC p & TC r & TC w
+:: AsyncWrite r w = WritingDone
+	| E. sds: Writing (sds () r w) & Writeable sds & TC r & TC w
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite () r w), !*IWorld)	| TC r & TC w & Writeable sds
+write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld)	| TC r & TC w & Writeable sds
 
 
 :: AsyncModify r w = ModifyingDone w & TC w
 	| E. sds: Modifying (sds () r w) (r -> w) & Modifiable sds & TC r & TC w
+
 //Read followed by write. The 'a' typed value is a result that is returned
 modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
 

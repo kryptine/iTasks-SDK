@@ -36,7 +36,7 @@ where
 
 	eval event evalOpts tree=:(TCInit taskId ts) iworld
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
+		(Ok (ReadingDone symbols), iworld) = (readSymbols symbols, iworld)
 	# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask (handlers symbols taskId) share) iworld
 	| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
 	# iworld = iShow ["SDS server listening on " +++ toString port] iworld
@@ -45,7 +45,7 @@ where
 	eval (RefreshEvent taskIds cause) evalOpts tree=:(TCBasic taskId ts data bla) iworld
 	| not ('Set'.member taskId taskIds) = (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCBasic taskId ts data bla), iworld)
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-		(Ok (ReadResult symbols _), iworld) = (readSymbols symbols, iworld)
+		(Ok (ReadingDone symbols), iworld) = (readSymbols symbols, iworld)
 	# (readResult, iworld) = read share EmptyContext iworld
 	| readResult=:(Error _) = showException "read from symbols share" (fromError readResult) iworld
 	# shareValue = 'Map'.toList (directResult (fromOk readResult))

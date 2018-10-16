@@ -98,7 +98,7 @@ where
 queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 queueRead rsds=:(SDSRemoteSource sds {SDSShareOptions|domain, port}) p taskId register reqSDSId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadResult r _), env) = (readSymbols r, env)
+	(Ok (ReadingDone r), env) = (readSymbols r, env)
 	_ = abort "Reading symbols failed!"
 # (request, env) = buildRequest register env
 = queueSDSRequest request domain port taskId symbols env
@@ -110,7 +110,7 @@ queueRemoteRefresh :: ![SDSNotifyRequest] !*IWorld -> *IWorld
 queueRemoteRefresh [] iworld = iworld
 queueRemoteRefresh [notifyRequest : reqs] iworld=:{options}
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-	(Ok (ReadResult r _), iworld) = (readSymbols r, iworld)
+	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
 # (host, port, sdsId) = case notifyRequest.remoteOptions of
 	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
 # request = reqq notifyRequest.reqTaskId sdsId
@@ -124,14 +124,14 @@ where
 queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 queueWrite w rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadResult r _), env) = (readSymbols r, env)
+	(Ok (ReadingDone r), env) = (readSymbols r, env)
 # request = SDSWriteRequest sds p w
 = queueSDSRequest request domain port taskId symbols env
 
 queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadResult r _), env) = (readSymbols r, env)
+	(Ok (ReadingDone r), env) = (readSymbols r, env)
 # request = SDSModifyRequest sds p f
 = queueModifyRequest request domain port taskId symbols env
 

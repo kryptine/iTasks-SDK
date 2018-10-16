@@ -117,7 +117,7 @@ newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo 'SDS'.EmptyContext iworld
 	= case mbNewInstanceNo of
-		Ok ('SDS'.ReadResult instanceNo _)
+		Ok ('SDS'.ReadingDone instanceNo)
 			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo 'SDS'.EmptyContext iworld
 			= case mbError of
 				Ok _    = (Ok instanceNo,iworld)
@@ -531,7 +531,7 @@ dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
 	(Error e, iworld)               = (Nothing, iworld)
-	(Ok ('SDS'.ReadResult queue _), iworld)
+	(Ok ('SDS'.ReadingDone queue), iworld)
 	# (val, queue) = 'DQ'.dequeue queue
 	= case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
 	  (Error e, iworld) = (Nothing, iworld)
@@ -587,13 +587,13 @@ createDocument name mime content iworld
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
 	= case 'SDS'.read (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld of
-		(Ok ('SDS'.ReadResult content _),iworld) = (Just content,iworld)
+		(Ok ('SDS'.ReadingDone content),iworld) = (Just content,iworld)
 		(Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
 	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) 'SDS'.EmptyContext iworld) of
-		(Ok ('SDS'.ReadResult doc _),iworld)     = (Just doc,iworld)
+		(Ok ('SDS'.ReadingDone doc),iworld)     = (Just doc,iworld)
 		(Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

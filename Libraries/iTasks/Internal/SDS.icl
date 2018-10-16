@@ -64,12 +64,18 @@ iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p iworld = (npred p, iworld)
 
 read            :: !(sds () r w) !TaskContext !*IWorld
-	-> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable sds
-read sds c iworld = readSDS sds () c Nothing (sdsIdentity sds) iworld
+	-> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable sds
+read sds c iworld = case readSDS sds () c Nothing (sdsIdentity sds) iworld of
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (ReadResult r sds), iworld) = (Ok (ReadingDone r), iworld)
+	(Ok (AsyncRead sds), iworld) = (Ok (Reading sds), iworld)
 
 readRegister    :: !TaskId !(sds () r w) !*IWorld
-	-> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
-readRegister taskId sds iworld = readRegisterSDS sds () (TaskContext taskId) taskId iworld
+	-> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
+readRegister taskId sds iworld = case readRegisterSDS sds () (TaskContext taskId) taskId iworld of
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (ReadResult r sds), iworld) = (Ok (ReadingDone r), iworld)
+	(Ok (AsyncRead sds), iworld) = (Ok (Reading sds), iworld)
 
 mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
@@ -103,7 +109,7 @@ where
 		, cmpParamText=toSingleLineText p
 		, remoteOptions = mbRemoteOptions}
 
-write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite () r w), !*IWorld) | TC r & TC w & Writeable sds
+write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException !(AsyncWrite r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld
 = case writeSDS sds () c w iworld of
 		(Ok (WriteResult notify _), iworld)
@@ -111,8 +117,8 @@ write w sds c iworld
 		(Ok (AsyncWrite sds), iworld) = (Ok (Writing sds), iworld)
 		(Error e,iworld)    = (Error e,iworld)
 
-directResult :: (ReadResult p r w) -> r
-directResult (ReadResult a _) = a
+directResult :: (AsyncRead r w) -> r
+directResult (ReadingDone r) = r
 directResult _ = abort "No direct result!"
 
 //Check the registrations and find the set of id's for which the current predicate holds

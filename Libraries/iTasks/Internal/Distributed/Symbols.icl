@@ -30,7 +30,7 @@ where
 	eval taskId iworld
 		# (val, iworld) = read symbolsShare EmptyContext iworld
 		= case val of
-			Ok (ReadResult val _)		= (Ok (fun (readSymbols val)), iworld) 
+			Ok (ReadingDone val)		= (Ok (fun (readSymbols val)), iworld)
 			Error e		= (Error e, iworld)
 
 readSymbols :: String -> {#Symbol}
@@ -40,6 +40,6 @@ withSymbols :: ({#Symbol} -> Task a) -> Task a | iTask a
 withSymbols taskfun = Task eval
 where
 	eval event evalOpts state iworld
-                # (val, iworld) = read symbolsShare EmptyContext iworld
-                = case val of
-                        Ok (ReadResult val _)          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld
+    # (val, iworld) = read symbolsShare EmptyContext iworld
+    = case val of
+        Ok (ReadingDone val)          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld

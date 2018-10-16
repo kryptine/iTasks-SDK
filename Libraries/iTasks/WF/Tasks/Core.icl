@@ -74,8 +74,8 @@ where
 		(Just val)
 		= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
-			(Ok (res :: ReadResult () r^ w^), iworld) = case res of
-				ReadResult r _
+			(Ok (res :: AsyncRead r^ w^), iworld) = case res of
+				ReadingDone r
 					# (l, mode) = handlers.onInit r
 					# mbV = case mode of
 							Enter    = Nothing
@@ -88,7 +88,7 @@ where
 					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
                 			# value 	= maybe NoValue (\v -> Value (l, v) False) mbV
 					        = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON mbV) st (mode =: View _)), vst)) iworld
-				AsyncRead sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
+				Reading sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 			(_, iworld) = (ExceptionResult (exception "Dynamic type mismatch"), iworld)
 
 	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ _ (TCInteract taskId ts encl encv st viewmode)) iworld=:{sdsEvalStates, current={taskTime}}
@@ -116,7 +116,7 @@ where
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
-					(Ok ('SDS'.ReadResult r _),iworld)
+					(Ok ('SDS'.ReadingDone r),iworld)
 						# (l, mode) = handlers.onInit r
 						# v = case mode of
 							Enter    = Nothing
@@ -125,7 +125,7 @@ where
 						= case initEditorState taskId mode editor iworld of
 							(Ok st,iworld) = (Ok (Left (taskId,ts,l,v,st, mode =: View _)),iworld)
 							(Error e,iworld) = (Error e,iworld)
-					(Ok ('SDS'.AsyncRead sds), iworld)
+					(Ok ('SDS'.Reading sds), iworld)
 						= (Ok (Right (taskId, ts, sds)),{iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv st viewMode)
@@ -208,8 +208,8 @@ refreshView_ taskId editor shared onRefresh l ov st taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
-		(Ok ('SDS'.AsyncRead sds), iworld) = (Ok (Right (Read, dynamicResult ('SDS'.readRegister taskId sds), l, ov, st, NoChange)), iworld)
-		(Ok ('SDS'.ReadResult r _),iworld)
+		(Ok ('SDS'.Reading sds), iworld) = (Ok (Right (Read, dynamicResult ('SDS'.readRegister taskId sds), l, ov, st, NoChange)), iworld)
+		(Ok ('SDS'.ReadingDone r),iworld)
 			# (l,v,mbf) = onRefresh r l ov
 			# (res, iworld) = withVSt taskId (editor.Editor.onRefresh [] v st) iworld
 			= case res of

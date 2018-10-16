@@ -415,7 +415,7 @@ where
 	verifyKeys instances iworld = filterSt verifyKey instances iworld
 	where
 		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
-			(Ok (ReadResult {InstanceProgress|instanceKey} _),iworld) = (viewportKey == instanceKey,iworld)
+			(Ok (ReadingDone {InstanceProgress|instanceKey}),iworld) = (viewportKey == instanceKey,iworld)
 			(_,iworld) = (False,iworld)
 
 		filterSt p [] s = ([],s)
