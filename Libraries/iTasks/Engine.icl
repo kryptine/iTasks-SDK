@@ -15,7 +15,7 @@ from Data.Queue import :: Queue(..)
 from Data.Set import :: Set, newSet
 
 import qualified Data.Map as DM
-from System.OS import IF_POSIX_OR_WINDOWS, OS_NEWLINE
+from System.OS import IF_POSIX_OR_WINDOWS, OS_NEWLINE, IF_WINDOWS
 
 import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
@@ -68,7 +68,7 @@ where
 	hasWebTasks = not (webTasks =: [])
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
-	initSymbolsShare True appName iworld = case storeSymbols appName iworld of
+	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
 		(Error (e, s), iworld) = (Error s, iworld)
 		(Ok noSymbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString noSymbols] iworld.world})
 

@@ -69,13 +69,13 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
-queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
+queueServiceRequest service=:(SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
 	(Error e, env) = (Error e, env)
 	(Ok (id, _), env) = (Ok id, env)
 where
-	connectionTask = wrapConnectionTask handlers unitShare
+	connectionTask = wrapConnectionTask (handlers service) unitShare
 
-	handlers  = {ConnectionHandlers| onConnect = onConnect,
+	handlers req = {ConnectionHandlers| onConnect = onConnect,
 		onData = onData,
 		onShareChange = onShareChange,
 		onDisconnect = onDisconnect}
@@ -135,6 +135,22 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 # request = SDSModifyRequest sds p f
 = queueModifyRequest request domain port taskId symbols env
 
+getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r & TC w & TC p
+getAsyncServiceValue service taskId connectionId ioStates
+=  case 'DM'.get taskId ioStates of
+		Nothing                             = Error (exception "No iostate for this task")
+		(Just ioState)                      = case ioState of
+			(IOException exc)                   = Error (exception exc)
+			(IOActive connectionMap)            = getValue connectionId connectionMap
+			(IODestroyed connectionMap)         = getValue connectionId connectionMap
+where
+	getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
+		(Just (value :: Either [String] r^, _)) = case value of
+			(Left _)                                = Ok Nothing
+			(Right val)                     		= Ok (Just val)
+		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct service type, got: " +++ toString (typeCodeOfDynamic dyn) +++ ", required: " +++ toString (typeCodeOfDynamic (dynamic service))))
+		Nothing                             	= Ok Nothing
+
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r
 getAsyncReadValue _ taskId connectionId ioStates
 =  case 'DM'.get taskId ioStates of
@@ -149,7 +165,7 @@ where
 			(Left _)                                = Ok Nothing
 			(Right (Ok val))                        = Ok (Just val)
 			(Right (Error e))						= Error e
-		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct write type, got" +++ toString (typeCodeOfDynamic dyn)))
+		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct read type, got" +++ toString (typeCodeOfDynamic dyn)))
 		Nothing                             	= Ok Nothing
 
 getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe w) | TC w

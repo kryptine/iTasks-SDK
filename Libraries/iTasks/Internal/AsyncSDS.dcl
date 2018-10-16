@@ -75,6 +75,8 @@ queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !Ta
  */
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r
 
+getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r & TC w & TC p
+
 /**
  * Queries IOStates to see whether a write operation has yielded a result.
  * @param the share, required for typing reasons.

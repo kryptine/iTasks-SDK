@@ -749,7 +749,7 @@ instance Identifiable SDSRemoteService where
 
 instance Readable SDSRemoteService where
 	readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote service without task id"), iworld)
-	readSDS sds=:(SDSRemoteServiceQueued connectionId rsds opts) p (TaskContext taskId) _ _ iworld=:{ioStates} = case getAsyncReadValue sds taskId connectionId ioStates of
+	readSDS sds=:(SDSRemoteServiceQueued connectionId rsds opts) p (TaskContext taskId) _ _ iworld=:{ioStates} = case getAsyncServiceValue sds taskId connectionId ioStates of
 		Error (_, error)
 		# errorString = "Remote service queued error<br>Service " +++ toString opts +++ ": " +++ error
 		= (Error (exception errorString), iworld)
