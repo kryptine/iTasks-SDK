@@ -31,11 +31,11 @@ where
     notify` p w = const (const True)
 
 sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w | gText{|*|} ps & TC ps & TC r & TC w & RWShared sds
-sdsTranslate name param sds = sdsLens name param 
-  (SDSRead (\_ rs -> Ok rs)) 
-  (SDSWriteConst (\_ w -> Ok (Just w))) 
-  (SDSNotifyConst (\_ _ _ _ -> True)) 
-  (Just \p ws. Ok (ws)) 
+sdsTranslate name param sds = sdsLens name param
+  (SDSRead (\_ rs -> Ok rs))
+  (SDSWriteConst (\_ w -> Ok (Just w)))
+  (SDSNotifyConst (\_ _ _ _ -> True))
+  (Just \p ws. Ok (ws))
   sds
 
 sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(Maybe (!SDSReducer p ws w)) !(sds ps rs ws) -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
@@ -51,7 +51,7 @@ removeMaybe defaultValue sds = sdsLens "removeMaybe" id (SDSRead read) (SDSWrite
 where
     read p (Just r) = Ok r
     read p Nothing = maybe (Error (exception "Required value not available in shared data source")) Ok defaultValue
-	
+
     write p w = Ok (Just (Just w))
 
     reducer _ (Just a)  = Ok a
@@ -71,7 +71,7 @@ mapReadError read sds = sdsProject (SDSLensRead read) (SDSBlindWrite (Ok o Just)
 
 mapWriteError :: !(w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 mapWriteError write reducer sds = sdsProject (SDSLensRead Ok) (SDSLensWrite (flip write)) reducer sds
-	
+
 mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 mapReadWriteError (read,write) reducer sds = sdsProject (SDSLensRead read) (SDSLensWrite (flip write)) reducer sds
 

@@ -221,7 +221,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
 	= (Ok (),iworld)
   where
-	toME (Ok ('SDS'.ModifyResult _ _ _)) = Ok ()
+	toME (Ok ('SDS'.ModifyingDone _)) = Ok ()
 	toMe (Error e) = (Error e)
 
 
@@ -518,10 +518,13 @@ where
 			mergeReason x y = concat [x , "; " , y]
 		_ = Nothing
 
+import StdDebug,StdMisc
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
+queueRefresh [] iworld = iworld
 queueRefresh tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
 	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
+	| not (trace_tn ("Queue refresh event for " +++ concat (map (toSingleLineText o fst)  tasks))) = undef
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
@@ -534,7 +537,7 @@ dequeueEvent iworld
 	# (val, queue) = 'DQ'.dequeue queue
 	= case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
 	  (Error e, iworld) = (Nothing, iworld)
-	  (Ok Done, iworld) = (val, iworld)
+	  (Ok WritingDone, iworld) = (val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld

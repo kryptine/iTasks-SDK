@@ -56,17 +56,17 @@ where
 			liftOSErr (readPipeNonBlocking pio.stdOut)  >-= \stdoutData->
 			liftOSErr (readPipeNonBlocking pio.stdErr)  >-= \stderrData->
 			(if (stdoutData == "" && stderrData == "")
-				(tuple (Ok Done))
+				(tuple (Ok WritingDone))
 				(write (stdoutq ++ filter ((<>)"") [stdoutData]
 				       ,stderrq ++ filter ((<>)"") [stderrData]
-				       ) sdsout EmptyContext))          >-= \Done->
+				       ) sdsout EmptyContext))          >-= \WritingDone->
 			liftOSErr (checkProcess ph)                 >-= \mexitcode->case mexitcode of
 				(Just i) = tuple (Ok (ValueResult (Value i True) (info ts) (rep event) (TCStable taskId ts (DeferredJSONNode (JSONInt i)))))
 				Nothing =
 					readRegister taskId clock                            >-= \_->
 					readRegister taskId sdsin                            >-= \(ReadResult stdinq _)->
 					liftOSErr (writePipe (concat stdinq) pio.stdIn)      >-= \_->
-					(if (stdinq =: []) (tuple (Ok Done)) (write [] sdsin EmptyContext)) >-= \Done ->
+					(if (stdinq =: []) (tuple (Ok WritingDone)) (write [] sdsin EmptyContext)) >-= \WritingDone ->
 					tuple (Ok (ValueResult NoValue (info ts) (rep event) tree))
 
 	//Stable
@@ -104,8 +104,8 @@ where
                 = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep port)
                                                     (TCBasic taskId ts (DeferredJSONNode JSONNull) False),iworld)
 
-    eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates} 
-        = case 'DM'.get taskId ioStates of 
+    eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
+        = case 'DM'.get taskId ioStates of
             Just (IOException e)
                 = (ExceptionResult (exception e), iworld)
             Just (IOActive values)
@@ -137,7 +137,7 @@ where
             Nothing
                 = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
             Just (IOActive values)
-                = case 'DM'.get 0 values of 
+                = case 'DM'.get 0 values of
                     Just (l :: l^, s)
                         = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
                     _

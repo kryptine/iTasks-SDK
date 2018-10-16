@@ -74,8 +74,8 @@ where
 		(Just f) = case f iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: AsyncWrite () r^ a^), iworld) = case res of
-				Done = (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
-				(Writing sds) = (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
+				WritingDone = (ValueResult (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
+				Writing sds = (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
 
 	eval val shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
@@ -86,7 +86,7 @@ where
 			# tree = TCAwait Write taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates
 			= (ValueResult NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-		(Ok Done, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
+		(Ok WritingDone, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
@@ -101,8 +101,8 @@ where
 	# evalInfo = {lastEvent=ts,removedTasks=[],refreshSensitive=False}
 	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of
 		(Error (d, s), iworld) 						= (ExceptionResult (d, s), iworld)
-		(Ok (ModifyResult r w _), iworld)			= (ValueResult (Value w True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
-		(Ok (AsyncModify sds _), iworld)
+		(Ok (ModifyingDone w), iworld)			= (ValueResult (Value w True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON w)), iworld)
+		(Ok (Modifying sds _), iworld)
 			# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
 			# tree = TCAwait Modify taskId ts (TCInit taskId ts)
 			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify fun sds ('SDS'.TaskContext taskId))) sdsEvalStates
@@ -112,9 +112,9 @@ where
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 				= case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
-			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
-				(ModifyResult r w _) = (ValueResult (Value w True) {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange (TCStable taskId ts (DeferredJSON w)), iworld)
-				(AsyncModify sds f) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () ('SDS'.TaskContext taskId))) sdsEvalStates})
+			(Ok (res :: AsyncModify r^ w^), iworld) = case res of
+				ModifyingDone w = (ValueResult (Value w True) {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange (TCStable taskId ts (DeferredJSON w)), iworld)
+				Modifying sds f = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[], refreshSensitive=False} NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modifySDS f sds () ('SDS'.TaskContext taskId))) sdsEvalStates})
 
 	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)

@@ -130,7 +130,7 @@ where
 			(Ok (AsyncWrite sds), iworld)					= (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
 		(SDSModifyRequest sds p f)						= case modifySDS f sds p (TaskContext taskId) iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
-			(Ok (ModifyResult r w _), iworld)				= (Ok (Left (serializeToBase64 (Ok (r,w)))), iworld)
+			(Ok (ModifyResult notify r w _), iworld)		= (Ok (Left (serializeToBase64 (Ok (r,w)))), iworld)
 			(Ok (AsyncModify sds f), iworld)				= (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld)
 		(SDSRefreshRequest refreshTaskId sdsId)
 		// If we receive a request to refresh the sds service task, we find all remote

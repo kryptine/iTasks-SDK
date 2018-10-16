@@ -67,9 +67,11 @@ processEvents max iworld
 					(Error msg,iworld=:{IWorld|world})
 						= (Ok (),{IWorld|iworld & world = world})
 
+import StdDebug,StdMisc
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
+	| not (trace_tn ("Evaluate " +++ toSingleLineText instanceNo)) = undef
 	# iworld            = mbResetUIState instanceNo event iworld
 	# (res,iworld)      = evalTaskInstance` instanceNo event iworld
 	= (res,iworld)
@@ -84,7 +86,7 @@ where
 	# (oldProgress,iworld)      = read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
 	# oldProgress=:{InstanceProgress|value,attachedTo} = directResult (fromOk oldProgress)
-	//Check exeption
+	//Check exception
 	| value =: (Exception _)
 		# (Exception description) = value
 		= exitWithException instanceNo description iworld
@@ -114,7 +116,7 @@ where
 	// Write the updated progress
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed
-		(case (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of
+		(case trace_n "Modify progress" (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of
 		  (Error e, iworld) = (Error e, iworld)
 		  (Ok _, iworld) = (Ok (), iworld) )
 	= case mbErr of
@@ -122,14 +124,14 @@ where
 		Ok _
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
-			# (_,iworld)                = modify (\r -> {TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})
-												(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
+			# (_,iworld)                = trace_n "Modify reduct" (modify (\r -> {TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})
+												(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld)
 												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
 			//Store update value
 			# newValue                  = case newResult of
 				(ValueResult val _ _ _)     = TIValue val
 				(ExceptionResult (e,str))   = TIException e str
-			# (mbErr,iworld)            = if deleted (Ok Done,iworld) (write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld)
+			# (mbErr,iworld)            = if deleted (Ok WritingDone,iworld) (trace_n "write new value" (write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld))
 			= case mbErr of
 				Error (e,description) = exitWithException instanceNo description iworld
 				Ok _
@@ -178,8 +180,8 @@ where
 updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceLastIO [] iworld = (Ok (),iworld)
 updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clock}
-	= case modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-		(Ok (ModifyResult _ _ _),iworld) = updateInstanceLastIO instanceNos iworld
+	= case trace_n "modify updateInstanceLastIO" (modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld) of
+		(Ok (ModifyingDone _),iworld) = updateInstanceLastIO instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
@@ -192,8 +194,8 @@ updateInstanceConnect client [instanceNo:instanceNos] iworld=:{IWorld|clock}
 updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceDisconnect [] iworld = (Ok (),iworld)
 updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clock}
-	= case modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-		(Ok (ModifyResult _ _ _),iworld) = updateInstanceDisconnect instanceNos iworld
+	= case trace_n "modify updateInstanceDisconnect" (modify (\io -> fmap (appSnd (const clock)) io) (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld) of
+		(Ok (ModifyingDone _),iworld) = updateInstanceDisconnect instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 currentInstanceShare :: SDSSource () InstanceNo ()

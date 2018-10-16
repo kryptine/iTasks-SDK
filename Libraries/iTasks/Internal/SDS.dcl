@@ -100,14 +100,17 @@ read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException 
 //Read an SDS and register a taskId to be notified when it is written
 readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (ReadResult () r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
 
-:: AsyncWrite p r w = Done
+:: AsyncWrite p r w = WritingDone
 	| E. sds: Writing (sds p r w) & Writeable sds & TC p & TC r & TC w
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
 write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite () r w), !*IWorld)	| TC r & TC w & Writeable sds
 
+
+:: AsyncModify r w = ModifyingDone w & TC w
+	| E. sds: Modifying (sds () r w) (r -> MaybeError TaskException w) & Modifiable sds & TC r & TC w
 //Read followed by write. The 'a' typed value is a result that is returned
-modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (ModifyResult () r w), !*IWorld) | TC r & TC w & Modifiable sds
+modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued
@@ -118,7 +121,8 @@ queueNotifyEvents :: !String !(Set SDSNotifyRequest) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
-formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
+
+formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
 
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)

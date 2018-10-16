@@ -36,7 +36,7 @@ where
 	lesser (Just x) (Just y) = x < y
 	lesser (Just _) Nothing = True
 	lesser Nothing Nothing = False
-	
+
 	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
 	getTimeoutFromClock now requests = getTimeoutFromClock` <$> 'DM'.toList requests
 	where
@@ -66,7 +66,7 @@ removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld=:{IWorld|options}
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld
     = case mbIndex of
-        Ok (ReadResult index _) = checkAll removeIfOutdated index iworld 
+        Ok (ReadResult index _) = checkAll removeIfOutdated index iworld
         Error e     			= (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
@@ -88,7 +88,7 @@ where
 						= (Ok False,iworld)
 					(Error e,iworld)
 						= (Error e,iworld)
-			(Error e,iworld) 
+			(Error e,iworld)
 				= (Error e,iworld)
 		= case remove of
 			(Ok True)
@@ -96,7 +96,7 @@ where
 				| e=:(Error _) = (e,iworld)
 				= case write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 					(Error e, iworld) = (Error e, iworld)
-					(Ok Done, iworld) = (Ok (), iworld) 
+					(Ok WritingDone, iworld) = (Ok (), iworld)
 			(Ok False)
 				= (Ok (), iworld)
 			(Error e)
@@ -114,7 +114,7 @@ flushWritesWhenIdle iworld = case read taskEvents EmptyContext iworld of
 stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 stopOnStable iworld=:{IWorld|shutdown}
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) EmptyContext iworld
-	= case mbIndex of 
+	= case mbIndex of
 		Ok (ReadResult index _)
 			# shutdown = case shutdown of
 				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
@@ -122,7 +122,7 @@ stopOnStable iworld=:{IWorld|shutdown}
 			= (Ok (), {IWorld|iworld & shutdown = shutdown})
 		Error e  = (Error e, iworld)
 where
-	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances) 
+	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances)
 	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
 	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
 

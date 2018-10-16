@@ -25,15 +25,15 @@ import qualified Data.Map as DM
 
 withShared :: !b !((SDSLens () b b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
-where	
+where
 	eval event evalOpts (TCInit taskId ts) iworld
         # (taskIda,iworld)  = getNextTaskId iworld
-        # (e,iworld)        = write (initial) (sdsFocus taskId localShare) EmptyContext iworld
+        # (e,iworld)        = trace_n "Write initial value" (write (initial) (sdsFocus taskId localShare) EmptyContext iworld)
         | isError e
             = (ExceptionResult (fromError e),iworld)
         | otherwise
 		    = eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) iworld
-		
+
 	eval event evalOpts (TCShared taskId ts treea) iworld=:{current={taskTime}}
 		# (Task evala)			= stask (sdsFocus taskId localShare)
 		# (resa,iworld)			= evala event (extendCallTrace taskId evalOpts) treea iworld
@@ -45,7 +45,7 @@ where
 				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
 				= (ValueResult (Value stable val) info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),iworld)
 			ExceptionResult e   = (ExceptionResult e,iworld)
-	
+
 	eval event evalOpts (TCDestroy (TCShared taskId=:(TaskId instanceNo _) ts treea)) iworld //First destroy inner task, then remove shared state
 		# (Task evala) = stask (sdsFocus taskId localShare)
 		# (resa,iworld)
@@ -55,7 +55,7 @@ where
         | isError e
             = (ExceptionResult (fromError e), iworld)
 		= (resa,iworld)
-	
+
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
@@ -79,7 +79,7 @@ where
 		# tmpDir 			= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (ok ,world)		= ensureDirectoryExists tmpDir world
-		| ok 
+		| ok
 			= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 		| otherwise
 			= (ExceptionResult (exception ("Could not create temporary directory: " +++ tmpDir)) , {iworld & world = world})
@@ -102,7 +102,7 @@ where
 				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
 				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
-	
+
 	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{options={appVersion,tempDirPath}} //First destroy inner task
 		# tmpDir 		= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (Task evala)	= taskfun tmpDir
@@ -113,6 +113,6 @@ where
 		= (resa,iworld)
 
 	eval _ _ _ iworld
-		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
+		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
 instance toString (OSErrorCode,String) where toString x = snd x

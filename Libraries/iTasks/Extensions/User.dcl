@@ -35,7 +35,7 @@ instance toUserConstraint UserId
 :: UserId		:== String
 :: Role			:== String
 :: UserTitle	:== String			// A descriptive name of a user (not used for identification)
-	
+
 instance toUserConstraint (a,b) | toUserConstraint a & toString b
 
 //* User authentication
@@ -52,7 +52,7 @@ instance toString		Username, Password
 instance ==				Username, Password
 instance <				Username, Password
 
-derive JSONEncode		User, UserConstraint, Username, Password 
+derive JSONEncode		User, UserConstraint, Username, Password
 derive JSONDecode		User, UserConstraint, Username, Password
 derive gDefault			User, UserConstraint, Username, Password
 derive gEq				User, UserConstraint, Username, Password
@@ -75,7 +75,7 @@ taskInstancesForUser :: SDSLens User [TaskInstance] ()
 taskInstancesForCurrentUser :: SDSSequence () [TaskInstance] ()
 
 /*
-* Copies authentication attributes of current task 
+* Copies authentication attributes of current task
 * and then attaches it
 */
 workOn :: !t -> Task AttachmentStatus | toInstanceNo t

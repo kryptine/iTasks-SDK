@@ -75,8 +75,10 @@ where
 		# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, port=port, connectionTask=ct, removeOnClose = True}
 		= (ListenerInstance opts (fromJust mbListener),world)
 
+import StdDebug
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
-loop determineTimeout iworld=:{ioTasks}
+loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
+	//| not (trace_tn ("Number of registrations:" +++ toString (length (flatten (map 'DM'.keys ('DM'.elems sdsNotifyRequests)))))) = undef
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
 	//Check which mainloop tasks have data available
@@ -438,7 +440,7 @@ writeShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskExce
 writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
 writeShareIfNeeded sds (Just w) iworld = case 'SDS'.write w sds EmptyContext iworld of
 	(Error e, iworld) = (Error e, iworld)
-	(Ok Done, iworld) = (Ok (), iworld)
+	(Ok WritingDone, iworld) = (Ok (), iworld)
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}

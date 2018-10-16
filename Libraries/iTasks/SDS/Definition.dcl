@@ -54,9 +54,9 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 
 :: ModifyResult p r w =
 	/**
-	 * Mofifying the share has succeeded, all asynchronous operations have finished.
+	 * Modifying the share has succeeded, all asynchronous operations have finished.
 	 */
-	E.sds: ModifyResult r w (sds p r w) & TC r & TC w & RWShared sds
+	E.sds: ModifyResult (Set SDSNotifyRequest) r w (sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.

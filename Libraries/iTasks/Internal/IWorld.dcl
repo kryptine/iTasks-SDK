@@ -18,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem
 from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIdentity
-from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel
+from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel, class RWShared, class Registrable, class Modifiable, class Identifiable, class Readable, class Writeable
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState

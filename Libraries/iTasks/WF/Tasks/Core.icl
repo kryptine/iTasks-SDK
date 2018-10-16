@@ -58,6 +58,7 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
+import StdDebug,StdMisc
 interact :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interact prompt shared handlers editor
 =  Task (eval prompt shared handlers editor)
@@ -100,7 +101,7 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: ModifyResult () r^ w^), iworld) = case res of
 				// We already have the result from executing the modify function, it happened on this machine.
-				ModifyResult _ _ _
+				ModifyResult _ _ _ _
 					# value = (Value ((fromJust (fromDeferredJSON encl)), (fromJust (fromDeferredJSON encv))) False)
 					= (ValueResult value evalInfo NoChange (TCInteract taskId ts encl encv st viewmode), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates })
 				AsyncModify sds f
@@ -112,6 +113,7 @@ where
 
 	// Handle all other events normally
 	eval prompt shared handlers editor event evalOpts tree iworld=:{current={taskTime}, sdsEvalStates}
+		| not (trace_tn ("Other event " +++ toSingleLineText event)) = undef
 		//Decode or initialize state
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
@@ -194,8 +196,8 @@ applyEditEvent_ name edit taskId editor taskTime shared onEdit l ov st iworld
 					# (l, v, mbf) = onEdit v l ov
 					= case mbf of
 						Just f = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-							(Ok ('SDS'.ModifyResult _ _ _),iworld)   = (Ok (Left (l,Just v,change,st,taskTime)),iworld)
-							(Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, Just v, st, change)),iworld)
+							(Ok ('SDS'.ModifyingDone _),iworld)   = (Ok (Left (l,Just v,change,st,taskTime)),iworld)
+							(Ok ('SDS'.Modifying sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, Just v, st, change)),iworld)
 							(Error e,iworld) = (Error e,iworld)
 						_ = (Ok (Left (l,Just v,change,st,taskTime)),iworld)
 				_ = (Ok (Left (l,Nothing,change,st,taskTime)),iworld)
@@ -218,8 +220,8 @@ refreshView_ taskId editor shared onRefresh l ov st taskTime iworld
 					//Update the share if necessary
 					= case mbf of
 						Just f = case 'SDS'.modify f shared ('SDS'.TaskContext taskId) iworld of
-							(Ok ('SDS'.ModifyResult _ _ _),iworld) = (Ok (Left (l,Just v,change,st,taskTime)), iworld)
-							(Ok ('SDS'.AsyncModify sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, Just v, st, change)), iworld)
+							(Ok ('SDS'.ModifyingDone _),iworld) = (Ok (Left (l,Just v,change,st,taskTime)), iworld)
+							(Ok ('SDS'.Modifying sds _), iworld) = (Ok (Right (Modify, dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId)), l, Just v, st, change)), iworld)
 							(Error e,iworld) = (Error e,iworld)
 						Nothing = (Ok (Left (l,Just v,change,st,taskTime)), iworld)
 				Error e = (Error (exception e), iworld)
