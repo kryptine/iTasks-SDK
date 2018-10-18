@@ -136,30 +136,30 @@ updateChoiceAs                       :: !d ![ChoiceOption o] ![o] !(o -> a) a ->
 updateMultipleChoice                 :: !d ![ChoiceOption a] ![a] [a] -> Task [a] | toPrompt d & iTask a
 updateMultipleChoiceAs               :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
 
-editChoiceWithShared                 :: !d ![ChoiceOption a] !(sds () [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
-editChoiceWithSharedAs               :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
-editMultipleChoiceWithShared         :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
-editMultipleChoiceWithSharedAs       :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+editChoiceWithShared                 :: !d ![ChoiceOption a] !(sds () [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & TC w & RWShared sds
+editChoiceWithSharedAs               :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
+editMultipleChoiceWithShared         :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
+editMultipleChoiceWithSharedAs       :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 
-enterChoiceWithShared                :: !d ![ChoiceOption a] !(sds () [a] w) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
-enterChoiceWithSharedAs              :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
-enterMultipleChoiceWithShared        :: !d ![ChoiceOption a] !(sds () [a] w) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
-enterMultipleChoiceWithSharedAs      :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+enterChoiceWithShared                :: !d ![ChoiceOption a] !(sds () [a] w) -> Task a | toPrompt d & iTask a & TC w & RWShared sds
+enterChoiceWithSharedAs              :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
+enterMultipleChoiceWithShared        :: !d ![ChoiceOption a] !(sds () [a] w) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
+enterMultipleChoiceWithSharedAs      :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 
-updateChoiceWithShared               :: !d ![ChoiceOption a] !(sds () [a] w) a -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
-updateChoiceWithSharedAs             :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
-updateMultipleChoiceWithShared       :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
-updateMultipleChoiceWithSharedAs     :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+updateChoiceWithShared               :: !d ![ChoiceOption a] !(sds () [a] w) a -> Task a | toPrompt d & iTask a & TC w & RWShared sds
+updateChoiceWithSharedAs             :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
+updateMultipleChoiceWithShared       :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
+updateMultipleChoiceWithSharedAs     :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 
 editSharedChoice                     :: !d ![ChoiceOption a] ![a] (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & RWShared sds
 editSharedChoiceAs                   :: !d [ChoiceOption o] ![o] !(o -> a) (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a & RWShared sds
 editSharedMultipleChoice             :: !d ![ChoiceOption a] ![a] (sds () [a] [a]) -> Task [a] | toPrompt d & iTask a & RWShared sds
 editSharedMultipleChoiceAs           :: !d [ChoiceOption o] ![o] !(o -> a) (sds () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask a & RWShared sds
 
-editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds1 & RWShared sds2
-editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds1 & RWShared sds2
-editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds1 & RWShared sds2
-editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds1 & RWShared sds2
+editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
+editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
 
 /**
 * Wait for a share to match a certain predicate

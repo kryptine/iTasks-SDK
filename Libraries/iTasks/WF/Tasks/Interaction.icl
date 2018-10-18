@@ -187,42 +187,42 @@ updateMultipleChoice d options container sel = editMultipleChoice d options cont
 updateMultipleChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
 updateMultipleChoiceAs d options container targetFun sel = editMultipleChoiceAs d options container targetFun sel
 
-editChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
+editChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & TC w & RWShared sds
 editChoiceWithShared d options container mbSel = editChoiceWithSharedAs d options container id mbSel
 
-editChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+editChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 editChoiceWithSharedAs d vopts sharedContainer target mbSel 
 	= editSelectionWithShared d False (selectOption target vopts) sharedContainer (findIndex target mbSel) @? tvHd
 
-editMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
+editMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
 editMultipleChoiceWithShared d options container sel = editMultipleChoiceWithSharedAs d options container id sel
 
-editMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+editMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 editMultipleChoiceWithSharedAs d vopts sharedContainer target sel
 	= editSelectionWithShared d True (selectOption target vopts) sharedContainer (findIndices target sel)
 
-enterChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
+enterChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) -> Task a | toPrompt d & iTask a & TC w & RWShared sds
 enterChoiceWithShared d options container = editChoiceWithShared d options container Nothing
 
-enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 enterChoiceWithSharedAs d options container targetFun = editChoiceWithSharedAs d options container targetFun Nothing
 
-enterMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
+enterMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
 enterMultipleChoiceWithShared d options container = editMultipleChoiceWithShared d options container []
 
-enterMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+enterMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 enterMultipleChoiceWithSharedAs d options container targetFun = editMultipleChoiceWithSharedAs d options container targetFun []
 
-updateChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) a -> Task a | toPrompt d & iTask a & iTask w & RWShared sds
+updateChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) a -> Task a | toPrompt d & iTask a & TC w & RWShared sds
 updateChoiceWithShared d options container sel = editChoiceWithShared d options container (Just sel)
 
-updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 updateChoiceWithSharedAs d options container targetFun sel = editChoiceWithSharedAs d options container targetFun (Just sel)
 
-updateMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds
+updateMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
 updateMultipleChoiceWithShared d options container sel = editMultipleChoiceWithShared d options container sel
 
-updateMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds
+updateMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 updateMultipleChoiceWithSharedAs d options container targetFun sel = editMultipleChoiceWithSharedAs d options container targetFun sel
 
 editSharedChoice :: !d ![ChoiceOption a] ![a] (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & RWShared sds
@@ -239,17 +239,17 @@ editSharedMultipleChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (sds () [a] [a]
 editSharedMultipleChoiceAs d vopts container target sharedSel 
 	= editSharedSelection d True (selectOption target vopts) container (findIndicesShare target container sharedSel)
 
-editSharedChoiceWithShared :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds1 & RWShared sds2
+editSharedChoiceWithShared :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedChoiceWithShared d options sharedContainer sharedSel = editSharedChoiceWithSharedAs d options sharedContainer id sharedSel
 
-editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds1 & RWShared sds2
+editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
 editSharedChoiceWithSharedAs d vopts sharedContainer target sharedSel
 	= editSharedSelectionWithShared d False (selectOption target vopts) sharedContainer (findIndexShareWithShared target (sharedContainer |*< sharedSel)) @? tvHd
 
-editSharedMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedMultipleChoiceWithShared d options sharedContainer sharedSel = editSharedMultipleChoiceWithSharedAs d options sharedContainer id sharedSel
 
-editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
 editSharedMultipleChoiceWithSharedAs d vopts sharedContainer target sharedSel
 	= editSharedSelectionWithShared d True (selectOption target vopts) sharedContainer (findIndicesShareWithShared target (sharedContainer |*< sharedSel))
 
