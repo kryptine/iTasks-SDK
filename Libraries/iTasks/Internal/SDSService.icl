@@ -3,7 +3,7 @@ implementation module iTasks.Internal.SDSService
 import iTasks
 
 from Data.Func import $
-from StdMisc import abort
+from StdMisc import abort, undef
 import StdArray
 
 import iTasks.Extensions.Distributed._Formatter
@@ -89,7 +89,7 @@ where
 	= case performRequest symbols taskId host receivedData iworld of
 		(Error e, iworld)
 			# exception = serializeToBase64 $ Error $ exception $ "Exception onData:" +++ e
-			= (Error e, Nothing, [exception], True, iworld)
+			= (Ok state, Nothing, [exception], True, iworld)
 		(Ok (Left response), iworld) 		= (Ok state, Nothing, [response +++ "\n"], True, iworld)
 		(Ok (Right continuation), iworld=:{ioStates})
 		# sdsValue = 'Map'.put connId (False, host, continuation) sdsValue

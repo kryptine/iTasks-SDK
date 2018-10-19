@@ -68,6 +68,24 @@ where
 	| size textResponse == 0 = (Error ("queueModifyRequest: Server" +++ host +++ " disconnected without responding"), Nothing)
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
+queueWriteRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld ->  (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
+queueWriteRequest req=:(SDSWriteRequest sds p w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
+	(Error e, env)          = (Error e, env)
+	(Ok (id, _), env)       = (Ok id, env)
+where
+	connectionTask = wrapConnectionTask (handlers req) unitShare
+
+	handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] (MaybeError TaskException ())) () () | TC r & TC w
+	handlers req = {ConnectionHandlers| onConnect = onConnect req,
+		onData = onData,
+		onShareChange = onShareChange,
+		onDisconnect = onDisconnect}
+
+	onDisconnect (Left acc) _
+	# textResponse = concat acc
+	| size textResponse == 0 = (Error ("queueWriteRequest: Server" +++ host +++ " disconnected without responding"), Nothing)
+	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
+
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest service=:(SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
 	(Error e, env) = (Error e, env)
@@ -126,7 +144,7 @@ queueWrite w rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p
 # (symbols, env) = case read symbolsShare EmptyContext env of
 	(Ok (ReadingDone r), env) = (readSymbols r, env)
 # request = SDSWriteRequest sds p w
-= queueSDSRequest request domain port taskId symbols env
+= queueWriteRequest request domain port taskId symbols env
 
 queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
@@ -168,7 +186,7 @@ where
 		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct read type, got" +++ toString (typeCodeOfDynamic dyn)))
 		Nothing                             	= Ok Nothing
 
-getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe w) | TC w
+getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe ()) | TC w
 getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
 		Nothing                             = Error (exception "No iostate for this task")
 		(Just ioState)                      = case ioState of
@@ -177,7 +195,7 @@ getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStat
 			(IODestroyed connectionMap)         = getValue connectionId connectionMap
 where
 	getValue connectionId connectionMap = case 'DM'.get connectionId connectionMap of
-		(Just (value :: Either [String] (MaybeError TaskException w^), _)) = case value of
+		(Just (value :: Either [String] (MaybeError TaskException ()), _)) = case value of
 			(Left _)                                    = Ok Nothing
 			(Right (Ok val))                            = Ok (Just val)
 			(Right (Error e))							= Error e

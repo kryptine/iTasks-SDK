@@ -136,9 +136,9 @@ where
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		Just val = case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
-			(Ok (res :: ReadResult () r^ w^), iworld) = case res of
-				ReadResult v _ = (ValueResult (Value v False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange subtree, {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
-				AsyncRead sds
+			(Ok (res :: AsyncRead r^ w^), iworld) = case res of
+				ReadingDone v = (ValueResult (Value v False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange subtree, {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
+				Reading sds
 				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
 				= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
 

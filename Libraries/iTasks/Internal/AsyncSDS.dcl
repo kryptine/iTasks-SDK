@@ -89,7 +89,7 @@ getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates
  *		Nothing: No value yet, asynchronous action is still pending.
  *		Just: A value of type w is found.
  */
-getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe w) | TC w
+getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe ()) | TC w
 
 /**
  * Queries IOStates to see whether a modify operation has yielded a result.

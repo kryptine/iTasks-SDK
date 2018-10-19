@@ -338,7 +338,7 @@ where
 							(Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
 							(Ok (WriteResult notify ssds), iworld)
 								//Remove the registrations that we can eliminate based on the current parameter
-								# notify = 'Set'.union match ('Set'.difference notify ('Set'.difference nomatch match))
+								# notify = 'Set'.difference notify ('Set'.difference nomatch match)
 								= (Ok (WriteResult notify (SDSLens ssds opts)), iworld)
 
 instance Modifiable SDSLens where
@@ -368,7 +368,7 @@ instance Modifiable SDSLens where
 					Error e = (Error e, iworld)
 					Ok r
 					# (match, nomatch, iworld) = checkRegistrations (sdsIdentity sds) notf iworld
-					# notify = 'Set'.union match ('Set'.difference toNotify ('Set'.difference nomatch match))
+					# notify = 'Set'.difference toNotify ('Set'.difference nomatch match)
 					= (Ok (ModifyResult notify r w (SDSLens ssds opts)), iworld)
 		where
 			sf rs
@@ -772,7 +772,7 @@ instance Registrable SDSRemoteService where
 	readRegisterSDS _ _ _ _ iworld = (Error (exception "registering remote services not possible"), iworld)
 
 instance == SDSNotifyRequest where
-	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId) == (r2.reqTaskId, r2.reqSDSId) && r1.remoteOptions == r2.remoteOptions
+	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId,r1.cmpParamText) == (r2.reqTaskId, r2.reqSDSId, r2.cmpParamText) && r1.remoteOptions == r2.remoteOptions
 
 instance == RemoteNotifyOptions where
 	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)
