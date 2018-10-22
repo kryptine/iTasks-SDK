@@ -329,8 +329,6 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
                  >>| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
                  (viewInformation ("Section with number: " <+++ location <+++ " does not exist") [] () >>| return ())
 
-import StdDebug
-
 :: UITag :== [Int]
 
 :: TaskUITree

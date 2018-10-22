@@ -145,15 +145,14 @@ where
 	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _)	= Value (a,b) (sa && sb)
 	res _														    = NoValue
 
-import StdDebug
 feedForward :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 feedForward taska taskbf = parallel
 	[(Embedded, \s -> taska @ Left)
 	,(Embedded, \s -> taskbf (mapRead prj (sdsFocus (Left 0) (taskListItemValue s))) @ Right)
 	] [] @? res
 where
-	prj (Value (Left a) _)  = trace_n "prj value" (Just a)
-	prj _					= trace_n "prj nothing" Nothing
+	prj (Value (Left a) _)  = Just a
+	prj _					= Nothing
 
 	res (Value [_,(_,Value (Right b) s)] _)	= Value b s
 	res _									= NoValue

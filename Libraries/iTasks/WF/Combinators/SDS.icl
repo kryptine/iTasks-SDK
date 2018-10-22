@@ -13,8 +13,6 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
 
-import StdBool, StdDebug
-
 from Data.Func import mapSt
 
 import StdTuple, StdArray, StdList, StdString
@@ -28,7 +26,7 @@ withShared initial stask = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld
         # (taskIda,iworld)  = getNextTaskId iworld
-        # (e,iworld)        = trace_n "Write initial value" (write (initial) (sdsFocus taskId localShare) EmptyContext iworld)
+        # (e,iworld)        = write (initial) (sdsFocus taskId localShare) EmptyContext iworld
         | isError e
             = (ExceptionResult (fromError e),iworld)
         | otherwise

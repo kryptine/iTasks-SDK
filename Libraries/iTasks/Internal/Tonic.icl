@@ -656,8 +656,6 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
 			= ([childApp:acc], currActive, iworld)
 		  _ = (acc, currActive, iworld)
 
-import StdDebug
-
 getNode :: !ExprId !TExpr -> Maybe TExpr
 getNode eid expr=:(TVar eid` _ _)
   | eid == eid` = Just expr

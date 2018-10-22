@@ -86,7 +86,6 @@ where
 	| size textResponse == 0 = (Error ("queueWriteRequest: Server" +++ host +++ " disconnected without responding"), Nothing)
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
-import StdDebug, StdMisc
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest service=:(SDSRemoteService (HTTPShareOptions {host, port, createRequest, fromResponse})) p taskId _ env
 = case addConnection taskId host port connectionTask env of
@@ -129,19 +128,19 @@ where
 		onShareChange = onShareChange,
 		onDisconnect = onDisconnect}
 
-	onConnect connId _ _	= trace_n ("New TCP connection: " +++ toString connId +++ ". Sending: \n" +++ createMessage p) (Ok ([], []), Nothing, [createMessage p +++ "\n"], False)
+	onConnect connId _ _	= (Ok (Nothing, []), Nothing, [createMessage p +++ "\n"], False)
 
 	onData data (previous, acc) _
-	| not (trace_tn ("Received " +++ data)) = undef
 	# newacc = acc ++ [data]
-	| register && not (isnull previous) = trace_n "Close previously registered connection" (Ok (previous, newacc), Nothing, [], True)
+	// If already a result, and we are registering, then we have received a refresh notification from the server.
+	| register && isJust previous = (Ok (previous, newacc), Nothing, [], True)
 	= case fromTextResponse (concat newacc) p register of
 		Error e = (Error e, Nothing, [], True)
-		Ok (Nothing,response) = (Ok (previous, newacc), Nothing, maybe [] (\resp. [resp]) response, False)
-		Ok (Just r, Just resp)
-			| not (trace_tn ("Registering: " +++ resp))  = undef
-			= (Ok ([r : previous], []), Nothing, [resp], False)
-		Ok (Just r, Nothing) = trace_n "Not responding, normal read" (Ok ([r : previous], []), Nothing, [], not register)
+		// No full response yet, keep the old value.
+		Ok (Nothing,response) 	= (Ok (previous, newacc), Nothing, maybe [] (\resp. [resp +++ "\n"]) response, False)
+		Ok (Just r, Just resp) 	= (Ok (Just r, []), Nothing, [resp +++ "\n"], False)
+		// Only close the connection when we have a value and when we are not registering.
+		Ok (Just r, Nothing) 	= (Ok (Just r, []), Nothing, [], not register)
 
 	onShareChange state _ = (Ok state, Nothing, [], False)
 	onDisconnect state _ = (Ok state, Nothing)
@@ -214,9 +213,9 @@ where
 
 	getValueTCP connectionId connectionMap
 	= case 'DM'.get connectionId connectionMap of
-		Just (value :: ([r^], [String]), _) = case value of
-				([], _)                                 = Ok Nothing
-				([r : rs],_)                     		= Ok (Just r)
+		Just (value :: (Maybe r^, [String]), _) = case value of
+				(Nothing, _)                        = Ok Nothing
+				(Just r,_)                     		= Ok (Just r)
 		Just (dyn, _)
 			# message = "Dynamic not of the correct service type, got: "
 				+++ toString (typeCodeOfDynamic dyn)

@@ -75,10 +75,8 @@ where
 		# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, port=port, connectionTask=ct, removeOnClose = True}
 		= (ListenerInstance opts (fromJust mbListener),world)
 
-import StdDebug
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
-	//| not (trace_tn ("Number of registrations:" +++ toString (length (flatten (map 'DM'.keys ('DM'.elems sdsNotifyRequests)))))) = undef
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
 	//Check which mainloop tasks have data available
@@ -373,7 +371,6 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 					# {done, todo} = iworld.ioTasks
 					= {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
 				IODData data
-					| not (trace_tn ("Got data for task " +++ toString taskId +++ ", close: " +++ toString close)) = undef
 					# (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
 					# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
 					# (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld

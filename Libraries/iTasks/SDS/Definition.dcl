@@ -220,6 +220,10 @@ required type w. The reducer has the job to turn this ws into w.
 
 //Read from and write to two independent SDS's
 :: SDSParallel p r w = E. p1 r1 w1 p2 r2 w2 sds1 sds2: SDSParallel (sds1 p1 r1 w1) (sds2 p2 r2 w2) (SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w) & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	| E. p1 r1 p2 r2 w2 sds1 sds2: SDSParallelWriteLeft (sds1 p1 r1 w) (sds2 p2 r2 w2) (SDSParallelOptions p1 r1 w p2 r2 w2 p r w) & RWShared sds1 & Readable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
+	| E. p1 r1 w1 p2 r2 sds1 sds2: SDSParallelWriteRight (sds1 p1 r1 w1) (sds2 p2 r2 w) (SDSParallelOptions p1 r1 w1 p2 r2 w p r w) & Readable sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
+	| E. p1 r1 w1 p2 r2 w2 sds1 sds2: SDSParallelWriteNone (sds1 p1 r1 w1) (sds2 p2 r2 w2) (SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w) & Readable sds1 & Readable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+
 :: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
 	{ name          :: String
 	, param         :: p -> (p1,p2)

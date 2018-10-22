@@ -100,14 +100,35 @@ where
     write1 _ w = Ok (Just (fst w))
     write2 _ w = Ok (Just (snd w))
 
-(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(>*|) l r = mapWrite (\wx _ -> Just (wx, ())) (Just \p (wx,_) . Ok wx) (l >*< toReadOnly r)
+(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Readable sds2
+(>*|) l r = SDSParallelWriteLeft l r opts
+where
+  opts = {SDSParallelOptions| name = ">*|"
+         , param = \p. (p,p)
+         , read = id
+         , writel = SDSWriteConst (\_ w. Ok (Just w))
+         , writer = SDSWriteConst (\_ _. Ok Nothing)
+       }
 
-(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(|*<) l r = mapWrite (\wy _ -> Just ((), wy)) (Just \p (_, wy). Ok wy) (toReadOnly l >*< r)
+(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Readable sds1 & RWShared sds2
+(|*<) l r = SDSParallelWriteRight l r opts
+where
+  opts = {SDSParallelOptions| name = "|*<"
+         , param = \p. (p,p)
+         , read = id
+         , writel = SDSWriteConst (\_ _. Ok Nothing)
+         , writer = SDSWriteConst (\_ w. Ok (Just w))
+       }
 
-(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(|*|) l r = toReadOnly (l >*< r)
+(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Readable sds1 & Readable sds2
+(|*|) l r = SDSParallelWriteNone l r opts
+where
+  opts = {SDSParallelOptions| name = "|*|"
+         , param = \p. (p, p)
+         , read = id
+         , writel = SDSWriteConst (\_ _. Ok Nothing)
+         , writer = SDSWriteConst (\_ _. Ok Nothing)
+        }
 
 symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 & RWShared sds2
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)
@@ -160,7 +181,6 @@ where
 
     reducer _ [(_,attr)] = Ok attr
 
-import StdDebug, StdMisc
 taskListItemValue :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) (TaskValue a) () | TC a
 taskListItemValue tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemValue" listFilter tasklist))
 where
@@ -168,7 +188,7 @@ where
     listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False}
 
     read (_,items) = case [value \\ {TaskListItem|value} <- items] of
-        vs=:[v:_]   = trace_n ("taskListItemValues: " +++ toString (length vs)) (Ok v)
+        vs=:[v:_]   = (Ok v)
         _       = Error (exception "taskListItemValue: item not found")
 
 taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) InstanceProgress () | TC a

@@ -82,8 +82,8 @@ where
  		[BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
 			[BackgroundTask stopOnStable]
-			[//BackgroundTask removeOutdatedSessions
-		 	BackgroundTask flushWritesWhenIdle
+			[BackgroundTask removeOutdatedSessions
+		 	,BackgroundTask flushWritesWhenIdle
 			]
 		]
 

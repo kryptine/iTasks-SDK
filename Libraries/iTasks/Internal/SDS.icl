@@ -603,7 +603,53 @@ instance Identifiable SDSParallel where
 	nameSDS (SDSParallel sds1 sds2 {SDSParallelOptions|name}) acc = ["|",name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
 
 instance Readable SDSParallel where
+	// TODO: Figure out how to NOT repeat the same code 4 times.
 	readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
+	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
+	# (p1,p2) = param p
+	# (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
+	| res1 =:(Error _)
+		= (liftError res1, iworld)
+	# (res2, iworld) = readSDS sds2 p2 c mbNotify reqSDSId iworld
+	| res2 =:(Error _)
+		= (liftError res2, iworld)
+	= case (fromOk res1, fromOk res2) of
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+
+	readSDS sds=:(SDSParallelWriteLeft sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
+	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
+	# (p1,p2) = param p
+	# (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
+	| res1 =:(Error _)
+		= (liftError res1, iworld)
+	# (res2, iworld) = readSDS sds2 p2 c mbNotify reqSDSId iworld
+	| res2 =:(Error _)
+		= (liftError res2, iworld)
+	= case (fromOk res1, fromOk res2) of
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+
+	readSDS sds=:(SDSParallelWriteRight sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
+	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
+	# (p1,p2) = param p
+	# (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
+	| res1 =:(Error _)
+		= (liftError res1, iworld)
+	# (res2, iworld) = readSDS sds2 p2 c mbNotify reqSDSId iworld
+	| res2 =:(Error _)
+		= (liftError res2, iworld)
+	= case (fromOk res1, fromOk res2) of
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+
+	readSDS sds=:(SDSParallelWriteNone sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
 	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
 	# (p1,p2) = param p
 	# (res1, iworld) = readSDS sds1 p1 c mbNotify reqSDSId iworld
@@ -654,6 +700,49 @@ instance Writeable SDSParallel where
 		(Ok (WriteResult n1 ssds1), Ok (AsyncWrite sds2)) = (Ok (AsyncWrite (SDSParallel ssds1 sds2 opts)), queueNotifyEvents (sdsIdentity sds1) n1 iworld)
 		(Ok (AsyncWrite sds1), Ok (WriteResult n2 ssds2)) = (Ok (AsyncWrite (SDSParallel sds1 ssds2 opts)), queueNotifyEvents (sdsIdentity sds2) n2 iworld)
 		(Ok (AsyncWrite sds1), Ok (AsyncWrite sds2)) = (Ok (AsyncWrite (SDSParallel sds1 sds2 opts)), iworld)
+
+	writeSDS sds=:(SDSParallelWriteLeft sds1 sds2 opts=:{SDSParallelOptions|param,writel,name}) p c w iworld
+	# p1 = fst (param p)
+	//Read/write sds1
+	# (npreds1,iworld) = case writel of
+		(SDSWrite f) = case readSDS sds1 p1 c Nothing (sdsIdentity sds1) iworld of
+			(Error e, iworld)  = (Error e, iworld)
+			(Ok (AsyncRead ssds), iworld) = (Ok (AsyncWrite ssds), iworld)
+			(Ok (ReadResult r1 ssds),iworld)     = case f p r1 w of
+				Error e                 = (Error e, iworld)
+				Ok Nothing              = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+				Ok (Just w1)            = writeSDS ssds p1 c w1 iworld
+		(SDSWriteConst f) = case f p w of
+				Error e                 = (Error e,iworld)
+				Ok Nothing              = (Ok (WriteResult 'Set'.newSet sds1),iworld)
+				Ok (Just w1)            = writeSDS sds1 p1 c w1 iworld
+	= case npreds1 of
+		Error e 					= (Error e, iworld)
+		Ok (WriteResult n1 ssds1) 	= (Ok (WriteResult n1 (SDSParallelWriteLeft ssds1 sds2 opts)), iworld)
+		Ok (AsyncWrite sds1) 		= (Ok (AsyncWrite (SDSParallelWriteLeft sds1 sds2 opts)), iworld)
+
+	writeSDS sds=:(SDSParallelWriteLeft sds1 sds2 opts=:{SDSParallelOptions|param,writer,name}) p c w iworld
+	# p2 = snd (param p)
+	//Read/write sds1
+	# (npreds2,iworld) = case writer of
+		(SDSWrite f) = case readSDS sds2 p2 c Nothing (sdsIdentity sds2) iworld of
+			(Error e, iworld)  = (Error e, iworld)
+			(Ok (AsyncRead ssds), iworld) = (Ok (AsyncWrite ssds), iworld)
+			(Ok (ReadResult r2 ssds),iworld)     = case f p r2 w of
+				Error e                 = (Error e, iworld)
+				Ok Nothing              = (Ok (WriteResult 'Set'.newSet ssds), iworld)
+				Ok (Just w2)            = writeSDS ssds p2 c w2 iworld
+		(SDSWriteConst f) = case f p w of
+				Error e                 = (Error e,iworld)
+				Ok Nothing              = (Ok (WriteResult 'Set'.newSet sds2),iworld)
+				Ok (Just w2)            = writeSDS sds2 p2 c w2 iworld
+	= case npreds2 of
+		Error e 					= (Error e, iworld)
+		Ok (WriteResult n2 ssds2) 	= (Ok (WriteResult n2 (SDSParallelWriteLeft sds1 ssds2 opts)), iworld)
+		Ok (AsyncWrite sds2) 		= (Ok (AsyncWrite (SDSParallelWriteLeft sds1 sds2 opts)), iworld)
+
+	writeSDS sds=:(SDSParallelWriteNone sds1 sds2 opts) p c w iworld
+	= (Ok (WriteResult 'Set'.newSet sds), iworld)
 
 instance Modifiable SDSParallel where
 	modifySDS f sds p context iworld
