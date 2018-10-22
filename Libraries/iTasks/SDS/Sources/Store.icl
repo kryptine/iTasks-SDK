@@ -110,6 +110,6 @@ where
 remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | RWShared sds
 remoteShare sds opts = SDSRemoteSource sds opts
 
-remoteService :: (WebServiceShareOptions r) -> SDSRemoteService () r ()
+remoteService :: (WebServiceShareOptions p r) -> SDSRemoteService p r ()
 remoteService opts = SDSRemoteService opts
 

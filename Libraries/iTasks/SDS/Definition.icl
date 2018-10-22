@@ -18,9 +18,10 @@ import Internet.HTTP
 
 derive gText SDSNotifyRequest, RemoteNotifyOptions
 
-instance toString (WebServiceShareOptions r)
+instance toString (WebServiceShareOptions p r)
 where
-	toString (HttpShareOptions {HTTPRequest|server_name, server_port, req_path, req_query} _) = server_name +++ ":" +++ toString server_port +++ req_path +++ req_query
+	toString (HTTPShareOptions {HTTPHandlers|host, port}) = "http://" +++ host +++ ":" +++ toString port
+	toString (TCPShareOptions {TCPHandlers|host, port}) = "tcp://" +++ host +++ ":" +++ toString port
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where

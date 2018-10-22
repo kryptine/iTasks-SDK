@@ -32,4 +32,4 @@ blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDSSequence String {#Char} {
 
 remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | RWShared sds
 
-remoteService :: (WebServiceShareOptions r) -> SDSRemoteService () r ()
+remoteService :: (WebServiceShareOptions p r) -> SDSRemoteService p r ()

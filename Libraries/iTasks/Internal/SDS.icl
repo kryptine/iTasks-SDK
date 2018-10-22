@@ -755,7 +755,7 @@ instance Readable SDSRemoteService where
 		= (Error (exception errorString), iworld)
 		Ok (Nothing)  				= (Ok (AsyncRead sds), iworld)
 		Ok (Just value)  			= (Ok (ReadResult value (SDSValue False value rsds)), iworld)
-	readSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) _ _ iworld = case queueServiceRequest sds p taskId iworld of
+	readSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) mbRegister _ iworld = case queueServiceRequest sds p taskId (isJust mbRegister) iworld of
 		(Error (_,error), iworld)
 			# errorString = "Remote service error<br>Service  " +++ toString opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
@@ -767,9 +767,13 @@ instance Writeable SDSRemoteService where
 instance Modifiable SDSRemoteService where
 	modifySDS _ _ _ _ iworld = (Error (exception "modifying remote services not possible"), iworld)
 
-// TODO: Remove, is currently needed due to a shared interact function between viewSharedInformation, updateSharedInformation.
+/**
+ * Registering a remote service consists of keeping the connection open after a response is
+ * received, so that the server may send other messages. Only applicable for TCP connections.
+ */
 instance Registrable SDSRemoteService where
-	readRegisterSDS _ _ _ _ iworld = (Error (exception "registering remote services not possible"), iworld)
+	readRegisterSDS (SDSRemoteService (HTTPShareOptions _)) p context taskid iworld = (Error (exception "registering HTTP services not possible"), iworld)
+	readRegisterSDS sds p context taskId iworld = readSDS sds p context (Just taskId) (sdsIdentity sds) iworld
 
 instance == SDSNotifyRequest where
 	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId,r1.cmpParamText) == (r2.reqTaskId, r2.reqSDSId, r2.cmpParamText) && r1.remoteOptions == r2.remoteOptions

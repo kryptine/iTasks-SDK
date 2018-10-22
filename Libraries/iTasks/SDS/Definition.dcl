@@ -147,9 +147,7 @@ class RWShared sds | Modifiable, Registrable sds
 	, port :: Int
 	}
 
-instance toString (WebServiceShareOptions r)
-
-:: WebServiceShareOptions r = HttpShareOptions HTTPRequest (HTTPResponse -> Either String r)
+instance toString (WebServiceShareOptions p r)
 
 //For notification we need a predicate that can determine whether
 //some registered parameter of type p needs to be notified.
@@ -269,13 +267,28 @@ required type w. The reducer has the job to turn this ws into w.
 	 */
 	| SDSRemoteSourceQueued ConnectionId (SDSRemoteSource p r w) SDSShareOptions
 
+:: WebServiceShareOptions p r = HTTPShareOptions (HTTPHandlers p r)
+	| TCPShareOptions (TCPHandlers p r)
+
+:: HTTPHandlers p r =
+	{ host :: String
+	, port :: Int
+	, createRequest :: p -> HTTPRequest
+	, fromResponse :: HTTPResponse p -> MaybeErrorString r}
+
+:: TCPHandlers p r =
+	{ host :: String
+	, port :: Int
+	, createMessage :: p -> String
+	, fromTextResponse :: String p -> MaybeErrorString (Maybe r)}
+
 :: SDSRemoteService p r w =
 	/**
 	 * A SDSRemoteServive is a share which allows you to connect to the outside world.
 	 * For now it just allows you to send HTTP messages and receive responses asynchronously.
 	 */
-	SDSRemoteService (WebServiceShareOptions r)
+	SDSRemoteService (WebServiceShareOptions p r)
 	/**
 	 * Used when waiting on a asynchronous service call to be completed.
 	 */
-	| SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w) (WebServiceShareOptions r)
+	| SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w) (WebServiceShareOptions p r)

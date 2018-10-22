@@ -175,7 +175,7 @@ where
 derive class iTask OpenWeatherResponse
 
 // api.openweathermap.org/data/2.5/weather?q=London,uk
-weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions OpenWeatherResponse
+weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions () OpenWeatherResponse ()
 weatherOptions owr = HttpShareOptions (toRequest owr) fromResp
 where
 	toRequest {OpenWeatherRequest|apiKey, type}
