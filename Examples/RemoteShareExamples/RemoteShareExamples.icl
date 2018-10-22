@@ -49,7 +49,6 @@ where
 			, publish "/SDSParallel"  (const sdsParallelTest)
 			, publish "/SDSParallel/remoteleft"  (const sdsParallelRemoteLeftTest)
 			, publish "/SDSParallel/remoteright"  (const sdsParallelRemoteRightTest)
-			, publish "/SDSRemoteService"  (const sdsRemoteServiceTest)
 			, publish "/SDSSelect"  (const sdsSelectTest)
 			, publish "/SDSSelectRemote"  (const  sdsSelectRemoteTest)
 			, publish "/all" (\_. viewAll)
@@ -73,8 +72,6 @@ where
 		-&&-
 		(viewSharedInformation "View value by viewSharedInformation" []  (sdsFocus 1 selectShare)))
 		@! ()
-
-	sdsRemoteServiceTest = get weatherService >>= viewInformation "Current weather" []
 
 	sdsParallelRemoteRightTest = ((enterInformation "Enter the value to be SET for SDSParallelRemoteRight" [] >>= \v. set v parallelWithRightRemote)
 		-&&-
@@ -156,39 +153,3 @@ where
 	//# updV = enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote >>= viewInformation "Updated value" []
 	# shaV = updateSharedInformation "Update value by viewSharedInformation" [] doubleRemote
  	= shaV @! ()
-// ======= Definitions required for defining a remote service =======
-// TODO: Create HTTP request by focussing the parameter
-
-:: OpenWeatherRequest =
-	{ apiKey :: String
-	, type :: OpenWeatherRequestType
-	}
-
-:: OpenWeatherRequestType = ByCityName String | ByCoordinates Real Real
-
-:: OpenWeatherResponse =
-	{ id :: Int
-	, main :: String
-	, description :: String
-	, icon :: String }
-
-derive class iTask OpenWeatherResponse
-
-// api.openweathermap.org/data/2.5/weather?q=London,uk
-weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions () OpenWeatherResponse ()
-weatherOptions owr = HttpShareOptions (toRequest owr) fromResp
-where
-	toRequest {OpenWeatherRequest|apiKey, type}
-	# r = newHTTPRequest
-	= {HTTPRequest|r & server_name = "api.openweathermap.org", server_port = 80, req_path = "/data/2.5/weather", req_query = query type +++ "&APPID=" +++ apiKey}
-
-	fromResp response = case jsonQuery "weather/0" (fromString response.rsp_data) of
-		Nothing = Left "Could not select JSON"
-		(Just selected) = case fromJSON selected of
-			Nothing = Left "Could not transform JSON"
-			(Just v) = Right v
-
-	query (ByCityName name) 		= "?q=" +++ name
-	query (ByCoordinates lat long) 	= "?lat=" +++ toString lat +++ "&lon=" +++ toString long
-
-weatherService = remoteService (weatherOptions {apiKey = "1160ac287072c67ae44708dee89f9a8b" , type = ByCityName "Nijmegen"})
