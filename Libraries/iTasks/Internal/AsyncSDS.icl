@@ -2,7 +2,7 @@ implementation module iTasks.Internal.AsyncSDS
 
 import Data.Maybe, Data.Either, Data.List, Data.Func
 import Text, Text.GenJSON
-import StdMisc, StdArray
+import StdMisc, StdArray, StdBool
 import Internet.HTTP
 
 import iTasks.Engine
@@ -118,7 +118,7 @@ where
 			(Error error) = (Error error, Nothing)
 			(Ok a) = (Ok (Right a), Nothing)
 
-queueServiceRequest service=:(SDSRemoteService (TCPShareOptions {host, port, createMessage, fromTextResponse})) p taskId keepOpen env
+queueServiceRequest service=:(SDSRemoteService (TCPShareOptions {host, port, createMessage, fromTextResponse})) p taskId register env
 = case addConnection taskId host port connectionTask env of
 	(Error e, env) = (Error e, env)
 	(Ok (id, _), env) = (Ok id, env)
@@ -129,17 +129,19 @@ where
 		onShareChange = onShareChange,
 		onDisconnect = onDisconnect}
 
-	onConnect connId _ _	= trace_n ("New TCP connection: " +++ toString connId) (Ok ([], []), Nothing, [createMessage p +++ "\n"], False)
+	onConnect connId _ _	= trace_n ("New TCP connection: " +++ toString connId +++ ". Sending: \n" +++ createMessage p) (Ok ([], []), Nothing, [createMessage p +++ "\n"], False)
 
 	onData data (previous, acc) _
+	| not (trace_tn ("Received " +++ data)) = undef
 	# newacc = acc ++ [data]
-	= case fromTextResponse (concat newacc) p of
+	| register && not (isnull previous) = trace_n "Close previously registered connection" (Ok (previous, newacc), Nothing, [], True)
+	= case fromTextResponse (concat newacc) p register of
 		Error e = (Error e, Nothing, [], True)
-		Ok Nothing = (Ok (previous, newacc), Nothing, [], False)
-		Ok (Just r)
-		# rrs = [r : previous]
-		| not (trace_tn ("Number of r's: " +++ toString (length rrs))) = undef
-		= (Ok (rrs, []), Nothing, [], False)
+		Ok (Nothing,response) = (Ok (previous, newacc), Nothing, maybe [] (\resp. [resp]) response, False)
+		Ok (Just r, Just resp)
+			| not (trace_tn ("Registering: " +++ resp))  = undef
+			= (Ok ([r : previous], []), Nothing, [resp], False)
+		Ok (Just r, Nothing) = trace_n "Not responding, normal read" (Ok ([r : previous], []), Nothing, [], not register)
 
 	onShareChange state _ = (Ok state, Nothing, [], False)
 	onDisconnect state _ = (Ok state, Nothing)
@@ -187,33 +189,40 @@ queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) 
 getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r & TC w & TC p
 getAsyncServiceValue service taskId connectionId ioStates
 # getValue = case service of
-	(SDSRemoteService (HTTPShareOptions _)) = getValueHttp
-	(SDSRemoteServiceQueued _ _ (HTTPShareOptions _)) = getValueHttp
-	(SDSRemoteService (TCPShareOptions _)) = getValueTCP
-	(SDSRemoteServiceQueued _ _ (TCPShareOptions _)) = getValueTCP
+	SDSRemoteService (HTTPShareOptions _) = getValueHttp
+	SDSRemoteServiceQueued _ _ (HTTPShareOptions _) = getValueHttp
+	SDSRemoteService (TCPShareOptions _) = getValueTCP
+	SDSRemoteServiceQueued _ _ (TCPShareOptions _) = getValueTCP
 =  case 'DM'.get taskId ioStates of
 		Nothing                             = Error (exception "No iostate for this task")
-		(Just ioState)                      = case ioState of
-			(IOException exc)                   = Error (exception exc)
-			(IOActive connectionMap)            = getValue connectionId connectionMap
-			(IODestroyed connectionMap)         = getValue connectionId connectionMap
+		Just ioState                        = case ioState of
+			IOException exc                   = Error (exception exc)
+			IOActive connectionMap            = getValue connectionId connectionMap
+			IODestroyed connectionMap         = getValue connectionId connectionMap
 where
 	getValueHttp connectionId connectionMap = case 'DM'.get connectionId connectionMap of
-		(Just (value :: Either [String] r^, _)) = case value of
+		Just (value :: Either [String] r^, _) = case value of
 			(Left _)                                = Ok Nothing
 			(Right val)                     		= Ok (Just val)
-		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct service type, got: " +++ toString (typeCodeOfDynamic dyn) +++ ", required: " +++ toString (typeCodeOfDynamic (dynamic service))))
+		Just (dyn, _)
+			# message = "Dynamic not of the correct service type, got: "
+				+++ toString (typeCodeOfDynamic dyn)
+				+++ ", required: "
+				+++ toString (typeCodeOfDynamic (dynamic service))
+			= Error (exception message)
 		Nothing                             	= Ok Nothing
 
 	getValueTCP connectionId connectionMap
-	| not (trace_tn ("Get value from TCP service for connection " +++ toString connectionId)) = undef
 	= case 'DM'.get connectionId connectionMap of
-		(Just (value :: ([r^], [String]), _))
-			| not (trace_tn "Got some value..") = undef
-			= case value of
-				([], _)                                 = trace_n "No read value yet" (Ok Nothing)
-				([r : rs],_)                     		= trace_n "Got value!!" Ok (Just r)
-		(Just (dyn, _))							= Error (exception ("Dynamic not of the correct service type, got: " +++ toString (typeCodeOfDynamic dyn) +++ ", required: " +++ toString (typeCodeOfDynamic (dynamic service))))
+		Just (value :: ([r^], [String]), _) = case value of
+				([], _)                                 = Ok Nothing
+				([r : rs],_)                     		= Ok (Just r)
+		Just (dyn, _)
+			# message = "Dynamic not of the correct service type, got: "
+				+++ toString (typeCodeOfDynamic dyn)
+				+++ ", required: "
+				+++ toString (typeCodeOfDynamic (dynamic service))
+			= Error (exception message)
 		Nothing                             	= Ok Nothing
 
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r

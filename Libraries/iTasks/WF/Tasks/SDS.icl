@@ -120,11 +120,16 @@ where
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
+import StdMisc, StdDebug
+
+derive gText Event, Set
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch shared = Task (eval shared)
 where
 	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult r, !*IWorld) | iTask r & TC w & Readable, Registrable sds
-	eval shared event evalOpts (TCInit taskId ts) iworld=:{sdsEvalStates} = case 'SDS'.readRegister taskId shared iworld of
+	eval shared event evalOpts (TCInit taskId ts) iworld=:{sdsEvalStates}
+	| not (trace_tn ("watch eval init bacause " +++ toSingleLineText event)) = undef
+	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone val), iworld) = (ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts), iworld)
 		(Ok (Reading sds), iworld)
@@ -132,7 +137,9 @@ where
 		# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
 		= (ValueResult NoValue ei (rep event) (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval shared event evalOpts (TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates} = case 'DM'.get taskId sdsEvalStates of
+	eval shared event evalOpts (TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
+	| not (trace_tn ("watch eval await bacause " +++ toSingleLineText event)) = undef
+	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		Just val = case val iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
@@ -143,6 +150,7 @@ where
 				= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval shared event repAs ttree=:(TCDestroy _) iworld
+		| not (trace_tn ("watch eval destroy bacause " +++ toSingleLineText event)) = undef
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
 		= (DestroyedResult,iworld)
 

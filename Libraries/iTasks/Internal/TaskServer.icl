@@ -310,7 +310,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			# mbTaskState = 'DM'.get connectionId taskStates
 			| isNothing mbTaskState
 				# iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
-				# ioStates = 'DM'.put taskId (IOException ("Missing IO task state for task " +++ toString taskId +++ ". We have: " +++  (concat $ map (\k. toString k +++ ",") $ 'DM'.keys taskStates) +++ ". Required: " +++ toString connectionId)) ioStates
+				# ioStates = 'DM'.put taskId (IOException "Missing IO task state for task ") ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# taskState = fst (fromJust mbTaskState)
 
@@ -373,15 +373,16 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 					# {done, todo} = iworld.ioTasks
 					= {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
 				IODData data
+					| not (trace_tn ("Got data for task " +++ toString taskId +++ ", close: " +++ toString close)) = undef
 					# (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
-					# (connectionMap, iworld) = connMapForTask taskId iworld
 					# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
 					# (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
 					// write data
 					# (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
 					| mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
 					| isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-					# ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) connectionMap)) ioStates
+					# (connectionMap, iworld) = appFst (\map. 'DM'.put connectionId (fromOk mbTaskState, close) map) (connMapForTask taskId iworld)
+					# ioStates = 'DM'.put taskId (IOActive connectionMap) ioStates
 					| close = closeConnection connectionMap ioStates ioOps.closeIO (ioChannels, iworld)
 					| otherwise
 						// persist connection

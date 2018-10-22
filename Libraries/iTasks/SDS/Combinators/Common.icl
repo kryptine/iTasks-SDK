@@ -160,6 +160,7 @@ where
 
     reducer _ [(_,attr)] = Ok attr
 
+import StdDebug, StdMisc
 taskListItemValue :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) (TaskValue a) () | TC a
 taskListItemValue tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemValue" listFilter tasklist))
 where
@@ -167,7 +168,7 @@ where
     listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False}
 
     read (_,items) = case [value \\ {TaskListItem|value} <- items] of
-        [v:_]   = Ok v
+        vs=:[v:_]   = trace_n ("taskListItemValues: " +++ toString (length vs)) (Ok v)
         _       = Error (exception "taskListItemValue: item not found")
 
 taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) InstanceProgress () | TC a

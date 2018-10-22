@@ -280,7 +280,7 @@ required type w. The reducer has the job to turn this ws into w.
 	{ host :: String
 	, port :: Int
 	, createMessage :: p -> String
-	, fromTextResponse :: String p -> MaybeErrorString (Maybe r)}
+	, fromTextResponse :: String p Bool -> MaybeErrorString (Maybe r, Maybe String)}
 
 :: SDSRemoteService p r w =
 	/**
