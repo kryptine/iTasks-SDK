@@ -520,7 +520,6 @@ instance Registrable SDSSequence where
 instance Identifiable SDSSelect where
 	nameSDS (SDSSelect sds1 sds2 {SDSSelectOptions|name}) acc = ["{", name:nameSDS sds1 [",":nameSDS sds2 ["}":acc]]]
 
-// TODO: Check whether this results in the desired asynchronous behaviour.
 instance Readable SDSSelect where
 	readSDS sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,name}) p c mbNotify reqSDSId iworld
 	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
@@ -603,7 +602,6 @@ instance Identifiable SDSParallel where
 	nameSDS (SDSParallel sds1 sds2 {SDSParallelOptions|name}) acc = ["|",name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
 
 instance Readable SDSParallel where
-	// TODO: Figure out how to NOT repeat the same code 4 times.
 	readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
 	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
 	# (p1,p2) = param p
