@@ -2,7 +2,7 @@ implementation module iTasks.UI.Editor.Modifiers
 
 from StdFunc import o, const, flip, id
 import StdBool, StdString, StdList
-import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.WF.Combinators.Tune
 import Data.Error, Text.GenJSON, Data.Tuple, Data.Functor, Data.Maybe
 import Data.GenEq, Data.Func
 import qualified Data.Map as DM

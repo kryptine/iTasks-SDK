@@ -14,6 +14,7 @@ import Data.Error, Data.Maybe, Data.Func
 import Text.GenJSON
 import StdString, StdBool, StdMisc
 import qualified Data.Set as DS
+import qualified Data.Map as DM
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -107,7 +108,7 @@ where
                 //Construct the result
                 # v     = maybe v Just mbV // use previous view state of editor is in invalid state
                 # value = maybe NoValue (\v -> Value (l, v) False) mbV
-                # info  = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+                # info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
                 = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
 initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)
