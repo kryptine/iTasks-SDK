@@ -1,14 +1,20 @@
 definition module iTasks.WF.Combinators.Tune
 
+/**
+ * This module provides combinators for tuning tasks and editors.
+ *
+ * Setting attributes on tasks:
+ * Attributes are accessible in parallel task-lists as subtask meta-data
+ * and they are added to the task UI.
+ *
+ * Setting attributes on editors: Only adds them to the UI of the editor.
+ */
+
 import iTasks.WF.Definition
 from iTasks.UI.Layout import :: LayoutRule, :: LUI, :: LUINo, :: LUIMoves, :: LUIMoveID, :: LUIEffectStage
 from Text.GenJSON import :: JSONNode
 from iTasks.SDS.Definition import :: SDS
 
-// Setting attributes on tasks:
-// Attributes are accessible in parallel task-lists as subtask meta-data
-// and they are added to the task UI 
-// Setting attributes on editors: only adds them to the UI of the editor
 
 class addConstantAttribute f :: !String !b !(f a) -> f a | toAttribute b
 instance addConstantAttribute Task
