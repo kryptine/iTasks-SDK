@@ -14,7 +14,7 @@ import iTasks.Internal.Tonic.Shares
 import iTasks.Internal.Client.Override
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
-from iTasks.WF.Combinators.Common import ifStable
+import iTasks.WF.Combinators.Common
 from iTasks.Internal.SDS import write, read, readRegister, modify
 import iTasks.WF.Tasks.System
 
@@ -863,4 +863,12 @@ where
 		incompatible = stringDisplay "This task can no longer be evaluated"
 		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr instanceKey]))
 
-
+withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
+withCleanupHook patch (Task orig)
+	= appendTopLevelTask 'DM'.newMap False patch
+	>>- Task o eval
+where
+	eval tosignal ev opts tree=:(TCDestroy _) iw
+		# (tr, iw) = orig ev opts tree iw
+		= (tr, queueRefresh [(tosignal, "Cleanup")] iw)
+	eval tosignal ev opts tree iw = orig ev opts tree iw

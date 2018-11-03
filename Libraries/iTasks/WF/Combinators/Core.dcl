@@ -173,3 +173,13 @@ focusTask   :: !TaskId                              !(SharedTaskList a) -> Task 
 * @return The state of the task to work on
 */
 attach :: !InstanceNo !Bool -> Task AttachmentStatus
+
+/**
+ * Adds a cleaup hook to a task that is executed on destruction of the task.
+ * The cleanup task is evaluated at some point in time after the task is destroyed.
+ * (This may also happen after the `withCleanupHook` task itself becomes stable.)
+ *
+ * @param The cleanup hook
+ * @param The task to hook in to
+ */
+withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
