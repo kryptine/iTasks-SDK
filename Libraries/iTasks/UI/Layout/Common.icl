@@ -175,11 +175,6 @@ frameCompact = sequenceLayouts
 	,setUIAttributes (halignAttr AlignCenter)
 	]
 
-beforeStep :: LayoutRule -> LayoutRule
-beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) SelectNotStepped) layout
-where
-	SelectNotStepped = SelectByAttribute "stepped" (\a -> a === (JSONBool False))
-
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
 	[wrapUI UIWindow

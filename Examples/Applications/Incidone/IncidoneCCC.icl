@@ -55,15 +55,18 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	= (	enterCredentials
+	= 	enterCredentials <<@ (ApplyLayout credentialsLayout)
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact])) //Compact layout before login, full screen afterwards
+		]  
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
 		= 	viewInformation () [] (DivTag [ClassAttr "identify-app",StyleAttr "width: 350px; height: 55px; margin-bottom: 5px"] [])
 		||-	enterInformation () []
+
+	//Compact layout before login, full screen afterwards
+	credentialsLayout = sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact]
 
 	verifyCredentials :: Credentials -> Task (Maybe User)
 	verifyCredentials credentials=:{Credentials|username,password}

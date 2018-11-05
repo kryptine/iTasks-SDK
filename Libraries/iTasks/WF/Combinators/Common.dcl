@@ -4,7 +4,6 @@ definition module iTasks.WF.Combinators.Common
 */
 import iTasks.SDS.Definition
 import iTasks.WF.Combinators.Core
-import iTasks.UI.Tune
 
 from StdBool					import not
 from Data.Map				    import :: Map
