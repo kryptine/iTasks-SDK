@@ -1,31 +1,27 @@
 definition module iTasks.Extensions.Distributed.Task
 
-from iTasks.WF.Definition import class iTask
-from iTasks.WF.Definition import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor
-from Data.Maybe import :: Maybe
-from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint
-from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
-from iTasks.Internal.Distributed.Domain import :: Domain
+import iTasks
 
-:: Requires = Requires String
+import iTasks.Extensions.Distributed.API
 
-class (@:) infix 3 u a :: u a -> a
+/**
+ * Appends a task to a domain. Yields a reference to the task as appended in the domain.
+ */
+appendDomainTask :: Domain TaskAttributes (Task a) -> Task DistributedTaskId | iTask a
 
-instance @: worker (Task a) | iTask a & toUserConstraint worker
+/**
+ * Queues a task in a domain and returns only when there is a result for the task.
+ */
+queueDomainTask :: Domain TaskAttributes  (Task a) -> Task (TaskValue a) | iTask a
 
-instance @: Domain (Task a) | iTask a
+/**
+ * Claims a task in a domain and immediately executes it.
+ */
+claimDomainTask :: Domain DistributedTaskId -> Task a | iTask a
 
-instance @: DomainUser (Task a) | iTask a
-
-instance @: Requires (Task a) | iTask a
-
-:: DomainUser = E. a: DomainUser a Domain & toUserConstraint a & gText{|*|} a & toString a
-
-derive gText DomainUser	
-
-instance toString DomainUser
-
-class (@.) infix 4 u a :: u a -> DomainUser
-
-instance @. worker Domain | toUserConstraint worker & gText{|*|} worker & toString worker
+/**
+ * Creates a task which denotes whether the given task was removed.
+ * Returns True when the task was removed.
+ * Returns False when the task could not be found.
+ */
+removeDomainTask :: Domain DistributedTaskId -> Task ()

@@ -1,4 +1,4 @@
-implementation module iTasks.Extensions.Distributed._Formatter
+implementation module iTasks.Internal.Distributed.Formatter
 
 import graph_copy_with_names
 import symbols_in_program
@@ -50,6 +50,6 @@ where
 
 	unpackDescInfo :: [String] -> ([DescInfo], [String])
 	unpackDescInfo [] = ([], [])
-	unpackDescInfo ["DescInfo", di_prefix_arity_and_mod, di_name : xs] 
+	unpackDescInfo ["DescInfo", di_prefix_arity_and_mod, di_name : xs]
 		= let (x, rest) = unpackDescInfo xs in ([{di_prefix_arity_and_mod = (toInt di_prefix_arity_and_mod), di_name = base64Decode di_name} : x], rest)
 	unpackDescInfo xs = ([], xs)

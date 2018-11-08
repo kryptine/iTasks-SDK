@@ -13,7 +13,7 @@ import iTasks.Internal.Task
 import iTasks.SDS.Definition
 import iTasks.WF.Tasks.IO
 
-import iTasks.Extensions.Distributed._Formatter
+import iTasks.Internal.Distributed.Formatter
 
 from iTasks.Internal.TaskServer import addConnection
 from iTasks.SDS.Sources.Core import unitShare
