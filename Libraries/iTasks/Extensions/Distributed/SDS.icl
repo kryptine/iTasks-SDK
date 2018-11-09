@@ -7,6 +7,8 @@ import qualified Data.Map
 import iTasks.Extensions.Distributed.Definition
 import iTasks.Internal.Distributed.Formatter
 
+import StdMisc, StdDebug
+
 domainName :: SDSLens () (Maybe Domain) (Maybe Domain)
 domainName = sharedStore "domain" Nothing
 
@@ -48,10 +50,10 @@ where
 		sds
 		(remoteShare sds {SDSShareOptions|domain=host, port=port})
 
-	selectp Nothing = Left ()
+	selectp Nothing = Right ()
 	selectp (Just domain)
-	| domain == (Domain host port) = Left ()
-	= Right ()
+	| domain == (Domain host port) = trace_n "Selecting local share" (Left ())
+	= trace_n "Selecting remote share" (Right ())
 
 
 /**

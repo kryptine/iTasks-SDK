@@ -7,13 +7,15 @@ import iTasks.Internal.Distributed.Symbols
 
 import qualified Data.Map
 
-import StdMisc
+import StdMisc, StdDebug
 
 appendDomainTask :: Domain TaskAttributes (Task a) -> Task DistributedTaskId | iTask a
-appendDomainTask domain attributes task = upd appendT (domainTasks domain)
-		>>= \{nextTaskId}. return (nextTaskId-1)
+appendDomainTask domain attributes task
+| not (trace_tn "Appending domain task") = undef
+= upd appendT (domainTasks domain)
+		>>= \{nextTaskId}. trace_n "Done!" (return (nextTaskId-1))
 where
-	appendT {nextTaskId, tasks} = {nextTaskId = nextTaskId + 1
+	appendT {nextTaskId, tasks} = trace_n "Appending new task" {nextTaskId = nextTaskId + 1
 		, tasks = 'Data.Map'.put nextTaskId (DomainTaskReference attributes serializedTask, serializeToBase64 NoValue) tasks}
 
 	serializedTask = serializeToBase64 task

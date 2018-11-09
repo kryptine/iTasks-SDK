@@ -23,6 +23,8 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Text
 
+import StdMisc, StdDebug
+
 /** hostname, connection on which to send the reply, accumulated data received **/
 :: SDSServiceState = SDSProcessing String ConnectionId [String]
 
@@ -87,6 +89,7 @@ where
 	onData symbols taskId receivedData state=:(SDSProcessing host connId received) sdsValue iworld
 	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId (received ++ [receivedData])), Nothing, [], False, iworld)
 	# receivedData = concat (received ++ [receivedData])
+	| not (trace_tn ("Received data: [" +++ receivedData +++ "]")) = undef
 	= case performRequest symbols taskId host receivedData iworld of
 		(Error e, iworld)
 			# exception = serializeToBase64 $ Error $ exception $ "Exception onData:" +++ e

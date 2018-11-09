@@ -511,12 +511,12 @@ instance Modifiable SDSSequence where
 	modifySDS f sds p context iworld
 	= case readSDS sds p context Nothing (sdsIdentity sds) iworld of
 		(Error e, iworld)               = (Error e, iworld)
-		(Ok (AsyncRead sds), iworld)    = (Error (exception "SDSSequence cannot be modified asynchronously in the left SDS."), iworld)
+		(Ok (AsyncRead ssds), iworld)    = (Ok (AsyncModify ssds f), iworld)
 		(Ok (ReadResult r ssds), iworld)     = case f r of
 			Error e                         = (Error e, iworld)
 			Ok w                            = case writeSDS sds p context w iworld of
 				(Error e, iworld)                   = (Error e, iworld)
-				(Ok (AsyncWrite _), iworld)         = (Error (exception "SDSSequence cannot be modified asynchronously"), iworld)
+				(Ok (AsyncWrite ssds), iworld)         = (Ok (AsyncModify ssds f), iworld)
 				(Ok (WriteResult notify ssds), iworld)   = (Ok (ModifyResult notify r w sds), iworld)
 
 instance Registrable SDSSequence where
