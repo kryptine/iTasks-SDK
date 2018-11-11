@@ -15,14 +15,17 @@ appendDomainTask :: Domain TaskAttributes (Task a) -> Task DistributedTaskId | i
 queueDomainTask :: Domain TaskAttributes (Task a) -> Task a | iTask a
 
 /**
- * Claims a task in a domain and immediately execute it.
+ * Execute a task in a domain. Requires a valid claim on the task.
  */
-executeDomainTask :: Domain DistributedTaskId -> Task ()
+executeDomainTask :: Domain DistributedTaskId -> Task Bool
 
 /**
- * Claim a task in the domain an put it into the local task queue
+ * Claim a task in the domain.
+ * @param Domain
+ * @param The distributed task identifier
+ * @param Whether to override claims by other users.
  */
-claimDomainTask :: Domain DistributedTaskId -> Task ()
+claimDomainTask :: Domain DistributedTaskId Bool -> Task Bool
 
 /**
  * Creates a task which denotes whether the given task was removed.

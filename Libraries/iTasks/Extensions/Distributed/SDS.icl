@@ -20,16 +20,22 @@ domainTasks :: Domain -> SDSSequence () DomainTaskState DomainTaskState
 domainTasks domain
 = maybeDomainShare domain "tasks" (sharedStore "domainTasks" {nextTaskId = 0, tasks = 'Data.Map'.newMap})
 
-domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, SerializedTaskResult)) ()
+domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, ClaimStatus, SerializedTaskResult)) ()
 domainTask domain dTaskId = mapRead read (toReadOnly $ domainTasks domain)
 where
 	read {tasks} = 'Data.Map'.get dTaskId tasks
+
+domainTasksList :: Domain -> SDSLens () [(DistributedTaskId, TaskAttributes)] ()
+domainTasksList domain = mapRead read (toReadOnly $ domainTasks domain)
+where
+	read {tasks} = map readable ('Data.Map'.toList tasks)
+	readable (dTaskId, (DomainTask attrs _, claimStatus, _)) = (dTaskId, attrs)
 
 domainTaskValue :: Domain DistributedTaskId {#Symbol} -> SDSLens () (TaskValue a) () | iTask a
 domainTaskValue domain dTaskId symbols = mapRead read (domainTask domain dTaskId)
 where
 	read Nothing = NoValue
-	read (Just (_, result)) = deserializeFromBase64 result symbols
+	read (Just (_, _, result)) = deserializeFromBase64 result symbols
 
 domainDevices :: Domain -> SDSSequence () [DomainDevice] [DomainDevice]
 domainDevices domain

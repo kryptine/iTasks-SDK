@@ -1,10 +1,11 @@
 definition module iTasks.Extensions.Distributed.Definition
 
 import iTasks
+import iTasks.Extensions.User
 
 import qualified Data.Map
 
-derive class iTask DomainTask, DomainDevice, DomainTaskState
+derive class iTask DomainTask, DomainDevice, DomainTaskState, Claimer, ClaimStatus
 derive JSONEncode TaskResult, TaskEvalInfo
 derive JSONDecode TaskResult, TaskEvalInfo
 
@@ -15,7 +16,11 @@ derive JSONDecode TaskResult, TaskEvalInfo
 :: DistributedTaskId :== Int
 
 :: DomainTask = DomainTask TaskAttributes SerializedTask
-:: DTaskMap :== Map DistributedTaskId (DomainTask, SerializedTaskResult)
+
+:: Claimer = User User DateTime
+:: ClaimStatus = NoClaim | Claimed Claimer
+
+:: DTaskMap :== Map DistributedTaskId (DomainTask, ClaimStatus, SerializedTaskResult)
 
 :: DomainTaskState = { nextTaskId :: DistributedTaskId
 	, tasks :: DTaskMap}

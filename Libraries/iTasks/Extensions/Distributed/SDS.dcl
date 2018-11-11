@@ -5,6 +5,8 @@ import iTasks
 import iTasks.Extensions.Distributed.Definition
 import iTasks.Internal.Distributed.Symbols
 
+//TODO: Refactor to use the parameter to fix the domain/task id.
+
 /**
  * Holds the domain for which the current instance is a server. Ensures that
  * the same share definitions can be used on servers and clients.
@@ -25,12 +27,14 @@ domainUsers :: Domain -> SDSSequence () [User] [User]
  */
 domainTasks :: Domain -> SDSSequence () DomainTaskState DomainTaskState
 
+domainTasksList :: Domain -> SDSLens () [(DistributedTaskId, TaskAttributes)] ()
+
 /**
  * A share for a single distributed task. It could be the case that the
  * reference is no longer valid (task has been removed/completed by somebody
  * else). In that case, reading from the share will result in Nothing.
  */
-domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, SerializedTaskResult)) ()
+domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, ClaimStatus, SerializedTaskResult)) ()
 
 /**
  * Share denoting the value of a task in the given domain. When the reference
