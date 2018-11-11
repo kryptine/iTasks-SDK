@@ -4,24 +4,22 @@ import iTasks
 
 import qualified Data.Map
 
+derive class iTask DomainTask, DomainDevice, DomainTaskState
+derive JSONEncode TaskResult, TaskEvalInfo
+derive JSONDecode TaskResult, TaskEvalInfo
+
 :: SerializedTask :== String
 :: SerializedTaskResult :== String
 
 // Valid across multiple devices in a single domain.
 :: DistributedTaskId :== Int
 
-:: DomainTaskReference = DomainTaskReference TaskAttributes SerializedTask
-:: DTaskMap :== Map DistributedTaskId (DomainTaskReference, SerializedTaskResult)
+:: DomainTask = DomainTask TaskAttributes SerializedTask
+:: DTaskMap :== Map DistributedTaskId (DomainTask, SerializedTaskResult)
 
 :: DomainTaskState = { nextTaskId :: DistributedTaskId
 	, tasks :: DTaskMap}
 
-appTasks :: (DTaskMap -> DTaskMap) DomainTaskState -> DomainTaskState
-
 :: DomainDevice = DomainDevice Hostname Port
 
-:: DomainTask = E. a: DomainTask (DomainTaskReference, Task a) & iTask a
-
-derive class iTask DomainTaskReference, DomainDevice, DomainTaskState
-derive JSONEncode TaskResult, TaskEvalInfo
-derive JSONDecode TaskResult, TaskEvalInfo
+appTasks :: (DTaskMap -> DTaskMap) DomainTaskState -> DomainTaskState

@@ -20,7 +20,7 @@ domainTasks :: Domain -> SDSSequence () DomainTaskState DomainTaskState
 domainTasks domain
 = maybeDomainShare domain "tasks" (sharedStore "domainTasks" {nextTaskId = 0, tasks = 'Data.Map'.newMap})
 
-domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTaskReference, SerializedTaskResult)) ()
+domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, SerializedTaskResult)) ()
 domainTask domain dTaskId = mapRead read (toReadOnly $ domainTasks domain)
 where
 	read {tasks} = 'Data.Map'.get dTaskId tasks
@@ -37,7 +37,7 @@ domainDevices domain
 
 // Selects to use a remote share when the current instance is not the host in the given domain. It then queries the host of the domain.
 maybeDomainShare :: Domain String (sds () r w) -> (SDSSequence () r w) | iTask r & iTask w & RWShared sds
-maybeDomainShare (Domain host port) name sds = sdsSequence ("seq" +++ name)
+maybeDomainShare d=:(Domain host port) name sds = sdsSequence ("seq" +++ name)
 	(const ()) (\p mbDomain. mbDomain) (\p mbDomain. Right snd)
 	(SDSWriteConst \p w. Ok Nothing)
 	(SDSWrite \p rs w. Ok (Just w))
@@ -52,13 +52,12 @@ where
 
 	selectp Nothing = Right ()
 	selectp (Just domain)
-	| domain == (Domain host port) = trace_n "Selecting local share" (Left ())
-	= trace_n "Selecting remote share" (Right ())
-
+	| domain == d = Left ()
+	= Right ()
 
 /**
  * Creates a share which observes the result of the given domain task.
  * TODO: Fix
  */
-domainTaskResult :: DomainTaskReference -> SDSLens () (TaskResult a) () | iTask a
+domainTaskResult :: DistributedTaskId -> SDSLens () (TaskResult a) () | iTask a
 domainTaskResult ref = toReadOnly (sharedStore "domainTaskResult" DestroyedResult)

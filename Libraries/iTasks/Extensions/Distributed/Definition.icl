@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.Distributed.Definition
 
 import iTasks
 
-derive class iTask DomainTaskReference, DomainDevice, DomainTaskState
+derive class iTask DomainTask, DomainDevice, DomainTaskState
 derive JSONEncode TaskResult, TaskEvalInfo
 derive JSONDecode TaskResult, TaskEvalInfo
 

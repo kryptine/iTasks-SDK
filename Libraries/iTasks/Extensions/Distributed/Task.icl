@@ -7,30 +7,38 @@ import iTasks.Internal.Distributed.Symbols
 
 import qualified Data.Map
 
-import StdMisc, StdDebug
-
 appendDomainTask :: Domain TaskAttributes (Task a) -> Task DistributedTaskId | iTask a
 appendDomainTask domain attributes task
-| not (trace_tn "Appending domain task") = undef
 = upd appendT (domainTasks domain)
-		>>= \{nextTaskId}. trace_n "Done!" (return (nextTaskId-1))
+		>>= \{nextTaskId}. (return (nextTaskId-1))
 where
-	appendT {nextTaskId, tasks} = trace_n "Appending new task" {nextTaskId = nextTaskId + 1
-		, tasks = 'Data.Map'.put nextTaskId (DomainTaskReference attributes serializedTask, serializeToBase64 NoValue) tasks}
+	appendT {nextTaskId, tasks} = {nextTaskId = nextTaskId + 1
+		, tasks = 'Data.Map'.put nextTaskId (DomainTask attributes serializedTask, serializeToBase64 NoValue) tasks}
 
 	serializedTask = serializeToBase64 task
 
-queueDomainTask :: Domain TaskAttributes (Task a) -> Task (TaskValue a) | iTask a
+queueDomainTask :: Domain TaskAttributes (Task a) -> Task a | iTask a
 queueDomainTask domain attr task = appendDomainTask domain attr task
 	>>= \dTaskId. withSymbols
 		\symbols. watch (domainTaskValue domain dTaskId symbols)
-			>&^ \sds. get sds
+			>>* [OnValue ifDoubleStable]
+where
+	ifDoubleStable (Value (Value v True) _) = Just v
+	ifDoubleStable _ = Nothing
 
-claimDomainTask :: Domain DistributedTaskId -> Task a | iTask a
+claimDomainTask :: Domain DistributedTaskId -> Task ()
 claimDomainTask domain dTaskId = get (domainTask domain dTaskId)
+ 	>>= \mbTask. case mbTask of
+ 		Nothing = throw ("no task with given identifier: " +++ toString dTaskId)
+ 		Just (DomainTask attributes taskF, result)
+ 		= upd (appTasks ('Data.Map'.del dTaskId)) (domainTasks domain)
+ 			>>= \_. return ()
+
+executeDomainTask :: Domain DistributedTaskId -> Task ()
+executeDomainTask domain dTaskId = get (domainTask domain dTaskId)
 	>>= \mbTask. case mbTask of
 		Nothing = throw ("no task with given identifier: " +++ toString dTaskId)
-		Just (DomainTaskReference attributes taskF, _)
+		Just (DomainTask attributes taskF, result)
 		= upd (appTasks ('Data.Map'.del dTaskId)) (domainTasks domain)
 			>>| (withSymbols
 				\symbols. deserializeFromBase64 taskF symbols)

@@ -12,12 +12,17 @@ appendDomainTask :: Domain TaskAttributes (Task a) -> Task DistributedTaskId | i
 /**
  * Queues a task in a domain and returns only when there is a result for the task.
  */
-queueDomainTask :: Domain TaskAttributes  (Task a) -> Task (TaskValue a) | iTask a
+queueDomainTask :: Domain TaskAttributes (Task a) -> Task a | iTask a
 
 /**
- * Claims a task in a domain and immediately executes it.
+ * Claims a task in a domain and immediately execute it.
  */
-claimDomainTask :: Domain DistributedTaskId -> Task a | iTask a
+executeDomainTask :: Domain DistributedTaskId -> Task ()
+
+/**
+ * Claim a task in the domain an put it into the local task queue
+ */
+claimDomainTask :: Domain DistributedTaskId -> Task ()
 
 /**
  * Creates a task which denotes whether the given task was removed.
