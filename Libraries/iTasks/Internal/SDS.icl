@@ -131,8 +131,9 @@ checkRegistrations :: !SDSIdentity !(SDSNotifyPred p) !*IWorld
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
-	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations matching: " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
-	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations not matching: " +++ formatSDSRegistrationsList ('Set'.toList nomatch))) = undef
+	| not (trace_tn ("Check registrations for " +++ sdsId)) = undef
+	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations matching: \n" +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
+	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations not matching: \n" +++ formatSDSRegistrationsList ('Set'.toList nomatch))) = undef
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
@@ -200,7 +201,7 @@ where
 formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
 formatSDSRegistrationsList list = ('Text'.join "\n" lines) +++ "\n"
 where
-	lines = [ "Task id " +++ toString reqTaskId +++ if (isJust remoteOptions) (" at " +++ toString (fromJust remoteOptions)) "" +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText, remoteOptions} <- list]
+	lines = [ "===> Task " +++ toString reqTaskId +++ if (isJust remoteOptions) (" at " +++ toString (fromJust remoteOptions)) "" +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText, remoteOptions} <- list]
 
 formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
@@ -254,6 +255,7 @@ where
 		(Error e, iworld)   = (Error e, iworld)
 		(Ok npred, iworld)
 			# (match,nomatch, iworld) = checkRegistrations (sdsIdentity sds) npred iworld
+			| not (trace_tn ("notify SDSSource " +++ (formatSDSRegistrationsList ('Set'.toList match)))) = undef
 			= (Ok (WriteResult match sds), iworld)
 
 	writeSDS (SDSValue False val sds) p c w iworld = case writeSDS sds p c w iworld of
@@ -320,16 +322,20 @@ where
 					//We need to decide based on the current parameter if we need to notify or not
 					| not (trace_tn ("Notify lens " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
 					= (Ok (WriteResult match sds), iworld)
-				Ok (Just ws) = case writeSDS sds1 ps c ws iworld of
+				Ok (Just ws)
+				| not (trace_tn "Lens special case write underlying share") = undef
+				= case writeSDS sds1 ps c ws iworld of
 					(Error e, iworld) = (Error e, iworld)
 					(Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
 					(Ok (WriteResult notify ssds), iworld)
 						//Remove the registrations that we can eliminate based on the current parameter
 						# notify = 'Set'.difference notify ('Set'.difference nomatch match)
-						| not (trace_tn ("Notify lens" +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
+						| not (trace_tn ("Notify lens " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 						= (Ok (WriteResult notify (SDSLens ssds opts)), iworld)
 		//General case: read base SDS before writing
-		_ = case readSDS sds1 ps c Nothing (sdsIdentity sds1) iworld of
+		_
+		| not (trace_tn "Lens general case") = undef
+		= case readSDS sds1 ps c Nothing (sdsIdentity sds1) iworld of
 				(Error e, iworld) = (Error e, iworld)
 				(Ok (AsyncRead sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
 				(Ok (ReadResult rs ssds), iworld)
@@ -429,6 +435,7 @@ instance Readable SDSCache where
 
 instance Writeable SDSCache where
 	writeSDS sds=:(SDSCache sds1 opts=:{SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
+	| not (trace_tn "Write SDSCache") = undef
 	# key = (sdsIdentity sds, toSingleLineText p)
 	//Check cache
 	# mbr = case 'DM'.get key readCache of
@@ -444,11 +451,18 @@ instance Writeable SDSCache where
 		Just r = 'DM'.put key (dynamic r :: r^) readCache
 		Nothing  = 'DM'.del key readCache
 	= case policy of
-		NoWrite = (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache})
-		WriteNow = case writeSDS sds1 p c w {iworld & readCache = readCache} of
+		NoWrite
+		| not (trace_tn "NoWrite cache") = undef
+		= (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache})
+		WriteNow
+		| not (trace_tn "WriteNow cache") = undef
+		= case writeSDS sds1 p c w {iworld & readCache = readCache} of
 			(Error e, iworld) = (Error e, iworld)
-			(Ok (WriteResult r ssds), iworld) = (Ok (WriteResult r sds), iworld)
+			(Ok (WriteResult r ssds), iworld)
+			| not (trace_tn ("Notify cache \n" +++ formatSDSRegistrationsList ('Set'.toList r))) = undef
+			= (Ok (WriteResult r sds), iworld)
 		WriteDelayed
+			| not (trace_tn "WriteDelayed cache") = undef
 			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
 			= (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache, writeCache = writeCache})
 
