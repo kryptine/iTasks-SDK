@@ -8,6 +8,8 @@ import StdMisc
 
 derive class iTask DummyTask
 
+testDomain = Domain "localhost" 9090
+
 Start iworld = doTasks task iworld
 where
 	task :: Task ()
@@ -15,18 +17,19 @@ where
 		>>* [ OnAction (Action "Domain server") (always server)
 		    , OnAction (Action "Client") (always client)]
 
+	/*server :: Task ()
+	server = set (Just testDomain) domainName
+		>>= \_. (viewSharedInformation "Hosting domain" [] domainName)
+		<<@ ArrangeHorizontal @! ()*/
+
 	server :: Task ()
-	server = enterDomain
-		>>= \domain. set (Just domain) domainName
-		>>= \_. (viewSharedInformation "Tasks in the domain" [ViewAs \{tasks}. map (\(id, (DomainTask attrs _, claimStatus, _)). (id, claimStatus, 'Data.Map'.get "title" attrs)) ('Data.Map'.toList tasks)] (domainTasks domain)
-		-&&- viewSharedInformation "Users in the domain" [] (domainUsers domain)
-		-&&- viewSharedInformation "Hosting domain" [] domainName
-		-&&- viewSharedInformation "Devices in domain" [] (domainDevices domain))
+	server = set (Just testDomain) domainName
+		>>= \_. (viewSharedInformation "Tasks in the domain" [ViewAs \{tasks}. map (\(id, (DomainTask attrs _, claimStatus, _)). (id, claimStatus, 'Data.Map'.get "title" attrs)) ('Data.Map'.toList tasks)] (domainTasks testDomain)
+				-&&- viewSharedInformation "Hosting domain" [] domainName)
 		<<@ ArrangeHorizontal @! ()
 
 	client :: Task ()
-	client = enterDomain
-		>>= \domain. (addTasks domain -&&- selectTask domain) @! ()
+	client = (addTasks testDomain -&&- selectTask testDomain) @! ()
 
 	addTasks domain = forever (enterChoice "Choose a task to add in the domain" [] [T1, T2, T3]
 		>>= \task. case task of

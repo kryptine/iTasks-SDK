@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.SDS
 
-import StdString, StdTuple, StdMisc, StdBool, StdInt, StdChar, StdFunctions, StdArray
+import StdString, StdTuple, StdMisc, StdBool, StdInt, StdChar, StdFunctions, StdArray, StdDebug
 from StdList import flatten, map, take, drop, instance toString [a], instance length []
 from Text import class Text, instance Text String
 import qualified Text
@@ -131,6 +131,8 @@ checkRegistrations :: !SDSIdentity !(SDSNotifyPred p) !*IWorld
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
+	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations matching: " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
+	| 'Set'.size match > 0 && not (trace_tn ("checkRegistrations not matching: " +++ formatSDSRegistrationsList ('Set'.toList nomatch))) = undef
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
@@ -196,9 +198,9 @@ where
 			= 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
 formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
-formatSDSRegistrationsList list = 'Text'.join "\n" lines
+formatSDSRegistrationsList list = ('Text'.join "\n" lines) +++ "\n"
 where
-	lines = [ "Task id " +++ toString reqTaskId +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText} <- list]
+	lines = [ "Task id " +++ toString reqTaskId +++ if (isJust remoteOptions) (" at " +++ toString (fromJust remoteOptions)) "" +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText, remoteOptions} <- list]
 
 formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
@@ -218,6 +220,7 @@ where
 	flushAll [(_,(_,DeferredWrite p w sds)):rest] iworld
 		= case writeSDS sds p EmptyContext w iworld of
 			(Ok (WriteResult notify _),iworld)
+				| not (trace_tn "flushing deferred sds writes") = undef
 				# iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
 				= flushAll rest iworld
 			(Error e,iworld)
@@ -303,16 +306,19 @@ where
 instance Writeable SDSLens
 where
 	writeSDS sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,write,notify,name}) p c w iworld
+	| not (trace_tn ("Write SDSLens " +++ name)) = undef
 	# ps = param p
 	= case (write,notify) of
 		//Special case: we don't need to read the base SDS
 		(SDSWriteConst writef,SDSNotifyConst notifyf)
+			| not (trace_tn "Lens special case") = undef
 			//Check which registrations the current parameter matches
 			# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) (notifyf p w) iworld
 			= case writef p w of
 				Error e = (Error e, iworld)
 				Ok Nothing
 					//We need to decide based on the current parameter if we need to notify or not
+					| not (trace_tn ("Notify lens " +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
 					= (Ok (WriteResult match sds), iworld)
 				Ok (Just ws) = case writeSDS sds1 ps c ws iworld of
 					(Error e, iworld) = (Error e, iworld)
@@ -320,6 +326,7 @@ where
 					(Ok (WriteResult notify ssds), iworld)
 						//Remove the registrations that we can eliminate based on the current parameter
 						# notify = 'Set'.difference notify ('Set'.difference nomatch match)
+						| not (trace_tn ("Notify lens" +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 						= (Ok (WriteResult notify (SDSLens ssds opts)), iworld)
 		//General case: read base SDS before writing
 		_ = case readSDS sds1 ps c Nothing (sdsIdentity sds1) iworld of
@@ -336,13 +343,16 @@ where
 					# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) notifyf iworld
 					= case ws of
 						Error e         = (Error e, iworld)
-						Ok Nothing      = (Ok (WriteResult match (SDSLens ssds opts)), iworld)
+						Ok Nothing
+							| not (trace_tn ("Notify lens" +++ formatSDSRegistrationsList ('Set'.toList match))) = undef
+							= (Ok (WriteResult match (SDSLens ssds opts)), iworld)
 						Ok (Just ws) = case writeSDS ssds ps c ws iworld of
 							(Error e, iworld) = (Error e, iworld)
 							(Ok (AsyncWrite sds), iworld) = (Ok (AsyncWrite (SDSLens sds opts)), iworld)
 							(Ok (WriteResult notify ssds), iworld)
 								//Remove the registrations that we can eliminate based on the current parameter
 								# notify = 'Set'.difference notify ('Set'.difference nomatch match)
+								| not (trace_tn ("Notify lens" +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 								= (Ok (WriteResult notify (SDSLens ssds opts)), iworld)
 
 instance Modifiable SDSLens where
@@ -475,6 +485,7 @@ instance Readable SDSSequence where
 
 instance Writeable SDSSequence where
 	writeSDS sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,paramr,writel,writer,name}) p c w iworld=:{IWorld|readCache,writeCache}
+	| not (trace_tn ("Write SDSSequence " +++ name)) = undef
 	= case readSDS sds1 (paraml p) c Nothing (sdsIdentity sds1) iworld of
 		(Error e, iworld)  = (Error e, iworld)
 		(Ok (AsyncRead asds), iworld)  = (Ok (AsyncWrite (SDSSequence asds sds2 opts)), iworld)
@@ -504,8 +515,12 @@ instance Writeable SDSSequence where
 					Ok (Just w2)                 	= writeSDS sds2 (paramr p r1) c w2 iworld
 			| npreds2 =:(Error _) = (liftError npreds2, iworld)
 			= case (npreds1, npreds2) of
-				(Ok (WriteResult notify1 ssds1), Ok (WriteResult notify2 ssds2))        = (Ok (WriteResult ('Set'.union notify1 notify2) (SDSSequence ssds1 ssds2 opts)), iworld)
-				(Ok (WriteResult notify1 ssds1), Ok (AsyncWrite sds2))            = (Ok (AsyncWrite (SDSSequence ssds sds2 opts)), queueNotifyEvents (sdsIdentity sds1) notify1 iworld)
+				(Ok (WriteResult notify1 ssds1), Ok (WriteResult notify2 ssds2))
+					| not (trace_tn ("Notify sequence " +++ formatSDSRegistrationsList ('Set'.toList ('Set'.union notify1 notify2)))) = undef
+					= (Ok (WriteResult ('Set'.union notify1 notify2) (SDSSequence ssds1 ssds2 opts)), iworld)
+				(Ok (WriteResult notify1 ssds1), Ok (AsyncWrite sds2))
+					| not (trace_tn ("Notify sequence " +++ formatSDSRegistrationsList ('Set'.toList notify1))) = undef
+					= (Ok (AsyncWrite (SDSSequence ssds sds2 opts)), queueNotifyEvents (sdsIdentity sds1) notify1 iworld)
 
 instance Modifiable SDSSequence where
 	modifySDS f sds p context iworld
@@ -541,6 +556,7 @@ instance Readable SDSSelect where
 
 instance Writeable SDSSelect where
 	writeSDS sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,notifyl,notifyr,name}) p c w iworld=:{IWorld|readCache,writeCache}
+	| not (trace_tn ("Write SDSSelect " +++ name)) = undef
 	= case select p of
 		Left p1 = case notifyl of
 			(SDSNotify f)  = case readSDS sds1 p1 c Nothing (sdsIdentity sds1) iworld of
@@ -554,6 +570,7 @@ instance Writeable SDSSelect where
 						# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
 						//Add the matching registrations for the 'other' SDS
 						# notify = 'Set'.union notify match
+						| not (trace_tn ("Notify select left " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 						= (Ok (WriteResult notify (SDSSelect ssds sds2 opts)), iworld)
 			(SDSNotifyConst f) = case writeSDS sds1 p1 c w iworld of
 				(Error e, iworld) = (Error e, iworld)
@@ -562,6 +579,7 @@ instance Writeable SDSSelect where
 					# npred = (\ts pq -> case select pq of Right p2 = f p1 w ts p2; _ = False)
 					# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
 					# notify = 'Set'.union notify match
+					| not (trace_tn ("Notify select left " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 					= (Ok (WriteResult notify (SDSSelect ssds sds2 opts)), iworld)
 		Right p2 = case notifyr of
 			(SDSNotify f) = case readSDS sds2 p2 c Nothing (sdsIdentity sds2) iworld of
@@ -575,6 +593,7 @@ instance Writeable SDSSelect where
 						# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
 						//Add the matching registrations for the 'other' SDS
 						# notify = 'Set'.union notify match
+						| not (trace_tn ("Notify select right " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 						= (Ok (WriteResult notify (SDSSelect sds1 ssds opts)), iworld)
 			(SDSNotifyConst f) = case writeSDS sds2 p2 c w iworld of
 				(Error e, iworld) = (Error e,iworld)
@@ -584,6 +603,7 @@ instance Writeable SDSSelect where
 					# (match,nomatch,iworld) = checkRegistrations (sdsIdentity sds) npred iworld
 					//Add the matching registrations for the 'other' SDS
 					# notify = 'Set'.union notify match
+					| not (trace_tn ("Notify select right " +++ formatSDSRegistrationsList ('Set'.toList notify))) = undef
 					= (Ok (WriteResult notify (SDSSelect sds1 ssds opts)), iworld)
 
 instance Modifiable SDSSelect where

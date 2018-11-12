@@ -56,10 +56,10 @@ where
 		sds
 		(remoteShare sds {SDSShareOptions|domain=host, port=port})
 
-	selectp Nothing = Right ()
+	selectp Nothing = trace_n "Acces domain share - no domain configured" (Right ())
 	selectp (Just domain)
-	| domain == d = Left ()
-	= Right ()
+	| domain == d = trace_n "Acces local share" (Left ())
+	= trace_n "Acces domain share - server for other domain" (Right ())
 
 /**
  * Creates a share which observes the result of the given domain task.

@@ -82,6 +82,7 @@ instance < SDSNotifyRequest, RemoteNotifyOptions
 	, portToNotify :: Int
 	, remoteSdsId :: String
 	}
+instance toString RemoteNotifyOptions
 
 class Identifiable sds
 where
@@ -100,7 +101,7 @@ where
 	 * @param When Just, denotes reading + registering for changes.
 	 * @param Identity of the sds to read, not guaranteed to be the identify of the current sds we're reading from. (lenses, sequences, etc.)
 	 */
-	readSDS          :: !(sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	readSDS          :: !(sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> !*(!MaybeError TaskException !(ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Readable sds
 where
@@ -111,7 +112,7 @@ where
 	 * @param context in which to read. Async sds's use the context to retrieve the task id.
 	 * @param taskId which registers itself for changes to the sds.
 	 */
-	readRegisterSDS      :: !(sds p r w) p !TaskContext !TaskId !*IWorld -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	readRegisterSDS      :: !(sds p r w) p !TaskContext !TaskId !*IWorld -> !*(!MaybeError TaskException !(ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Writeable sds | Identifiable sds
 where
@@ -122,7 +123,7 @@ where
 	 * @param context in which to write. Async sdss use the context to retrieve the task id.
 	 * @param value which to write to the sds.
 	 */
-	writeSDS         :: !(sds p r w) !p !TaskContext !w !*IWorld -> *(!MaybeError TaskException (WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	writeSDS         :: !(sds p r w) !p !TaskContext !w !*IWorld -> !*(!MaybeError TaskException !(WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Modifiable sds | Readable, Writeable sds
 where
@@ -133,7 +134,7 @@ where
 	 * @param parameter
 	 * @param The context in which to read/write to the SDS
 	 */
-	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> *(!MaybeError TaskException (ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> !*(!MaybeError TaskException !(ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class RWShared sds | Modifiable, Registrable sds
 

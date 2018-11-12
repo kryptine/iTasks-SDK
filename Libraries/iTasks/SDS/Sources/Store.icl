@@ -91,7 +91,7 @@ where
 	memoryLoc defaultV = removeMaybe defaultV memoryShare
 
 	jsonLoc :: !(Maybe a) -> SDSLens FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	jsonLoc defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) jsonFileShare)
+	jsonLoc defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteNow)) jsonFileShare)
 
 	graphLoc :: !(Maybe a) -> SDSLens FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 	graphLoc  defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) graphFileShare)

@@ -35,12 +35,12 @@ claimDomainTask domain dTaskId force = (get currentUser -&&- get currentDateTime
  		Just (DomainTask attributes taskF, claimStatus, result)
  		= case claimStatus of
  			NoClaim = upd (appTasks $ 'Data.Map'.alter (applyClaim user time) dTaskId) (domainTasks domain)
- 				>>= \_. return ()
+ 				>>= \_. return True
  			Claimed claimer
  			| not force = viewInformation "Claim failed" [] "Claiming the task has failed. Another user has already claimed this task."
- 				>>= \_. return ()
+ 				>>= \_. return False
  			= upd (appTasks $ 'Data.Map'.alter (applyClaim user time) dTaskId) (domainTasks domain)
- 				>>= \_. return ()
+ 				>>= \_. return True
 where
 	applyClaim user time (Just (dt, _, taskResult)) = Just (dt, Claimed (User user time), taskResult)
 
@@ -51,13 +51,13 @@ executeDomainTask domain dTaskId = get currentUser
 		Nothing = throw ("no task with given identifier: " +++ toString dTaskId)
 		Just (DomainTask attributes taskF, claimStatus, result)
 		= case claimStatus of
-			NoClaim = viewInformation "No claim" [] "Claim the task first." @! ()
+			NoClaim = viewInformation "No claim" [] "Claim the task first." @! False
 			Claimed claimee = case claimee of
 				User user time
-				| currentUser == user = executeTask taskF
-				= viewInformation "No claim" [] "Task is claimed by another user. Please claim the task first." @! ()
+				| currentUser == user = executeTask taskF @! True
+				= viewInformation "No claim" [] "Task is claimed by another user. Please claim the task first." @! False
 where
-	executeTask taskF = withSymbols \symbols. deserializeFromBase64 taskF symbols
+	executeTask taskF = withSymbols \symbols. deserializeFromBase64 taskF symbols @! ()
 
 removeDomainTask :: Domain DistributedTaskId -> Task ()
 removeDomainTask domain dTaskId = upd (appTasks ('Data.Map'.del dTaskId)) (domainTasks domain) @! ()
