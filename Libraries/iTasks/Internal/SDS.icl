@@ -601,7 +601,13 @@ instance Registrable SDSSelect where
 
 // SDSParallel
 instance Identifiable SDSParallel where
-	nameSDS (SDSParallel sds1 sds2 {SDSParallelOptions|name}) acc = ["|",name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
+	nameSDS sds acc = case sds of
+        SDSParallel           sds1 sds2 opts = parallelName sds1 sds2 opts
+        SDSParallelWriteLeft  sds1 sds2 opts = parallelName sds1 sds2 opts
+        SDSParallelWriteRight sds1 sds2 opts = parallelName sds1 sds2 opts
+        SDSParallelWriteNone  sds1 sds2 opts = parallelName sds1 sds2 opts
+    where
+        parallelName sds1 sds2 opts = ["|",opts.SDSParallelOptions.name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
 
 instance Readable SDSParallel where
 	readSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
