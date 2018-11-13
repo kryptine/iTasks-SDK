@@ -77,6 +77,5 @@ derive class iTask Citizen,
                    Address
 instance == Citizen,
             Address
-instance <  (Maybe a) | Ord a,
-			Citizen,
+instance <  Citizen,
             Address
