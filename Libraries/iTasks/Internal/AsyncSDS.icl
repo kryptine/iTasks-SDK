@@ -156,18 +156,15 @@ where
 	buildRequest True env=:{options}= (SDSRegisterRequest sds p reqSDSId (sdsIdentity rsds) taskId options.sdsPort, env)
 	buildRequest False env = (SDSReadRequest sds p, env)
 
-queueRemoteRefresh :: ![SDSNotifyRequest] !*IWorld -> *IWorld
+queueRemoteRefresh :: ![(!TaskId, !RemoteNotifyOptions)] !*IWorld -> *IWorld
 queueRemoteRefresh [] iworld = iworld
-queueRemoteRefresh [notifyRequest : reqs] iworld=:{options}
+queueRemoteRefresh [(reqTaskId, remoteOpts) : reqs] iworld=:{options}
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
-# (host, port, sdsId) = case notifyRequest.remoteOptions of
-	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
-# request = reqq notifyRequest.reqTaskId sdsId
-= case queueSDSRequest request host port SDSSERVICE_TASK_ID symbols iworld of
+# request = reqq reqTaskId remoteOpts.remoteSdsId
+= case queueSDSRequest request remoteOpts.hostToNotify remoteOpts.portToNotify SDSSERVICE_TASK_ID symbols iworld of
 	(_, iworld) = queueRemoteRefresh reqs iworld
 where
-	// Hack to get it to compile. The Refresh Request alternative does not use any of the parameters.
 	reqq :: !TaskId !SDSIdentity -> SDSRequest () String ()
 	reqq taskId sdsId = SDSRefreshRequest taskId sdsId
 

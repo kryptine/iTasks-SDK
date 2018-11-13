@@ -2,6 +2,7 @@ implementation module iTasks.Internal.SDSService
 
 import iTasks
 
+import Data.Functor
 from Data.Func import $
 from StdMisc import abort, undef
 import StdArray
@@ -145,4 +146,10 @@ where
 		refreshRemoteTasks sdsId iworld=:{sdsNotifyRequests}
 		= case 'Map'.get sdsId sdsNotifyRequests of
 			Nothing = (Ok (Left ("No requests available")), iworld)
-			Just requestsToTime = (Ok (Left "Requests re-queued"), queueNotifyEvents sdsId ('Set'.fromList $ 'Map'.keys requestsToTime) iworld)
+			Just requestsToTime =
+				( Ok (Left "Requests re-queued")
+				, queueNotifyEvents
+					sdsId
+					('Set'.fromList $ (\req -> (req.reqTaskId, req.remoteOptions)) <$> 'Map'.keys requestsToTime)
+					iworld
+				)

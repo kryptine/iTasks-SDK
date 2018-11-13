@@ -121,7 +121,7 @@ modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError
 //for evaluation anyway, it no longer make sense to notify it again.
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 
-queueNotifyEvents :: !String !(Set SDSNotifyRequest) !*IWorld -> *IWorld
+queueNotifyEvents :: !String !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)

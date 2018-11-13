@@ -8,7 +8,6 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
 import Data.GenEq
-
 import Data.Either
 import Data.Error
 import Data.Maybe
@@ -25,10 +24,12 @@ where
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where
-	< x y = ((x.reqTaskId, x.reqSDSId, x.cmpParamText) < (y.reqTaskId, y.reqSDSId, y.cmpParamText)) || x.remoteOptions < y.remoteOptions
+	< x y = ((x.reqTaskId, x.reqSDSId, x.cmpParamText), x.remoteOptions) <
+	        ((y.reqTaskId, y.reqSDSId, y.cmpParamText), y.remoteOptions)
 
 instance < RemoteNotifyOptions where
-	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) < (right.hostToNotify, right.portToNotify, right.remoteSdsId)
+	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
+	                 (right.hostToNotify, right.portToNotify, right.remoteSdsId)
 
 instance < (Maybe a) | < a where
 	(<) Nothing Nothing = False

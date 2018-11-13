@@ -123,7 +123,9 @@ directResult _ = abort "No direct result!"
 
 //Check the registrations and find the set of id's for which the current predicate holds
 //and for which id's it doesn't
-checkRegistrations :: !SDSIdentity (SDSNotifyPred p) !*IWorld -> (Set SDSNotifyRequest, Set SDSNotifyRequest,!*IWorld) | TC p
+checkRegistrations :: !SDSIdentity !(SDSNotifyPred p) !*IWorld
+                   -> (!Set (!TaskId, !Maybe RemoteNotifyOptions), !Set (!TaskId, !Maybe RemoteNotifyOptions), !*IWorld)
+                    | TC p
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
@@ -141,8 +143,8 @@ where
 		# (match,nomatch) = matchRegistrations pred regs
 		= case cmpParam of
 			(p :: p^) = if (pred reqTimespec p)
-							('Set'.insert req match,nomatch)
-							(match, 'Set'.insert req nomatch)
+						   ('Set'.insert (req.reqTaskId, req.remoteOptions) match,nomatch)
+						   (match, 'Set'.insert (req.reqTaskId, req.remoteOptions) nomatch)
 			//In case of a type mismatch, just ignore (should not happen)
 			_                        = abort "Not matching!"
 
@@ -155,12 +157,12 @@ modify f sds context iworld
 	# iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
 	= (Ok (ModifyingDone w), iworld)
 
-queueNotifyEvents :: !String !(Set SDSNotifyRequest) !*IWorld -> !*IWorld
+queueNotifyEvents :: !String !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> !*IWorld
 queueNotifyEvents sdsId notify iworld
-# remotes = [t \\ t <- 'Set'.toList notify | isJust t.remoteOptions]
-# locals = [t \\ t <- 'Set'.toList notify | isNothing t.remoteOptions]
-# iworld = queueRefresh [(t.reqTaskId,"Notification for write of " +++ sdsId) \\ t <- locals] iworld
-= queueRemoteRefresh remotes iworld
+    # remotes = [(reqTaskId, remoteOptions) \\ (reqTaskId, Just remoteOptions) <- 'Set'.toList notify]
+    # locals = [reqTaskId \\ (reqTaskId, Nothing) <- 'Set'.toList notify]
+    # iworld = queueRefresh [(reqTaskId,"Notification for write of " +++ sdsId) \\ reqTaskId <- locals] iworld
+    = queueRemoteRefresh remotes iworld
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask}
@@ -861,9 +863,6 @@ instance Modifiable SDSRemoteService where
 instance Registrable SDSRemoteService where
 	readRegisterSDS (SDSRemoteService (HTTPShareOptions _)) p context taskid iworld = (Error (exception "registering HTTP services not possible"), iworld)
 	readRegisterSDS sds p context taskId iworld = readSDS sds p context (Just taskId) (sdsIdentity sds) iworld
-
-instance == SDSNotifyRequest where
-	(==) r1 r2 = (r1.reqTaskId,r1.reqSDSId,r1.cmpParamText) == (r2.reqTaskId, r2.reqSDSId, r2.cmpParamText) && r1.remoteOptions == r2.remoteOptions
 
 instance == RemoteNotifyOptions where
 	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)

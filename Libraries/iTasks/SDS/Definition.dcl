@@ -44,26 +44,26 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	/**
 	 * Writing to the share has succeeded. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: WriteResult (Set SDSNotifyRequest) (sds p r w) & TC r & TC w & RWShared sds
+	E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Denotes that writing to a SDS had lead to some asynchronous action.
 	 * We return a new version of the share, which MUST be used for the next write operation.
 	 * The SDS is required to be a Readable AND Writeable, because writing to a SDS may require reading from another.
 	 */
-	| E. sds: AsyncWrite (sds p r w) & RWShared sds & TC r & TC w
+	| E. sds: AsyncWrite !(sds p r w) & RWShared sds & TC r & TC w
 
 :: ModifyResult p r w =
 	/**
 	 * Modifying the share has succeeded, all asynchronous operations have finished.
 	 */
-	E.sds: ModifyResult (Set SDSNotifyRequest) r w (sds p r w) & TC r & TC w & RWShared sds
+	E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.
 	 * TODO: We include the modify function so that async operations can be resumed later. This should
 	 * 		 not be necessary.
 	 */
-	| E. sds: AsyncModify (sds p r w) (r -> MaybeError TaskException w) & RWShared sds
+	| E. sds: AsyncModify !(sds p r w) !(r -> MaybeError TaskException w) & RWShared sds
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
@@ -75,7 +75,8 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 												   // include the information to send a refresh event to that client.
 	}
 
-instance < SDSNotifyRequest
+instance < SDSNotifyRequest, RemoteNotifyOptions
+instance < (Maybe a) | < a
 
 :: RemoteNotifyOptions =
 	{ hostToNotify :: String
