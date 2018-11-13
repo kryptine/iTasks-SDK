@@ -4,47 +4,51 @@ import iTasks
 import Data.Func, Data.Either
 import qualified Data.Map
 
-import iTasks.Extensions.Distributed.Definition
 import iTasks.Internal.Distributed.Formatter
+import iTasks.UI.Layout.Default
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskStore
+import iTasks.WF.Definition
 
 import StdMisc, StdDebug
 
 domainName :: SDSLens () (Maybe Domain) (Maybe Domain)
 domainName = sharedStore "domain" Nothing
 
-domainUsers :: Domain -> SDSSequence () [User] [User]
-domainUsers domain
-= maybeDomainShare domain "users" (sharedStore "domainUsers" [])
-
-domainTasks :: Domain -> SDSSequence () DomainTaskState DomainTaskState
-domainTasks domain
-= maybeDomainShare domain "tasks" (sharedStore "domainTasks" {nextTaskId = 0, tasks = 'Data.Map'.newMap})
-
-domainTask :: Domain DistributedTaskId -> SDSLens () (Maybe (DomainTask, ClaimStatus, SerializedTaskResult)) ()
-domainTask domain dTaskId = mapRead read (toReadOnly $ domainTasks domain)
+domainTaskResult :: (Task a) Domain -> SDSSequence InstanceNo (TaskValue a) () | iTask a
+domainTaskResult task domain = maybeDomainShare domain "domainTaskResult"
+	(mapReadError (read task) (toReadOnly taskInstanceValue))
 where
-	read {tasks} = 'Data.Map'.get dTaskId tasks
+	read :: (Task a) TIValue -> MaybeError TaskException (TaskValue a) | iTask a
+	read _ (TIValue tValue) = case tValue of
+		NoValue = trace_n "No value yet" (Ok NoValue)
+		(Value djson stable)
+		| not (trace_tn "Got some value") = undef
+		= case fromDeferredJSON djson of
+			Nothing = trace_n "Unable to transform value" (Ok NoValue)
+			(Just a) = trace_n "Transformed value" (Ok (Value a stable))
 
-domainTasksList :: Domain -> SDSLens () [(DistributedTaskId, TaskAttributes)] ()
-domainTasksList domain = mapRead read (toReadOnly $ domainTasks domain)
+	read _ (TIException exc str) = Error (exc, str)
+
+
+addDistributedTask :: Domain -> SDSSequence (Task a, TaskAttributes) TaskId () | iTask a
+addDistributedTask domain = maybeDomainShare domain "addDistributedTask" (SDSSource {SDSSourceOptions|name = "addDistributedTask"
+					 , read = read
+					 , write = write })
 where
-	read {tasks} = map readable ('Data.Map'.toList tasks)
-	readable (dTaskId, (DomainTask attrs _, claimStatus, _)) = (dTaskId, attrs)
+	read (task, attrs) iworld
+	= case evalAppendTask (Detached attrs False) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks (TaskId 0 0) iworld of
+		(Error e, iworld) = (Error e, iworld)
+		(Ok taskId, iworld) = (Ok taskId, iworld)
 
-domainTaskValue :: Domain DistributedTaskId {#Symbol} -> SDSLens () (TaskValue a) () | iTask a
-domainTaskValue domain dTaskId symbols = mapRead read (domainTask domain dTaskId)
-where
-	read Nothing = NoValue
-	read (Just (_, _, result)) = deserializeFromBase64 result symbols
+	write _ _ iworld = (Ok (\_ _. False), iworld)
 
-domainDevices :: Domain -> SDSSequence () [DomainDevice] [DomainDevice]
-domainDevices domain
-= maybeDomainShare domain "devices" (sharedStore "domainDevices" [])
-
-// Selects to use a remote share when the current instance is not the host in the given domain. It then queries the host of the domain.
-maybeDomainShare :: Domain String (sds () r w) -> (SDSSequence () r w) | iTask r & iTask w & RWShared sds
+// Selects to use a remote share when the current instance is not the host in the given domain.
+maybeDomainShare :: Domain String (sds p r w) -> (SDSSequence p r w) | iTask r & iTask w & RWShared sds & iTask p
 maybeDomainShare d=:(Domain host port) name sds = sdsSequence ("seq" +++ name)
-	(const ()) (\p mbDomain. mbDomain) (\p mbDomain. Right snd)
+	(const ())
+	(\p mbDomain. (p, mbDomain))
+	(\p mbDomain. Right snd)
 	(SDSWriteConst \p w. Ok Nothing)
 	(SDSWrite \p rs w. Ok (Just w))
 	domainName
@@ -56,14 +60,7 @@ where
 		sds
 		(remoteShare sds {SDSShareOptions|domain=host, port=port})
 
-	selectp Nothing = trace_n "Acces domain share - no domain configured" (Right ())
-	selectp (Just domain)
-	| domain == d = trace_n "Acces local share" (Left ())
-	= trace_n "Acces domain share - server for other domain" (Right ())
-
-/**
- * Creates a share which observes the result of the given domain task.
- * TODO: Fix
- */
-domainTaskResult :: DistributedTaskId -> SDSLens () (TaskResult a) () | iTask a
-domainTaskResult ref = toReadOnly (sharedStore "domainTaskResult" DestroyedResult)
+	selectp (p, Nothing) = trace_n "Acces domain share - no domain configured" (Right p)
+	selectp (p, Just domain)
+	| domain == d = trace_n "Acces local share" (Left p)
+	= trace_n "Acces domain share - server for other domain" (Right p)

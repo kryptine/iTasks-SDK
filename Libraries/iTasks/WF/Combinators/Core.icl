@@ -689,38 +689,38 @@ where
     taskListFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
 
 appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | iTask a
-appendTask parType parTask slist = mkInstantTask eval
-where
-	eval _ iworld=:{current={taskTime}}
-        # (mbListId,iworld) = readListId slist iworld
-        | mbListId =:(Error _) = (mbListId,iworld)
-        # listId = fromOk mbListId
-        //Check if someone is trying to add an embedded task to the topLevel list
-        | listId == TaskId 0 0 && (parType =:(Embedded) || parType =:(NamedEmbedded _))
-            = (Error (exception "Embedded tasks can not be added to the top-level task list"),iworld)
-        # (mbStateMbTask,iworld)  = initParallelTask mkEvalOpts listId 0 parType parTask iworld
-        = case mbStateMbTask of
-            Ok (state,mbTask)
-              # taskId = state.ParallelTaskState.taskId
-              | listId == TaskId 0 0 //For the top-level list, we don't need to do anything else
-                  //TODO: Make sure we don't lose the attributes!
-                  = (Ok taskId, iworld)
-              //Update the task list
-              # taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-              # (mbError,iworld)    =  modify (\states -> states ++ [{ParallelTaskState|state & index = nextIndex states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
-              | mbError =:(Error _) = (liftError mbError,iworld)
-              //If the task is an embedded one, we also need to store the task function
-              | mbTask =:(Just _)
-                  # (mbError,iworld) = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
-                  | mbError =:(Error _) = (liftError mbError,iworld)
-                  = (Ok taskId, iworld)
-              | otherwise
-                  = (Ok taskId, iworld)
-            err = (liftError err, iworld)
-    where
-        //To determine the next index we need to disregard states that are marked as removed
-        nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | change =!= Just RemoveParallelTask]
+appendTask parType parTask slist = mkInstantTask (evalAppendTask parType parTask slist)
 
+evalAppendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) TaskId *IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+evalAppendTask parType parTask slist _ iworld=:{current={taskTime}}
+# (mbListId,iworld) = readListId slist iworld
+| mbListId =:(Error _) = (mbListId,iworld)
+# listId = fromOk mbListId
+//Check if someone is trying to add an embedded task to the topLevel list
+| listId == TaskId 0 0 && (parType =:(Embedded) || parType =:(NamedEmbedded _))
+    = (Error (exception "Embedded tasks can not be added to the top-level task list"),iworld)
+# (mbStateMbTask,iworld)  = initParallelTask mkEvalOpts listId 0 parType parTask iworld
+= case mbStateMbTask of
+    Ok (state,mbTask)
+      # taskId = state.ParallelTaskState.taskId
+      | listId == TaskId 0 0 //For the top-level list, we don't need to do anything else
+          //TODO: Make sure we don't lose the attributes!
+          = (Ok taskId, iworld)
+      //Update the task list
+      # taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+      # (mbError,iworld)    =  modify (\states -> states ++ [{ParallelTaskState|state & index = nextIndex states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
+      | mbError =:(Error _) = (liftError mbError,iworld)
+      //If the task is an embedded one, we also need to store the task function
+      | mbTask =:(Just _)
+          # (mbError,iworld) = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+          | mbError =:(Error _) = (liftError mbError,iworld)
+          = (Ok taskId, iworld)
+      | otherwise
+          = (Ok taskId, iworld)
+    err = (liftError err, iworld)
+where
+    //To determine the next index we need to disregard states that are marked as removed
+    nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | change =!= Just RemoveParallelTask]
 /**
 * Removes (and stops) a task from a task list
 */

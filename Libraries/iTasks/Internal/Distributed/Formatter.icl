@@ -27,8 +27,7 @@ eval a = code {
 }
 
 serializeToBase64 :: a -> String
-serializeToBase64 item
-| eval item = base64Encode (toString (toJSON (serializeToString (copy_to_string_with_names item))))
+serializeToBase64 item = base64Encode (toString (toJSON (serializeToString (copy_to_string_with_names item))))
 
 json :: String -> Maybe [String]
 json x = fromJSON (fromString x)

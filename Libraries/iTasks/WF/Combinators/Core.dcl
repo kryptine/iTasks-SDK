@@ -151,6 +151,9 @@ parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a
 * Appends a task to a task list
 */
 appendTask  :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | iTask a
+
+evalAppendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) TaskId *IWorld -> (!MaybeError TaskException TaskId,!*IWorld) | iTask a
+
 /**
 * Removes (and stops) a task from a task list
 */

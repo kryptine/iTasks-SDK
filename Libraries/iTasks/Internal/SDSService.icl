@@ -4,7 +4,6 @@ import iTasks
 
 import Data.Functor
 from Data.Func import $
-from StdMisc import abort, undef
 import StdArray
 
 import iTasks.SDS.Definition
@@ -22,8 +21,6 @@ import iTasks.Internal.IWorld
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Text
-
-import StdMisc, StdDebug
 
 /** hostname, connection on which to send the reply, accumulated data received **/
 :: SDSServiceState = SDSProcessing String ConnectionId [String]
@@ -89,7 +86,6 @@ where
 	onData symbols taskId receivedData state=:(SDSProcessing host connId received) sdsValue iworld
 	| not (endsWith "\n" receivedData) = (Ok (SDSProcessing host connId (received ++ [receivedData])), Nothing, [], False, iworld)
 	# receivedData = concat (received ++ [receivedData])
-	| not (trace_tn ("Received data: [" +++ receivedData +++ "]")) = undef
 	= case performRequest symbols taskId host receivedData iworld of
 		(Error e, iworld)
 			# exception = serializeToBase64 $ Error $ exception $ "Exception onData:" +++ e
@@ -131,7 +127,6 @@ where
 		= case readSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) (Just taskId) reqSDSId iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
 			(Ok (ReadResult v _), iworld=:{sdsNotifyRequests})
-			| not (trace_tn ("Notify requests after register: " +++ join "\n\n" (map (\(sdsId, reqs). sdsId +++ ":\n\t" +++ join "\n\t" (map (reqToString o fst) ('Map'.toList reqs))) ('Map'.toList sdsNotifyRequests)))) = undef
 			= (Ok (Left (serializeToBase64 (Ok v))), iworld)
 			(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld)
 		(SDSWriteRequest sds p val)
@@ -139,9 +134,7 @@ where
 		= case writeSDS sds p (TaskContext taskId) val iworld of
 			(Error (_, e), iworld) 							= (Error e, iworld)
 			(Ok (WriteResult notify _), iworld)
-			| not (trace_tn ("Queue notify event after write: " +++ toString ('Set'.size notify) +++ join "\n" (map toSingleLineText ('Set'.toList notify)))) = undef
 			#! iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
-			| not (trace_tn "Done notifying") = undef
 			= (Ok (Left (serializeToBase64 (Ok ()))), iworld)
 			(Ok (AsyncWrite sds), iworld)					= (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
 		(SDSModifyRequest sds p f)
