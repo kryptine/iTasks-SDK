@@ -53,10 +53,14 @@ where
 	write _ _ iworld = (Ok (\_ _. False), iworld)
 
 	wrappedTask task _ = withTaskId (return ())
-		>>= \(_, (TaskId instanceNo _)). (task >>* [OnValue (storeValue task instanceNo)]) <<@ ApplyLayout defaultSessionLayout @! ()
+		>>= \(_, (TaskId instanceNo _)). (task >&^
+				\stv-> (whileUnchanged stv
+				\mtv-> case mtv of
+    				Nothing = trace_n "While unchanged no value" (treturn ())
+   					Just tv = storeValue task instanceNo (Value tv True) @! ()) <<@ NoUserInterface)
+			<<@ ApplyLayout defaultSessionLayout @! ()
 
-	storeValue _ taskId NoValue = Nothing
-	storeValue task taskId v = trace_n ("Setting task value: " +++ toSingleLineText v) (Just (set v (sdsFocus taskId (distributedTaskResultForTask task))))
+	storeValue task taskId v = trace_n ("Setting task value: " +++ toSingleLineText v) (set v (sdsFocus taskId (distributedTaskResultForTask task)))
 
 // Selects to use a remote share when the current instance is not the host in the given domain.
 maybeDomainShare :: Domain String (sds p r w) -> (SDSSequence p r w) | iTask r & iTask w & RWShared sds & iTask p

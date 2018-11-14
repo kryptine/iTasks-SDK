@@ -23,8 +23,7 @@ where
 		>>= \_. (viewStatus -&&- selectTask) @! ()
 
 	selectTask = forever (enterChoiceWithShared "Select task" [] (sdsFocus testUser taskInstancesForUser)
-		>>= \{TaskInstance|instanceNo}. workOn instanceNo
-		>>= \_. return ())
+		>>= \{TaskInstance|instanceNo}. workOn instanceNo @! ())
 
 	viewStatus = (viewSharedInformation "Hosting domain" [] domainName
 			-&&- viewSharedInformation "Tasks" [] currentProcesses)
