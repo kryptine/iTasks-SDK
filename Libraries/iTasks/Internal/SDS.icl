@@ -406,7 +406,9 @@ instance Readable SDSCache where
 	# key = (sdsIdentity sds,toSingleLineText p)
 	//First check cache
 	= case 'DM'.get key readCache of
-		Just (val :: r^) = (Ok (ReadResult val sds),iworld)
+		Just (val :: r^)
+		# world = mbRegister p sds1 mbNotify c reqSDSId iworld
+		= (Ok (ReadResult val sds),iworld)
 		Just _           = (Error (exception "Cached value of wrong type"), iworld)
 		Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
 			(Error e,iworld) = (Error e, iworld)
