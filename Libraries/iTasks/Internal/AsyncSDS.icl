@@ -225,10 +225,8 @@ queueRemoteRefresh [] iworld = iworld
 queueRemoteRefresh [(reqTaskId, remoteOpts) : reqs] iworld=:{options}
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
-# (host, port, sdsId) = case notifyRequest.remoteOptions of
-	(Just {hostToNotify, portToNotify, remoteSdsId}) = (hostToNotify, portToNotify, remoteSdsId)
-# request = reqq notifyRequest.reqTaskId sdsId
-= case queueSDSRequest request host port SDSSERVICE_TASK_ID symbols iworld of
+# request = reqq reqTaskId remoteOpts.remoteSdsId
+= case queueSDSRequest request remoteOpts.hostToNotify remoteOpts.portToNotify SDSSERVICE_TASK_ID symbols iworld of
 	(_, iworld) = queueRemoteRefresh reqs iworld
 where
 	reqq :: !TaskId !SDSIdentity -> SDSRequest () String ()

@@ -15,21 +15,30 @@ import StdMisc, StdDebug
 domainName :: SDSLens () (Maybe Domain) (Maybe Domain)
 domainName = sharedStore "domain" Nothing
 
-domainTaskResult :: (Task a) Domain -> SDSSequence InstanceNo (TaskValue a) () | iTask a
-domainTaskResult task domain = maybeDomainShare domain "domainTaskResult"
-	(mapReadError (read task) (toReadOnly taskInstanceValue))
+distributedTaskResults :: SDSLens () ('Data.Map'.Map InstanceNo Dynamic) ('Data.Map'.Map InstanceNo Dynamic)
+distributedTaskResults = sharedStore "dTaskResults" 'Data.Map'.newMap
+
+distributedTaskResult :: SDSLens InstanceNo (Maybe Dynamic) (Maybe Dynamic)
+distributedTaskResult = sdsLens "dTaskResult" (const ()) read write notify reduce distributedTaskResults
+	where
+		read = SDSRead \taskId map. trace_n ("Read value for task " +++ toString taskId) (Ok ('Data.Map'.get taskId map))
+		write = SDSWrite \taskId map value. trace_n ("Write value for task " +++ toString taskId) (Ok (Just ('Data.Map'.put taskId (fromJust value) map)))
+		notify = SDSNotify \p rs w ts ps. p == ps
+		reduce = Just (\taskId map. Ok ('Data.Map'.get taskId map))
+
+distributedTaskResultForTask :: (Task a) -> SDSLens InstanceNo (TaskValue a) (TaskValue a) | iTask a
+distributedTaskResultForTask task = mapReadWrite (read task, write) Nothing distributedTaskResult
 where
-	read :: (Task a) TIValue -> MaybeError TaskException (TaskValue a) | iTask a
-	read _ (TIValue tValue) = case tValue of
-		NoValue = trace_n "No value yet" (Ok NoValue)
-		(Value djson stable)
-		| not (trace_tn "Got some value") = undef
-		= case fromDeferredJSON djson of
-			Nothing = trace_n "Unable to transform value" (Ok NoValue)
-			(Just a) = trace_n "Transformed value" (Ok (Value a stable))
+	read :: (Task a) (Maybe Dynamic) -> TaskValue a | TC a
+	read _ Nothing = trace_n "read distributedTaskResultForTask: NoValue" NoValue
+	read _ (Just dyn) = case dyn of
+		(val :: (TaskValue a^)) = trace_n "read distributedTaskResultForTask: Value" val
+		dyn = trace_n ("Reading distributedTaskResultForTask: Wrong type " +++ toString (typeCodeOfDynamic dyn)) NoValue
 
-	read _ (TIException exc str) = Error (exc, str)
+	write val mbDynamic = trace_n "Writing to distributedTaskResultForTask" (Just (Just (dynamic val)))
 
+domainTaskResult :: (Task a) Domain -> SDSSequence InstanceNo (TaskValue a) () | iTask a
+domainTaskResult task domain = maybeDomainShare domain "domainTaskResult" (toReadOnly (distributedTaskResultForTask task))
 
 addDistributedTask :: Domain -> SDSSequence (Task a, TaskAttributes) TaskId () | iTask a
 addDistributedTask domain = maybeDomainShare domain "addDistributedTask" (SDSSource {SDSSourceOptions|name = "addDistributedTask"
@@ -37,11 +46,17 @@ addDistributedTask domain = maybeDomainShare domain "addDistributedTask" (SDSSou
 					 , write = write })
 where
 	read (task, attrs) iworld
-	= case evalAppendTask (Detached attrs False) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks (TaskId 0 0) iworld of
+	= case evalAppendTask (Detached attrs False) (wrappedTask task) topLevelTasks (TaskId 0 0) iworld of
 		(Error e, iworld) = (Error e, iworld)
 		(Ok taskId, iworld) = (Ok taskId, iworld)
 
 	write _ _ iworld = (Ok (\_ _. False), iworld)
+
+	wrappedTask task _ = withTaskId (return ())
+		>>= \(_, (TaskId instanceNo _)). (task >>* [OnValue (storeValue task instanceNo)]) <<@ ApplyLayout defaultSessionLayout @! ()
+
+	storeValue _ taskId NoValue = Nothing
+	storeValue task taskId v = trace_n ("Setting task value: " +++ toSingleLineText v) (Just (set v (sdsFocus taskId (distributedTaskResultForTask task))))
 
 // Selects to use a remote share when the current instance is not the host in the given domain.
 maybeDomainShare :: Domain String (sds p r w) -> (SDSSequence p r w) | iTask r & iTask w & RWShared sds & iTask p
@@ -60,7 +75,7 @@ where
 		sds
 		(remoteShare sds {SDSShareOptions|domain=host, port=port})
 
-	selectp (p, Nothing) = trace_n "Acces domain share - no domain configured" (Right p)
+	selectp (p, Nothing) = trace_n (name +++ ": Acces domain share - no domain configured") (Right p)
 	selectp (p, Just domain)
-	| domain == d = trace_n "Acces local share" (Left p)
-	= trace_n "Acces domain share - server for other domain" (Right p)
+	| domain == d = trace_n (name +++ ": Acces local share") (Left p)
+	= trace_n (name +++ ": Acces domain share - server for other domain") (Right p)

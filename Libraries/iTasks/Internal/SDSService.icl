@@ -22,6 +22,8 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Text
 
+import StdMisc, StdDebug
+
 /** hostname, connection on which to send the reply, accumulated data received **/
 :: SDSServiceState = SDSProcessing String ConnectionId [String]
 
