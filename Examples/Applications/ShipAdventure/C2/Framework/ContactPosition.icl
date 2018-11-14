@@ -8,7 +8,7 @@ import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
 
-from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser p t), instance Applicative (Parser s t), instance Functor (Parser s t)
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser p t), instance pure (Parser s t), instance <*> (Parser s t), instance Functor (Parser s t)
 import C2.Framework.GeoRoutines
 import Math.Geometry
 import Data.Maybe
