@@ -157,8 +157,8 @@ sectionImage disabledSections hilite mngmnt zoomed exitLocks hopLocks inventoryM
               (Host host)
     where
     mkStatusBadges :: !SectionStatus !Coord3D !RenderMode !Real ![SectionStatus] -> Image (a, MapAction SectionStatus)
-   //TODO mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] ('DL'.reverseTR ('DL'.strictFoldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) NoHost
-    mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] Nothing [] ('DL'.reverseTR ('DL'.strictFoldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) NoHost
+   //TODO mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] ('DL'.reverseTR (foldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) NoHost
+    mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] Nothing [] ('DL'.reverseTR (foldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) NoHost
 
     doorFill :: !SectionExitLockMap !Coord3D !Dir -> FillAttr a
     doorFill exitLocks c3d dir
