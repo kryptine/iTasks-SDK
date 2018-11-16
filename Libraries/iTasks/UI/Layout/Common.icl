@@ -5,6 +5,7 @@ import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
 import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
+from Data.Foldable import class Foldable (foldl1)
 import qualified Data.Map as DM
 import StdBool, _SystemArray
 from Data.Func import $
