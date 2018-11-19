@@ -41,10 +41,10 @@ where
 	# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask (handlers symbols taskId) share) iworld
 	| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
 	# iworld = iShow ["SDS server listening on " +++ toString port] iworld
-	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts (DeferredJSONNode JSONNull) False), iworld)
+	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap} (ReplaceUI (ui UIEmpty)) (TCBasic taskId ts (DeferredJSONNode JSONNull) False), iworld)
 
 	eval (RefreshEvent taskIds cause) evalOpts tree=:(TCBasic taskId ts data bla) iworld
-	| not ('Set'.member taskId taskIds) = (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCBasic taskId ts data bla), iworld)
+	| not ('Set'.member taskId taskIds) = (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap} NoChange (TCBasic taskId ts data bla), iworld)
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
 		(Ok (ReadingDone symbols), iworld) = (readSymbols symbols, iworld)
 	# (readResult, iworld) = read share EmptyContext iworld
@@ -54,7 +54,7 @@ where
 	| results=:(Error _) = showException "re-evaluating share values" (exception (fromError results)) iworld
 	# (writeResult, iworld) = write ('Map'.fromList (fromOk results)) share EmptyContext iworld
 	| writeResult=:(Error _) = showException "writing result share values" (fromError writeResult) iworld
-	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
+	= (ValueResult (Value () False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap} NoChange tree, iworld)
 
 	showException base taskException=:(_, str) iworld
 	# iworld = iShow ["SDSService exception during " +++ base +++ ": " +++ str] iworld

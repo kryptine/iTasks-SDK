@@ -61,18 +61,19 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: AsyncAction = Read | Write | Modify
 
 :: TaskTree
-	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
-	| TCBasic		            !TaskId !TaskTime !DeferredJSON !Bool 									//Encoded value and stable indicator
-	| TCAwait					!AsyncAction !TaskId !TaskTime !TaskTree
-	| TCInteract	            !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
-	| TCStep					!TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
-	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
-	| TCShared					!TaskId !TaskTime !TaskTree
-	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
-	| TCStable					!TaskId !TaskTime !DeferredJSON
-	| TCLayout					!(!LUI,!LUIMoves) !TaskTree
+	= TCInit          !TaskId !TaskTime	//Initial state for all tasks
+	| TCBasic         !TaskId !TaskTime !DeferredJSON !Bool //Encoded value and stable indicator
+	| TCAwait		  !AsyncAction !TaskId !TaskTime !TaskTree
+	| TCInteract      !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
+	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
+	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
+	| TCShared        !TaskId !TaskTime !TaskTree
+	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !String
+	| TCStable        !TaskId !TaskTime !DeferredJSON
+	| TCLayout        !(!LUI,!LUIMoves) !TaskTree
+	| TCAttribute     !TaskId !String !TaskTree
 	| TCNop
-	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
+	| TCDestroy       !TaskTree //Marks a task state as garbage that must be destroyed (TODO: replace by explicit event)
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 

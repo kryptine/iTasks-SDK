@@ -118,8 +118,8 @@ loginAndManageWork welcome
 					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
 					>>| (return Nothing)
 				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-	 	   )
-		>>- browse) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
+	 	   )  <<@ ApplyLayout layout
+		>>- browse) //Compact layout before login, full screen afterwards
 		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
 where
 	browse (Just {Credentials|username,password})

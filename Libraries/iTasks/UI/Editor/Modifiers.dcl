@@ -2,7 +2,7 @@ definition module iTasks.UI.Editor.Modifiers
 /**
 * This module provides combinator functions for combining editors
 */
-import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.WF.Combinators.Tune
 import Data.Error
 
 //### Modifying atributes of editors ### 

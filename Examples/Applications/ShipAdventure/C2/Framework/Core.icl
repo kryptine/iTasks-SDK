@@ -21,8 +21,8 @@ ccMain :: (User -> [User -> Task Entity])
           (User -> [(String, User [Entity] -> Task ())])
        -> Task ()
 ccMain regEntities contBgTasks alwaysOnTasks tlist
-  = forever (catchAll ((        enterChoiceWithShared "Select user" [] users
-                            >>= doUserTask) <<@ ApplyLayout (beforeStep frameCompact))
+  = forever (catchAll ((        enterChoiceWithShared "Select user" [] users <<@ ApplyLayout frameCompact
+                            >>= doUserTask))
                       (\err -> viewInformation "Error" [] err >>| return ()))
 where
 	doUserTask me =            set me currentUser

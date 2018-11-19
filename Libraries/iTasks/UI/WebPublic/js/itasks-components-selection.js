@@ -88,6 +88,9 @@ itasks.Dropdown = Object.assign({
         	el.appendChild(optionEl);
 		}
 
+		var curGroupLabel = null;
+		var curParentEl   = el;
+
 		options.forEach(function(option) {
             optionEl = document.createElement('option');
             optionEl.value = option.id;
@@ -95,7 +98,21 @@ itasks.Dropdown = Object.assign({
             if(me.attributes.value.includes(option.id)) {
                 me.selectInDOM(optionEl, true);
             }
-            el.appendChild(optionEl);
+
+            if (curGroupLabel == option.grouplabel) {
+                curParentEl.appendChild(optionEl);
+            } else {
+                curGroupLabel = option.grouplabel;
+
+                if (option.grouplabel) {
+                    curParentEl = document.createElement('optgroup');
+                    curParentEl.label = curGroupLabel;
+                    el.appendChild(curParentEl);
+                } else {
+                    curParentEl = el;
+                }
+            }
+            curParentEl.appendChild(optionEl);
 			option.domEl = optionEl;
 
 			//Only if the selection is a multiple selection we place handlers

@@ -24,7 +24,6 @@ import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combina
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Prompt
-import iTasks.UI.Tune
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 

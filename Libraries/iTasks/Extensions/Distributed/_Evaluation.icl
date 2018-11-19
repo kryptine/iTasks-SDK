@@ -2,8 +2,8 @@ implementation module iTasks.Extensions.Distributed._Evaluation
 
 from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
 from iTasks.Internal.TaskState import :: TaskTree(TCInit,TCDestroy)
-from iTasks.Internal.TaskEval import :: TaskTime, :: TaskEvalInfo{lastEvent,removedTasks,refreshSensitive}
-from iTasks.UI.Definition import :: UI, :: UIAttributeChange, :: UIType
+import iTasks.Internal.TaskEval
+import iTasks.UI.Definition
 from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
 from iTasks.UI.Definition import :: UIType(UIEmpty)
 from iTasks.Internal.IWorld import :: IWorld
@@ -24,7 +24,7 @@ from Data.GenEq import generic gEq
 from iTasks.WF.Combinators.Overloaded import class TMonad(..), instance TMonad Task, instance Functor Task, instance TApplicative Task, class TApplicative
 from Data.Functor import class Functor
 
-from Data.Map import :: Map
+from Data.Map import :: Map, newMap
 from Data.Maybe import :: Maybe(..)
 from Data.Error import :: MaybeError(..)
 from StdFunc import const
@@ -50,7 +50,7 @@ where
     eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
             # (val,iworld)  = readRegister taskId value_share iworld
             = case val of
-                  Ok (ReadingDone val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                  Ok (ReadingDone val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap} (rep event) tree, iworld)
                   Error e           = (ExceptionResult e,iworld)
     eval value_share event repAs (TCDestroy _) iworld
             # iworld = onDestroy iworld

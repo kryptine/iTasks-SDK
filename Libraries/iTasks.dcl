@@ -30,7 +30,6 @@ import
 	,   iTasks.Internal.Distributed.Domain
 
 	//  Custom task GUI's
-	,   iTasks.UI.Tune
     ,   iTasks.UI.Editor.Controls
     ,   iTasks.UI.Editor.Containers
     ,   iTasks.UI.Editor.Modifiers

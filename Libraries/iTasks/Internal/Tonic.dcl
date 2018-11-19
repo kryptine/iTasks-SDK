@@ -3,7 +3,7 @@ definition module iTasks.Internal.Tonic
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Task import :: TaskEvalOpts, :: TaskResult
 from iTasks.WF.Definition import :: Task, :: InstanceNo, class iTask
-from iTasks.UI.Tune import class tune
+from iTasks.WF.Combinators.Tune import class tune
 import iTasks.SDS.Definition
 
 import iTasks.Internal.Tonic.AbsSyn

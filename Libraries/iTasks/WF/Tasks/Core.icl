@@ -68,7 +68,7 @@ where
 		= (DestroyedResult, iworld)
 
 	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld=:{sdsEvalStates, current={taskTime}}
-	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val)
@@ -85,15 +85,15 @@ where
 						(Error e, vst)		= (ExceptionResult (exception e), vst)
 						(Ok (ui, st), vst)
 							# change 	= ReplaceUI (uic UIInteract [toPrompt prompt, ui])
-					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
                 			# value 	= maybe NoValue (\v -> Value (l, v) False) mbV
 					        = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON mbV) st (mode =: View _)), vst)) iworld
-				Reading sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
+				Reading sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 			(_, iworld) = (ExceptionResult (exception "Dynamic type mismatch"), iworld)
 
 	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ _ (TCInteract taskId ts encl encv st viewmode)) iworld=:{sdsEvalStates, current={taskTime}}
-	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
-	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
+	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 				= case val iworld of
@@ -108,7 +108,7 @@ where
 			(Ok (dyn), iworld)							= (ExceptionResult (exception ("Dynamic type mismatch, type was " +++ toString (typeCodeOfDynamic dyn))), iworld)
 
     // Ignore all other events when waiting on an async operation.
-	eval _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+	eval _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
 
 	// Handle all other events normally
 	eval prompt shared handlers editor event evalOpts tree iworld=:{current={taskTime}, sdsEvalStates}
@@ -135,7 +135,7 @@ where
 					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 		| mbd =:(Ok (Right _)) = case mbd of
-			(Ok (Right (taskId, ts, sds))) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (ReplaceUI (uia UIProgressBar (textAttr "Getting data"))) (TCAwait Read taskId taskTime tree), iworld)
+			(Ok (Right (taskId, ts, sds))) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (ReplaceUI (uia UIProgressBar (textAttr "Getting data"))) (TCAwait Read taskId taskTime tree), iworld)
 		# (Left (taskId,ts,l,v,st,viewMode)) = fromOk mbd
 		# (mbRes, iworld) = case event of
 			EditEvent eTaskId name edit | eTaskId == taskId =
@@ -163,14 +163,14 @@ where
 		   // want to wait for the result of the modify (otherwise we send multiple requests which may interfere),
 		   // so we transition to the TCAwait state
 		   Ok (Right (type, sdsf, l, v, st, change))
-			   	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+			   	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 			   	# tree = TCAwait type taskId taskTime (TCInteract taskId taskTime (DeferredJSON l) (DeferredJSON v) st viewMode)
 			   	= (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId sdsf iworld.sdsEvalStates})
 		   Ok (Left (l,mbV,change,st,ts))
                 //Construct the result
                 # v     = maybe v Just mbV // use previous view state of editor is in invalid state
                 # value = maybe NoValue (\v -> Value (l, v) False) mbV
-                # info  = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+                # info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
                 = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
 initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)

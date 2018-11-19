@@ -100,6 +100,14 @@ where
 derive JSONEncode ChoiceNode
 derive JSONDecode ChoiceNode
 
+withConstantChoices :: !choices !(Editor (!choices, ![Int])) -> Editor [Int]
+withConstantChoices choices editor = bijectEditorValue (\sel -> (choices, sel)) snd
+                                     (withChangedEditMode editModeFor editor)
+where
+	// enter mode has to be changed to update mode to pass the choices to the editor
+	editModeFor Enter = Update (choices, [])
+	editModeFor other = other
+
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent :: !UIType !(Maybe a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
 fieldComponent type mbEditModeInitValue = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)

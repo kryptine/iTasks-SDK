@@ -229,7 +229,7 @@ where
                        , ("x", "-10000")
                        , ("y", "-10000")
                        ]
-	  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
+	  #! world       = foldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
 	  #! (fd, world) = calcFontDescent elem fontdef.fontysize world
 	  = ('DM'.put fontdef fd font_spans, world)
 	
@@ -265,7 +265,7 @@ where
                        , ("x", "-10000")
                        , ("y", "-10000")
                        ]
-	  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
+	  #! world       = foldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
 	  #! (ws, world) = 'DS'.fold (calcTextLength elem) ('DM'.newMap, world) strs
 	  = ('DM'.alter (merge ws) fontdef text_spans, world)
 	where
