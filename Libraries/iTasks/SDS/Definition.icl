@@ -30,9 +30,3 @@ instance < SDSNotifyRequest where
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
 	                 (right.hostToNotify, right.portToNotify, right.remoteSdsId)
-
-instance < (Maybe a) | < a where
-	(<) Nothing Nothing = False
-	(<) Nothing _ = True
-	(<) _ Nothing = False
-	(<) (Just a1) (Just a2) = a1 < a2

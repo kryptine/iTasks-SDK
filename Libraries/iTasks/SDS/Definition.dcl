@@ -8,7 +8,7 @@ from iTasks.Internal.IWorld import :: IWorld, :: ConnectionId
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
-import Data.GenEq, Internet.HTTP
+import Data.GenEq, Internet.HTTP, Data.Maybe.Ord
 
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
@@ -76,7 +76,6 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	}
 
 instance < SDSNotifyRequest, RemoteNotifyOptions
-instance < (Maybe a) | < a
 
 :: RemoteNotifyOptions =
 	{ hostToNotify :: String
