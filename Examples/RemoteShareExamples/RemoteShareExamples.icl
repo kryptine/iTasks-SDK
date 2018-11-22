@@ -1,7 +1,6 @@
 module RemoteShareExamples
 
 import iTasks
-import iTasks.Internal.Distributed.Instance
 
 import Data.Func
 import Data.Tuple
