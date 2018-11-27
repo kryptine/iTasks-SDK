@@ -173,6 +173,22 @@ where
 (>&^) infixl 1 :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
 (>&^) taska taskbf = feedSideways taska taskbf
 
+feedBidirectionally :: !((ReadOnlyShared (Maybe b)) -> Task a) !((ReadOnlyShared (Maybe a)) -> Task b)
+                    -> Task (a, b) | iTask a & iTask b
+feedBidirectionally taskaf taskbf = parallel
+	[(Embedded, \s -> taskaf (mapRead prjR (toReadOnly (sdsFocus (Left 1) (taskListItemValue s)))) @ Left)
+	,(Embedded, \s -> taskbf (mapRead prjL (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @ Right)
+	] [] @? res
+where
+	prjL (Value (Left a) _)  = Just a
+	prjL _                   = Nothing
+
+	prjR (Value (Right a) _) = Just a
+	prjR _                   = Nothing
+
+	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _) = Value (a,b) (sa && sb)
+	res _                                                        = NoValue
+
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
 	= parallel [(Embedded,const t) \\ t <- tasks] [] @? res
