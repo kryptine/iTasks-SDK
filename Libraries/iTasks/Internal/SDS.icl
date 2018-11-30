@@ -17,6 +17,8 @@ import iTasks.SDS.Sources.Core
 import iTasks.WF.Tasks.IO
 import Text.GenJSON
 import iTasks.Internal.AsyncSDS
+import iTasks.Internal.Util
+from Text import instance + String
 
 createReadWriteSDS ::
 	!String
