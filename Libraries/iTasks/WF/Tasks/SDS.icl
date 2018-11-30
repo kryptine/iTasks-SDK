@@ -8,7 +8,7 @@ import iTasks.Internal.Task
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
 import qualified iTasks.Internal.SDS as SDS
-import StdString, Data.Func, Data.Error
+import StdString, Data.Func, Data.Error, StdBool
 import qualified Data.Set as DS
 import qualified Data.Map as DM
 
@@ -120,11 +120,13 @@ where
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
+derive gText Event, Set
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch shared = Task (eval shared)
 where
 	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult r, !*IWorld) | iTask r & TC w & Readable, Registrable sds
-	eval shared event evalOpts (TCInit taskId ts) iworld=:{sdsEvalStates}
+	eval shared event evalOpts tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
+	| not (isRefreshForTask event tree) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange (TCInit taskId ts), iworld)
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone val), iworld) = (ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (TCInit taskId ts), iworld)
@@ -133,7 +135,8 @@ where
 		# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
 		= (ValueResult NoValue ei (rep event) (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval shared event evalOpts (TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
+	eval shared event=:(RefreshEvent taskIds reason) evalOpts tree=:(TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
+	| not (isRefreshForTask event tree) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange tree, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		Just val = case val iworld of
@@ -142,7 +145,7 @@ where
 				ReadingDone v = (ValueResult (Value v False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange subtree, {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
 				Reading sds
 				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-				= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange (TCAwait Read taskId ts (TCInit taskId ts)), {iworld & sdsEvalStates = sdsEvalStates})
+				= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange tree, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval shared event repAs ttree=:(TCDestroy _) iworld
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree ttree) iworld
@@ -150,3 +153,7 @@ where
 
 rep ResetEvent  = ReplaceUI (ui UIEmpty)
 rep _ 			= NoChange
+
+isRefreshForTask (RefreshEvent taskIds _) tree = 'DS'.member (fromOk (taskIdFromTaskTree tree)) taskIds
+isRefreshForTask ResetEvent _ = True
+isRefreshForTask _ _ = False
