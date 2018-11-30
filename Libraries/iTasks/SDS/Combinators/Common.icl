@@ -95,7 +95,7 @@ where
     reducer _ w = Ok (dynamic w)
 
 (>*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) (wx,wy)     | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(>*<) l r = sdsParallel ">+<" (\p -> (p,p)) id (SDSWriteConst write1) (SDSWriteConst write2) l r
+(>*<) l r = sdsParallel ">*<" (\p -> (p,p)) id (SDSWriteConst write1) (SDSWriteConst write2) l r
   where
     write1 _ w = Ok (Just (fst w))
     write2 _ w = Ok (Just (snd w))

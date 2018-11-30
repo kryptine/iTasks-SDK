@@ -58,6 +58,12 @@ instance Writeable SDSRemoteSource
 instance Modifiable SDSRemoteSource
 instance Registrable SDSRemoteSource
 
+instance Identifiable SDSDebug
+instance Readable SDSDebug
+instance Writeable SDSDebug
+instance Modifiable SDSDebug
+instance Registrable SDSDebug
+
 :: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds
 
 //Internal creation functions:

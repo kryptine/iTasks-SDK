@@ -296,3 +296,5 @@ required type w. The reducer has the job to turn this ws into w.
 	 * Used when waiting on a asynchronous service call to be completed.
 	 */
 	| SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w) (WebServiceShareOptions p r)
+
+:: SDSDebug p r w = E. sds: SDSDebug String (sds p r w) & RWShared sds

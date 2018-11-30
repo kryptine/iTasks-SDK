@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.SDS
 
 import StdString, StdTuple, StdMisc, StdBool, StdInt, StdChar, StdFunctions, StdArray
-from StdList import flatten, map, take, drop, instance toString [a]
+from StdList import flatten, map, take, drop, instance toString [a], instance length []
 from Text import class Text, instance Text String
 import qualified Text
 from Data.Map import :: Map
@@ -432,7 +432,7 @@ instance Writeable SDSCache where
 		Just r = 'DM'.put key (dynamic r :: r^) readCache
 		Nothing  = 'DM'.del key readCache
 	= case policy of
-		NoWrite = (Ok (WriteResult'Set'.newSet sds), {iworld & readCache = readCache})
+		NoWrite = (Ok (WriteResult 'Set'.newSet sds), {iworld & readCache = readCache})
 		WriteNow = case writeSDS sds1 p c w {iworld & readCache = readCache} of
 			(Error e, iworld) = (Error e, iworld)
 			(Ok (WriteResult r ssds), iworld) = (Ok (WriteResult r sds), iworld)
@@ -729,7 +729,7 @@ instance Writeable SDSParallel where
 		Ok (WriteResult n1 ssds1) 	= (Ok (WriteResult n1 (SDSParallelWriteLeft ssds1 sds2 opts)), iworld)
 		Ok (AsyncWrite sds1) 		= (Ok (AsyncWrite (SDSParallelWriteLeft sds1 sds2 opts)), iworld)
 
-	writeSDS sds=:(SDSParallelWriteLeft sds1 sds2 opts=:{SDSParallelOptions|param,writer,name}) p c w iworld
+	writeSDS sds=:(SDSParallelWriteRight sds1 sds2 opts=:{SDSParallelOptions|param,writer,name}) p c w iworld
 	# p2 = snd (param p)
 	//Read/write sds1
 	# (npreds2,iworld) = case writer of
@@ -746,8 +746,8 @@ instance Writeable SDSParallel where
 				Ok (Just w2)            = writeSDS sds2 p2 c w2 iworld
 	= case npreds2 of
 		Error e 					= (Error e, iworld)
-		Ok (WriteResult n2 ssds2) 	= (Ok (WriteResult n2 (SDSParallelWriteLeft sds1 ssds2 opts)), iworld)
-		Ok (AsyncWrite sds2) 		= (Ok (AsyncWrite (SDSParallelWriteLeft sds1 sds2 opts)), iworld)
+		Ok (WriteResult n2 ssds2) 	= (Ok (WriteResult n2 (SDSParallelWriteRight sds1 ssds2 opts)), iworld)
+		Ok (AsyncWrite sds2) 		= (Ok (AsyncWrite (SDSParallelWriteRight sds1 sds2 opts)), iworld)
 
 	writeSDS sds=:(SDSParallelWriteNone sds1 sds2 opts) p c w iworld
 	= (Ok (WriteResult 'Set'.newSet sds), iworld)
@@ -862,7 +862,7 @@ instance Writeable SDSRemoteService where
 	writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote services yet"), iworld)
 
 instance Modifiable SDSRemoteService where
-	modifySDS _ _ _ _ iworld = (Error (exception "modifying remote services not possible"), iworld)
+	modifySDS _ _ _ _  iworld = (Error (exception "modifying remote services not possible"), iworld)
 
 /**
  * Registering a remote service consists of keeping the connection open after a response is
@@ -874,3 +874,49 @@ instance Registrable SDSRemoteService where
 
 instance == RemoteNotifyOptions where
 	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)
+
+instance Identifiable SDSDebug where
+	nameSDS (SDSDebug name sds) acc = nameSDS sds acc
+
+instance Readable SDSDebug where
+	readSDS (SDSDebug name sds) p context mbRegister reqSDSId iworld
+		# iworld = iShow ["Reading from share " +++ name] iworld
+		= db (readSDS sds p context mbRegister reqSDSId iworld)
+	where
+		db (Error e, iworld) = (Error e, iShow [snd e] iworld)
+		db (Ok (ReadResult v sds), iworld)
+			= (Ok (ReadResult v (SDSDebug name sds)),
+				iShow ["ReadResult from share " +++ name] iworld)
+		db (Ok (AsyncRead sds), iworld)
+			= (Ok (AsyncRead (SDSDebug name sds)), iShow ["AsyncRead " +++ name] iworld)
+
+instance Writeable SDSDebug where
+	writeSDS (SDSDebug name sds) p context w iworld=:{sdsNotifyRequests}
+		# iworld = iShow ["Writing to share " +++ name +++ "(identity=" +++ sdsIdentity sds +++ ")"] iworld
+		# iworld = iShow [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds) sdsNotifyRequests))] iworld
+		= db (writeSDS sds p context w iworld)
+		where
+			db (Error e, iworld) = (Error e, iShow [snd e] iworld)
+			db (Ok (WriteResult notify sds), iworld)
+				= (Ok (WriteResult notify (SDSDebug name sds)),
+					iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map toString ('Set'.toList notify))] iworld)
+			db (Ok (AsyncWrite sds), iworld)
+				= (Ok (AsyncWrite (SDSDebug name sds)), iShow ["AsyncWrite from share " +++ name] iworld)
+
+instance Registrable SDSDebug where
+	readRegisterSDS (SDSDebug name sds) p context taskId iworld
+		# iworld = iShow ["Registering to share " +++ name] iworld
+		= readSDS sds p context (Just taskId) (sdsIdentity sds) iworld
+
+instance Modifiable SDSDebug where
+	modifySDS f (SDSDebug name sds) p context iworld
+		# iworld = iShow ["Modifying share " +++ name] iworld
+		= modifySDS f sds p context iworld
+
+// toString instances for SDSDebug
+instance toString (TaskId, Maybe RemoteNotifyOptions) where
+	toString (taskId, Nothing) = "local " +++ toString taskId
+	toString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
+
+instance toString RemoteNotifyOptions where
+	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId

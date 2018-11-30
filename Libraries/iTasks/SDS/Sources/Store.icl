@@ -113,3 +113,6 @@ remoteShare sds opts = SDSRemoteSource sds opts
 remoteService :: (WebServiceShareOptions p r) -> SDSRemoteService p r ()
 remoteService opts = SDSRemoteService opts
 
+debugShare :: String (sds p r w) -> SDSDebug p r w | RWShared sds
+debugShare name sds = SDSDebug name sds
+

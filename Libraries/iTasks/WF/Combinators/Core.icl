@@ -184,7 +184,7 @@ where
 	doBeforeStepLayout taskId evalOpts event actions prevEnabled change val
 		= case (event,change) of
 			//On reset generate a new step UI
-			(ResetEvent,ReplaceUI rui)  
+			(ResetEvent,ReplaceUI rui)
 				= ReplaceUI (uic UIStep [rui:contActions taskId val conts])
 			//Otherwise create a compound change definition
 			_
@@ -509,13 +509,13 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
                 # valueChanged = newValue =!= value
                 //Write updated value, and optionally the new lastFocus time to the tasklist
                 # (mbError,iworld) = if valueChanged
-                    (modify 
+                    (modify
 						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
-                        (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem) 
+                        (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
-                    (modify 
+                    (modify
 						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
-                        (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem) 
+                        (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
 						EmptyContext
 						iworld)
                 | mbError =:(Error _) = (Error (fromError mbError),iworld)
