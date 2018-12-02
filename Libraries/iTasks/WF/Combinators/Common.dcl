@@ -271,7 +271,7 @@ feedSideways :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask
 /**
  * Feed the result of one task as read-only shared to another one and vice versa.
  */
-feedBidirectionally :: !((ReadOnlyShared (Maybe b)) -> Task a) !((ReadOnlyShared (Maybe a)) -> Task b)
+feedBidirectionally :: !((SDSLens () (Maybe b) ()) -> Task a) !((SDSLens () (Maybe a) ()) -> Task b)
                     -> Task (a, b) | iTask a & iTask b
 
 /**
