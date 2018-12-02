@@ -269,6 +269,19 @@ feedSideways :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask
 (>&^) infixl 1 :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 
 /**
+ * Feed the result of one task as read-only shared to another one and vice versa.
+ */
+feedBidirectionally :: !((ReadOnlyShared (Maybe b)) -> Task a) !((ReadOnlyShared (Maybe a)) -> Task b)
+                    -> Task (a, b) | iTask a & iTask b
+
+/**
+ * Infix version of `feedBidirectionally`.
+ * @type ((ReadOnlyShared (Maybe b)) -> Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task (a, b) | iTask a & iTask b
+ */
+(<&>) infixl 1
+(<&>) x y :== feedBidirectionally x y
+
+/**
 * Group a list of tasks in parallel.
 * The group stops as soon as one result is available which is returned.
 *
