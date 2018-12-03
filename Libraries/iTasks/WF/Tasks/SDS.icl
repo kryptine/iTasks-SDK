@@ -135,17 +135,33 @@ where
 	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld
 		-> (TaskResult r, !*IWorld) | iTask r & TC w & Readable, Registrable sds
 	eval shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	| not (isRefreshForTask event tree)
-		= (ValueResult NoValue (tei ts) NoChange tree, iworld)
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
-		(Ok (ReadingDone val), iworld) = (ValueResult (Value val False) (tei ts) (rep event) tree, iworld)
+		(Ok (ReadingDone val), iworld)
+			# tree = TCBasic taskId ts (DeferredJSON val) False
+			= (ValueResult (Value val False) (tei ts) (rep event) tree, iworld)
 		(Ok (Reading sds), iworld)
-		# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-		# result = ValueResult NoValue (tei ts) (rep event) (TCAwait Read taskId ts tree)
-		= (result, {iworld & sdsEvalStates = sdsEvalStates})
+			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
+			# result = ValueResult NoValue (tei ts) (rep event) (TCAwait Read taskId ts tree)
+			= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval _ event=:(RefreshEvent taskIds reason) _ tree=:(TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
+	eval shared event _ tree=:(TCBasic taskId ts val stable) iworld=:{sdsEvalStates}
+	| not (isRefreshForTask event tree) = case fromDeferredJSON val of
+		Nothing = (ExceptionResult (exception "Corrupt task result"), iworld)
+		Just v = (ValueResult (Value v False) (tei ts) NoChange tree, iworld)
+	= case 'SDS'.readRegister taskId shared iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (ReadingDone val), iworld)
+			# tree = TCBasic taskId ts (DeferredJSON val) False
+			= (ValueResult (Value val False) (tei ts) (rep event) tree, iworld)
+		(Ok (Reading sds), iworld) = case fromDeferredJSON val of
+			Nothing = (ExceptionResult (exception "Corrupt task result"), iworld)
+			Just v
+			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
+			# result = ValueResult (Value v False) (tei ts) (rep event) (TCAwait Read taskId ts tree)
+			= (result, {iworld & sdsEvalStates = sdsEvalStates})
+
+	eval _ event=:(RefreshEvent taskIds reason) _ tree=:(TCAwait Read taskId ts (TCBasic _ _ oldval _)) iworld=:{sdsEvalStates}
 	| not (isRefreshForTask event tree) = (ValueResult NoValue (tei ts) NoChange tree, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
@@ -153,19 +169,22 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: AsyncRead r^ w^), iworld) = case res of
 				ReadingDone v
-				# sdsEvalStates = 'DM'.del taskId sdsEvalStates
-				# result = ValueResult (Value v False) (tei ts) NoChange subtree
-				= (result, {iworld & sdsEvalStates = sdsEvalStates})
-				Reading sds
-				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-				# result = ValueResult NoValue (tei ts) NoChange tree
-				= (result, {iworld & sdsEvalStates = sdsEvalStates})
+					# sdsEvalStates = 'DM'.del taskId sdsEvalStates
+					# result = ValueResult (Value v False) (tei ts) NoChange (TCBasic taskId ts (DeferredJSON v) False)
+					= (result, {iworld & sdsEvalStates = sdsEvalStates})
+				Reading sds = case fromDeferredJSON oldval of
+					Nothing = (ExceptionResult (exception "Corrupt task result"), iworld)
+					// Use the old value if the async operation has no result yet.
+					Just v
+					# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
+					# result = ValueResult (Value v False) (tei ts) NoChange tree
+					= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval _ _ _ ttree=:(TCDestroy _) iworld=:{sdsEvalStates}
-		# taskId = fromOk $ taskIdFromTaskTree ttree
-		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ taskId) iworld
-		# iworld = {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates}
-		= (DestroyedResult,iworld)
+	# taskId = fromOk $ taskIdFromTaskTree ttree
+	# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ taskId) iworld
+	# iworld = {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates}
+	= (DestroyedResult,iworld)
 
 tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 
