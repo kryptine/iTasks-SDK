@@ -21,7 +21,6 @@ Start world
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const grids
-			, updView     = \m _ = m
 			, updModel    = \_ v = v
 			})] 0) world
 

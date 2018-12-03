@@ -16,7 +16,6 @@ ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
 ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 
@@ -24,7 +23,6 @@ accoladesEditor :: !Color -> UpdateOption GameSt GameSt
 accoladesEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 
