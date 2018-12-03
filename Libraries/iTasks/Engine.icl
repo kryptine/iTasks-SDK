@@ -79,7 +79,8 @@ where
 			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
 
 	engineTasks =
- 		[BackgroundTask (processEvents MAX_EVENTS)
+ 		[BackgroundTask updateClock,
+ 		 BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
 			[BackgroundTask stopOnStable]
 			[BackgroundTask removeOutdatedSessions
