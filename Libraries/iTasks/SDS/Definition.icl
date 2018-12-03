@@ -17,7 +17,7 @@ import Internet.HTTP
 
 derive gText SDSNotifyRequest, RemoteNotifyOptions
 
-instance toString (WebServiceShareOptions p r)
+instance toString (WebServiceShareOptions p r w)
 where
 	toString (HTTPShareOptions {HTTPHandlers|host, port}) = "http://" +++ host +++ ":" +++ toString port
 	toString (TCPShareOptions {TCPHandlers|host, port}) = "tcp://" +++ host +++ ":" +++ toString port
