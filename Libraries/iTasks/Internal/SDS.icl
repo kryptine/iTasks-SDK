@@ -409,8 +409,8 @@ instance Readable SDSCache where
 	//First check cache
 	= case 'DM'.get key readCache of
 		Just (val :: r^)
-		# world = mbRegister p sds1 mbNotify c reqSDSId iworld
-		= (Ok (ReadResult val sds),iworld)
+			# iworld = mbRegister p sds1 mbNotify c reqSDSId iworld
+			= (Ok (ReadResult val sds),iworld)
 		Just _           = (Error (exception "Cached value of wrong type"), iworld)
 		Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
 			(Error e,iworld) = (Error e, iworld)
@@ -911,9 +911,17 @@ instance Registrable SDSDebug where
 		= readSDS sds p context (Just taskId) (sdsIdentity sds) iworld
 
 instance Modifiable SDSDebug where
-	modifySDS f (SDSDebug name sds) p context iworld
-		# iworld = iShow ["Modifying share " +++ name] iworld
-		= modifySDS f sds p context iworld
+	modifySDS f (SDSDebug name sds) p context iworld=:{sdsNotifyRequests}
+		# iworld = iShow ["Modifying share " +++ name +++ "(identity=" +++ sdsIdentity sds +++ ")"] iworld
+		# (regs, iworld) = listAllSDSRegistrations iworld
+		# iworld = iShow [formatRegistrations regs] iworld
+		= db (modifySDS f sds p context iworld)
+	where
+		db (Error e, iworld) = (Error e, iShow [snd e] iworld)
+		db (Ok (ModifyResult notify r w sds), iworld)
+			= (Ok (ModifyResult notify r w (SDSDebug name sds)),
+				iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map toString ('Set'.toList notify))] iworld)
+		db (Ok (AsyncModify sds f), iworld) = (Ok (AsyncModify (SDSDebug name sds) f), iShow ["AsyncModify from share " + name] iworld)
 
 // toString instances for SDSDebug
 instance toString (TaskId, Maybe RemoteNotifyOptions) where
@@ -922,3 +930,7 @@ instance toString (TaskId, Maybe RemoteNotifyOptions) where
 
 instance toString RemoteNotifyOptions where
 	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
+
+instance toString (Maybe RemoteNotifyOptions) where
+	toString Nothing = ""
+	toString (Just options) = toString options
