@@ -17,7 +17,6 @@ updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
 updateTraxEditor turn = UpdateUsing id (const id) (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage PlayMode turn
-									, updView     = const id
 									, updModel    = flip const
 									})
 
@@ -25,7 +24,6 @@ viewTraxEditor :: ViewOption TraxSt
 viewTraxEditor = ViewUsing id (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage ViewMode False
-									, updView     = const id
 									, updModel    = flip const
 									})
 
