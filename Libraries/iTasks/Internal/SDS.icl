@@ -185,7 +185,7 @@ where
 		| otherwise                      = 'DM'.put sdsId filteredReqsForSdsId requests
 	where
 		reqsForSdsId         = fromJust $ 'DM'.get sdsId requests
-		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ ->(isJust $ req.remoteOptions) || (not $ 'Set'.member req.reqTaskId taskIds)) reqsForSdsId
+		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ -> not $ 'Set'.member req.reqTaskId taskIds) reqsForSdsId
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList ('DM'.foldrWithKey addRegs 'DM'.newMap sdsNotifyRequests),iworld)
