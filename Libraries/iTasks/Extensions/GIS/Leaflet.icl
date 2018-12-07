@@ -8,9 +8,9 @@ from Text.HTML import instance toString HtmlTag
 from iTasks.UI.Editor.Common import diffChildren
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS         :== "/leaflet-1.1.0/leaflet.js"
+LEAFLET_JS         :== "/leaflet-1.3.4/leaflet.js"
 LEAFLET_JS_WINDOW  :== "leaflet-window.js"
-LEAFLET_CSS        :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_CSS        :== "/leaflet-1.3.4/leaflet.css"
 LEAFLET_CSS_WINDOW :== "leaflet-window.css"
 
 :: IconOptions =
