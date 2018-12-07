@@ -5,24 +5,24 @@ import iTasks
 leafletEditor :: Editor LeafletMap
 
 :: LeafletMap =
-    { perspective   :: LeafletPerspective 
-	, tilesUrls     :: [String]
-	, objects       :: [LeafletObject]    //Markers, lines and polygon
-    , icons         :: [LeafletIcon]      //Custom icons used by markers. They are indexed by 'iconId' string and cannot be changed once the map is loaded
+    { perspective   :: !LeafletPerspective
+	, tilesUrls     :: ![String]
+	, objects       :: ![LeafletObject]    //Markers, lines and polygon
+    , icons         :: ![LeafletIcon]      //Custom icons used by markers. They are indexed by 'iconId' string and cannot be changed once the map is loaded
     }
 
 :: LeafletPerspective =
-    { center        :: LeafletLatLng
-    , zoom          :: Int
-    , cursor        :: Maybe LeafletLatLng
-    , bounds        :: Maybe LeafletBounds
+    { center        :: !LeafletLatLng
+    , zoom          :: !Int
+    , cursor        :: !Maybe LeafletLatLng
+    , bounds        :: !Maybe LeafletBounds
     }
 
 :: LeafletIconID :== String
 :: LeafletIcon =
-    { iconId        :: LeafletIconID
-    , iconUrl       :: String
-    , iconSize      :: (!Int,!Int)
+    { iconId        :: !LeafletIconID
+    , iconUrl       :: !String
+    , iconSize      :: !(!Int,!Int)
     }
 
 :: LeafletLatLng =
@@ -68,7 +68,7 @@ leafletEditor :: Editor LeafletMap
     , initPosition   :: !LeafletWindowPos
     , title          :: !String
     , content        :: !HtmlTag
-    , relatedMarkers :: ![(LeafletObjectID, [LeafletStyleDef LeafletLineStyle])] // connecting lines are drawn between the window and the markers
+    , relatedMarkers :: ![(!LeafletObjectID, ![LeafletStyleDef LeafletLineStyle])] // connecting lines are drawn between the window and the markers
                                                                                  // to visualise the relation
     }
 
