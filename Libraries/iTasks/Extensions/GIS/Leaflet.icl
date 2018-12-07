@@ -2,10 +2,10 @@ implementation module iTasks.Extensions.GIS.Leaflet
 
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor, iTasks.UI.JS.Encoding
-import StdMisc, Data.Tuple, Data.Error, Data.Func
+import StdMisc, Data.Tuple, Data.Error, Data.Func, Text
 import qualified Data.Map as DM
 from Text.HTML import instance toString HtmlTag
-from iTasks.UI.Editor.Common import diffChildren
+from iTasks.UI.Editor.Common import diffChildren, :: ChildUpdate (..)
 from StdArray import class Array(uselect), instance Array {} a
 
 LEAFLET_JS         :== "/leaflet-1.3.4/leaflet.js"
@@ -41,8 +41,9 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDSetCenter       !LeafletLatLng
     | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
-	//Updating markers 
-	| LDSelectMarker    !LeafletObjectID
+    //Updating markers 
+    | LDSelectMarker    !LeafletObjectID
+    //Updating windows
     | LDRemoveWindow    !LeafletObjectID
 
 openStreetMapTiles :: String
@@ -81,7 +82,7 @@ where
 	encodeUI (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polyline"):attr])
 	encodeUI (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polygon") : attr])
     encodeUI (Window o) = let (JSONObject attr) = toJSON o
-                              dataMap = 'DM'.fromList [("type",JSONString "window"):attr]
+                              dataMap = 'DM'.fromList [("type",JSONString "window"): attr]
                               // translate HtmlTag to HTML code
                               dataMap` = 'DM'.put "content" (JSONString (toString o.content)) dataMap
                           in uia UIData dataMap`
@@ -205,7 +206,7 @@ where
 			"zoom"    = (jsNull,setMapZoom mapObj (args !! 1) world)
 			"cursor"  = (jsNull,setMapCursor me mapObj (toJSVal (args !! 1)) world)
 			_ 		  = (jsNull,world)
-		
+
 	onAfterChildInsert me args world
 		# (l, world)      	= findObject "L" world
 		# (mapObj,world)    = .? (me .# "map") world
@@ -417,7 +418,7 @@ where
             = abort "unknown style"
 
     createWindow me mapObj l object world
-        # (layer,world)      = (l .# "window" .$ () ) world
+        # (layer,world)      = l .# "window" .$ () $ world
 		# world              = (object .# "layer" .= layer) world
         # (position,world)   = .? (object .# "attributes.initPosition") world
         # (_, world)         = (layer .# "setInitPos" .$ position) world
@@ -426,22 +427,38 @@ where
         # (content,world)    = .? (object .# "attributes.content") world
         # (_, world)         = (layer .# "setContent" .$ content) world
         # (relMarkers,world) = .? (object .# "attributes.relatedMarkers") world
-        # world              = forall (addRelatedMarker layer) relMarkers world
+        # world              = forall (\_ relMarker world -> snd $ (layer .# "addRelatedMarker" .$ relMarker $ world))
+                                      relMarkers
+                                      world
         // inject function to send event on window remove
         # (windowId,world)   = .? (object .# "attributes.windowId") world
         # (onWRemove, world) = jsWrapFun (onWindowRemove me (jsValToString windowId)) world
         # world              = (layer .# "_onWindowClose" .= onWRemove) world
+        // inject function to handle window update
+        # (cb,world)         = jsWrapFun (onUIChange layer) world
+        # world              = ((object .# "onUIChange") .= cb) world
         // add to map
         # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
         = world
     where
-        addRelatedMarker layer _ relMarker world
-            # (markerId, world)   = .? (relMarker .# 0) world
-            # (lineStyle, world)  = .? (relMarker .# 1) world
-            # (lineOptions,world) = jsEmptyObject world
-            # world               = forall (applyLineStyle lineOptions) lineStyle world
-            # (_, world) = (layer .# "addRelatedMarker" .$ (markerId, lineOptions)) world
-            = world
+        onUIChange layer changes world
+            # world = foldl doChange world changes
+            = (jsNull, world)
+        where
+            doChange world change
+                # (attrUpdates, world) = .? (toJSVal change .# "attributes") world
+                # world = forall updateAttr attrUpdates world
+                = world
+
+            updateAttr _ attrChange world
+                # (name,  world) = .? (attrChange .# "name")  world
+                # name           = jsValToString name
+                # (value, world) = .? (attrChange .# "value") world
+                = snd $ case name of
+                    "content"        = layer .# "setContent"        .$ value $ world
+                    "title"          = layer .# "setTitle"          .$ value $ world
+                    "relatedMarkers" = layer .# "setRelatedMarkers" .$ value $ world
+                    _                = abort $ concat ["unknown attribute of leaflet window: \"", name, "\"\n"]
 
     applyLineStyle options _ style world
         # (styleType, world) = .? (style .# 0) world
@@ -462,7 +479,7 @@ where
         = abort "unknown style"
 
 	//Loop through a javascript array
-    forall :: (Int (JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
+    forall :: !(Int (JSVal a) *JSWorld -> *JSWorld) !(JSVal b) !*JSWorld -> *JSWorld
 	forall f array world
 		# (len,world) = .? (array .# "length") world
 		= forall` 0 (jsValToInt len) world
@@ -496,7 +513,7 @@ where
 		//Determine attribute changes
 		# attrChanges = diffAttributes oldMap newMap
 		//Determine object changes
-		# childChanges = diffChildren oldMap.LeafletMap.objects newMap.LeafletMap.objects encodeUI
+		# childChanges = diffChildren oldMap.LeafletMap.objects newMap.LeafletMap.objects updateFromOldToNew encodeUI
 		= (Ok (ChangeUI attrChanges childChanges, newMap),vst)
 	where
 		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
@@ -508,6 +525,24 @@ where
 			//Cursor
 			# cursor = if (p2.LeafletPerspective.cursor === p1.LeafletPerspective.cursor) [] [SetAttribute "cursor" (maybe JSONNull toJSON p2.LeafletPerspective.cursor)]
 			= center ++ zoom ++ cursor
+
+		updateFromOldToNew :: !LeafletObject !LeafletObject -> ChildUpdate
+		updateFromOldToNew (Window old) (Window new) | old.windowId == new.windowId && not (isEmpty changes) =
+			ChildUpdate $ ChangeUI changes []
+		where
+			changes = catMaybes
+				[ if (old.LeafletWindow.title == new.LeafletWindow.title)
+				     Nothing
+				     (Just $ SetAttribute "title" $ toJSON $ new.LeafletWindow.title)
+				, if (old.content === new.content)
+				     Nothing
+				     (Just $ SetAttribute "content" $ toJSON $ toString new.content)
+                , if (old.relatedMarkers === new.relatedMarkers)
+                     Nothing
+                     (Just $ SetAttribute "relatedMarkers" $ toJSON new.relatedMarkers)
+				]
+		updateFromOldToNew old new | old === new = NoChildUpdateRequired
+		                           | otherwise   = ChildUpdateImpossible
 
 	valueFromState m = Just m
 

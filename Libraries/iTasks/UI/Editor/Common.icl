@@ -46,29 +46,35 @@ where
 	onRefresh _ val _ vst    = (Ok (NoChange, val),vst)   // just use new value
 	valueFromState val       = Just val
 
-diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
-diffChildren old new toUI = diffChildren` 0 old new
+diffChildren :: ![a] ![a] !(a a -> ChildUpdate) !(a -> UI) -> [(!Int, !UIChildChange)]
+diffChildren old new updateFromOldToNew toUI = diffChildren` 0 old new
 where
     // only children from old list are left -> remove them all
     diffChildren` idx old [] = removeRemaining idx old
     // only new children are left -> insert them all
     diffChildren` idx [] new = addNew idx new
-    diffChildren` idx [nextOld : old] [nextNew : new]
-        // children are equal -> no change required
-        | nextOld === nextNew = diffChildren` (inc idx) old new
-        // old item cannot be reused, as it does not occur in remaining new children -> remove it
-        | not (isMemberGen nextOld new) = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
-        | otherwise
-            # (change, old`) = moveFromOldOrInsert (inc idx) old
-            = [change : diffChildren` (inc idx) [nextOld : old`] new]
-    where
-        // next new child not found in old children list -> insert it
-        moveFromOldOrInsert _ [] = ((idx, InsertChild (toUI nextNew)), [])
-        moveFromOldOrInsert idxOld [nextOld : oldRest]
-            // next new child found in old children list -> reuse it, i.e. move it to new index
-            | nextNew === nextOld = ((idxOld, MoveChild idx), oldRest)
-            // look for child to reuse in remaining old children elements
-            | otherwise           = appSnd (\old` -> [nextOld : old`]) (moveFromOldOrInsert (inc idxOld) oldRest)
+    diffChildren` idx [nextOld : old] [nextNew : new] = case updateFromOldToNew nextOld nextNew of
+        ChildUpdateImpossible
+            | isEmpty $ filter (\n -> not $ (updateFromOldToNew nextOld n) =: ChildUpdateImpossible) new
+                // old item cannot be reused, as no remaining new item can be updated to it -> remove it
+                 = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
+            | otherwise
+                # (change, old`) = moveFromOldOrInsert (inc idx) old
+                = change ++ diffChildren` (inc idx) [nextOld : old`] new
+            where
+                // no item found which can be updated to next new child -> insert it
+                moveFromOldOrInsert _ [] = ([(idx, InsertChild $ toUI nextNew)], [])
+                moveFromOldOrInsert idxOld [nextOld : oldRest] = case updateFromOldToNew nextOld nextNew of
+                    // look for child to reuse in remaining old children elements
+                    ChildUpdateImpossible = appSnd (\old` -> [nextOld : old`])
+                                                   (moveFromOldOrInsert (inc idxOld) oldRest)
+                    // move item without change
+                    NoChildUpdateRequired = ([(idxOld, MoveChild idx)], oldRest)
+                    // old item which can be updated to next new child found -> reuse it,
+                    // i.e. move it to new index & update
+                    ChildUpdate change    = ([(idxOld, MoveChild idx), (idx, ChangeChild change)], oldRest)
+        NoChildUpdateRequired = diffChildren` (inc idx) old new
+        ChildUpdate change    = [(idx, ChangeChild change): diffChildren` (inc idx) old new]
 
     removeRemaining idx rem = [(idx, RemoveChild) \\ _ <- rem]
     addNew          idx new = [(i, InsertChild (toUI x)) \\ i <- [idx..] & x <- new]

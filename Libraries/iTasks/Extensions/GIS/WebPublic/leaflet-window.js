@@ -1,4 +1,7 @@
 L.Window = L.Control.extend({
+    initialize: function (baseLayers, overlays, options) {
+        this._relatedMarkers = {};
+    },
     options: {
         position: 'topleft'
     },
@@ -6,13 +9,71 @@ L.Window = L.Control.extend({
         this._initPos = pos;
     },
     setTitle: function(title) {
-        this._title = title;
+        if (this._titleEl) {
+            this._titleEl.innerHTML = title;
+        } else {
+            this._initTitle = title;
+        }
     },
     setContent: function(content) {
-        this._content = content;
+        if (this._contentNode) {
+            this._contentNode.innerHTML = content;
+        } else {
+            this._initContent = content;
+        }
     },
-    addRelatedMarker: function(markerId, options) {
-        if (!this._relatedMarkers) this._relatedMarkers = {};
+    setRelatedMarkers: function(markers) {
+        // remove all markers
+        for (markerId in this._relatedMarkers) {
+            if (markerId in this._relatedMarkerConnectors) {
+                this._relatedMarkerConnectors[markerId].polyline.remove();
+            }
+        };
+        this._relatedMarkers = {};
+        this._relatedMarkerConnectors = {};
+
+        markers.forEach((marker) => this.addRelatedMarker(marker));
+        // this actually creates the connectors
+        this._map.eachLayer((l) => this._onLayerAdd({layer: l}));
+    },
+    addRelatedMarker: function(marker) {
+        const markerId   = marker[0];
+        const lineStyles = marker[1];
+        var options = {};
+
+        lineStyles.forEach((lineStyle) => {
+            const lineStyleConstr    = lineStyle[0];
+            const lineStyleConstrArg = lineStyle[1];
+
+            switch (lineStyleConstr) {
+                case "Style":
+                    const lineStyleAttr    = lineStyleConstrArg[0];
+                    const lineStyleAttrVal = lineStyleConstrArg[1];
+
+                    switch (lineStyleAttr) {
+                        case "LineStrokeColor":
+                            options.color     = lineStyleAttrVal;
+                            break;
+                        case "LineStrokeWidth":
+                            options.weight    = lineStyleAttrVal;
+                            break;
+                        case "LineOpacity":
+                            options.opacity   = lineStyleAttrVal;
+                            break;
+                        case "LineDashArray":
+                            options.dashArray = lineStyleAttrVal;
+                            break;
+                        default:
+                            throw new Error("Unknown line style attribute: " + lineStyleAttr);
+                    }
+                    break;
+                case "Class":
+                    options.className = lineStyleConstrArg;
+                    break;
+                default:
+                    throw new Error("Unknown line style constructor: " + lineStyleConstr);
+            }
+        });
 
         this._relatedMarkers[markerId] = options;
     },
@@ -29,11 +90,14 @@ L.Window = L.Control.extend({
         L.DomEvent.on(closeButton, 'mouseup', this._onCloseButtonClick, this);
 
         const titleSpan = L.DomUtil.create('span', '', titleBar);
-        titleSpan.innerHTML = this._title;
+        titleSpan.innerHTML = this._initTitle;
+        delete this._initTitle;
+        this._titleEl = titleSpan;
 
         // add content container
         this._contentNode = L.DomUtil.create('div', '', container);
-        this._contentNode.innerHTML = this._content;
+        this._contentNode.innerHTML = this._initContent;
+        delete this._initContent;
 
         // absolute -> otherwise windows influence each other if multiple are present
         container.style = "margin: 0px; position: absolute;";
@@ -73,8 +137,7 @@ L.Window = L.Control.extend({
         // this is done after adding the window,
         // as we need the content's size
         // to position the connectors properly
-        if (this._relatedMarkers)
-            map.eachLayer((l) => this._onLayerAdd({layer: l}));
+        map.eachLayer((l) => this._onLayerAdd({layer: l}));
     },
     _onLayerAdd: function(e) {
         const marker = e.layer;
