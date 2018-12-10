@@ -68,7 +68,10 @@ where
 			,("tilesUrls", toJSON tilesUrls)
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
-		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
+		# attr = 'DM'.unions [ mapAttr
+		                     , sizeAttr (ExactSize 500) (ExactSize 150)
+		                     , 'DM'.singleton "viewMode" $ JSONBool $ mode =: View _
+		                     ]
 		# children = map encodeUI objects
 		= (Ok (uiac UIHtmlView attr children, val), world)
 
@@ -106,6 +109,8 @@ where
 	initDOM me args world
         # (l,world)         = findObject "L" world
 		# (domEl,world) 	= .? (me .# "domEl") world
+		# (viewMode, world) = .? (me .# "attributes.viewMode") world
+		# viewMode          = jsValToBool viewMode
 		//Create the map
 		# (mapObj,world)    = (l .# "map" .$ (domEl,MAP_OPTIONS)) world
 		# world 			= (me .# "map" .= mapObj) world
@@ -123,31 +128,41 @@ where
 		# (tilesUrls,world) = .? (me .# "attributes.tilesUrls") world
 		# world             = forall (addMapTilesLayer me mapObj) tilesUrls world
 		//Synchronize lat/lng bounds to server (they depend on the size of the map in the browser)
-		# (taskId,world)    = .? (me .# "attributes.taskId") world
-		# (editorId,world)  = .? (me .# "attributes.editorId") world
-        # (bounds,world)    = getMapBounds mapObj world
-		# (edit,world)      = encodeOnClient [LDSetBounds bounds] world
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
+		# world = case viewMode of
+			True
+				= world
+			False
+				# (taskId,world)    = .? (me .# "attributes.taskId") world
+				# (editorId,world)  = .? (me .# "attributes.editorId") world
+				# (bounds,world)    = getMapBounds mapObj world
+				# (edit,world)      = encodeOnClient [LDSetBounds bounds] world
+				# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
+				= world
         //Add initial objects
 		# (objects,world)   = .? (me .# "children") world
-		# world             = createMapObjects me mapObj objects world
+		# world             = createMapObjects viewMode me mapObj objects world
 		//Add event handlers
-		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
-		# world            = ((me .# "onResize") .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onShow me w) world	
-		# world            = ((me .# "onShow") .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world	
-		# world            = ((me .# "onAttributeChange") .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert me a w) world	
-		# world            = ((me .# "afterChildInsert") .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world	
-		# world            = ((me .# "beforeChildRemove") .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) world
-        # (_,world)        = (mapObj .# "addEventListener" .$ ("dragend",cb)) world
-		# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) world
-        # (_,world)        = (mapObj .# "addEventListener" .$ ("zoomend",cb)) world
-		# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) world
-        # (_,world)        = (mapObj .# "addEventListener" .$ ("click",cb)) world
+		# world = case viewMode of
+            True
+				= world
+			False
+				# (cb,world)       = jsWrapFun (\a w -> onResize me w) world
+				# world            = ((me .# "onResize") .= cb) world
+				# (cb,world)       = jsWrapFun (\a w -> onShow me w) world
+				# world            = ((me .# "onShow") .= cb) world
+				# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world
+				# world            = ((me .# "onAttributeChange") .= cb) world
+				# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert viewMode me a w) world
+				# world            = ((me .# "afterChildInsert") .= cb) world
+				# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world
+				# world            = ((me .# "beforeChildRemove") .= cb) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) world
+				# (_,world)        = (mapObj .# "addEventListener" .$ ("dragend",cb)) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) world
+				# (_,world)        = (mapObj .# "addEventListener" .$ ("zoomend",cb)) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) world
+				# (_,world)        = (mapObj .# "addEventListener" .$ ("click",cb)) world
+				= world
 		= (jsNull,world)
 
 	onResize me world
@@ -207,10 +222,10 @@ where
 			"cursor"  = (jsNull,setMapCursor me mapObj (toJSVal (args !! 1)) world)
 			_ 		  = (jsNull,world)
 
-	onAfterChildInsert me args world
+	onAfterChildInsert viewMode me args world
 		# (l, world)      	= findObject "L" world
 		# (mapObj,world)    = .? (me .# "map") world
-		= (jsNull,createMapObject me mapObj l (toJSVal (args !! 1)) world)
+		= (jsNull,createMapObject viewMode me mapObj l (toJSVal (args !! 1)) world)
 
 	onBeforeChildRemove me args world
 		# (layer,world)     = .? (toJSVal (args !! 1) .# "layer") world
@@ -314,17 +329,17 @@ where
 			# world            = ((index .# jsValToString iconId) .= icon) world
 			= world
 
-	createMapObjects me mapObj objects world
+	createMapObjects viewMode me mapObj objects world
 		# (l, world) = findObject "L" world
-		= forall (\_ obj -> createMapObject me mapObj l obj) objects world
+		= forall (\_ obj -> createMapObject viewMode me mapObj l obj) objects world
 
-	createMapObject me mapObj l object world
+	createMapObject viewMode me mapObj l object world
 		# (type,world) = .? (object .# "attributes.type") world
 		= case jsValToString type of
-			"marker"   = createMarker   me mapObj l object world
-			"polyline" = createPolyline me mapObj l object world
-			"polygon"  = createPolygon  me mapObj l object world
-            "window"   = createWindow   me mapObj l object world
+			"marker"   = createMarker            me mapObj l object world
+			"polyline" = createPolyline          me mapObj l object world
+			"polygon"  = createPolygon           me mapObj l object world
+            "window"   = createWindow   viewMode me mapObj l object world
 			_ 		   = world
 
 	createMarker me mapObj l object world
@@ -417,7 +432,7 @@ where
                 = (options .# "className" .= cls) world
             = abort "unknown style"
 
-    createWindow me mapObj l object world
+    createWindow viewMode me mapObj l object world
         # (layer,world)      = l .# "window" .$ () $ world
 		# world              = (object .# "layer" .= layer) world
         # (position,world)   = .? (object .# "attributes.initPosition") world
@@ -431,9 +446,13 @@ where
                                       relMarkers
                                       world
         // inject function to send event on window remove
-        # (windowId,world)   = .? (object .# "attributes.windowId") world
-        # (onWRemove, world) = jsWrapFun (onWindowRemove me (LeafletObjectID (jsValToString windowId))) world
-        # world              = (layer .# "_onWindowClose" .= onWRemove) world
+		# world = case viewMode of
+			True
+				= world
+			False
+                # (windowId,world)   = .? (object .# "attributes.windowId") world
+                # (onWRemove, world) = jsWrapFun (onWindowRemove me (LeafletObjectID (jsValToString windowId))) world
+                = (layer .# "_onWindowClose" .= onWRemove) world
         // inject function to handle window update
         # (cb,world)         = jsWrapFun (onUIChange layer) world
         # world              = ((object .# "onUIChange") .= cb) world
