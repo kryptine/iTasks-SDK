@@ -18,7 +18,7 @@ leafletEditor :: Editor LeafletMap
     , bounds        :: !Maybe LeafletBounds
     }
 
-:: LeafletIconID :== String
+:: LeafletIconID =: LeafletIconID String
 :: LeafletIcon =
     { iconId        :: !LeafletIconID
     , iconUrl       :: !String
@@ -41,7 +41,7 @@ leafletEditor :: Editor LeafletMap
     | Polygon  !LeafletPolygon
     | Window   !LeafletWindow
 
-:: LeafletObjectID :== String
+:: LeafletObjectID =: LeafletObjectID String
 :: LeafletMarker =
     { markerId      :: !LeafletObjectID
     , position      :: !LeafletLatLng
@@ -85,7 +85,7 @@ leafletEditor :: Editor LeafletMap
                        | PolygonFillColor       !String // html/css color definition
                        | PolygonFillOpacity     !Real
 
-:: CSSClass :== String
+:: CSSClass =: CSSClass String
 :: LeafletStyleDef style = Style style
                          | Class CSSClass
 
@@ -102,4 +102,3 @@ derive gEq        LeafletMap, LeafletPerspective
 derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
 derive gEditor    LeafletMap, LeafletPerspective, LeafletLatLng
 derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
-

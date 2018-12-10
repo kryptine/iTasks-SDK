@@ -29,8 +29,8 @@ LEAFLET_CSS_WINDOW :== "leaflet-window.css"
 
 derive JSONEncode IconOptions
 
-derive JSEncode LeafletEdit, LeafletBounds, LeafletLatLng
-derive JSDecode LeafletEdit, LeafletBounds, LeafletLatLng
+derive JSEncode LeafletEdit, LeafletBounds, LeafletLatLng, LeafletObjectID
+derive JSDecode LeafletEdit, LeafletBounds, LeafletLatLng, LeafletObjectID
 
 CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
 MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
@@ -238,7 +238,7 @@ where
     where
         removeWindow idx layer world
             # (layerWindowId, world)  = .? (layer .# "attributes.windowId") world
-            | not (jsIsUndefined layerWindowId) && jsValToString layerWindowId == windowId =
+            | not (jsIsUndefined layerWindowId) && LeafletObjectID (jsValToString layerWindowId) === windowId =
                 snd (((me .# "removeChild") .$ idx) world)
             = world
 
@@ -327,7 +327,7 @@ where
             "window"   = createWindow   me mapObj l object world
 			_ 		   = world
 
-	createMarker me mapObj  l object world
+	createMarker me mapObj l object world
         # (markerId,world)    = .? (object .# "attributes.markerId") world
         # (options,world)     = jsEmptyObject world
 		//Set title
@@ -348,7 +348,7 @@ where
         //Store marker ID, needed for related markers of windows
         # world               = (layer .# "markerId" .= markerId) world
 		//Set click handler
-		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
+		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (LeafletObjectID (jsValToString markerId)) a w) world
         # (_,world)           = (layer .# "addEventListener" .$ ("click",cb)) world
         //Add to map
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
@@ -432,7 +432,7 @@ where
                                       world
         // inject function to send event on window remove
         # (windowId,world)   = .? (object .# "attributes.windowId") world
-        # (onWRemove, world) = jsWrapFun (onWindowRemove me (jsValToString windowId)) world
+        # (onWRemove, world) = jsWrapFun (onWindowRemove me (LeafletObjectID (jsValToString windowId))) world
         # world              = (layer .# "_onWindowClose" .= onWRemove) world
         // inject function to handle window update
         # (cb,world)         = jsWrapFun (onUIChange layer) world
@@ -499,11 +499,11 @@ where
 		app m (LDSetBounds bounds)      = {LeafletMap|m & perspective = {m.perspective & bounds = Just bounds}}
 		app m (LDSelectMarker markerId) = {LeafletMap|m & objects = map (sel markerId) m.LeafletMap.objects}
 		where
-			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId == x}
+			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId === x}
 			sel x o = o
         app m (LDRemoveWindow idToRemove) = {LeafletMap|m & objects = filter notToRemove m.LeafletMap.objects}
         where
-            notToRemove (Window {windowId}) = windowId <> idToRemove
+            notToRemove (Window {windowId}) = windowId =!= idToRemove
             notToRemove _                   = True
 		app m _ = m
 	onEdit _ _ msk ust = (Ok (NoChange,msk),ust)
@@ -527,7 +527,7 @@ where
 			= center ++ zoom ++ cursor
 
 		updateFromOldToNew :: !LeafletObject !LeafletObject -> ChildUpdate
-		updateFromOldToNew (Window old) (Window new) | old.windowId == new.windowId && not (isEmpty changes) =
+		updateFromOldToNew (Window old) (Window new) | old.windowId === new.windowId && not (isEmpty changes) =
 			ChildUpdate $ ChangeUI changes []
 		where
 			changes = catMaybes
@@ -551,7 +551,7 @@ gEditor{|LeafletMap|} = leafletEditor
 gDefault{|LeafletMap|}
 	= {LeafletMap|perspective=defaultValue, tilesUrls = [openStreetMapTiles], objects = [Marker homeMarker], icons = []}
 where
-	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
+	homeMarker = {markerId = LeafletObjectID "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
 
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
@@ -565,5 +565,4 @@ derive gDefault   LeafletLatLng
 derive gEq        LeafletMap, LeafletPerspective
 derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
 derive gEditor    LeafletPerspective, LeafletLatLng
-derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
-
+derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle, LeafletObjectID, CSSClass, LeafletIconID
