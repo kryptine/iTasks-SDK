@@ -30,6 +30,6 @@ instance < SDSNotifyRequest where
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
 	                 (right.hostToNotify, right.portToNotify, right.remoteSdsId)
-instance toString RemoteNotifyOptions
-where
-	toString {hostToNotify, portToNotify, remoteSdsId} = "\tHostToNotify: " +++ hostToNotify +++ "\n\tPortToNotify: " +++ toString portToNotify +++ "\n\tRemoteSDSId: " +++ remoteSdsId
+
+instance toString RemoteNotifyOptions where
+	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId

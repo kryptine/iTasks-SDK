@@ -954,9 +954,6 @@ instance toString (TaskId, Maybe RemoteNotifyOptions) where
 	toString (taskId, Nothing) = "local " +++ toString taskId
 	toString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
 
-instance toString RemoteNotifyOptions where
-	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
-
 instance toString (Maybe RemoteNotifyOptions) where
 	toString Nothing = ""
 	toString (Just options) = toString options
