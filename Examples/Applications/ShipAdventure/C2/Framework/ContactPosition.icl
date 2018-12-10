@@ -117,9 +117,9 @@ toLeafletMap {ContactMap|perspective,markers}
 where
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected, popup = Nothing}
+        = Marker {LeafletMarker|markerId = LeafletObjectID markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> LeafletIconID (iconIndex heading t selected)) type, selected = selected, popup = Nothing}
 
-	icon i = {LeafletIcon|iconId=toString i,iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
+	icon i = {LeafletIcon|iconId=LeafletIconID (toString i),iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
     iconIndex heading type selected = toString (cat type + ( (maybe 24 (\d -> toInt d / 15) heading) + (if selected 25 0)) * 5)
 
 toLeafletPerspective :: ContactMapPerspective -> LeafletPerspective
@@ -139,7 +139,7 @@ fromLeafletMap {LeafletMap|perspective,objects}
 where
     toMarkers objects
         = [{ContactMapMarker|markerId=markerId,title=Nothing,position = fromLeafletLatLng position, type=Nothing,heading=Nothing,selected=selected}
-          \\ Marker {LeafletMarker|markerId,position,selected} <- objects]
+          \\ Marker {LeafletMarker|markerId = LeafletObjectID markerId,position,selected} <- objects]
 
 fromLeafletPerspective :: LeafletPerspective -> ContactMapPerspective
 fromLeafletPerspective {LeafletPerspective|center,cursor,zoom}
