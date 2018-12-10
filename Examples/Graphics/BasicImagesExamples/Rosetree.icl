@@ -22,7 +22,6 @@ Start world
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const roses
-			, updView     = \m _ = m
 			, updModel    = \_ v = v
 			})] 0) world
 

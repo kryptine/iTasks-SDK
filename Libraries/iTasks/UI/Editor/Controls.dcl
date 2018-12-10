@@ -119,6 +119,10 @@ grid          :: Editor (ChoiceGrid,   [Int])
 * Supported attributes:
 */
 tree          :: Editor ([ChoiceNode], [Int])
+/**
+ * Modifies the above editors for making choices such that they use a constant set of choices.
+ */
+withConstantChoices :: !choices !(Editor (!choices, ![Int])) -> Editor [Int]
 
 fieldComponent :: !UIType !(Maybe a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a & JSDecode{|*|} a
 

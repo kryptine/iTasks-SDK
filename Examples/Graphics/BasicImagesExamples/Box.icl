@@ -19,7 +19,6 @@ Start world
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const box2
-			, updView     = \m _ = m
 			, updModel    = \_ v = v
 			})] 0) world
 

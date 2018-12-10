@@ -437,7 +437,6 @@ where
 		{ initView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) -> (ms2d, cl)
 		, renderImage = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> maps2DImage disSects cl mode ms2d` exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network
-		, updView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
 		, updModel = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), _)  (ms2d`, cl`) -> ((((((((((disSects, ms2d`), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl`)
 		}
 
@@ -455,7 +454,6 @@ where
 		{ initView    = \((((((((ms2d, _), _), _), _), _), _), _), cl) -> (ms2d, cl)
 		, renderImage = \((((((((ms2d, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> roomImage c3d exitLocks hopLocks inventoryMap statusMap actorMap allDevices network True (fromJust (getSectionFromMap c3d ms2d`)) (ms2d !! floorIdx) cl`
-		, updView     = \((((((((ms2d, _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
 		, updModel    = \((((((((_,    exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), _)  (ms2d`, cl`)
 			-> ((((((((ms2d`, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl`)
 		}

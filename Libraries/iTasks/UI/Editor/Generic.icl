@@ -135,7 +135,7 @@ where
 
 	onEdit dp (tp,e) childSt vst         = exOnEdit dp (tp,e) childSt vst
 	onRefresh dp (FIELD new) childSt vst = exOnRefresh dp new childSt vst
-	valueFromState state                 = mapMaybe FIELD $ exValueFromState state
+	valueFromState state                 = mapMaybe (\x -> FIELD x) $ exValueFromState state
 
 /*
 * For ADT's we need to deal with two cases:
@@ -247,7 +247,7 @@ where
 				= (Ok (change, viewMode, [consChooseSt, childSt]), {vst & selectedConsIndex = curSelectedConsIndex})
 			(Error e,vst) = (Error e,vst)
 
-	valueFromState _ [_, childSt] = mapMaybe OBJECT $ exValueFromState childSt
+	valueFromState _ [_, childSt] = mapMaybe (\x -> OBJECT x) $ exValueFromState childSt
 	valueFromState _ _            = Nothing
 
 gEditor{|EITHER|} ex _ _ _ ey _ _ _

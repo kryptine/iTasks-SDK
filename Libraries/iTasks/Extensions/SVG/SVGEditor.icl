@@ -7,8 +7,9 @@ from StdFunc import o
 import Data.List, Data.GenEq, Data.Func
 import Data.Error
 import Data.MapCollection
+from Data.Foldable import class Foldable (foldr`)
 from Data.Map import :: Map, instance Functor (Map k)
-from Data.Set import :: Set, instance == (Set a), instance < (Set a)
+from Data.Set import :: Set, instance == (Set a), instance < (Set a), instance Foldable Set
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import Text
@@ -229,7 +230,7 @@ where
                        , ("x", "-10000")
                        , ("y", "-10000")
                        ]
-	  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
+	  #! world       = foldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
 	  #! (fd, world) = calcFontDescent elem fontdef.fontysize world
 	  = ('DM'.put fontdef fd font_spans, world)
 	
@@ -265,8 +266,8 @@ where
                        , ("x", "-10000")
                        , ("y", "-10000")
                        ]
-	  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
-	  #! (ws, world) = 'DS'.fold (calcTextLength elem) ('DM'.newMap, world) strs
+	  #! world       = foldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
+	  #! (ws, world) = foldr` (calcTextLength elem) ('DM'.newMap, world) strs
 	  = ('DM'.alter (merge ws) fontdef text_spans, world)
 	where
 		merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
