@@ -23,7 +23,8 @@ where
 		>>= \_. (viewStatus -&&- selectTask) @! ()
 
 	selectTask = forever (enterChoiceWithShared "Select task" [] (sdsFocus testUser taskInstancesForUser)
-		>>= \{TaskInstance|instanceNo}. workOn instanceNo @! ())
+		>>= \{TaskInstance|instanceNo}. workOn instanceNo
+		>>= \_. return ())
 
 	viewStatus = (viewSharedInformation "Hosting domain" [] domainName
 			-&&- viewSharedInformation "Tasks" [] currentProcesses)
@@ -36,15 +37,13 @@ where
 	addTaskToDomain :: Domain -> Task ()
 	addTaskToDomain domain = forever (enterChoice "Choose a task to add in the domain" [] [T1, T2, T3]
 		>>= \task. appendDomainTask (toTask task) domain
-		>>= \taskId. viewInformation "Added task" [] taskId
-		>>= \_. return ())
+		>>= \taskId. viewInformation "Added task" [] taskId @! ())
 
 	addTaskToUserDomain :: Domain -> Task ()
 	addTaskToUserDomain domain = forever (enterChoice "Choose a task to add in the domain" [] [T1, T2, T3]
 		>>= \task. appendDomainTaskForUser testUser (toTask task) domain
 		>>= \taskId. viewTaskResult taskId domain (toTask task)
-		>>= \result. viewInformation "Task result" [] result
-		>>= \_. return ())
+		>>= \result. viewInformation "Task result" [] result @! ())
 
 :: DummyTask = T1 | T2 | T3
 
