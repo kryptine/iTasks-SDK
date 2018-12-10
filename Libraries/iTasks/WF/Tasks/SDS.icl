@@ -161,8 +161,13 @@ where
 			# result = ValueResult (Value v False) (tei ts) (rep event) (TCAwait Read taskId ts tree)
 			= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
-	eval _ event=:(RefreshEvent taskIds reason) _ tree=:(TCAwait Read taskId ts (TCBasic _ _ oldval _)) iworld=:{sdsEvalStates}
-	| not (isRefreshForTask event tree) = (ValueResult NoValue (tei ts) NoChange tree, iworld)
+	eval _ event=:(RefreshEvent taskIds reason) _ tree=:(TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
+	# oldValue = case subtree of
+		(TCInit _ _) = NoValue
+		(TCBasic _ _ val _) = case fromDeferredJSON val of
+			Nothing = NoValue
+			Just v = Value v False
+	| not (isRefreshForTask event tree) = (ValueResult oldValue (tei ts) NoChange tree, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		Just val = case val iworld of
@@ -172,12 +177,9 @@ where
 					# sdsEvalStates = 'DM'.del taskId sdsEvalStates
 					# result = ValueResult (Value v False) (tei ts) NoChange (TCBasic taskId ts (DeferredJSON v) False)
 					= (result, {iworld & sdsEvalStates = sdsEvalStates})
-				Reading sds = case fromDeferredJSON oldval of
-					Nothing = (ExceptionResult (exception "Corrupt task result"), iworld)
-					// Use the old value if the async operation has no result yet.
-					Just v
+				Reading sds
 					# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-					# result = ValueResult (Value v False) (tei ts) NoChange tree
+					# result = ValueResult oldValue (tei ts) NoChange tree
 					= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval _ _ _ ttree=:(TCDestroy _) iworld=:{sdsEvalStates}
