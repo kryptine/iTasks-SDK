@@ -42,18 +42,15 @@ where
 	addTaskToUserDomain domain = forever (enterChoice "Choose a task to add in the domain" [] [T1, T2, T3]
 		>>= \task. appendDomainTaskForUser testUser (toTask task) domain
 		>>= \taskId. viewTaskResult taskId domain (toTask task)
-		>>= \result. viewInformation "Task result" [] result @! ())
+		>>* [OnAction ActionContinue (always (return ()))])
 
 :: DummyTask = T1 | T2 | T3
 
 toTask :: DummyTask -> Task Int
 toTask t = case t of
 	T1 = enterInformation "HUEHUE1" []
-		>>= \number. return (5 * number)
 	T2 = enterInformation "HUEHUE2" []
-		>>= \number. return (6 * number)
 	T3 = enterInformation "HUEHUE3" []
-		>>= \number. return (7 * number)
 
 attributes title = 'Data.Map'.fromList
 			[ ("title",      title)

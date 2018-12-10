@@ -13,12 +13,12 @@ appendDomainTaskForUser :: User (Task a) Domain -> Task TaskId | iTask a
 appendDomainTaskForUser user task domain
 = get (sdsFocus (task, workerAttributes user []) (addDistributedTask domain))
 
-viewTaskResult :: TaskId Domain (Task a) -> Task a | iTask a
+viewTaskResult :: TaskId Domain (Task a) -> Task () | iTask a
 viewTaskResult (TaskId instanceId _) domain t
-= watch (sdsFocus instanceId (domainTaskResult t domain))
-	@? \v. case v of
-		NoValue = trace_n "NoValue yet" NoValue
-		Value v _ = trace_n ("Value" +++ toSingleLineText v) v
+= whileUnchanged (sdsFocus instanceId (domainTaskResult t domain))
+	\v. case v of
+		NoValue = viewInformation "No value yet" [] ()
+		Value v _ = viewInformation "Got value" [] v @! ()
 
 removeDomainTask :: TaskId Domain -> Task Bool
 removeDomainTask taskId domain = undef

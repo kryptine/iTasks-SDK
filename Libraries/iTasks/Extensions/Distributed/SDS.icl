@@ -54,12 +54,11 @@ where
 
 	wrappedTask task _ = withTaskId (return ())
 		>>= \(_, (TaskId instanceNo _)). (task
-				>&^
-					(\stv-> (get stv
-						>>= \mtv-> case mtv of
-		    				Nothing = trace_n "While unchanged no value" (treturn ())
-		   					Just tv = trace_n "While unchanged value" (storeValue task instanceNo (Value tv True) @! ())) <<@ NoUserInterface))
-		>>= \result. (storeValue task instanceNo (Value result True) <<@ NoUserInterface) >>- \_. return ()
+				>&>
+					(\stv-> (whileUnchanged stv
+						\mtv-> case mtv of
+		    				Nothing = storeValue task instanceNo NoValue @? const NoValue
+		   					Just tv = trace_n "While unchanged value" (storeValue task instanceNo (Value tv True) @? const NoValue))))
 
 	storeValue task taskId v = trace_n ("Setting task value: " +++ toSingleLineText v) (set v (sdsFocus taskId (distributedTaskResultForTask task)))
 
