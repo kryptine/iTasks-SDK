@@ -108,14 +108,21 @@ L.Window = L.Control.extend({
         L.DomEvent.on(container, 'contextmenu', L.DomEvent.stopPropagation);
         this.dragging = false;
         L.DomEvent.on(titleBar, 'mousedown', function(e) {
-                                                 // store delta between left upper corner of window and mouse position
-                                                 const containerRect = this._container.getBoundingClientRect();
-                                                 this.dragging = [e.clientX - containerRect.left, e.clientY - containerRect.top];
-                                                 L.DomUtil.disableTextSelection();
-                                                 this._container.style.opacity = 0.6;
-                                                 L.DomUtil.toFront(container);
-                                             },
-                      this);
+            // store current size of map container & title bar
+            // required to prevent title var from being dragged out of view
+            const mapContainerSize   = this._map.getSize();
+            this._mapContainerWidth  = mapContainerSize.x;
+            this._mapContainerHeight = mapContainerSize.y;
+            this._titleBarWidth      = titleBar.offsetWidth;
+            this._titleBarHeight     = titleBar.offsetHeight;
+
+            // store delta between left upper corner of window and mouse position
+            const containerRect = this._container.getBoundingClientRect();
+            this.dragging = [e.clientX - containerRect.left, e.clientY - containerRect.top];
+            L.DomUtil.disableTextSelection();
+            this._container.style.opacity = 0.6;
+            L.DomUtil.toFront(container);
+        }, this);
         L.DomEvent.on(document, 'mouseup', this._mouseUp, this);
         L.DomEvent.on(document, 'mousemove', this._mouseMove, this);
 
@@ -172,11 +179,14 @@ L.Window = L.Control.extend({
         this._container.style.opacity = 1.0;
     },
     _mouseMove: function(e) {
-        var dragging = this.dragging;
+        const dragging = this.dragging;
         if (dragging) {
             const mapPos = this._map.mouseEventToContainerPoint(e);
             // delta (stored in 'dragging') to compensate for where inside title bar drag was started
-            this._setPos({x: mapPos.x - dragging[0], y: mapPos.y - dragging[1]});
+            // restrict position such that title bar is never dragged outside of map container
+            const x = Math.min(this._mapContainerWidth  - this._titleBarWidth,  Math.max(0, mapPos.x - dragging[0]));
+            const y = Math.min(this._mapContainerHeight - this._titleBarHeight, Math.max(0, mapPos.y - dragging[1]));
+            this._setPos({x: x, y: y});
             this._updateRelatedMarkerConnectorPositions();
         }
     },
