@@ -8,9 +8,18 @@ import qualified Data.Map as DM
 import Text, Text.HTML
 
 //Definition of editors
-:: NxtEditor v s c m =
+
+// p: The parameter set (same as in sds)
+// r: Data read from an external source (sds) based on p. Data will arrive with some delay and can be updated later
+// w: Data to be written back to the external source (sds)
+
+// s: Server-side state
+// c: Client-side state 
+// m: Messages exchanged to synchronize between client and server (and potentially between sub editors)
+
+:: NxtEditor p r w s c m =
   { client :: NxtEditorClient c m
-  , server :: NxtEditorServer v s c m
+  , server :: NxtEditorServer p r w s c m
   }
 
 :: NxtEditorClient c m =
@@ -20,11 +29,12 @@ import Text, Text.HTML
   , state     :: NxtDOMRef NxtDOM -> (c,NxtDOM)
   }
 
-:: NxtEditorServer v s c m =
-  { value     :: ((Maybe v) -> s, s -> Maybe v)
-  , configure :: s -> c 
-  , onRefresh :: s s -> ([m], s)
-  , onMessage :: m s -> ([m], s)
+:: NxtEditorServer p r w s c m =
+  { init      :: p -> (s,c)
+  , parameter :: s -> p
+  , value     :: s -> Maybe w
+  , onRefresh :: r s -> ([m], s, Bool)
+  , onMessage :: m s -> ([m], s, Bool)
   }
 
 //Simulated DOM/JSWorld
@@ -54,7 +64,7 @@ where
   decodeEditMessage :: NxtChange -> m
 
 //Definitions of a test editor
-nxtNumberField :: NxtEditor Int String String String
+nxtNumberField :: NxtEditor () Int Int String String String
 nxtNumberField = {client=client,server=server}
 where
  client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
@@ -75,14 +85,16 @@ where
   state ref dom
     = (fromMaybe "A" ('DM'.get ("value-" +++ join "-" (map toString ref)) dom),dom)
 
- server = {value=value,configure=configure,onRefresh=onRefresh,onMessage=onMessage}
+ server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
  where
-  configure s = s
-  value = (maybe "" toString, \s -> Just (toInt s))
-  onRefresh s _ = ([s], s)
-  onMessage m _ = ([], m)
+  init () = ("","")
+  parameter _ = ()
+  value s = Just (toInt s)
 
-nxtButton :: NxtEditor Bool Bool (String,Bool) Bool
+  onRefresh s _ = ([toString s], toString s, False)
+  onMessage m _ = ([], m, True)
+
+nxtButton :: NxtEditor () Bool Bool Bool (String,Bool) Bool
 nxtButton = {client=client,server=server}
 where
  client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
@@ -109,12 +121,14 @@ where
 	# label = fromJust ('DM'.get ("label-" +++ join "-" (map toString ref)) dom)
 	= ((label,clicked),dom)
 
- server = {value=value,configure=configure,onRefresh=onRefresh,onMessage=onMessage}
+ server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
  where
-  configure s = ("Click me",s)
-  value = (fromMaybe False, Just)
-  onRefresh s _ = ([s], s)
-  onMessage m _ = ([], m)
+  init _ = (False,("Click me",False))
+  parameter _ = ()
+  value s = Just s
+
+  onRefresh s _ = ([s], s, False)
+  onMessage m _ = ([], m, True)
 
 instance EditMessage String //If strings are used as edit type, it's just the value attribute
 where
@@ -141,39 +155,38 @@ where
 // Composition
 
 //Compose by juxtaposition, no need to specify interdependency
-glue :: (NxtEditor v1 s1 c1 m1)
-        (NxtEditor v2 s2 c2 m2)
+glue :: (NxtEditor p1 r1 w1 s1 c1 m1)
+        (NxtEditor p2 r2 w2 s2 c2 m2)
         ->
-        (NxtEditor (Maybe v1, Maybe v2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (NxtEditor (p1,p2) (r1,r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
 glue e1 e2 = {NxtEditor|server=server,client=client}
 where
-  server = {value=value,configure=configure,onRefresh=onRefresh,onMessage=onMessage}
+  server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
   where
-    value = (fromv,tov)
-    where 
-      fromv Nothing = (fst e1.server.NxtEditorServer.value Nothing, fst e2.server.NxtEditorServer.value Nothing) 
-      fromv (Just (mv1,mv2)) = (fst e1.server.NxtEditorServer.value mv1, fst e2.server.NxtEditorServer.value mv2)
+	init (p1,p2)
+		# (s1,c1) = e1.server.NxtEditorServer.init p1
+		# (s2,c2) = e2.server.NxtEditorServer.init p2
+		= ((s1,s2),(c1,c2))	
 
-      tov (s1,s2)
-        # mv1 = snd e1.server.NxtEditorServer.value s1
-        # mv2 = snd e2.server.NxtEditorServer.value s2
-        = (if (mv1 =: Nothing && mv2 =: Nothing) Nothing (Just (mv1,mv2)))
+	parameter (s1,s2) = (e1.server.NxtEditorServer.parameter s1, e2.server.NxtEditorServer.parameter s2)
 
-    configure (s1,s2) = (e1.server.NxtEditorServer.configure s1, e2.server.NxtEditorServer.configure s2)
+	value (s1,s2) = case (e1.server.NxtEditorServer.value s1, e2.server.NxtEditorServer.value s2) of
+		(Nothing,Nothing) = Nothing
+		(mb1,mb2) = Just (mb1,mb2) 
 
     onRefresh (s1n,s2n) (s1o,s2o)
-       # (m1, s1) = e1.server.NxtEditorServer.onRefresh s1n s1o
-       # (m2, s2) = e2.server.NxtEditorServer.onRefresh s2n s2o
-       = (zipMessages m1 m2, (s1,s2))
+       # (m1, s1, w1) = e1.server.NxtEditorServer.onRefresh s1n s1o
+       # (m2, s2, w2) = e2.server.NxtEditorServer.onRefresh s2n s2o
+       = (zipMessages m1 m2, (s1,s2), w1 || w2)
 
     onMessage (mb1,mb2) (s1,s2)
-       # (m1,s1) = maybe ([],s1) (\m1 -> e1.server.NxtEditorServer.onMessage m1 s1) mb1
-       # (m2,s2) = maybe ([],s2) (\m2 -> e2.server.NxtEditorServer.onMessage m2 s2) mb2
-       = (zipMessages m1 m2, (s1,s2))
+       # (m1, s1, w1) = maybe ([],s1,False) (\m1 -> e1.server.NxtEditorServer.onMessage m1 s1) mb1
+       # (m2, s2, w2) = maybe ([],s2,False) (\m2 -> e2.server.NxtEditorServer.onMessage m2 s2) mb2
+       = (zipMessages m1 m2, (s1,s2), w1 || w2)
 
   client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
   where
-    init (c1,c2) ref dom = e2.client.init c2 (ref ++ [1]) (e1.client.init c1 (ref ++ [0]) dom)
+    init (c1,c2) ref dom = e2.client.NxtEditorClient.init c2 (ref ++ [1]) (e1.client.NxtEditorClient.init c1 (ref ++ [0]) dom)
 
     onEvent event ref dom
       # (m1,dom) = e1.client.NxtEditorClient.onEvent event (ref ++ [0]) dom
@@ -194,7 +207,9 @@ where
   zipMessages [] ys = [(Nothing,Just y) \\ y <- ys]
   zipMessages xs [] = [(Just x,Nothing) \\ x <- xs]
 
+
 //Define the dependencies by defining feedback on messages
+//NOTE: Only one the last 'writes' to the data source are be returned, is this ok?
 link ::
         //Rewrite the initial client configuration
         ((c1,c2) -> (c1,c2))
@@ -202,37 +217,41 @@ link ::
         (s1 s2 (Maybe m1, Maybe m2) -> ([(Maybe m1, Maybe m2)],[(Maybe m1, Maybe m2)]))
         //Rewrite from client to server with feedback to client
         (c1 c2 (Either m1 m2) -> ([Either m1 m2],[Either m1 m2])) 
-        (NxtEditor v (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (NxtEditor p r (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
         ->      
-        (NxtEditor v (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (NxtEditor p r (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
 
 link modClientInit modServerToClient modClientToServer editor = {NxtEditor|server=server,client=client}
 where
-	server = {value=value,configure=configure,onRefresh=onRefresh,onMessage=onMessage}
+	server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
 	where
-		value = editor.server.NxtEditorServer.value
-		configure = modClientInit o editor.server.NxtEditorServer.configure
+		init p 
+			# (s,c) = editor.server.NxtEditorServer.init p
+			= (s,modClientInit c)
 
-    	onRefresh sn so
-			# (msgs,(s1,s2)) = editor.server.NxtEditorServer.onRefresh sn so
-			# (msgs,(s1,s2)) = foldl modifyMsg ([],(s1,s2)) msgs
-			= (msgs, (s1,s2))
+		parameter = editor.server.NxtEditorServer.parameter
+		value = editor.server.NxtEditorServer.value
+
+    	onRefresh sn so 
+			# (msgs,(s1,s2),mbw) = editor.server.NxtEditorServer.onRefresh sn so
+			# (msgs,(s1,s2),mbwm) = foldl modifyMsg ([],(s1,s2),False) msgs
+			= (msgs, (s1,s2),mbw || mbwm)
 
 		onMessage m s
-			# (msgs,(s1,s2)) = editor.server.NxtEditorServer.onMessage m s 
-			# (msgs,(s1,s2)) = foldl modifyMsg ([],(s1,s2)) msgs
-			= (msgs,(s1,s2))
+			# (msgs,(s1,s2), mbw) = editor.server.NxtEditorServer.onMessage m s 
+			# (msgs,(s1,s2), mbwm) = foldl modifyMsg ([],(s1,s2),False) msgs
+			= (msgs,(s1,s2), mbw || mbwm)
 
-		modifyMsg (msgs,(s1,s2)) msg
+		modifyMsg (msgs,(s1,s2),mbw) msg
 			//Modify the outgoing messages
 			# (passOn,feedBack) = modServerToClient s1 s2 msg
 			//Feedback messages
-			# (feedbackOutput,(s1,s2)) = foldl feedBackMsg ([],(s1,s2)) feedBack
-			= (msgs ++ passOn ++ feedbackOutput, (s1,s2))
+			# (feedbackOutput,(s1,s2),mbwm) = foldl feedBackMsg ([],(s1,s2),False) feedBack
+			= (msgs ++ passOn ++ feedbackOutput, (s1,s2), mbw || mbwm) 
 
-		feedBackMsg (msgs,(s1,s2)) msg
-			# (emsgs,(s1,s2)) = onMessage msg (s1,s2)
-			= (msgs ++ emsgs,(s1,s2))
+		feedBackMsg (msgs,(s1,s2),mbw) msg
+			# (emsgs,(s1,s2),mbwm) = onMessage msg (s1,s2)
+			= (msgs ++ emsgs,(s1,s2),mbw || mbwm)
 
 	client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
 	where
@@ -266,15 +285,17 @@ where
 
 //Get rid of the tupling and combine the parts into a unified state, configuration and values
 fuse :: 
+		((p1,p2) -> p, p -> (p1,p2))                                       //Fuse parameter
+		((Maybe w1, Maybe w2) -> w, r -> (r1,r2))                          //Fuse read/write //FIXME
         ((c1,c2) -> c, c -> (c1,c2))                                       //Fuse client configuration
         ((s1,s2) -> s, s -> (s1,s2))                                       //Fuse server state
         ((Maybe m1, Maybe m2) -> (Maybe m), m -> (Maybe m1, Maybe m2))     //Fuse messages
-        ((Maybe v1, Maybe v2) -> (Maybe v), (Maybe v) -> (Maybe v1, Maybe v2)) //Fuse checked interface
-        (NxtEditor (Maybe v1, Maybe v2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
-        -> 
-        (NxtEditor v s c m)
 
-fuse (cfrom,cto) (sfrom,sto) (mfrom,mto) (vfrom,vto) editor = {NxtEditor|server=server,client=client}
+        (NxtEditor (p1,p2) (r1,r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        -> 
+        (NxtEditor p r w s c m)
+
+fuse (pfrom,pto) (wfrom,rto) (cfrom,cto) (sfrom,sto) (mfrom,mto) editor = {NxtEditor|server=server,client=client}
 where
     client = {init = init, onEvent = onEvent, onMessage = onMessage, state = state}
 	where
@@ -292,45 +313,45 @@ where
 			# (c,dom) = editor.client.NxtEditorClient.state ref dom
 			= (cfrom c,dom)
 
-	server = {value = (valueto,valuefrom), configure = configure, onRefresh = onRefresh, onMessage = onMessage}
+	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
     where
-		valueto mbv
-			# mbv  = case vto mbv of (Nothing,Nothing) = Nothing; v = Just v
-			= sfrom ((fst editor.server.NxtEditorServer.value) mbv)
-		valuefrom s
-			# mbv =  (snd editor.server.NxtEditorServer.value) (sto s) 
-			= maybe Nothing vfrom mbv
+		init p
+			# (s,c) = editor.server.NxtEditorServer.init (pto p)
+			= (sfrom s, cfrom c)
 
-		configure s = cfrom (editor.server.NxtEditorServer.configure (sto s))
+		parameter s = pfrom (editor.server.NxtEditorServer.parameter (sto s))
 
-		onRefresh sn so
-			# (msgs,s) = editor.server.NxtEditorServer.onRefresh (sto sn) (sto so)
-			= ([x \\ Just x <- map mfrom msgs],sfrom s)
+		value s = fmap wfrom (editor.server.NxtEditorServer.value (sto s))
+
+		onRefresh r s
+			# (msgs,s,w) = editor.server.NxtEditorServer.onRefresh (rto r) (sto s)
+			= ([x \\ Just x <- map mfrom msgs],sfrom s, w)
 
 		onMessage msg s
-			# (msgs,s) = editor.server.NxtEditorServer.onMessage (mto msg) (sto s)
-			= ([x \\ Just x <- map mfrom msgs],sfrom s)
-
+			# (msgs,s,w) = editor.server.NxtEditorServer.onMessage (mto msg) (sto s)
+			= ([x \\ Just x <- map mfrom msgs],sfrom s, w)
 
 //Simulation
-simulate :: (NxtEditor v s c m) (Maybe v) -> Task () | iTask v & iTask s & iTask c & iTask m & EditMessage m
-simulate editor value
-  = withShared ([],[])
+simulate :: (NxtEditor p r w s c m) p (Maybe r) -> Task () | iTask r & iTask w & iTask s & iTask c & iTask m & EditMessage m
+simulate editor p mbr
+  = withShared initNetworkState
   \networkState ->
-    withShared (initServerState editor value)
+    withShared initServerState 
   \serverState ->
-    withShared (initClientState editor value)
+    withShared initClientState
   \clientState ->
        (simulateServer editor serverState networkState
   -&&- viewNetwork networkState
   -&&- simulateClient editor clientState networkState)
   @! ()
-
-initServerState editor v = (fst editor.server.NxtEditorServer.value) v
-initClientState editor v = editor.client.NxtEditorClient.init c [1] 'DM'.newMap
 where
- s = (fst editor.server.NxtEditorServer.value) v
- c = editor.server.NxtEditorServer.configure s
+	(initClientState,initServerState,initNetworkState) = initStates
+	where
+		initStates
+			# (s,c) = editor.server.NxtEditorServer.init p
+			# cs = editor.client.NxtEditorClient.init c [1] 'DM'.newMap
+			# (s2c,s,_) = maybe ([],s,False) (\r -> editor.server.NxtEditorServer.onRefresh r s) mbr
+			= (cs,s,(map encodeEditMessage s2c,[]))
 
 simulateServer editor serverState networkState
    = viewSharedInformation (Title "Server") [ViewAs serverView] serverState
@@ -338,16 +359,14 @@ simulateServer editor serverState networkState
        ,OnAction (Action "Message") (always doServerMessage)
        ]
 where
-  serverView s 
-    = (s,(snd editor.server.NxtEditorServer.value) s)
+  serverView s = (s,editor.server.NxtEditorServer.value s)
 
   doServerRefresh
    =  enterInformation "Enter the refresh value" []
    >>= \v -> upd (setStates v) (serverState >*< networkState)
    where
      setStates v (s,(s2c,c2s)) 
-        # sv = (fst editor.server.NxtEditorServer.value) v
-        # (msgs,s) = editor.server.NxtEditorServer.onRefresh sv s
+        # (msgs,s,mbw) = editor.server.NxtEditorServer.onRefresh v s
         = (s, (s2c ++ map encodeEditMessage msgs, c2s))
 
   doServerMessage
@@ -355,7 +374,7 @@ where
    where
      setStates (s,(s2c,c2s)) = case c2s of
         [m:ms] 
-          # (msgs,s) = editor.server.NxtEditorServer.onMessage (decodeEditMessage m) s
+          # (msgs,s,mbw) = editor.server.NxtEditorServer.onMessage (decodeEditMessage m) s
           = (s, (s2c ++ map encodeEditMessage msgs,ms)) 
         _ 
           = (s,(s2c,c2s))
@@ -392,8 +411,7 @@ where
 
 
 //Test editor: Numberfield with a local increment button
-
-testEditor = fuse fusec fuses fusem fusev (link id s2c c2s (glue nxtNumberField nxtButton))
+testEditor = fuse fusep (fusew,fuser) fusec fuses fusem (link id s2c c2s (glue nxtNumberField nxtButton))
 where
 	//No changes on the server side
 	s2c _ _ msg = ([msg],[])
@@ -407,8 +425,12 @@ where
 	fuses = (fst, \x -> (x,False))
 
 	fusem = (fst,\x -> (Just x,Nothing)) 
-	fusev = (fst,\x -> (x,Nothing))
+	fusep = (const (), const ((),()))
+	fusew = fst
+	fuser x = (x,False)
 
-testValue = Just 42
+testRead = Just 42
 
-Start world = doTasks (simulate testEditor testValue) world
+testParam = ()
+
+Start world = doTasks (simulate testEditor testParam testRead) world
