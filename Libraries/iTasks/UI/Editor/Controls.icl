@@ -194,12 +194,7 @@ where
 		# cSel               = if (newSel =!= oldSel) (ChangeUI [SetAttribute "value" (toJSON newSel)] []) NoChange
 		= (Ok (mergeUIChanges cOptions cSel, (Just newVal, newSel)),vst)
 
-	valueFromState (Just val, sel)
-		//The selection is only allowed to be empty when multiselect is enabled
-		| not multiple && isEmpty sel = Nothing
-		| otherwise                   = Just (val, sel)
-	where
-		multiple = maybe False (\(JSONBool b) -> b) ('DM'.get "multiple" $ attr val)
+	valueFromState (Just val, sel) = Just (val, sel)
 	valueFromState _               = Nothing
 
 	mbValToOptions mbVal = toOption <$> maybe [] getOptions mbVal
