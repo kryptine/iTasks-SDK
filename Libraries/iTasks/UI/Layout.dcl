@@ -13,7 +13,7 @@ from Data.Map  import :: Map
 from Data.Set import :: Set
 from Data.Either import :: Either
 
-from Text.GenJSON import :: JSONNode
+from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from StdOverloaded import class <
 
 // This type is a mini query language to describe a selection
@@ -117,11 +117,21 @@ sequenceLayouts :: ![LayoutRule] -> LayoutRule
 //From this data structure both the UI with, and without the layout effects, can be deduced
 :: LUI
 	//UI nodes (with upstream changes)
-	= LUINode !UIType !UIAttributes ![LUI] !LUIChanges !LUIEffects
+	= LUINode !LUINode
 	//Placeholder nodes
 	| LUIShiftDestination !LUIShiftID
 	| LUIMoveSource !LUIMoveID
 	| LUIMoveDestination !LUIMoveID !LUINo
+
+derive JSONEncode LUI
+derive JSONDecode LUI
+
+:: LUINode = { type       :: !UIType
+             , attributes :: !UIAttributes
+             , items      :: ![LUI]
+             , changes    :: !LUIChanges
+             , effects    :: !LUIEffects
+             }
 
 //Upstream UI changes
 :: LUIChanges =
@@ -155,6 +165,9 @@ sequenceLayouts :: ![LayoutRule] -> LayoutRule
 	| ESToBeUpdated !a !a
 	| ESToBeRemoved !a
 
+derive JSONEncode LUIEffectStage
+derive JSONDecode LUIEffectStage
+
 //Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
 //and in their destination location (to apply further effects).
 //To make this possible, we put those nodes in a separate table and put references in the tree
@@ -166,6 +179,9 @@ noEffects :: LUIEffects
 
 //When layout rules make changes, it must be tracable which layout rule caused the change
 :: LUINo = LUINo ![Int]
+
+derive JSONEncode LUINo
+derive JSONDecode LUINo
 
 instance < LUINo
 instance == LUINo
@@ -190,7 +206,7 @@ extractDownstreamChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 
 //Helper functions (exported for unit testing)
 scanToPosition_ :: !LUINo !Int ![LUI] !LUIMoves -> (!Int, !Bool, !Maybe LUI)
-nodeExists_ :: !LUINo !LUI LUIMoves -> Bool
+nodeExists_ :: !LUINo !LUI !LUIMoves -> Bool
 selectChildNodes_ :: !LUINo !(![LUI], !LUIMoves) -> [LUI]
 updateChildNodes_ :: !LUINo !(Int (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(![LUI], !LUIMoves) -> (![LUI], !LUIMoves)
 selectSubNode_ :: !LUINo !UIPath !(!LUI, !LUIMoves) -> Maybe LUI
