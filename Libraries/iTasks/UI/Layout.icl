@@ -57,13 +57,13 @@ noEffects :: LUIEffects
 noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DM'.newMap, additional = ESNotApplied, hidden = ESNotApplied, wrapper = ESNotApplied, unwrapped = ESNotApplied}
 
 //Initialize an LUI tree from a regular UI tree
-initLUI :: UI -> LUI
+initLUI :: !UI -> LUI
 initLUI (UI type attr items) = LUINode type attr (map initLUI items) noChanges noEffects
 
 initLUIMoves :: LUIMoves
 initLUIMoves = 'DM'.newMap
 
-extractResetChange :: (LUI,LUIMoves) -> (UIChange,(LUI,LUIMoves))
+extractResetChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 extractResetChange (lui,moves)
 	# mbUI = extractUIWithEffects_ (lui,moves)
 	= case confirmChangesAndEffects_ (lui,moves) of
@@ -79,7 +79,7 @@ extractResetChange (lui,moves)
 
 //When an upstream UI change is applied to the LUI it is recorded in the LUI tree
 //in such a way that it can easily be extracted as a downstream change later on
-applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
+applyUpstreamChange :: !UIChange !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 applyUpstreamChange change (lui=:(LUIMoveSource moveId),moves)
 	# (movedStage,movedLui) = getMovedNode_ moveId moves
 	# (movedLui,moves) = applyUpstreamChange change (movedLui,moves)
@@ -98,7 +98,7 @@ applyUpstreamChange (ReplaceUI ui) (lui,moves) = abort "applyUpstreamChange: can
 applyUpstreamChange (ChangeUI attributeChanges childChanges) (lui,moves)
 	= (foldl applyUpstreamChildChange (foldl applyUpstreamAttributeChange (lui,moves) attributeChanges) childChanges)
 where
-	applyUpstreamAttributeChange :: (LUI,LUIMoves) UIAttributeChange -> (LUI,LUIMoves)
+	applyUpstreamAttributeChange :: !(!LUI, !LUIMoves) !UIAttributeChange -> (!LUI, !LUIMoves)
 	applyUpstreamAttributeChange (LUINode type attr items changes=:{setAttributes,delAttributes} effects,moves) (SetAttribute key value)
 		# setAttributes = 'DM'.put key value setAttributes
 		# delAttributes = 'DS'.delete key delAttributes
@@ -109,7 +109,7 @@ where
 		= (LUINode type attr items {changes & setAttributes = setAttributes, delAttributes = delAttributes} effects, moves)
 	applyUpstreamAttributeChange (lui,moves) _ = (lui,moves)
 
-	applyUpstreamChildChange :: (LUI,LUIMoves) (Int,UIChildChange) -> (LUI,LUIMoves)
+	applyUpstreamChildChange :: !(!LUI, !LUIMoves) !(!Int, !UIChildChange) -> (!LUI, !LUIMoves)
 	applyUpstreamChildChange (lui,moves) (index,ChangeChild change) = case lui of
 		(LUINode type attr items changes effects)
 			# adjustedIndex = adjustIndex_ index items moves
@@ -194,14 +194,14 @@ where
 				                                              = find (i + 1) ai xs
 
 	//Adjust a change index for additional nodes inserted by layout rules
-	adjustIndex_ :: Int [LUI] LUIMoves -> Int
+	adjustIndex_ :: !Int ![LUI] !LUIMoves -> Int
 	adjustIndex_ index items moves = fst3 (scanToPosition_ (LUINo []) index items moves)
 
 /*
 * Layout rules transform the 'buffered' tree and annotate the places where layout effects
 * should be applied, or should no longer be applied
 */
-setUIType :: UIType -> LayoutRule
+setUIType :: !UIType -> LayoutRule
 setUIType newType = rule
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -221,7 +221,7 @@ where
 				| otherwise           = (ESToBeUpdated (curRule,curType) (ruleNo,newType))
 		= (LUINode type attr items changes {effects & overwrittenType = overwrittenType},moves)
 
-setUIAttributes :: UIAttributes -> LayoutRule
+setUIAttributes :: !UIAttributes -> LayoutRule
 setUIAttributes setAttributes = rule
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -230,7 +230,7 @@ where
 		# overwrittenAttributes = foldr (overwriteAttribute_ ruleNo) overwrittenAttributes ('DM'.toList setAttributes)
 		= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes},moves)
 
-delUIAttributes :: UIAttributeSelection -> LayoutRule
+delUIAttributes :: !UIAttributeSelection -> LayoutRule
 delUIAttributes selection = rule 
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -240,7 +240,7 @@ where
 		# hiddenAttributes = foldr (hideAttribute_ ruleNo (matchAttributeKey_ selection)) hiddenAttributes keys
 		= (LUINode type attr items changes {effects & hiddenAttributes = hiddenAttributes}, moves)
 
-modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+modifyUIAttributes :: !UIAttributeSelection !(UIAttributes -> UIAttributes) -> LayoutRule
 modifyUIAttributes selection modifier = rule 
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -259,7 +259,7 @@ where
 	where
 		isRemoved key = not ('DM'.member key modified)
 
-copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> LayoutRule
+copySubUIAttributes :: !UIAttributeSelection !UIPath !UIPath -> LayoutRule
 copySubUIAttributes selection src dst = rule
 where
 	rule ruleNo (lui,moves)
@@ -270,7 +270,7 @@ where
 		selectSource (lui,moves) = fmap (selectAttributes_ selection o nodeAttributes_ ruleNo) (selectSubNode_ ruleNo src (lui,moves))
 		withEffect (lui,moves) attr = updateSubNode_ ruleNo dst ((setUIAttributes attr) ruleNo) (lui,moves)
 
-wrapUI :: UIType -> LayoutRule
+wrapUI :: !UIType -> LayoutRule
 wrapUI type = rule
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo rule` (lui,moves)
@@ -309,7 +309,7 @@ where
 			ESToBeRemoved _ = ESApplied ruleNo
 		= (LUINode type attr items changes {effects & hidden=hidden},moves)
 
-insertChildUI :: Int UI -> LayoutRule
+insertChildUI :: !Int !UI -> LayoutRule
 insertChildUI position insertion = rule
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -336,13 +336,15 @@ where
 	getAdditional (LUINode _ _ _ _ {additional}) = additional
 	getAdditional _ = ESNotApplied
 
+	undoAdditions :: !LUINo ![LUI] -> [LUI]
 	undoAdditions ruleNo items = map undo items
 	where
-		undo lui=:(LUINode type attr items changes effects=:{additional})
+		undo :: !LUI -> LUI
+		undo (LUINode type attr items changes effects=:{additional})
 			= LUINode type attr items changes {effects & additional = undoEffect_ ruleNo id additional}
 		undo lui = lui
 
-moveSubUIs :: UISelection UIPath Int -> LayoutRule
+moveSubUIs :: !UISelection !UIPath !Int -> LayoutRule
 moveSubUIs selection path pos = rule
 where
 	rule ruleNo (lui,moves) = updateNode_ ruleNo (rule` ruleNo) (lui,moves)
@@ -445,7 +447,7 @@ where
 			currentMove (LUIMoveDestination moveId _) = isMember moveId moved
 			currentMove  _ = False
 
-layoutSubUIs :: UISelection LayoutRule -> LayoutRule
+layoutSubUIs :: !UISelection !LayoutRule -> LayoutRule
 layoutSubUIs selection sub = rule
 where
 	rule ruleNo (lui,moves) = apply [] (lui,moves)
@@ -460,11 +462,12 @@ where
 				//We want to check the set of children at the time of `ruleNo`
 				= updateNode_ ruleNo (applyc path) (lui,moves)
 
+		applyc :: !UIPath !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 		applyc path (lui=:(LUINode type attr items changes effects),moves)
 			# (items,moves) = updateChildNodes_ ruleNo (\i (item,moves) -> apply (path ++ [i]) (item,moves)) (items,moves)
 			= (LUINode type attr items changes effects,moves)
 
-sequenceLayouts :: [LayoutRule] -> LayoutRule
+sequenceLayouts :: ![LayoutRule] -> LayoutRule
 sequenceLayouts subs = rule
 where
 	rule (LUINo ruleNo) lui = snd (foldl apply (0,lui) subs)
@@ -472,20 +475,20 @@ where
 		apply (i,lui) sub = (i + 1, sub (LUINo (ruleNo ++ [i])) lui)
 
 //Utility functions shared by the layout rules:
-setToBeInserted_ :: LUI -> LUI
+setToBeInserted_ :: !LUI -> LUI
 setToBeInserted_ (LUINode type attr items changes effects) = LUINode type attr items {noChanges & toBeInserted = True} effects
 
-setToBeAdded_ :: LUINo LUI -> LUI
+setToBeAdded_ :: !LUINo !LUI -> LUI
 setToBeAdded_ ruleNo (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleNo}
 
-nextShiftID_ :: [LUI] -> LUIShiftID
+nextShiftID_ :: ![LUI] -> LUIShiftID
 nextShiftID_ items = maximum [-1:map shiftID items] + 1
 where
 	shiftID (LUINode _ _ _ {toBeShifted=Just x} _) = x
 	shiftID (LUIShiftDestination x) = x
 	shiftID _ = -1
 
-nextMoveID_ :: LUIMoves -> LUIMoveID
+nextMoveID_ :: !LUIMoves -> LUIMoveID
 nextMoveID_ moves = (foldr max 0 ('DM'.keys moves)) + 1
 
 //Test if a certain node exists at the time of rule application
@@ -542,7 +545,7 @@ nodeExists_ ruleNo (LUIMoveDestination moveId moveRule) moves
 nodeExists_ _ _ _ = True
 
 //Test if a node matches a selection UI at a path is in the selection
-nodeSelected_ :: LUINo UISelection UIPath LUI LUIMoves -> Bool
+nodeSelected_ :: !LUINo !UISelection !UIPath !LUI !LUIMoves -> Bool
 nodeSelected_ ruleNo (SelectByPath p) path _ moves = p === path
 nodeSelected_ ruleNo (SelectByDepth n) p _ moves = length p == n
 nodeSelected_ ruleNo (SelectDescendents) [_:_] _ moves = True
@@ -576,11 +579,11 @@ nodeSelected_ ruleNo (SelectOR sell selr) path ui moves = nodeSelected_ ruleNo s
 nodeSelected_ ruleNo (SelectNOT sel) path ui moves = not (nodeSelected_ ruleNo sel path ui moves)
 nodeSelected_ ruleNo _ _ _ moves = False
 
-matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
+matchAttributeKey_ :: !UIAttributeSelection !UIAttributeKey -> Bool
 matchAttributeKey_ (SelectAll) _ = True
 matchAttributeKey_ (SelectKeys keys) k = isMember k keys
 
-selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
+selectAttributes_ :: !UIAttributeSelection !UIAttributes -> UIAttributes
 selectAttributes_ selection attr = case selection of
 	SelectAll         = attr
 	(SelectKeys keys) = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
@@ -593,37 +596,38 @@ selectAttributes_ selection attr = case selection of
 //It ignores nodes that are not relevant such as:
 //- items that were added by later rules
 
-scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
+scanToPosition_ :: !LUINo !Int ![LUI] !LUIMoves -> (!Int, !Bool, !Maybe LUI)
 scanToPosition_ ruleNo position items moves = scan position 0 items
 where
+	scan :: !Int !Int ![LUI] -> (!Int, !Bool, !Maybe LUI)
 	scan r i [] = (i, r == 0, Nothing) //Scanned beyond the list
 	scan r i [x:xs]
 		| not (nodeExists_ ruleNo x moves) = scan r (i + 1) xs //Skip
 		| r == 0 = (i,True,Just x)
 		| otherwise = scan (r - 1) (i + 1) xs
 
-isAdditional_ :: LUI -> Bool
+isAdditional_ :: !LUI -> Bool
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
 isAdditional_ (LUIMoveDestination _ _) = True
 isAdditional_ _ = False
 
-isShifted_ :: LUI -> Bool
+isShifted_ :: !LUI -> Bool
 isShifted_ (LUINode _ _ _ {LUIChanges|toBeShifted} _) = isJust toBeShifted
 isShifted_ _ = False
 
-isUnwrapped_ :: LUI -> Bool
+isUnwrapped_ :: !LUI -> Bool
 isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) = True
 isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
 isUnwrapped_ _ = False
 
-isHidden_ :: LUI -> Bool
+isHidden_ :: !LUI -> Bool
 isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
 isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = True
 isHidden_ _ = False
 
-lookupShiftSource_ :: Int [LUI] -> (Int,LUI)
+lookupShiftSource_ :: !Int ![LUI] -> (!Int, !LUI)
 lookupShiftSource_ shiftId items = lookup 0 items 
 where
 	lookup _ [] = abort "lookupShiftSource_: could not find source"
@@ -632,12 +636,12 @@ where
 	isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
 	isSource _ = False
 
-selectNode_ :: LUINo Bool ((LUI,LUIMoves) -> a) (LUI,LUIMoves) -> Maybe a
+selectNode_ :: !LUINo !Bool !((!LUI, !LUIMoves) -> a) !(!LUI, !LUIMoves) -> Maybe a
 selectNode_ ruleNo beforeEffect selector (lui,moves) = fst3 (processNode_ ruleNo beforeEffect fun (lui,moves))
 where
 	fun (lui,moves) = (selector (lui,moves),lui,moves)
 
-selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI] 
+selectChildNodes_ :: !LUINo !(![LUI], !LUIMoves) -> [LUI]
 selectChildNodes_ ruleNo (items,moves)
 	# (selection,_,moves) = processChildNodes_ ruleNo fun ([],items,moves)
 	= map snd (sortBy fstEl selection)
@@ -645,7 +649,7 @@ where
 	fun i (acc,item,moves) = ([(i,item):acc],item,moves)
 	fstEl (x,_) (y,_) = x < y	
 
-selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI 
+selectSubNode_ :: !LUINo !UIPath !(!LUI, !LUIMoves) -> Maybe LUI
 selectSubNode_ ruleNo [] (lui,moves)= selectNode_ ruleNo False fst (lui,moves)
 selectSubNode_ ruleNo [s:ss] (lui,moves) = maybe Nothing id (selectNode_ ruleNo False select (lui,moves))
 where
@@ -654,7 +658,7 @@ where
 		| s < 0 || s >= length items = Nothing
 		| otherwise = selectSubNode_ ruleNo ss (items !! s, moves)
 
-updateNode_ :: LUINo ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+updateNode_ :: !LUINo !((!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 updateNode_ ruleNo update (lui,moves)
 	# (_,lui,moves) = processNode_ ruleNo False fun (lui,moves)
 	= (lui,moves)
@@ -663,7 +667,7 @@ where
 		# (item,moves) = update (item,moves)
 		= ((),item,moves)
 
-updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
+updateChildNodes_ :: !LUINo !(Int (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(![LUI], !LUIMoves) -> (![LUI], !LUIMoves)
 updateChildNodes_ ruleNo update (items,moves)
 	# (_,items,moves) = processChildNodes_ ruleNo fun ((),items,moves)
 	= (items, moves)
@@ -672,7 +676,7 @@ where
 		# (items,moves) = update i (items,moves)
 		= (s,items,moves)
 
-updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+updateSubNode_ :: !LUINo !UIPath !((!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 updateSubNode_ ruleNo [] update (lui,moves) = updateNode_ ruleNo update (lui,moves)
 updateSubNode_ ruleNo [s:ss] update (lui,moves) = updateNode_ ruleNo apply (lui,moves)
 where
@@ -680,9 +684,11 @@ where
 		# (items,moves) = updateChildNodes_ ruleNo applyc (items,moves)
 		= (LUINode type attr items changes effects,moves)
 
+	applyc :: !Int !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 	applyc i (lui,moves) = if (i == s) (updateSubNode_ ruleNo ss update (lui,moves)) (lui,moves)
 
-processNode_ :: LUINo Bool ((LUI,LUIMoves) -> (a,LUI,LUIMoves)) (LUI,LUIMoves) -> (Maybe a, LUI, LUIMoves)
+processNode_ :: !LUINo !Bool !((!LUI, !LUIMoves) -> (!a, !LUI, !LUIMoves)) !(!LUI, !LUIMoves)
+             -> (!Maybe a, !LUI, !LUIMoves)
 processNode_ ruleNo beforeEffect fun (lui,moves) = case lui of
 	//When a move source exists (it is moved by a later rule), we update the referenced node
 	(LUIMoveSource moveId)
@@ -743,9 +749,11 @@ where
 				= (result, LUINode type attr (updateAt index wrapped items) changes effects, moves)
 			_ = (Nothing,lui,moves)
 
-processChildNodes_ :: LUINo (Int (a,LUI,LUIMoves) -> (a,LUI,LUIMoves)) (a,[LUI],LUIMoves) -> (a,[LUI],LUIMoves) 
+processChildNodes_ :: !LUINo !(Int (!a, !LUI, !LUIMoves) -> (!a, !LUI, !LUIMoves)) !(!a, ![LUI], !LUIMoves)
+                   -> (!a, ![LUI], !LUIMoves)
 processChildNodes_ ruleNo fun (state,items,moves) = processItems (indexShiftDestinations items moves) state items moves
 where
+	indexShiftDestinations :: ![LUI] !LUIMoves -> Map Int Int
 	indexShiftDestinations items moves = snd (foldl index (0,'DM'.newMap) items) 
 	where
 		index (i,positions) item
@@ -755,10 +763,12 @@ where
 			| otherwise                                  = (i, positions)
 
 	processItems shiftDestinations state items moves
-		# (_,state,items,moves) = foldl updateItem (0,state,[],moves) items
+		# (_,state,items,moves) = foldl (updateItem fun) (0,state,[],moves) items
 		= (state,reverse items, moves)
 	where
-		updateItem (i,state,acc,moves) item 
+		updateItem :: !(Int (!a, !LUI, !LUIMoves) -> (!a, !LUI, !LUIMoves)) !(!Int, !a, ![LUI], !LUIMoves) !LUI
+		           -> (!Int, !a, ![LUI], !LUIMoves)
+		updateItem fun (i,state,acc,moves) item
 			| nodeExists_ ruleNo item moves
 				# (state,item,moves) = case item of 
 					//For shifted items we update the source
@@ -774,30 +784,30 @@ where
 					_ = (state,item,moves)
 				= (i, state,[item:acc], moves)
 
-getMovedNode_ :: LUIMoveID LUIMoves -> (LUIEffectStage LUINo,LUI)
+getMovedNode_ :: !LUIMoveID !LUIMoves -> (!LUIEffectStage LUINo, !LUI)
 getMovedNode_ moveId moves = case 'DM'.get moveId moves of
 	Nothing = abort ("Get: Unknown id " +++ toString moveId +++ " in moved items\n")
 	Just item = item
 
-putMovedNode_ :: LUIMoveID (LUIEffectStage LUINo,LUI) LUIMoves -> LUIMoves
+putMovedNode_ :: !LUIMoveID !(!LUIEffectStage LUINo, !LUI) !LUIMoves -> LUIMoves
 putMovedNode_ moveId node moves = 'DM'.put moveId node moves
 
-delMovedNode_ :: LUIMoveID LUIMoves -> LUIMoves
+delMovedNode_ :: !LUIMoveID !LUIMoves -> LUIMoves
 delMovedNode_ moveId moves = 'DM'.del moveId moves
 
-getMovedBy_ :: (LUIEffectStage LUINo) -> Maybe LUINo
+getMovedBy_ :: !(LUIEffectStage LUINo) -> Maybe LUINo
 getMovedBy_ (ESApplied ruleNo) = Just ruleNo
 getMovedBy_ (ESToBeApplied ruleNo) = Just ruleNo
 getMovedBy_ (ESToBeUpdated _ ruleNo) = Just ruleNo
 getMovedBy_ _ = Nothing
 
-nodeType_ :: LUINo LUI -> UIType
+nodeType_ :: !LUINo !LUI -> UIType
 nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeApplied (appliedAt,type)}) | appliedAt < ruleNo = type
 nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESApplied (appliedAt,type)}) | appliedAt < ruleNo = type
 nodeType_ ruleNo (LUINode _ _ _ _ {overwrittenType=ESToBeUpdated _ (appliedAt,type)}) | appliedAt < ruleNo = type
 nodeType_ ruleNo (LUINode type _ _ _ _) = type
 
-nodeAttributes_ :: LUINo LUI -> UIAttributes
+nodeAttributes_ :: !LUINo !LUI -> UIAttributes
 nodeAttributes_ ruleNo (LUINode _ attr _ changes effects=:{overwrittenAttributes,hiddenAttributes})
 	//Consider upstream changes
 	# attr = applyAttributeChanges_ changes attr 
@@ -817,18 +827,18 @@ where
 	hide attr (key,ESToBeUpdated _ appliedAt) | appliedAt < ruleNo = 'DM'.del key attr
 	hide attr _ = attr
 
-applyTypeEffect_ :: UIType LUIEffects -> UIType
+applyTypeEffect_ :: !UIType !LUIEffects -> UIType
 applyTypeEffect_ ltype effects=:{overwrittenType} = case overwrittenType of
 	ESToBeApplied (_,type) = type
 	ESApplied (_,type) = type
 	ESToBeUpdated _ (_,type) = type
 	_ = ltype
 
-applyAttributeChanges_ :: LUIChanges UIAttributes -> UIAttributes 
+applyAttributeChanges_ :: !LUIChanges !UIAttributes -> UIAttributes
 applyAttributeChanges_ {setAttributes,delAttributes} attr
 	= 'DM'.delList ('DS'.toList delAttributes) ('DM'.union setAttributes attr)
 
-applyAttributeEffects_ :: UIAttributes LUIEffects -> UIAttributes
+applyAttributeEffects_ :: !UIAttributes !LUIEffects -> UIAttributes
 applyAttributeEffects_ attr effects=:{overwrittenAttributes,hiddenAttributes} 
 	# attr = foldl overwrite attr ('DM'.toList overwrittenAttributes)
 	# attr = foldl hide attr ('DM'.toList hiddenAttributes)
@@ -846,7 +856,7 @@ where
 	hide attr (key,ESToBeUpdated _ ruleNo) = 'DM'.del key attr
 	hide attr (key,ESToBeRemoved _) = attr
 
-overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
+overwriteAttribute_ :: !LUINo !UIAttribute !(Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode)))
 overwriteAttribute_ ruleNo (key,value) overwrittenAttributes
 	# override = case 'DM'.get key overwrittenAttributes of
 		//Not set yet
@@ -867,7 +877,7 @@ overwriteAttribute_ ruleNo (key,value) overwrittenAttributes
 			| otherwise         = ESToBeUpdated (curRule,curValue) (ruleNo,value)
 	= 'DM'.put key override overwrittenAttributes
 
-hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
+hideAttribute_ :: !LUINo !(UIAttributeKey -> Bool) !UIAttributeKey !(Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
 hideAttribute_ ruleNo condition key hiddenAttributes
 	| isAlreadyHidden key hiddenAttributes
 		= if (condition key)
@@ -885,7 +895,7 @@ where
 		_ = False
 
 //Undo the effects of a previously applied rule for a single node
-undoEffects_ :: LUINo (LUI,LUIMoves) -> (LUI,LUIMoves)
+undoEffects_ :: !LUINo !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 undoEffects_ ruleNo (LUINode type attr items changes effects,moves)
 	= (LUINode type attr items changes (undo ruleNo effects), moves)
 where 
@@ -899,8 +909,8 @@ where
 		  ,unwrapped = undoEffect_ ruleNo id unwrapped
 		  }
 
-undoEffects_ ruleNo (ref=:(LUIMoveSource moveId),moves) = case 'DM'.get moveId moves of
-	Nothing = (ref,moves)
+undoEffects_ ruleNo luiWithMoves=:(ref=:(LUIMoveSource moveId),moves) = case 'DM'.get moveId moves of
+	Nothing = luiWithMoves
 	Just (moveStage,lui)
 		# moveStage = undoEffect_ ruleNo id moveStage
 		# (lui,moves) = undoEffects_ ruleNo (lui,moves)
@@ -915,7 +925,7 @@ undoEffects_ ruleNo (ref=:LUIMoveDestination moveId moveRule,moves) = case 'DM'.
 
 undoEffects_ ruleNo (LUIShiftDestination shiftId,moves) = (LUIShiftDestination shiftId,moves)
 
-undoEffect_ :: LUINo (a -> LUINo) (LUIEffectStage a) -> LUIEffectStage a
+undoEffect_ :: !LUINo !(a -> LUINo) !(LUIEffectStage a) -> LUIEffectStage a
 undoEffect_ ruleNo f (ESToBeApplied x) | isPartOf_ (f x) ruleNo = ESNotApplied
 undoEffect_ ruleNo f (ESApplied x) | isPartOf_ (f x) ruleNo = ESToBeRemoved x
 undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f c) ruleNo = ESToBeRemoved c
@@ -923,7 +933,7 @@ undoEffect_ ruleNo f (ESToBeUpdated c x) | isPartOf_ (f x) ruleNo = ESApplied c
 undoEffect_ _ _ es = es
 
 //Check if x is a sub-rule of y
-isPartOf_ :: LUINo LUINo -> Bool
+isPartOf_ :: !LUINo !LUINo -> Bool
 isPartOf_ (LUINo x) (LUINo y) = check x y
 where
 	check _ [] = True
@@ -936,7 +946,7 @@ where
 * the ui change that has to be applied downstream, and a new version of the buffered tree that
 * in which all pending changes and effects have been applied.
 */
-extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
+extractDownstreamChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 extractDownstreamChange (lui,moves) 
 	# mbChildChange = extractDownstreamChildChange lui moves
 	# (mbLui,moves)  = confirmChangesAndEffects_ (lui, moves)
@@ -953,7 +963,7 @@ extractDownstreamChange (lui,moves)
 // 2. Just (RemoveChild)          - The node existed previously but should not
 // 3. Just (ChangeChild x)        - The node existed previously and still does
 // 4. Nothing                     - The node did not exist client-side and still does not...
-extractDownstreamChildChange :: LUI LUIMoves -> Maybe UIChildChange
+extractDownstreamChildChange :: !LUI !LUIMoves -> Maybe UIChildChange
 extractDownstreamChildChange lui moves
 	# (mbMoveId,mbDestinationRule,(mbMovedStage,current=:LUINode _ _ items changes effects)) = case lui of
 		(LUINode _ _ _ _ _)                  = (Nothing, Nothing,(Nothing,lui))
@@ -1066,7 +1076,7 @@ where
 		| otherwise
 			= Nothing
 
-extractAttributeChanges :: UIAttributes LUIChanges LUIEffects -> [UIAttributeChange]
+extractAttributeChanges :: !UIAttributes !LUIChanges !LUIEffects -> [UIAttributeChange]
 extractAttributeChanges attr changes=:{setAttributes,delAttributes} effects=:{overwrittenAttributes,hiddenAttributes}
 	//Apply changes to the attributes
 	# changes = foldl (applySetAttribute overwrittenAttributes hiddenAttributes) [] ('DM'.toList setAttributes)
@@ -1122,7 +1132,7 @@ where
 //Important: Shifts are done before inserts and removes
 //           so we ignore items that are not yet inserted, but still
 //           count items that are to be removed
-extractChildShifts :: [LUI] -> ([(Int,UIChildChange)],[LUI])
+extractChildShifts :: ![LUI] -> (![(!Int, !UIChildChange)], ![LUI])
 extractChildShifts items = extract 0 [] items
 where
 	extract i acc [] = ([],reverse acc)
@@ -1178,7 +1188,7 @@ where
 	resetToBeShifted (LUINode type attr items changes effects)
 		= LUINode type attr items {changes & toBeShifted = Nothing} effects
 
-extractChildInsertsAndRemoves :: [LUI] LUIMoves -> [(Int,UIChildChange)]
+extractChildInsertsAndRemoves :: ![LUI] !LUIMoves -> [(!Int, !UIChildChange)]
 extractChildInsertsAndRemoves items moves = extract 0 items moves
 where
 	extract i [] moves = []
@@ -1189,7 +1199,7 @@ where
 		(Just (ChangeChild c)) = [(i,ChangeChild c):extract (i + 1) xs moves]
 		Nothing = extract i xs moves
 
-extractUIWithEffects_ :: (LUI,LUIMoves) -> Maybe UI
+extractUIWithEffects_ :: !(!LUI, !LUIMoves) -> Maybe UI
 extractUIWithEffects_ (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects, moves)
 	= extractUIWithEffects_ (replacement,moves)
 extractUIWithEffects_ (LUINode ltype lattr litems changes effects=:{wrapper=ESToBeRemoved _}, moves)
@@ -1212,7 +1222,7 @@ extractUIWithEffects_ (lui=:LUINode ltype lattr litems changes=:{setAttributes,d
 
 extractUIWithEffects_ _ = abort "extractUIWithEffects_: can only extract UI from LUINodes"
 
-extractChildUIsWithEffects_ :: [LUI] LUIMoves -> [UI]
+extractChildUIsWithEffects_ :: ![LUI] !LUIMoves -> [UI]
 extractChildUIsWithEffects_ litems moves = foldr extract [] litems
 where
 	shiftSources = foldr collect 'DM'.newMap litems
@@ -1266,7 +1276,7 @@ where
 
 derive JSONEncode LUI, LUINo, LUIEffects, LUIChanges, LUIEffectStage, Set
 
-confirmChangesAndEffects_ :: (LUI,LUIMoves) -> (Maybe LUI,LUIMoves)
+confirmChangesAndEffects_ :: !(!LUI, !LUIMoves) -> (!Maybe LUI, !LUIMoves)
 confirmChangesAndEffects_ (LUINode _ _ _ {toBeReplaced=Just replacement} _, moves)
 	= confirmChangesAndEffects_ (replacement,moves)
 confirmChangesAndEffects_ (LUINode _ _ _ {toBeRemoved=True} _, moves)
@@ -1301,7 +1311,7 @@ confirmChangesAndEffects_ (ref=:(LUIMoveDestination moveId moveRule),moves)
 		Just (ESToBeUpdated _ movedBy,_) | movedBy === moveRule = (Just ref,moves)
 		_ = (Nothing,moves)
 
-confirmChildChangesAndEffects_ :: [LUI] LUIMoves -> ([LUI],LUIMoves)
+confirmChildChangesAndEffects_ :: ![LUI] !LUIMoves -> (![LUI], !LUIMoves)
 confirmChildChangesAndEffects_ items moves = foldr confirm ([],moves) items
 where
 	shiftSources = foldr collect 'DM'.newMap items
@@ -1317,7 +1327,7 @@ where
 		# (mbitem,moves) = confirmChangesAndEffects_ (item,moves)
 		= (maybe items (\i -> [i:items]) mbitem, moves)
 
-confirmEffects_ :: LUIEffects -> LUIEffects
+confirmEffects_ :: !LUIEffects -> LUIEffects
 confirmEffects_ {overwrittenType,overwrittenAttributes,hiddenAttributes,additional,hidden,wrapper,unwrapped}
 	= {overwrittenType = confirmEffect_ overwrittenType
 	  ,overwrittenAttributes = confirmMap overwrittenAttributes
@@ -1330,7 +1340,7 @@ confirmEffects_ {overwrittenType,overwrittenAttributes,hiddenAttributes,addition
 where
 	confirmMap m = ('DM'.fromList o (map (appSnd confirmEffect_)) o 'DM'.toList) m
 
-confirmEffect_ :: (LUIEffectStage a) -> LUIEffectStage a
+confirmEffect_ :: !(LUIEffectStage a) -> LUIEffectStage a
 confirmEffect_ (ESToBeApplied x) = ESApplied x
 confirmEffect_ (ESToBeUpdated _ x) = ESApplied x
 confirmEffect_ (ESToBeRemoved x) = ESNotApplied
@@ -1339,7 +1349,7 @@ confirmEffect_ es = es
 //This extra pass should not be necessary, but without it the moves table is
 //leaking memory
 //TODO: Figure out why some moved items are still in the table
-cleanupState_ :: (LUI,LUIMoves) -> (LUI,LUIMoves) 
+cleanupState_ :: !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 cleanupState_ (lui,moves) = (lui, onlyKeep usedMoveIds moves)
 where
 	onlyKeep keep moves = ('DM'.fromList o (filter (\(k,_) -> isMember k keep)) o 'DM'.toList) moves

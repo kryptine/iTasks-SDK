@@ -26,21 +26,21 @@ from StdOverloaded import class <
 SelectChildren :== SelectByDepth 1
 :: UISelection
 	//Select only nodes matching the exact path
-	= SelectByPath UIPath
+	= SelectByPath !UIPath
 	//Only match nodes at a given depth
-	| SelectByDepth Int
+	| SelectByDepth !Int
 	//Match any descendents of any depth
 	| SelectDescendents
 	//Match nodes of a certain type
-	| SelectByType UIType
+	| SelectByType !UIType
 	//Match nodes that have a matching attribute
-	| SelectByAttribute String (JSONNode -> Bool)
+	| SelectByAttribute !String !(JSONNode -> Bool)
 	//Match nodes that have the attribute
-	| SelectByHasAttribute String
+	| SelectByHasAttribute !String
 	//Match nodes with exactly the given number of children
-	| SelectByNumChildren Int
+	| SelectByNumChildren !Int
 	//Match nodes that match the given selection on traversal of the given path
-	| SelectRelative UIPath UISelection
+	| SelectRelative !UIPath !UISelection
 	//Check if another (sub)-selection exists
 	//For example, to select child nodes that have a UIAction child you use:
 	//SelectAND
@@ -50,13 +50,13 @@ SelectChildren :== SelectByDepth 1
 	//			(SelectByType UIAction)
 	//			(SelectByDepth 2)
 	//	)
-	| SelectByContains UISelection
+	| SelectByContains !UISelection
 	//No-op
 	| SelectNone
 	//Set operations
-	| SelectAND UISelection UISelection //Intersection
-	| SelectOR UISelection UISelection //Union
-	| SelectNOT UISelection //Inverse
+	| SelectAND !UISelection !UISelection //Intersection
+	| SelectOR !UISelection !UISelection //Union
+	| SelectNOT !UISelection //Inverse
 
 :: UIAttributeSelection
 	= SelectAll
@@ -69,16 +69,16 @@ SelectChildren :== SelectByDepth 1
 // Basic DSL for creating layouts
 
 // == Changing node types ==
-setUIType:: UIType -> LayoutRule
+setUIType:: !UIType -> LayoutRule
 
 // == Changing attributes ==
-setUIAttributes :: UIAttributes -> LayoutRule
-delUIAttributes :: UIAttributeSelection -> LayoutRule
-modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
-copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> LayoutRule
+setUIAttributes :: !UIAttributes -> LayoutRule
+delUIAttributes :: !UIAttributeSelection -> LayoutRule
+modifyUIAttributes :: !UIAttributeSelection !(UIAttributes -> UIAttributes) -> LayoutRule
+copySubUIAttributes :: !UIAttributeSelection !UIPath !UIPath -> LayoutRule
 
 // == Changing the structure of a UI ==
-wrapUI :: UIType -> LayoutRule
+wrapUI :: !UIType -> LayoutRule
 unwrapUI :: LayoutRule
 
 /*
@@ -90,26 +90,26 @@ removeSubUIs selection :== layoutSubUIs selection hideUI
 /*
 * Insert a (static) element into a UI
 */
-insertChildUI :: Int UI -> LayoutRule
+insertChildUI :: !Int !UI -> LayoutRule
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs :: UISelection UIPath Int -> LayoutRule
+moveSubUIs :: !UISelection !UIPath !Int -> LayoutRule
 
 /**
 * Applying a rule locally to matching parts of a UI
 * When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate.
 */
-layoutSubUIs :: UISelection LayoutRule -> LayoutRule
+layoutSubUIs :: !UISelection !LayoutRule -> LayoutRule
 
 /**
 * Applying multiple rules one after another.
 */
-sequenceLayouts :: [LayoutRule] -> LayoutRule
+sequenceLayouts :: ![LayoutRule] -> LayoutRule
 
 // ### Implementation: ####
 
@@ -159,7 +159,7 @@ sequenceLayouts :: [LayoutRule] -> LayoutRule
 //and in their destination location (to apply further effects).
 //To make this possible, we put those nodes in a separate table and put references in the tree
 
-:: LUIMoves :== Map LUIMoveID (LUIEffectStage LUINo, LUI)
+:: LUIMoves :== Map LUIMoveID (!LUIEffectStage LUINo, !LUI)
 
 noChanges :: LUIChanges
 noEffects :: LUIEffects
@@ -177,27 +177,27 @@ instance toString LUINo
 :: LUIMoveID :== Int
 
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
-:: LayoutRule :== LUINo (LUI,LUIMoves) -> (LUI, LUIMoves)
+:: LayoutRule :== LUINo (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 
-initLUI :: UI -> LUI
+initLUI :: !UI -> LUI
 initLUIMoves :: LUIMoves
 
-extractResetChange :: (LUI,LUIMoves) -> (UIChange,(LUI,LUIMoves))
+extractResetChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 
-applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
+applyUpstreamChange :: !UIChange !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 
-extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
+extractDownstreamChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 
 //Helper functions (exported for unit testing)
-scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
+scanToPosition_ :: !LUINo !Int ![LUI] !LUIMoves -> (!Int, !Bool, !Maybe LUI)
 nodeExists_ :: !LUINo !LUI LUIMoves -> Bool
-selectChildNodes_ :: LUINo ([LUI],LUIMoves) -> [LUI]
-updateChildNodes_ :: LUINo (Int (LUI,LUIMoves) -> (LUI,LUIMoves)) ([LUI],LUIMoves) -> ([LUI],LUIMoves)
-selectSubNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
-updateSubNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
-selectAttributes_ :: UIAttributeSelection UIAttributes -> UIAttributes
-overwriteAttribute_ :: LUINo UIAttribute (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (LUINo,JSONNode)))
-hideAttribute_ :: LUINo (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
-matchAttributeKey_ :: UIAttributeSelection UIAttributeKey -> Bool
-extractUIWithEffects_ :: (LUI,LUIMoves) -> Maybe UI
-isPartOf_ :: LUINo LUINo -> Bool
+selectChildNodes_ :: !LUINo !(![LUI], !LUIMoves) -> [LUI]
+updateChildNodes_ :: !LUINo !(Int (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(![LUI], !LUIMoves) -> (![LUI], !LUIMoves)
+selectSubNode_ :: !LUINo !UIPath !(!LUI, !LUIMoves) -> Maybe LUI
+updateSubNode_ :: !LUINo !UIPath !((!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
+selectAttributes_ :: !UIAttributeSelection !UIAttributes -> UIAttributes
+overwriteAttribute_ :: !LUINo !UIAttribute !(Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode)))
+hideAttribute_ :: !LUINo !(UIAttributeKey -> Bool) !UIAttributeKey !(Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))
+matchAttributeKey_ :: !UIAttributeSelection !UIAttributeKey -> Bool
+extractUIWithEffects_ :: !(!LUI, !LUIMoves) -> Maybe UI
+isPartOf_ :: !LUINo !LUINo -> Bool
