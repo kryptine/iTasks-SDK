@@ -178,7 +178,7 @@ noChanges :: LUIChanges
 noEffects :: LUIEffects
 
 //When layout rules make changes, it must be tracable which layout rule caused the change
-:: LUINo = LUINo ![Int]
+:: LUINo =: LUINo [Int]
 
 derive JSONEncode LUINo
 derive JSONDecode LUINo
