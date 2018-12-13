@@ -15,9 +15,6 @@ import Data.Error, Data.Either
 derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
 derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
 
-derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-
 instance toString DeferredJSON where
     toString (DeferredJSON x)        = toString $ toJSON x
     toString (DeferredJSONNode json) = toString json

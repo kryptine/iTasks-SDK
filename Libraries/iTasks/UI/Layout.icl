@@ -1297,6 +1297,7 @@ confirmChangesAndEffects_ (LUINode node, moves)
 	         & attributes = applyAttributeChanges_ node.changes node.LUINode.attributes
 	         , effects    = confirmEffects_ node.effects
 	         , items      = items
+	         , changes    = noChanges
 	         }
 	= (Just (LUINode node), moves)
 confirmChangesAndEffects_ (ref=:(LUIMoveSource moveId),moves)
