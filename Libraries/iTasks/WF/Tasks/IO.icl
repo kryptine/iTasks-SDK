@@ -163,5 +163,3 @@ where
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
-
-import StdMisc
