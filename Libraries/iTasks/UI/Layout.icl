@@ -22,7 +22,7 @@ from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
 import Data.GenEq
 
-derive gEq LUIEffectStage, LUINo
+derive gEq LUIEffectStage, LUINo, LUINode, LUIEffects, LUIChanges, LUI
 derive gLexOrd LUIEffectStage
 
 instance < (LUIEffectStage a) | gLexOrd{|*|} a

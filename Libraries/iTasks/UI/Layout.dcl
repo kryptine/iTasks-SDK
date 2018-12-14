@@ -12,6 +12,7 @@ from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
 from Data.Set import :: Set
 from Data.Either import :: Either
+from Data.GenEq import generic gEq
 
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from StdOverloaded import class <
@@ -132,6 +133,8 @@ derive JSONDecode LUI
              , changes    :: !LUIChanges
              , effects    :: !LUIEffects
              }
+
+derive gEq LUINode
 
 //Upstream UI changes
 :: LUIChanges =
