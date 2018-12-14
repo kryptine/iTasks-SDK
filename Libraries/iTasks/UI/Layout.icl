@@ -497,38 +497,37 @@ nextMoveID_ moves = (foldr max 0 ('DM'.keys moves)) + 1
 
 //Test if a certain node exists at the time of rule application
 nodeExists_ :: !LUINo !LUI !LUIMoves -> Bool
-//Upstream nodes that no longer exist (here)
-nodeExists_ ruleNo (LUINode {changes = {toBeRemoved=True}}) moves = False
-nodeExists_ ruleNo (LUINode {changes = {toBeShifted=Just _}}) moves = False
-//Nodes that were hidden by effects
-nodeExists_ ruleNo (LUINode {effects = {hidden=ESToBeApplied hiddenBy}}) moves = hiddenBy >= ruleNo
-nodeExists_ ruleNo (LUINode {effects = {hidden=ESApplied hiddenBy}}) moves = hiddenBy >= ruleNo
-nodeExists_ ruleNo (LUINode {effects = {hidden=ESToBeUpdated _ hiddenBy}}) moves = hiddenBy >= ruleNo
-//Nodes that were introduced by effects
-nodeExists_ ruleNo (LUINode {effects = {additional=ESToBeApplied addedBy}}) moves = addedBy <= ruleNo
-nodeExists_ ruleNo (LUINode {effects = {additional=ESApplied addedBy}}) moves = addedBy <= ruleNo
-nodeExists_ ruleNo (LUINode {effects = {additional=ESToBeRemoved _}}) moves = False //Marked to be removed
+nodeExists_ ruleNo (LUINode {items, changes, effects}) moves = case changes of
+	//Upstream nodes that no longer exist (here)
+	{toBeRemoved=True}   = False
+	{toBeShifted=Just _} = False
+	_ = case effects of
+		//Nodes that were hidden by effects
+		{hidden=ESToBeApplied hiddenBy}   = hiddenBy >= ruleNo
+		{hidden=ESApplied hiddenBy}       = hiddenBy >= ruleNo
+		{hidden=ESToBeUpdated _ hiddenBy} = hiddenBy >= ruleNo
+		//Nodes that were introduced by effects
+		{additional=ESToBeApplied addedBy} = addedBy <= ruleNo
+		{additional=ESApplied addedBy}     = addedBy <= ruleNo
+		{additional=ESToBeRemoved _}       = False //Marked to be removed
 
-nodeExists_ ruleNo (LUINode node =: {effects = {wrapper=ESToBeApplied wrappedBy}}) moves | wrappedBy > ruleNo
-	= case scanToPosition_ wrappedBy 0 node.items moves of
-		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
-		_ = False // The wrapped child does not exist, nothing to check
-nodeExists_ ruleNo (LUINode node =: {effects = {wrapper=ESApplied wrappedBy}}) moves | wrappedBy > ruleNo
-	= case scanToPosition_ wrappedBy 0 node.items moves of
-		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
-		_ = False // The wrapped child does not exist, nothing to check
-nodeExists_ ruleNo (LUINode node =: {effects = {wrapper=ESToBeRemoved wrappedBy}}) moves //No longer wrapped
-	= case scanToPosition_ wrappedBy 0 node.items moves of //Consider the wrapped child (that will be restored)
-		(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
-		_ = False // The wrapped child does not exist, nothing to check
-nodeExists_ ruleNo (LUINode node =: {effects = {unwrapped=ESToBeApplied unwrappedBy}}) moves | unwrappedBy <= ruleNo
-	= case scanToPosition_ unwrappedBy 0 node.items moves of
-		(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
-		_ = False
-nodeExists_ ruleNo (LUINode node =: {effects = {unwrapped=ESApplied unwrappedBy}}) moves | unwrappedBy <= ruleNo
-	= case scanToPosition_ unwrappedBy 0 node.items moves of
-		(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
-		_ = False
+		{wrapper=ESToBeApplied wrappedBy} | wrappedBy > ruleNo = case scanToPosition_ wrappedBy 0 items moves of
+			(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
+			_ = False // The wrapped child does not exist, nothing to check
+		{wrapper=ESApplied wrappedBy} | wrappedBy > ruleNo = case scanToPosition_ wrappedBy 0 items moves of
+			(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
+			_ = False // The wrapped child does not exist, nothing to check
+		//No longer wrapped
+		{wrapper=ESToBeRemoved wrappedBy} = case scanToPosition_ wrappedBy 0 items moves of //Consider the wrapped child (that will be restored)
+			(_,_,Just wrapped) = nodeExists_ ruleNo wrapped moves //Check the wrapped child
+			_ = False // The wrapped child does not exist, nothing to check
+		{unwrapped=ESToBeApplied unwrappedBy} | unwrappedBy <= ruleNo = case scanToPosition_ unwrappedBy 0 items moves of
+			(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
+			_ = False
+		{unwrapped=ESApplied unwrappedBy} | unwrappedBy <= ruleNo = case scanToPosition_ unwrappedBy 0 items moves of
+			(_,_,Just unwrapped) = nodeExists_ ruleNo unwrapped moves
+			_ = False
+		_ = True
 //Moved nodes
 nodeExists_ ruleNo (LUIMoveSource moveId) moves
 	= case getMovedNode_ moveId moves of
