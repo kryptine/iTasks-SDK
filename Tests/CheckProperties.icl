@@ -3,8 +3,10 @@ module CheckProperties
   First experiments to use Gast to verify properties of iTasks UI layouting algorithms
   This should be integrated with the unit-test framework at some point
 */
+import StdEnv
 import iTasks.UI.Layout
 import iTasks.UI.Definition
+import iTasks.UI.Editor.Common
 import iTasks.Util.Trace
 import Gast.Testable
 import Gast.GenLibTest
@@ -14,10 +16,11 @@ import Gast.StdProperty
 import StdGeneric
 from StdFunc import o, flip
 import StdEnum, StdBool, StdTuple, StdDebug
-import Data.Map
-from Data.List import foldl1
+from Data.Map import :: Map
+import qualified Data.Map as Map
 import Text.GenJSON
 import Text
+import Data.Functor, Data.List
 
 instance == UI where (==) x y = x === y
 //Derive the necessary generic functions
@@ -224,22 +227,31 @@ Start = Test [Tests NUM, RandomSeed 1982] bug1
 Start = sideBySideTrace ("Reference", applyChangesWithLayout bug3ref [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
 						("SUT", applyChangesWithLayout bug3sut [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
 */
-
 // PROPERTY FOR iTasks.UI.Editor.Common.diffChildren
+//Start = testn 1000000 correctDiffChildren
 
 // TODO: How many distinct children to generate? As only the number of elements and order matters,
 // it seems that two distinct children are enough
-:: Child = A | B //| C | D | E | F | G | H | I | J
+:: Child = A | B | C// | D | E | F | G | H | I | J
 
 derive gEq Child
 derive ggen Child
-derive genShow Child
-derive bimap []
+derive genShow Child, UI, Map, JSONNode, UIType
+derive gPrint Child, UI, Map, JSONNode, UIType
+
+instance == UI where
+    == x y = x === y
 
 // incrementally updating the UI list from the old to the new list of children,
 // results in the new list of UIs
-correctDiffChildren :: [Child] [Child] -> Bool
-correctDiffChildren old new = newUIs === simulateUpdate (diffChildren old new dummyUI) oldUIs
+correctDiffChildren :: [Child] [Child] -> Property
+correctDiffChildren old new =
+    newUIs =.= simulateUpdate ( diffChildren old
+                                             new
+                                             (\x y -> if (x === y) NoChildUpdateRequired ChildUpdateImpossible)
+                                             dummyUI
+                              )
+                              oldUIs
 where
     // the actual update is performed on the client and implemented in javascript,
     // so it is simulated here
@@ -257,9 +269,6 @@ where
 
     newUIs :: [UI]
     newUIs = dummyUI <$> new
-
-    diff :: [(Int, UIChildChange)]
-    diff = diffChildren old new dummyUI
 
     // it doesn't really matter how to do this translation,
     // but it should be a bijection between children and UIs
