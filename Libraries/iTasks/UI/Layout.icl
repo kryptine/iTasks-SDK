@@ -641,16 +641,20 @@ where
 	isSource _ = False
 
 selectNode_ :: !LUINo !Bool !((!LUI, !LUIMoves) -> a) !(!LUI, !LUIMoves) -> Maybe a
-selectNode_ ruleNo beforeEffect selector (lui,moves) = fst3 (processNode_ ruleNo beforeEffect fun (lui,moves))
+selectNode_ ruleNo beforeEffect selector (lui,moves) =
+	fst3 (processNode_ ruleNo beforeEffect (fun selector) (lui,moves))
 where
-	fun (lui,moves) = (selector (lui,moves),lui,moves)
+	fun :: !((!LUI, !LUIMoves) -> a) !(!LUI, !LUIMoves) -> (!a, !LUI, !LUIMoves)
+	fun selector (lui,moves) = (selector (lui,moves),lui,moves)
 
 selectChildNodes_ :: !LUINo !(![LUI], !LUIMoves) -> [LUI]
 selectChildNodes_ ruleNo (items,moves)
 	# (selection,_,moves) = processChildNodes_ ruleNo fun ([],items,moves)
 	= map snd (sortBy fstEl selection)
 where
+	fun :: !Int !(![(!Int, !LUI)], !LUI, !LUIMoves) -> (![(!Int, !LUI)], !LUI, !LUIMoves)
 	fun i (acc,item,moves) = ([(i,item):acc],item,moves)
+
 	fstEl (x,_) (y,_) = x < y	
 
 selectSubNode_ :: !LUINo !UIPath !(!LUI, !LUIMoves) -> Maybe LUI
@@ -667,6 +671,7 @@ updateNode_ ruleNo update (lui,moves)
 	# (_,lui,moves) = processNode_ ruleNo False fun (lui,moves)
 	= (lui,moves)
 where
+	fun :: !(!LUI, !LUIMoves) -> (!(), !LUI, !LUIMoves)
 	fun (item,moves) 
 		# (item,moves) = update (item,moves)
 		= ((),item,moves)
@@ -676,6 +681,7 @@ updateChildNodes_ ruleNo update (items,moves)
 	# (_,items,moves) = processChildNodes_ ruleNo fun ((),items,moves)
 	= (items, moves)
 where
+	fun :: !Int (!(), !LUI, !LUIMoves) -> (!(), !LUI, !LUIMoves)
 	fun i (s,items,moves) 
 		# (items,moves) = update i (items,moves)
 		= (s,items,moves)
@@ -689,7 +695,7 @@ where
 		= (LUINode {node & items = items},moves)
 
 	applyc :: !Int !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
-	applyc i (lui,moves) = if (i == s) (updateSubNode_ ruleNo ss update (lui,moves)) (lui,moves)
+	applyc i luiMoves=:(lui,moves) = if (i == s) (updateSubNode_ ruleNo ss update (lui,moves)) luiMoves
 
 processNode_ :: !LUINo !Bool !((!LUI, !LUIMoves) -> (!a, !LUI, !LUIMoves)) !(!LUI, !LUIMoves)
              -> (!Maybe a, !LUI, !LUIMoves)
@@ -897,22 +903,35 @@ where
 		Just (ESToBeUpdated _ _) = True
 		Just (ESToBeRemoved _) = True
 		_ = False
-
+import StdDebug
 //Undo the effects of a previously applied rule for a single node
 undoEffects_ :: !LUINo !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
-undoEffects_ ruleNo (LUINode node,moves)
-	= (LUINode {node & effects = undo ruleNo node.effects}, moves)
+// optimisation to prevent a new LUINode to be allocated if no change is required
+undoEffects_ ruleNo
+             luiMoves =: ( LUINode { effects = { overwrittenType = ESNotApplied, overwrittenAttributes, hiddenAttributes
+                                               , additional = ESNotApplied, hidden = ESNotApplied
+                                               , wrapper = ESNotApplied, unwrapped = ESNotApplied
+                                               }
+	                               }
+                         , moves
+                         )
+	         | all (isESNotApplied o snd) ('DM'.toList overwrittenAttributes) &&
+	           all (isESNotApplied o snd) ('DM'.toList hiddenAttributes)
+             = luiMoves
+where
+	isESNotApplied ESNotApplied = True
+	isESNotApplied _            = False
+undoEffects_ ruleNo (LUINode node,moves) = (LUINode {node & effects = undo ruleNo node.effects}, moves)
 where 
-	undo ruleNo {overwrittenType,overwrittenAttributes,hiddenAttributes,additional,hidden,wrapper,unwrapped}
-		= {overwrittenType = undoEffect_ ruleNo fst overwrittenType
-		  ,overwrittenAttributes = fmap (undoEffect_ ruleNo fst) overwrittenAttributes
-		  ,hiddenAttributes = fmap (undoEffect_ ruleNo id) hiddenAttributes
-		  ,additional = undoEffect_ ruleNo id additional
-		  ,hidden = undoEffect_ ruleNo id hidden
-		  ,wrapper = undoEffect_ ruleNo id wrapper
-		  ,unwrapped = undoEffect_ ruleNo id unwrapped
-		  }
-
+	undo ruleNo {overwrittenType,overwrittenAttributes,hiddenAttributes,additional,hidden,wrapper,unwrapped} =
+		{overwrittenType = undoEffect_ ruleNo fst overwrittenType
+		,overwrittenAttributes = fmap (undoEffect_ ruleNo fst) overwrittenAttributes
+		,hiddenAttributes = fmap (undoEffect_ ruleNo id) hiddenAttributes
+		,additional = undoEffect_ ruleNo id additional
+		,hidden = undoEffect_ ruleNo id hidden
+		,wrapper = undoEffect_ ruleNo id wrapper
+		,unwrapped = undoEffect_ ruleNo id unwrapped
+		}
 undoEffects_ ruleNo luiWithMoves=:(ref=:(LUIMoveSource moveId),moves) = case 'DM'.get moveId moves of
 	Nothing = luiWithMoves
 	Just (moveStage,lui)
