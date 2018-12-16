@@ -861,7 +861,25 @@ instance Readable SDSRemoteService where
 		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteServiceQueued connectionId sds opts)), iworld)
 
 instance Writeable SDSRemoteService where
-	writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote services yet"), iworld)
+	writeSDS sds p EmptyContext value iworld = (Error (exception "cannot write remote service without task id"), iworld)
+
+	writeSDS sds=:(SDSRemoteServiceQueued connectionId rsds opts) p (TaskContext taskId) value iworld=:{ioStates}
+	= case getAsyncServiceWriteValue sds taskId connectionId ioStates of
+		Error (_, error)
+			# errorString = "Remote service write queued error<br>Service " +++ toString opts +++ ": " +++ error
+			= (Error (exception errorString), iworld)
+		Ok Nothing = (Ok (AsyncWrite sds), iworld)
+		Ok (Just pred)
+			# (match,nomatch, iworld) = checkRegistrations (sdsIdentity rsds) pred iworld
+			= (Ok (WriteResult match sds), iworld)
+
+	writeSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) value iworld
+	= case queueServiceWriteRequest sds p value taskId iworld of
+		(Error (_, error), iworld)
+			# errorString = "Remote service write error<br>Service " +++ toString opts +++ ": " +++ error
+			= (Error $ exception errorString, iworld)
+		(Ok Nothing, iworld) = (Ok $ WriteResult 'Set'.newSet sds, iworld)
+		(Ok (Just connectionId), iworld) = (Ok $ AsyncWrite $ SDSRemoteServiceQueued connectionId sds opts, iworld)
 
 instance Modifiable SDSRemoteService where
 	modifySDS _ _ _ _  iworld = (Error (exception "modifying remote services not possible"), iworld)

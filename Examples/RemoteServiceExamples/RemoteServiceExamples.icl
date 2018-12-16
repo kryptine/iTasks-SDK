@@ -3,7 +3,7 @@ module RemoteServiceExamples
 import iTasks
 import Internet.HTTP
 
-import Data.Either
+import Data.Either, Data.Func
 
 :: OpenWeatherRequest =
 	{ apiKey :: String
@@ -25,11 +25,13 @@ where
 	serviceTask = get weatherService >>= viewInformation "Current weather" []
 
 // api.openweathermap.org/data/2.5/weather?q=London,uk
-weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions () (Either String OpenWeatherResponse)
+weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions () (Either String OpenWeatherResponse) ()
 weatherOptions owr = HTTPShareOptions {host = "api.openweathermap.org"
 	, port = 80
-	, createRequest = \_. toRequest owr
-	, fromResponse = \response p. fromResp response}
+	, createRequest 		= const $ toRequest owr
+	, fromResponse 			= \response p. fromResp response
+	, writeHandlers 		= Nothing // Service cannot be written to
+	}
 where
 	toRequest {OpenWeatherRequest|apiKey, type}
 	# r = newHTTPRequest

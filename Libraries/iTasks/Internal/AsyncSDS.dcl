@@ -37,6 +37,8 @@ queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (
  */
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 
+queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> (MaybeError TaskException (Maybe ConnectionId), !*IWorld) | TC p & TC w
+
 /**
  * Queue that a task on a remote service should refresh itself.
  * @param Remote notify requests
@@ -76,6 +78,8 @@ queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !Ta
 getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r
 
 getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r & TC w & TC p
+
+getAsyncServiceWriteValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId !IOStates -> MaybeError TaskException (Maybe (SDSNotifyPred p)) | TC p & TC w & TC r
 
 /**
  * Queries IOStates to see whether a write operation has yielded a result.

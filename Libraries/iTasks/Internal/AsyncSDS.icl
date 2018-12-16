@@ -122,8 +122,8 @@ queueServiceRequest service=:(SDSRemoteService (TCPShareOptions {host, port, cre
 	(Error e, env) = (Error e, env)
 	(Ok (id, _), env) = (Ok id, env)
 where
-	connectionTask = wrapConnectionTask (handlers service) unitShare
-	handlers req = {ConnectionHandlers| onConnect = onConnect,
+	connectionTask = wrapConnectionTask handlers unitShare
+	handlers = {ConnectionHandlers| onConnect = onConnect,
 		onData = onData,
 		onShareChange = onShareChange,
 		onDisconnect = onDisconnect}
@@ -141,6 +141,65 @@ where
 		Ok (Just r, Just resp) 	= (Ok (Just r, []), Nothing, [resp +++ "\n"], False)
 		// Only close the connection when we have a value and when we are not registering.
 		Ok (Just r, Nothing) 	= (Ok (Just r, []), Nothing, [], not register)
+
+	onShareChange state _ = (Ok state, Nothing, [], False)
+	onDisconnect state _ = (Ok state, Nothing)
+
+queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> (MaybeError TaskException (Maybe ConnectionId), !*IWorld) | TC p & TC w
+queueServiceWriteRequest service=:(SDSRemoteService (HTTPShareOptions {host, port, writeHandlers})) p w taskId iworld
+| isNothing writeHandlers = (Ok Nothing, iworld) // Writing not supported for this share.
+= case addConnection taskId host port connectionTask iworld of
+	(Error e, env) = (Error e, env)
+	(Ok (id, _), env) = (Ok (Just id), env)
+where
+	(toWriteRequest, fromWriteResponse) = fromJust writeHandlers
+	connectionTask = wrapConnectionTask handlers unitShare
+	handlers = { ConnectionHandlers|onConnect = onConnect
+				, onData 		= onData
+				, onShareChange = onShareChange
+				, onDisconnect 	= onDisconnect
+				}
+	onConnect connId _ _
+	# req = toWriteRequest p w
+	# sreq = toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Close" req.HTTPRequest.req_headers}
+	= (Ok (Left []), Nothing, [sreq], False)
+
+	onData data (Left acc) _ = (Ok $ Left $ acc ++ [data], Nothing, [], False)
+
+	onShareChange acc _ = (Ok acc, Nothing, [], False)
+
+	onDisconnect (Left []) _ = (Error ("queueServiceWriteRequest: Server" +++ host +++ ":" +++ toString port +++ " disconnected without responding"), Nothing)
+	onDisconnect (Left acc) _
+	# textResponse = concat acc
+	= case parseResponse textResponse of
+		Nothing = (Error ("Unable to parse HTTP response, got: " +++ textResponse), Nothing)
+		Just parsed = case fromWriteResponse p parsed of
+			Error e = (Error e, Nothing)
+			Ok pred = (Ok (Right pred), Nothing)
+
+queueServiceWriteRequest service=:(SDSRemoteService (TCPShareOptions {host, port, writeMessageHandlers})) p w taskId iworld
+| isNothing writeMessageHandlers = (Ok Nothing, iworld)
+= case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (id, _), iworld) = (Ok (Just id), iworld)
+where
+	(toWriteMessage, fromWriteMessage) = fromJust writeMessageHandlers
+	connectionTask = wrapConnectionTask handlers unitShare
+
+	handlers = {ConnectionHandlers| onConnect = onConnect,
+		onData = onData,
+		onShareChange = onShareChange,
+		onDisconnect = onDisconnect}
+
+	onConnect connId _ _	= (Ok (Left ""), Nothing, [toWriteMessage p w +++ "\n"], False)
+
+	onData data (Left acc) _
+	# newacc = acc +++ data
+	= case fromWriteMessage p newacc of
+		Error e 		= (Error e, Nothing, [], True)
+		Ok Nothing		= (Ok (Left newacc), Nothing, [], False)
+		Ok (Just pred) 	= (Ok (Right pred), Nothing, [], True)
+	onData data state _ = (Ok state, Nothing, [], True)
 
 	onShareChange state _ = (Ok state, Nothing, [], False)
 	onDisconnect state _ = (Ok state, Nothing)
@@ -213,6 +272,45 @@ where
 		Just (value :: (Maybe r^, [String]), _) = case value of
 				(Nothing, _)                        = Ok Nothing
 				(Just r,_)                     		= Ok (Just r)
+		Just (dyn, _)
+			# message = "Dynamic not of the correct service type, got: "
+				+++ toString (typeCodeOfDynamic dyn)
+				+++ ", required: "
+				+++ toString (typeCodeOfDynamic (dynamic service))
+			= Error (exception message)
+		Nothing                             	= Ok Nothing
+
+getAsyncServiceWriteValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId !IOStates -> MaybeError TaskException (Maybe (SDSNotifyPred p)) | TC p & TC w & TC r
+getAsyncServiceWriteValue service taskId connectionId ioStates
+# getValue = case service of
+	SDSRemoteService (HTTPShareOptions _) = getValueHttp
+	SDSRemoteServiceQueued _ _ (HTTPShareOptions _) = getValueHttp
+	SDSRemoteService (TCPShareOptions _) = getValueTCP
+	SDSRemoteServiceQueued _ _ (TCPShareOptions _) = getValueTCP
+=  case 'DM'.get taskId ioStates of
+		Nothing                             = Error (exception "No iostate for this task")
+		Just ioState                        = case ioState of
+			IOException exc                   = Error (exception exc)
+			IOActive connectionMap            = getValue connectionId connectionMap
+			IODestroyed connectionMap         = getValue connectionId connectionMap
+where
+	getValueHttp connectionId connectionMap = case 'DM'.get connectionId connectionMap of
+		Just (value :: Either [String] (SDSNotifyPred p^), _) = case value of
+			Left _                              = Ok Nothing
+			Right pred                     		= Ok (Just pred)
+		Just (dyn, _)
+			# message = "Dynamic not of the correct service type, got: "
+				+++ toString (typeCodeOfDynamic dyn)
+				+++ ", required: "
+				+++ toString (typeCodeOfDynamic (dynamic service))
+			= Error (exception message)
+		Nothing                             	= Ok Nothing
+
+	getValueTCP connectionId connectionMap
+	= case 'DM'.get connectionId connectionMap of
+		Just (value :: Either String (SDSNotifyPred p^), _) = case value of
+				Left _                       	= Ok Nothing
+				Right pred                     	= Ok (Just pred)
 		Just (dyn, _)
 			# message = "Dynamic not of the correct service type, got: "
 				+++ toString (typeCodeOfDynamic dyn)

@@ -278,13 +278,17 @@ required type w. The reducer has the job to turn this ws into w.
 	{ host :: String
 	, port :: Int
 	, createRequest :: p -> HTTPRequest
-	, fromResponse :: HTTPResponse p -> MaybeErrorString r}
+	, fromResponse :: HTTPResponse p -> MaybeErrorString r
+	, writeHandlers :: Maybe (p w -> HTTPRequest, p HTTPResponse -> MaybeErrorString (SDSNotifyPred p))
+	}
 
 :: TCPHandlers p r w =
 	{ host :: String
 	, port :: Int
 	, createMessage :: p -> String
-	, fromTextResponse :: String p Bool -> MaybeErrorString (Maybe r, Maybe String)}
+	, fromTextResponse :: String p Bool -> MaybeErrorString (Maybe r, Maybe String)
+	, writeMessageHandlers :: Maybe (p w -> String, p String -> MaybeErrorString (Maybe (SDSNotifyPred p)))
+	}
 
 :: SDSRemoteService p r w =
 	/**
