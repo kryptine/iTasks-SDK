@@ -142,20 +142,20 @@ where
 		# (objects,world)   = .? (me .# "children") world
 		# world             = createMapObjects viewMode me mapObj objects world
 		//Add event handlers
+		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world
+		# world            = ((me .# "onResize") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onShow me w) world
+		# world            = ((me .# "onShow") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world
+		# world            = ((me .# "onAttributeChange") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert viewMode me a w) world
+		# world            = ((me .# "afterChildInsert") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world
+		# world            = ((me .# "beforeChildRemove") .= cb) world
 		# world = case viewMode of
             True
 				= world
 			False
-				# (cb,world)       = jsWrapFun (\a w -> onResize me w) world
-				# world            = ((me .# "onResize") .= cb) world
-				# (cb,world)       = jsWrapFun (\a w -> onShow me w) world
-				# world            = ((me .# "onShow") .= cb) world
-				# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world
-				# world            = ((me .# "onAttributeChange") .= cb) world
-				# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert viewMode me a w) world
-				# world            = ((me .# "afterChildInsert") .= cb) world
-				# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world
-				# world            = ((me .# "beforeChildRemove") .= cb) world
 				# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) world
 				# (_,world)        = (mapObj .# "addEventListener" .$ ("dragend",cb)) world
 				# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) world
