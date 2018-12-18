@@ -108,10 +108,10 @@ where
 							                = copy (i + 1) {n & [i] = '_'}
 
 remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | RWShared sds
-remoteShare sds opts = SDSRemoteSource sds opts
+remoteShare sds opts = SDSRemoteSource sds Nothing opts
 
 remoteService :: (WebServiceShareOptions p r w) -> SDSRemoteService p r w
-remoteService opts = SDSRemoteService opts
+remoteService opts = SDSRemoteService Nothing opts
 
 debugShare :: String (sds p r w) -> SDSDebug p r w | RWShared sds
 debugShare name sds = SDSDebug name sds

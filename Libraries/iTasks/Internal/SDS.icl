@@ -773,13 +773,12 @@ optionsS :: SDSShareOptions -> String
 optionsS o = o.SDSShareOptions.domain +++ ":" +++ toString o.SDSShareOptions.port
 
 instance Identifiable SDSRemoteSource where
-	nameSDS (SDSRemoteSource sds options) acc = ["REMOTE%" +++ optionsS options +++ "%" : nameSDS sds acc]
-	nameSDS (SDSRemoteSourceQueued connectionId sds opts) acc = ["RQ%"+++ optionsS opts +++ "%" : nameSDS sds acc]
+	nameSDS (SDSRemoteSource sds _ options) acc = ["REMOTE%" +++ optionsS options +++ "%" : nameSDS sds acc]
 
 instance Readable SDSRemoteSource where
 	readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote SDS without task id"), iworld)
 
-	readSDS (SDSRemoteSourceQueued connectionId sds opts) p context register reqSDSId iworld=:{ioStates}
+	readSDS (SDSRemoteSource sds (Just connectionId) opts) p context register reqSDSId iworld=:{ioStates}
 	# taskId = case context of
 		(TaskContext taskId ) = taskId
 		(RemoteTaskContext reqTaskId currTaskId _ _ _ ) = currTaskId
@@ -787,10 +786,10 @@ instance Readable SDSRemoteSource where
 		Error (_, error)
 			# errorString = "SDSRemoteSourceQueued read get value<br>Remote to " +++ optionsS opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
-		Ok Nothing       	= (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld)
-		Ok (Just value)  	= (Ok (ReadResult value (SDSValue False value sds)), iworld)
+		Ok Nothing       	= (Ok (AsyncRead (SDSRemoteSource sds (Just connectionId) opts)), iworld)
+		Ok (Just value)  	= (Ok (ReadResult value (SDSValue False value (SDSRemoteSource sds Nothing opts))), iworld)
 
-	readSDS sds=:(SDSRemoteSource _ opts) p context register reqSDSId iworld
+	readSDS sds=:(SDSRemoteSource _ Nothing opts) p context register reqSDSId iworld
 	# iworld = mbRegister p sds register context reqSDSId iworld
 	# taskId = case context of
 		(TaskContext taskId ) = taskId
@@ -799,43 +798,43 @@ instance Readable SDSRemoteSource where
 		(Error (_, error), iworld)
 			# errorString = "SDSRemoteSource read queu<br>Remote to " +++ optionsS opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
-		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSourceQueued connectionId sds opts)), iworld)
+		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSource sds (Just connectionId) opts)), iworld)
 
 instance Writeable SDSRemoteSource where
 	writeSDS sds p EmptyContext value iworld = (Error (exception "cannot write remote SDS without task id"), iworld)
 
-	writeSDS (SDSRemoteSourceQueued connectionId sds opts) p (TaskContext taskId) value iworld=:{ioStates}
+	writeSDS (SDSRemoteSource sds (Just connectionId) opts) p (TaskContext taskId) value iworld=:{ioStates}
 	= case getAsyncWriteValue sds taskId connectionId ioStates of
 		Error (_, error)
 			# errorString = "SDSRemoteSourceQueued write get value<br>Remote to " +++ optionsS opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
-		Ok Nothing = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds opts)), iworld)
-		Ok (Just v) = (Ok (WriteResult 'Set'.newSet sds), iworld)
+		Ok Nothing = (Ok (AsyncWrite (SDSRemoteSource sds (Just connectionId) opts)), iworld)
+		Ok (Just v) = (Ok (WriteResult 'Set'.newSet (SDSRemoteSource sds Nothing opts)), iworld)
 
-	writeSDS sds=:(SDSRemoteSource sds1 opts) p (TaskContext taskId) value iworld
+	writeSDS sds=:(SDSRemoteSource sds1 Nothing opts) p (TaskContext taskId) value iworld
 	= case queueWrite value sds p taskId iworld of
 		(Error (_, error), iworld)
 			# errorString = "SDSRemoteSource write queue<br>Remote to " +++ optionsS opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
-		(Ok connectionId, iworld)              = (Ok (AsyncWrite (SDSRemoteSourceQueued connectionId sds opts)), iworld)
+		(Ok connectionId, iworld)              = (Ok (AsyncWrite (SDSRemoteSource sds (Just connectionId) opts)), iworld)
 
 instance Modifiable SDSRemoteSource where
 	modifySDS _ _ _ EmptyContext iworld = (Error (exception "SDSRemoteSource modify: Cannot modify with empty context"), iworld)
 
-	modifySDS f sds=:(SDSRemoteSource subsds opts) p (TaskContext taskId) iworld
-	= case queueModify f sds p taskId iworld of
-		(Error (_, error), iworld)
-			# errorString = "SDSRemoteSource modify queue<br>Remote to " +++ optionsS opts +++ ": " +++ error
-			= (Error (exception errorString), iworld)
-		(Ok connectionId, iworld) = (Ok (AsyncModify (SDSRemoteSourceQueued connectionId sds opts) f), iworld)
-
-	modifySDS f sds=:(SDSRemoteSourceQueued connectionId subsds opts) p (TaskContext taskId) iworld=:{ioStates}
+	modifySDS f sds=:(SDSRemoteSource subsds (Just connectionId) opts) p (TaskContext taskId) iworld=:{ioStates}
 	= case getAsyncModifyValue subsds taskId connectionId ioStates of
 		Error (_, error)
 			# errorString = "SDSRemoteSourceQueued modify get value<br>Remote to " +++ optionsS opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
 		Ok Nothing = (Ok (AsyncModify sds f), iworld)
-		Ok (Just (r, w)) = (Ok (ModifyResult 'Set'.newSet r w (SDSRemoteSource subsds opts)), iworld)
+		Ok (Just (r, w)) = (Ok (ModifyResult 'Set'.newSet r w (SDSRemoteSource subsds Nothing opts)), iworld)
+
+	modifySDS f sds=:(SDSRemoteSource subsds Nothing opts) p (TaskContext taskId) iworld
+	= case queueModify f sds p taskId iworld of
+		(Error (_, error), iworld)
+			# errorString = "SDSRemoteSource modify queue<br>Remote to " +++ optionsS opts +++ ": " +++ error
+			= (Error (exception errorString), iworld)
+		(Ok connectionId, iworld) = (Ok (AsyncModify (SDSRemoteSource sds (Just connectionId) opts) f), iworld)
 
 instance Registrable SDSRemoteSource where
 	readRegisterSDS sds p context taskId iworld
@@ -843,43 +842,44 @@ instance Registrable SDSRemoteSource where
 
 // Remote services
 instance Identifiable SDSRemoteService where
-	nameSDS (SDSRemoteService opts) acc = ["SERVICE%" +++ toString opts +++ "%" : acc]
-	nameSDS (SDSRemoteServiceQueued connectionId sds opts) acc = ["SQ%" +++ toString opts +++ "%" : nameSDS sds acc]
+	nameSDS (SDSRemoteService mbConnId opts) acc = ["SERVICE%" +++ toString opts +++ "%" : acc]
 
 instance Readable SDSRemoteService where
 	readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote service without task id"), iworld)
-	readSDS sds=:(SDSRemoteServiceQueued connectionId rsds opts) p (TaskContext taskId) _ _ iworld=:{ioStates} = case getAsyncServiceValue sds taskId connectionId ioStates of
+	readSDS sds=:(SDSRemoteService (Just connectionId) opts) p (TaskContext taskId) _ _ iworld=:{ioStates}
+	= case getAsyncServiceValue sds taskId connectionId ioStates of
 		Error (_, error)
-		# errorString = "Remote service queued error<br>Service " +++ toString opts +++ ": " +++ error
-		= (Error (exception errorString), iworld)
+			# errorString = "Remote service queued error<br>Service " +++ toString opts +++ ": " +++ error
+			= (Error (exception errorString), iworld)
 		Ok (Nothing)  				= (Ok (AsyncRead sds), iworld)
-		Ok (Just value)  			= (Ok (ReadResult value (SDSValue False value rsds)), iworld)
-	readSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) mbRegister _ iworld = case queueServiceRequest sds p taskId (isJust mbRegister) iworld of
+		Ok (Just value)  			= (Ok (ReadResult value (SDSValue False value (SDSRemoteService Nothing opts))), iworld)
+	readSDS sds=:(SDSRemoteService Nothing opts) p (TaskContext taskId) mbRegister _ iworld
+	= case queueServiceRequest sds p taskId (isJust mbRegister) iworld of
 		(Error (_,error), iworld)
 			# errorString = "Remote service error<br>Service  " +++ toString opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
-		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteServiceQueued connectionId sds opts)), iworld)
+		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteService (Just connectionId) opts)), iworld)
 
 instance Writeable SDSRemoteService where
 	writeSDS sds p EmptyContext value iworld = (Error (exception "cannot write remote service without task id"), iworld)
 
-	writeSDS sds=:(SDSRemoteServiceQueued connectionId rsds opts) p (TaskContext taskId) value iworld=:{ioStates}
+	writeSDS sds=:(SDSRemoteService (Just connectionId) opts) p (TaskContext taskId) value iworld=:{ioStates}
 	= case getAsyncServiceWriteValue sds taskId connectionId ioStates of
 		Error (_, error)
 			# errorString = "Remote service write queued error<br>Service " +++ toString opts +++ ": " +++ error
 			= (Error (exception errorString), iworld)
 		Ok Nothing = (Ok (AsyncWrite sds), iworld)
 		Ok (Just pred)
-			# (match,nomatch, iworld) = checkRegistrations (sdsIdentity rsds) pred iworld
-			= (Ok (WriteResult match sds), iworld)
+			# (match,nomatch, iworld) = checkRegistrations (sdsIdentity sds) pred iworld
+			= (Ok (WriteResult match (SDSRemoteService Nothing opts)), iworld)
 
-	writeSDS sds=:(SDSRemoteService opts) p (TaskContext taskId) value iworld
+	writeSDS sds=:(SDSRemoteService Nothing opts) p (TaskContext taskId) value iworld
 	= case queueServiceWriteRequest sds p value taskId iworld of
 		(Error (_, error), iworld)
 			# errorString = "Remote service write error<br>Service " +++ toString opts +++ ": " +++ error
 			= (Error $ exception errorString, iworld)
 		(Ok Nothing, iworld) = (Ok $ WriteResult 'Set'.newSet sds, iworld)
-		(Ok (Just connectionId), iworld) = (Ok $ AsyncWrite $ SDSRemoteServiceQueued connectionId sds opts, iworld)
+		(Ok (Just connectionId), iworld) = (Ok $ AsyncWrite $ SDSRemoteService (Just connectionId) opts, iworld)
 
 instance Modifiable SDSRemoteService where
 	modifySDS _ _ _ _  iworld = (Error (exception "modifying remote services not possible"), iworld)
@@ -889,7 +889,7 @@ instance Modifiable SDSRemoteService where
  * received, so that the server may send other messages. Only applicable for TCP connections.
  */
 instance Registrable SDSRemoteService where
-	readRegisterSDS (SDSRemoteService (HTTPShareOptions _)) p context taskid iworld = (Error (exception "registering HTTP services not possible"), iworld)
+	readRegisterSDS (SDSRemoteService _ (HTTPShareOptions _)) p context taskid iworld = (Error (exception "registering HTTP services not possible"), iworld)
 	readRegisterSDS sds p context taskId iworld = readSDS sds p context (Just taskId) (sdsIdentity sds) iworld
 
 instance == RemoteNotifyOptions where

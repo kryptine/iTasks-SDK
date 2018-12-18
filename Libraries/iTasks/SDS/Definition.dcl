@@ -252,24 +252,12 @@ required type w. The reducer has the job to turn this ws into w.
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
 
-:: SDSRemoteSource p r w =
-	/**
-	 * A SDSRemoteSource is a share tree living on another system. Evaluating it will cause an
-	 * asynchronous message to be sent to the other server to retrieve the value for the
-	 * specified operation.
-	 */
-	E. sds: SDSRemoteSource (sds p r w) SDSShareOptions & RWShared sds
-	/**
-	 * This alternative is used when a remote sds is waiting on a asynchronous operation to be
-	 * completed.The connection id can be used to query the environment for a result.
-	 *
-	 * An extra copy to the share options is used so that we may use it to identify to which
-	 * server a message has been sent.
-	 *
-	 * We keep the original SDSRemoteSource so that we can later rewrite this node to it. This is
-	 * used when modifying a remote share requires reading, then writing to it.
-	 */
-	| SDSRemoteSourceQueued ConnectionId (SDSRemoteSource p r w) SDSShareOptions
+/**
+ * A SDSRemoteSource is a share tree living on another system. Evaluating it will cause an
+ * asynchronous message to be sent to the other server to retrieve the value for the
+ * specified operation.
+ */
+:: SDSRemoteSource p r w = E. sds: SDSRemoteSource (sds p r w) (Maybe ConnectionId) SDSShareOptions & RWShared sds
 
 :: WebServiceShareOptions p r w = HTTPShareOptions (HTTPHandlers p r w)
 	| TCPShareOptions (TCPHandlers p r w)
@@ -289,16 +277,10 @@ required type w. The reducer has the job to turn this ws into w.
 	, fromTextResponse :: String p Bool -> MaybeErrorString (Maybe r, Maybe String)
 	, writeMessageHandlers :: Maybe (p w -> String, p String -> MaybeErrorString (Maybe (SDSNotifyPred p)))
 	}
-
-:: SDSRemoteService p r w =
-	/**
-	 * A SDSRemoteServive is a share which allows you to connect to the outside world.
-	 * For now it just allows you to send HTTP messages and receive responses asynchronously.
-	 */
-	SDSRemoteService (WebServiceShareOptions p r w)
-	/**
-	 * Used when waiting on a asynchronous service call to be completed.
-	 */
-	| SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w) (WebServiceShareOptions p r w)
+/**
+ * A SDSRemoteServive is a share which allows you to connect to the outside world.
+ * For now it just allows you to send HTTP messages and receive responses asynchronously.
+ */
+:: SDSRemoteService p r w = SDSRemoteService (Maybe ConnectionId) (WebServiceShareOptions p r w)
 
 :: SDSDebug p r w = E. sds: SDSDebug String (sds p r w) & RWShared sds

@@ -32,10 +32,10 @@ onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 onShareChange acc _ = (Ok acc, Nothing, [], False)
 
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
-queueSDSRequest req host port taskId symbols env
-= case addConnection taskId host port connectionTask env of
-	(Error e, env)  		= (Error e, env)
-	(Ok (id, _), env)     	= (Ok id, env)
+queueSDSRequest req host port taskId symbols iworld
+= case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld)  		= (Error e, iworld)
+	(Ok (id, _), iworld)     	= (Ok id, iworld)
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
@@ -51,9 +51,9 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
-queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
-	(Error e, env)          = (Error e, env)
-	(Ok (id, _), env)       = (Ok id, env)
+queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols iworld = case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld)          = (Error e, iworld)
+	(Ok (id, _), iworld)       = (Ok id, iworld)
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
@@ -69,9 +69,9 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueWriteRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld ->  (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
-queueWriteRequest req=:(SDSWriteRequest sds p w) host port taskId symbols env = case addConnection taskId host port connectionTask env of
-	(Error e, env)          = (Error e, env)
-	(Ok (id, _), env)       = (Ok id, env)
+queueWriteRequest req=:(SDSWriteRequest sds p w) host port taskId symbols iworld = case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld)          = (Error e, iworld)
+	(Ok (id, _), iworld)       = (Ok id, iworld)
 where
 	connectionTask = wrapConnectionTask (handlers req) unitShare
 
@@ -87,10 +87,11 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
-queueServiceRequest service=:(SDSRemoteService (HTTPShareOptions {host, port, createRequest, fromResponse})) p taskId _ env
-= case addConnection taskId host port connectionTask env of
-	(Error e, env) = (Error e, env)
-	(Ok (id, _), env) = (Ok id, env)
+queueServiceRequest (SDSRemoteService (Just _) _) _ _ _ iworld = (Error (exception "SDSRemoteService queing request while still a connection id"), iworld)
+queueServiceRequest service=:(SDSRemoteService _ (HTTPShareOptions {host, port, createRequest, fromResponse})) p taskId _ iworld
+= case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (id, _), iworld) = (Ok id, iworld)
 where
 	connectionTask = wrapConnectionTask (handlers service) unitShare
 
@@ -117,10 +118,10 @@ where
 			(Error error) = (Error error, Nothing)
 			(Ok a) = (Ok (Right a), Nothing)
 
-queueServiceRequest service=:(SDSRemoteService (TCPShareOptions {host, port, createMessage, fromTextResponse})) p taskId register env
-= case addConnection taskId host port connectionTask env of
-	(Error e, env) = (Error e, env)
-	(Ok (id, _), env) = (Ok id, env)
+queueServiceRequest service=:(SDSRemoteService _ (TCPShareOptions {host, port, createMessage, fromTextResponse})) p taskId register iworld
+= case addConnection taskId host port connectionTask iworld of
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (id, _), iworld) = (Ok id, iworld)
 where
 	connectionTask = wrapConnectionTask handlers unitShare
 	handlers = {ConnectionHandlers| onConnect = onConnect,
@@ -146,11 +147,12 @@ where
 	onDisconnect state _ = (Ok state, Nothing)
 
 queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> (MaybeError TaskException (Maybe ConnectionId), !*IWorld) | TC p & TC w
-queueServiceWriteRequest service=:(SDSRemoteService (HTTPShareOptions {host, port, writeHandlers})) p w taskId iworld
+queueServiceWriteRequest service=:(SDSRemoteService (Just _) _) _ _ _ iworld = (Error (exception "SDSRemoteService queing write request while still containing a connection id"), iworld)
+queueServiceWriteRequest service=:(SDSRemoteService _ (HTTPShareOptions {host, port, writeHandlers})) p w taskId iworld
 | isNothing writeHandlers = (Ok Nothing, iworld) // Writing not supported for this share.
 = case addConnection taskId host port connectionTask iworld of
-	(Error e, env) = (Error e, env)
-	(Ok (id, _), env) = (Ok (Just id), env)
+	(Error e, iworld) = (Error e, iworld)
+	(Ok (id, _), iworld) = (Ok (Just id), iworld)
 where
 	(toWriteRequest, fromWriteResponse) = fromJust writeHandlers
 	connectionTask = wrapConnectionTask handlers unitShare
@@ -177,7 +179,7 @@ where
 			Error e = (Error e, Nothing)
 			Ok pred = (Ok (Right pred), Nothing)
 
-queueServiceWriteRequest service=:(SDSRemoteService (TCPShareOptions {host, port, writeMessageHandlers})) p w taskId iworld
+queueServiceWriteRequest service=:(SDSRemoteService _ (TCPShareOptions {host, port, writeMessageHandlers})) p w taskId iworld
 | isNothing writeMessageHandlers = (Ok Nothing, iworld)
 = case addConnection taskId host port connectionTask iworld of
 	(Error e, iworld) = (Error e, iworld)
@@ -204,16 +206,19 @@ where
 	onShareChange state _ = (Ok state, Nothing, [], False)
 	onDisconnect state _ = (Ok state, Nothing)
 
-queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
-queueRead rsds=:(SDSRemoteSource sds {SDSShareOptions|domain, port}) p taskId register reqSDSId env
-# (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadingDone r), env) = (readSymbols r, env)
+queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld
+	-> (!MaybeError TaskException ConnectionId, !*IWorld)
+	| gText{|*|} p & TC p & TC r & TC w
+queueRead rsds=:(SDSRemoteSource sds (Just _) _) _ _ _ _ iworld = (Error $ exception "queueRead while already a connection id", iworld)
+queueRead rsds=:(SDSRemoteSource sds Nothing {SDSShareOptions|domain, port}) p taskId register reqSDSId iworld
+# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
+	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
 	_ = abort "Reading symbols failed!"
-# (request, env) = buildRequest register env
-= queueSDSRequest request domain port taskId symbols env
+# (request, iworld) = buildRequest register iworld
+= queueSDSRequest request domain port taskId symbols iworld
 where
-	buildRequest True env=:{options}= (SDSRegisterRequest sds p reqSDSId (sdsIdentity rsds) taskId options.sdsPort, env)
-	buildRequest False env = (SDSReadRequest sds p, env)
+	buildRequest True iworld=:{options}= (SDSRegisterRequest sds p reqSDSId (sdsIdentity rsds) taskId options.sdsPort, iworld)
+	buildRequest False iworld = (SDSReadRequest sds p, iworld)
 
 queueRemoteRefresh :: ![(!TaskId, !RemoteNotifyOptions)] !*IWorld -> *IWorld
 queueRemoteRefresh [] iworld = iworld
@@ -228,26 +233,26 @@ where
 	reqq taskId sdsId = SDSRefreshRequest taskId sdsId
 
 queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
-queueWrite w rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
-# (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadingDone r), env) = (readSymbols r, env)
+queueWrite w rsds=:(SDSRemoteSource sds (Just _) _) _ _ iworld = (Error $ exception "queueWrite while already a connection id", iworld)
+queueWrite w rsds=:(SDSRemoteSource sds Nothing share=:{SDSShareOptions|domain, port}) p taskId iworld
+# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
+	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
 # request = SDSWriteRequest sds p w
-= queueWriteRequest request domain port taskId symbols env
+= queueWriteRequest request domain port taskId symbols iworld
 
 queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
-queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
-# (symbols, env) = case read symbolsShare EmptyContext env of
-	(Ok (ReadingDone r), env) = (readSymbols r, env)
+queueModify f rsds=:(SDSRemoteSource sds (Just _)_) _ _ iworld = (Error $ exception "queueModify while already a connection id", iworld)
+queueModify f rsds=:(SDSRemoteSource sds Nothing share=:{SDSShareOptions|domain, port}) p taskId iworld
+# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
+	(Ok (ReadingDone r), iworld) = (readSymbols r, iworld)
 # request = SDSModifyRequest sds p f
-= queueModifyRequest request domain port taskId symbols env
+= queueModifyRequest request domain port taskId symbols iworld
 
 getAsyncServiceValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe r) | TC r & TC w & TC p
 getAsyncServiceValue service taskId connectionId ioStates
 # getValue = case service of
-	SDSRemoteService (HTTPShareOptions _) = getValueHttp
-	SDSRemoteServiceQueued _ _ (HTTPShareOptions _) = getValueHttp
-	SDSRemoteService (TCPShareOptions _) = getValueTCP
-	SDSRemoteServiceQueued _ _ (TCPShareOptions _) = getValueTCP
+	SDSRemoteService _ (HTTPShareOptions _) = getValueHttp
+	SDSRemoteService _ (TCPShareOptions _) = getValueTCP
 =  case 'DM'.get taskId ioStates of
 		Nothing                             = Error (exception "No iostate for this task")
 		Just ioState                        = case ioState of
@@ -283,10 +288,8 @@ where
 getAsyncServiceWriteValue :: !(SDSRemoteService p r w) !TaskId !ConnectionId !IOStates -> MaybeError TaskException (Maybe (SDSNotifyPred p)) | TC p & TC w & TC r
 getAsyncServiceWriteValue service taskId connectionId ioStates
 # getValue = case service of
-	SDSRemoteService (HTTPShareOptions _) = getValueHttp
-	SDSRemoteServiceQueued _ _ (HTTPShareOptions _) = getValueHttp
-	SDSRemoteService (TCPShareOptions _) = getValueTCP
-	SDSRemoteServiceQueued _ _ (TCPShareOptions _) = getValueTCP
+	SDSRemoteService _ (HTTPShareOptions _) = getValueHttp
+	SDSRemoteService _ (TCPShareOptions _) = getValueTCP
 =  case 'DM'.get taskId ioStates of
 		Nothing                             = Error (exception "No iostate for this task")
 		Just ioState                        = case ioState of

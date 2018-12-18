@@ -13,30 +13,30 @@ derive class iTask TestRecord
 :: TestRecord = {number :: Int, numbers :: [Int], text :: String, texts :: [String]}
 
 testShare = sharedStore "sharedStoreNamebla" {number = 37, numbers = [1, 2, 3], text = "Test", texts = ["een", "twee", "drie", "vier"]}
-remoteTestShare = remoteShare testShare {domain = "TEST", port = 9999}
+remoteTestShare = remoteShare testShare {domain = "localhost", port = 9999}
 
 leftShare = sharedStore "leftShare" (1, 2, 3)
 rightShare = sharedStore "rightShare" (10, 20, 30)
 
 parallelShare = leftShare >*< rightShare
-remoteParallelShare = remoteShare parallelShare {domain = "TEST", port = 9999}
+remoteParallelShare = remoteShare parallelShare {domain = "localhost", port = 9999}
 
-parallelWithLeftRemote = (remoteShare leftShare {domain = "TEST", port = 9999}) >*< rightShare
-parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "TEST", port = 9999})
+parallelWithLeftRemote = (remoteShare leftShare {domain = "localhost", port = 9999}) >*< rightShare
+parallelWithRightRemote = leftShare >*< (remoteShare rightShare {domain = "localhost", port = 9999})
 
 intShare = sharedStore "intShare" 15
-simpleShare = remoteShare intShare {domain="TEST", port=9999}
+simpleShare = remoteShare intShare {domain="localhost", port=9999}
 projectedRemote = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  simpleShare
 projectedLocal = sdsProject (SDSLensRead (\r. Ok (r + 2))) (SDSLensWrite (\_ r. Ok (Just (r - 2)))) (Just \_ ws. Ok (ws + 2))  intShare
 
 selectShare = sdsSelect "testSelect" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
-		(remoteShare leftShare {domain="TEST", port=9999}) rightShare
+		(remoteShare leftShare {domain="localhost", port=9999}) rightShare
 where
 	param i
 	| i == 0 = Left ()
 	= Right ()
 
-doubleRemote = remoteShare simpleShare {domain="TEST", port=9998}
+doubleRemote = remoteShare simpleShare {domain="localhost", port=9998}
 
 Start world	= doTasks tests world
 where
