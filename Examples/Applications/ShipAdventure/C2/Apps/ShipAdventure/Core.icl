@@ -83,7 +83,6 @@ actorWithInstructions user
   editor = fromSVGEditor
 		{ initView    = \((ms2d, _), cl) -> (ms2d, cl)
 		, renderImage = \((_, network), _) (ms2d`, cl`) -> maps2DImage 'DS'.newSet cl` PickRoomMode ms2d` 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DIS'.newMap {network & devices = 'DM'.newMap}
-		, updView     = \((ms2d, _), cl) _ -> (ms2d, cl)
 		, updModel    = \((_, network), _) (ms2d`, cl`) -> ((ms2d`, network), cl`)
 		}
 
@@ -411,6 +410,5 @@ mkSection
   editor = fromSVGEditor
 	{ initView    = const ([], NoAction)
 	, renderImage = \(((((((((mc3d, network), allDevices), statusMap), sectionUsersMap), userActorMap), invMap), exitLocks), hopLocks), ms2d) _ _ -> map2DImage 'DS'.newSet NoAction WalkAroundMode exitLocks hopLocks invMap statusMap sectionUsersMap userActorMap allDevices network (getFloorIdx mc3d, ms2d !! getFloorIdx mc3d)
-	, updView  = \m v -> v
 	, updModel = \m v -> m
 	}

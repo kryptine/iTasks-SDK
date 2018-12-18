@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import iTasks.Internal.IWorld
 from iTasks.Engine import defaultEngineOptions
 
-derive gPrint LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set, UI, UIType, JSONNode, Map
+derive gPrint LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set, UI, UIType, JSONNode, Map, LUINode
 derive gPrint MaybeError, Maybe, UIChange, UIChildChange, UIAttributeChange
 derive gPrint EditState, LeafState
 

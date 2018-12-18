@@ -14,7 +14,7 @@ testSVGEditletClick
 	= updateInformation "SVG Clicks" [UpdateUsing (\m -> m) (\m v -> v) (fromSVGEditor svgeditor)] "No clicks"
     >&> \s -> viewSharedInformation "DEBUG" [] s
 where
-    svgeditor = {SVGEditor|initView=id,renderImage = renderImage, updView = \m v -> m, updModel = \m v -> v}
+    svgeditor = {SVGEditor|initView=id,renderImage = renderImage, updModel = \m v -> v}
 
     renderImage :: String String *TagSource -> Image String
     renderImage str _ _

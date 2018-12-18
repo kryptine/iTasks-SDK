@@ -169,7 +169,6 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
   editor outputs` = fromSVGEditor
     { initView    = id
     , renderImage = \_ -> mkTaskInstanceImage rs bpi outputs` enabledSteps selDetail compact
-    , updView     = \_ x -> x
     , updModel    = \x _ -> x
     }
 
@@ -187,7 +186,6 @@ showStaticBlueprint rs bpref task compact depth
   editor = fromSVGEditor
     { initView    = id
     , renderImage = \_ -> mkStaticImage rs bpref compact
-    , updView     = \_ x -> x
     , updModel    = \x _ -> x
     }
 

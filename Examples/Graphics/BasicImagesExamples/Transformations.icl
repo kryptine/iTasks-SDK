@@ -21,7 +21,6 @@ Start world
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const transformed_images
-			, updView     = \m _ = m
 			, updModel    = \_ v = v
 			})] 0) world
 

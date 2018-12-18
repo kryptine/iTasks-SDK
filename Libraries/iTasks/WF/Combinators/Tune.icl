@@ -12,10 +12,6 @@ import qualified Data.Set as DS
 import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 
-//This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-
 class addConstantAttribute f :: !String !b !(f a) -> f a | toAttribute b
 instance addConstantAttribute Task
 where

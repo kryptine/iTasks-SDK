@@ -200,7 +200,6 @@ where
 		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ ->
 		//TODO	above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 			above [] [] Nothing [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
-		, updView        = \m v -> fst m
 		, updModel       = \(_,data) newClSt -> (newClSt,data)
 		}
 

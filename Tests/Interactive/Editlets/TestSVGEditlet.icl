@@ -13,7 +13,7 @@ import iTasks.Extensions.SVG.SVGEditor
 
 testSVGEditlet = updateInformation "SVG image" [UpdateUsing id (const id) (fromSVGEditor svgeditor)] 42
 where
-    svgeditor = {SVGEditor|initView=const (),renderImage = \_ _ _ -> nederland, updView = \m v -> v, updModel = \m v -> m}
+    svgeditor = {SVGEditor|initView=const (),renderImage = \_ _ _ -> nederland, updModel = \m v -> m}
 
     nederland :: Image m
     nederland = banden (H *. 3 /. 2,H) [toSVGColor {r=174,g=28,b=40},toSVGColor "white",toSVGColor {r=33,g=70,b=139}]

@@ -606,7 +606,7 @@ where
     isSelected _ _ = False
 
     updateSelection [] = Nothing
-	updateSelection [markerId:ms]
+	updateSelection [LeafletObjectID markerId:ms]
         | startsWith "c" markerId   = Just (Left (toInt (subString 1 (textSize markerId) markerId)))
         | startsWith "a" markerId   = Just (Right (toInt (subString 1 (textSize markerId) markerId)))
                                     = updateSelection ms

@@ -215,8 +215,9 @@ where
 fromLeafletLayer cl ll = cl
 */
 
-selectionFromLeafletMap :: LeafletMap -> [String]
-selectionFromLeafletMap {LeafletMap|objects} = [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
+selectionFromLeafletMap :: LeafletMap -> [LeafletObjectID]
+selectionFromLeafletMap {LeafletMap|objects} =
+    [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
 
 fromLeafletLatLng :: !LeafletLatLng -> (!Real,!Real)
 fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)
