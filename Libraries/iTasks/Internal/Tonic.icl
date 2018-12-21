@@ -239,8 +239,6 @@ derive class iTask StaticDisplaySettings, DynamicDisplaySettings,
 derive gEditor Set
 derive gText Set
 derive gDefault Set
-derive JSONEncode Set
-derive JSONDecode Set
 
 //-----------------------------------------------------------------------------
 // REST
