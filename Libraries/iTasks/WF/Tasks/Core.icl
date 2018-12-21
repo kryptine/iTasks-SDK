@@ -93,7 +93,7 @@ where
 					(_, Nothing)   = Enter
 					(_, Just v)    = Update v
 				= withVSt taskId
-					( \vst -> case editor.Editor.genUI [] resetMode vst of
+					( \vst -> case editor.Editor.genUI 'DM'.newMap [] resetMode vst of
 						(Ok (ui,st),vst) = (Ok (l,editor.Editor.valueFromState st,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),st,taskTime), vst)
 						(Error e, vst)  = (Error (exception e), vst)
 					)
@@ -113,7 +113,7 @@ where
 
 initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)
 initEditorState taskId mode editor iworld = withVSt taskId
-	( \vst -> case editor.Editor.genUI [] uniqueMode vst of
+	( \vst -> case editor.Editor.genUI 'DM'.newMap [] uniqueMode vst of
 		(Ok (_, st), vst) = (Ok st,               vst)
 		(Error e,    vst) = (Error $ exception e, vst)
 	)
