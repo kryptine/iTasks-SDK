@@ -106,7 +106,7 @@ where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld
         = case addListener taskId port removeClosed (wrapConnectionTask handlers sds) iworld of
             (Error e,iworld)
-                = (ExceptionResult (exception ("Error: port "+++ toString port +++ " already in use.")), iworld)
+                = (ExceptionResult e, iworld)
             (Ok _,iworld)
                 = (ValueResult (Value [] False) {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep port)
                                                     (TCBasic taskId ts (DeferredJSONNode JSONNull) False),iworld)
@@ -126,6 +126,10 @@ where
             Just (IOActive values)  = 'DM'.put taskId (IODestroyed values) ioStates
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
+
+    //Destroyed in before a connection has been made
+    eval event evalOpts tree=:(TCDestroy _) iworld
+        = (DestroyedResult, iworld)
 
     rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
@@ -159,4 +163,3 @@ where
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
-

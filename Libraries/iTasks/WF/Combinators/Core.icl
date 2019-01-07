@@ -18,7 +18,7 @@ import iTasks.WF.Combinators.Common
 from iTasks.Internal.SDS import write, read, readRegister, modify
 import iTasks.WF.Tasks.System
 
-import StdList, StdBool, StdTuple, StdString, Data.Maybe, Data.Tuple
+import StdList, StdBool, StdTuple, StdString, Data.Maybe, Data.Tuple, StdMisc
 from StdFunc import o
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -502,8 +502,7 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
                 # lastFocus     = maybe lastFocus Just mbNewFocus
                 # result = ValueResult val evalInfo rep tree
                 //Check if the value changed
-                # newValue = encode val
-                # valueChanged = newValue =!= value
+                # valueChanged = val =!= decode value
                 //Write updated value, and optionally the new lastFocus time to the tasklist
                 # (mbError,iworld) = if valueChanged
                     (modify (\pts -> ((),{ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes}))
@@ -515,6 +514,9 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
 where
     encode NoValue      = NoValue
     encode (Value v s)  = Value (DeferredJSON v) s
+
+    decode NoValue     = NoValue
+    decode (Value v s) = Value (fromMaybe (abort "invalid parallel task state\n") $ fromDeferredJSON v) s
 
     (TaskId instanceNo taskNo)   = taskId
 
