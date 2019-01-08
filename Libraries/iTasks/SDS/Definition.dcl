@@ -102,13 +102,13 @@ where
 	 */
 	readSDS          :: !(sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class Registrable sds | Identifiable sds
+class Registrable sds | Readable sds
 where
 	/**
 	 * Register to a sds. Reads the value and registers the task to get a refresh event when the sds is changed.
 	 * @param sds to read from and register to.
 	 * @param parameter used for reading
-	 * @param context in which to read. Async sdss use the context to retrieve the task id.
+	 * @param context in which to read. Async sds's use the context to retrieve the task id.
 	 * @param taskId which registers itself for changes to the sds.
 	 */
 	readRegisterSDS      :: !(sds p r w) p !TaskContext !TaskId !*IWorld -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w

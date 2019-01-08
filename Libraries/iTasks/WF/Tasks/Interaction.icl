@@ -41,7 +41,7 @@ updateInformation d [UpdateUsing tof fromf editor:_] m
 updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
-viewInformation d [ViewAs tof:_] m 
+viewInformation d [ViewAs tof:_] m
 	= interact d unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} gEditor{|*|} @! m
 viewInformation d [ViewUsing tof editor:_] m
 	= interact d unitShare {onInit = const ((), View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
@@ -60,19 +60,19 @@ updateSharedInformation d [UpdateSharedAs tof fromf conflictf:_] shared
 	= interact d shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
 				gEditor{|*|} @ fst
 
-updateSharedInformation d _ shared			
-	//Use dynamics to test if r == w, if so we can use an update view	
-	//If different types are used we just display the read type r 
+updateSharedInformation d _ shared
+	//Use dynamics to test if r == w, if so we can use an update view
+	//If different types are used we just display the read type r
 	= case dynamic id :: A.a: (a -> a) of
-		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared 
+		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared
 		_                  = viewSharedInformation d [] shared
 
-viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & RWShared sds
+viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
 viewSharedInformation d [ViewAs tof:_] shared
-	= interact d shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} gEditor{|*|} @ fst
+	= interactView d shared {onInitView = \r -> (r, View $ tof r), onRefreshView = \r _ _ -> (r,tof r,Nothing)} gEditor{|*|} @ fst
 
 viewSharedInformation d [ViewUsing tof editor:_] shared
-	= interact d shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
+	= interactView d shared {onInitView = \r -> (r, View $ tof r), onRefreshView = \r _ _ -> (r,tof r,Nothing)} editor @ fst
 viewSharedInformation d _ shared = viewSharedInformation d [ViewAs id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(sds () r w) m -> Task m | toPrompt d & iTask r & iTask m & TC w & RWShared sds
@@ -125,7 +125,7 @@ editSharedSelection d multi (SelectInCheckGroup toView fromView) container share
 editSharedSelection d multi (SelectInList toView fromView) container sharedSel = editSharedSelection` d (choiceList <<@ multipleAttr multi) toView fromView container sharedSel
 editSharedSelection d multi (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d (grid <<@ multipleAttr multi) toView fromView container sharedSel
 editSharedSelection d multi (SelectInTree toView fromView) container sharedSel = editSharedSelection` d (tree <<@ multipleAttr multi) toView fromView container sharedSel
-editSharedSelection` d editor toView fromView container sharedSel 
+editSharedSelection` d editor toView fromView container sharedSel
 	= interact d sharedSel
 		{onInit = \r           -> ((), Update (toView container,r))
 		,onEdit = \(vt,vs) l _ -> (l,(vt,vs),Just (const vs))
@@ -191,7 +191,7 @@ editChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) (Maybe a) -> Task a
 editChoiceWithShared d options container mbSel = editChoiceWithSharedAs d options container id mbSel
 
 editChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds
-editChoiceWithSharedAs d vopts sharedContainer target mbSel 
+editChoiceWithSharedAs d vopts sharedContainer target mbSel
 	= editSelectionWithShared d False (selectOption target vopts) sharedContainer (findIndex target mbSel) @? tvHd
 
 editMultipleChoiceWithShared :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
@@ -229,14 +229,14 @@ editSharedChoice :: !d ![ChoiceOption a] ![a] (sds () (Maybe a) (Maybe a)) -> Ta
 editSharedChoice d options container sharedSel = editSharedChoiceAs d options container id sharedSel
 
 editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a & RWShared sds
-editSharedChoiceAs d vopts container target sharedSel 
+editSharedChoiceAs d vopts container target sharedSel
 	= editSharedSelection d False (selectOption target vopts) container (findIndexShare target container sharedSel) @? tvHd
 
 editSharedMultipleChoice :: !d ![ChoiceOption a] ![a] (sds () [a] [a]) -> Task [a] | toPrompt d & iTask a & RWShared sds
 editSharedMultipleChoice d options container sharedSel = editSharedMultipleChoiceAs d options container id sharedSel
 
 editSharedMultipleChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (sds () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask a & RWShared sds
-editSharedMultipleChoiceAs d vopts container target sharedSel 
+editSharedMultipleChoiceAs d vopts container target sharedSel
 	= editSharedSelection d True (selectOption target vopts) container (findIndicesShare target container sharedSel)
 
 editSharedChoiceWithShared :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
@@ -310,7 +310,7 @@ wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & R
 wait desc pred shared
 	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
-	
+
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation () [] ()
