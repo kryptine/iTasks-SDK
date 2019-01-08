@@ -56,7 +56,7 @@ rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM
 
 //Master instance index
 taskInstanceIndex :: SDSLens () [TIMeta] [TIMeta]
-taskInstanceIndex = sdsFocus "UNIQUEinstances" rawTaskIndex
+taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 
 //Next instance no counter
 nextInstanceNo :: SDSLens () Int Int
@@ -226,7 +226,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
-filteredInstanceIndex = sdsLens "filteredInstanceIndexUnique" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just \filter metas -> read filter metas) taskInstanceIndex
+filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just \filter metas -> read filter metas) taskInstanceIndex
 where
 	param tfilter = ()
 
@@ -296,7 +296,7 @@ where
 	notify no _     = const ((==) no)
 
 taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
-taskInstanceConstants = sdsLens "taskInstanceConstantsUnique" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> Ok ())  filteredInstanceIndex
+taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> Ok ())  filteredInstanceIndex
 where
 	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
 			   ,includeConstants=True,includeProgress=False,includeAttributes=False}
