@@ -306,7 +306,7 @@ where
 	tof (options,mbv) = findIndices target mbv options
 	fromf w (options,_) = Just (findSelection target options w)
 
-wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & RWShared sds
+wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
 wait desc pred shared
 	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
@@ -322,7 +322,7 @@ where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
-viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds & TC w
+viewSharedTitle :: !(sds () r w) -> Task r | iTask r & Registrable sds & TC w
 viewSharedTitle s = whileUnchanged s viewTitle
 
 crudWith :: !d ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r]

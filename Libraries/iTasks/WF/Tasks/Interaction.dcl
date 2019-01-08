@@ -170,7 +170,7 @@ editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & RWShared sds
+wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
 
 
 /*** Special tasks for choosing actions ***/
@@ -192,7 +192,7 @@ viewTitle :: !a -> Task a | iTask a
 /**
 * View shared data as a title
 */
-viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds & TC w
+viewSharedTitle :: !(sds () r w) -> Task r | iTask r & Registrable sds & TC w
 
 /**
 * Basic Create, Read, Update, Delete (CRUD) editor for a shared collection
