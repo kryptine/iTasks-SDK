@@ -823,26 +823,23 @@ attach instanceNo steal = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
 		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
-		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
+		| mbConstants =: (Error _)  = (ExceptionResult (fromError mbConstants),iworld)
 		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		// Work around bug in compiler until John fixes it.
-		// # Ok (ReadResult {InstanceConstants| ...}) = mbConstants
-		// ^ Yields corrupt runtime code.
-		= case (directResult (fromOk mbConstants), directResult (fromOk mbProgress)) of
-			({InstanceConstants|build},progress=:{InstanceProgress|instanceKey,value,attachedTo})
-			//Check if the task is already in use
-			| (not (attachedTo =: [])) && (not steal)
-				= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
-			| otherwise
-			//Take over the instance. We generate a new key, so the other instance will no longer have access
-			# (newKey,iworld) = newInstanceKey iworld
-	        # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
-			# (_,iworld)	= (write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld)
-			//Clear all input and output of that instance
-			# (_,iworld)    = (write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld)
-			# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld
-			= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
+		# (Ok (ReadingDone {InstanceConstants|build})) = mbConstants
+		# (Ok (ReadingDone progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
+		//Check if the task is already in use
+		| (not (attachedTo =: [])) && (not steal)
+			= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
+		| otherwise
+		//Take over the instance. We generate a new key, so the other instance will no longer have access
+		# (newKey,iworld) = newInstanceKey iworld
+        # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
+		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
+		//Clear all input and output of that instance
+		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld
+		# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld
+		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
 
 	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{options={appVersion},current={taskInstance}}
 		//Load instance
