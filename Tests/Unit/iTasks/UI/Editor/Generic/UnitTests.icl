@@ -193,7 +193,7 @@ genUIWrapper datapath mode editor world
 	# (options,world) = defaultEngineOptions world 
 	# iworld = createIWorld options world
 	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],iworld=iworld}
-	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.genUI datapath (mapEditMode id mode) vst
+	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.genUI emptyAttr datapath (mapEditMode id mode) vst
 	= (res,world)
 
 onEditWrapper datapath edit state editor world

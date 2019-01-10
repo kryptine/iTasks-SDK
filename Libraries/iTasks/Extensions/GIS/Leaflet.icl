@@ -58,7 +58,7 @@ leafletEditor = leafEditorToEditor
     , valueFromState = valueFromState
     }
 where
-	genUI dp mode world
+	genUI attr dp mode world
 		# val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrls,objects,icons} =
 			fromMaybe gDefault{|*|} $ editModeValue mode
 		# mapAttr = 'DM'.fromList
@@ -71,6 +71,7 @@ where
 		# attr = 'DM'.unions [ mapAttr
 		                     , sizeAttr (ExactSize 500) (ExactSize 150)
 		                     , 'DM'.singleton "viewMode" $ JSONBool $ mode =: View _
+		                     , attr
 		                     ]
 		# children = map encodeUI objects
 		= (Ok (uiac UIHtmlView attr children, val), world)
