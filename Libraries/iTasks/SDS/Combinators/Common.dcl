@@ -129,6 +129,7 @@ taskListItemValue :: !(SharedTaskList a) -> ROShared (Either Int TaskId) (TaskVa
 /**
 * Get the progress of a specific task in the list
 * The paramater is either the index in the list or a specific task id
+* Note that there is only progress information for detached tasks
 */
 taskListItemProgress :: !(SharedTaskList a) -> ROShared (Either Int TaskId) InstanceProgress | TC a
 
