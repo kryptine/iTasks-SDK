@@ -79,7 +79,7 @@ readRegister taskId sds iworld = case readRegisterSDS sds () (TaskContext taskId
 	(Ok (ReadResult r sds), iworld) = (Ok (ReadingDone r), iworld)
 	(Ok (AsyncRead sds), iworld) = (Ok (Reading sds), iworld)
 
-mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
+mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Identifiable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
 mbRegister p sds Nothing _ reqSDSId iworld = iworld
 mbRegister p sds (Just taskId) context reqSDSId iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask, world}
@@ -639,10 +639,10 @@ instance Readable SDSParallel where
 	| res2 =:(Error _)
 		= (liftError res2, iworld)
 	= case (fromOk res1, fromOk res2) of
-		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
-		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
-		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
-		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallelWriteLeft ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallelWriteLeft sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallelWriteLeft ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallelWriteLeft sds1 sds2 opts)), iworld)
 
 	readSDS sds=:(SDSParallelWriteRight sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
 	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
@@ -654,10 +654,10 @@ instance Readable SDSParallel where
 	| res2 =:(Error _)
 		= (liftError res2, iworld)
 	= case (fromOk res1, fromOk res2) of
-		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
-		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
-		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
-		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallelWriteRight ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallelWriteRight sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallelWriteRight ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallelWriteRight sds1 sds2 opts)), iworld)
 
 	readSDS sds=:(SDSParallelWriteNone sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify reqSDSId iworld
 	# iworld = mbRegister p sds mbNotify c reqSDSId iworld
@@ -669,10 +669,10 @@ instance Readable SDSParallel where
 	| res2 =:(Error _)
 		= (liftError res2, iworld)
 	= case (fromOk res1, fromOk res2) of
-		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallel ssds1 ssds2 opts)), iworld)
-		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallel sds1 ssds2 opts)), iworld)
-		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallel ssds1 sds2 opts)), iworld)
-		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallel sds1 sds2 opts)), iworld)
+		(ReadResult r1 ssds1, ReadResult r2 ssds2) 	= (Ok (ReadResult (read (r1, r2)) (SDSParallelWriteNone ssds1 ssds2 opts)), iworld)
+		(AsyncRead sds1, ReadResult r2 ssds2) 		= (Ok (AsyncRead (SDSParallelWriteNone sds1 ssds2 opts)), iworld)
+		(ReadResult r1 ssds1, AsyncRead sds2) 		= (Ok (AsyncRead (SDSParallelWriteNone ssds1 sds2 opts)), iworld)
+		(AsyncRead sds1, AsyncRead sds2) 			= (Ok (AsyncRead (SDSParallelWriteNone sds1 sds2 opts)), iworld)
 
 instance Writeable SDSParallel where
 	writeSDS sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,writel,writer,name}) p c w iworld
