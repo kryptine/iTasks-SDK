@@ -81,7 +81,7 @@ where
 							Enter    = Nothing
 							Update x = Just x
 							View x   = Just x
-					= withVSt taskId (\vst. case editor.Editor.genUI [] (uniqueMode mode) vst of
+					= withVSt taskId (\vst. case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
 						(Error e, vst)		= (ExceptionResult (exception e), vst)
 						(Ok (ui, st), vst)
 							# change 	= ReplaceUI (uic UIInteract [toPrompt prompt, ui])
@@ -147,7 +147,7 @@ where
 					(_, Nothing)   = Enter
 					(_, Just v)    = Update v
 				= withVSt taskId
-					( \vst -> case editor.Editor.genUI [] resetMode vst of
+					( \vst -> case editor.Editor.genUI 'DM'.newMap [] resetMode vst of
 						(Ok (ui,st),vst) = (Ok (Left (l,editor.Editor.valueFromState st,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),st,taskTime)), vst)
 						(Error e, vst)  = (Error (exception e), vst)
 					)
@@ -196,7 +196,7 @@ where
 							Enter    = Nothing
 							Update x = Just x
 							View x   = Just x
-					= withVSt taskId (\vst. case editor.Editor.genUI [] (uniqueMode mode) vst of
+					= withVSt taskId (\vst. case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
 						(Error e, vst)		= (ExceptionResult (exception e), vst)
 						(Ok (ui, st), vst)
 							# change 	= ReplaceUI (uic UIInteract [toPrompt prompt, ui])
@@ -242,7 +242,7 @@ where
 					(_, Nothing)   = Enter
 					(_, Just v)    = Update v
 				= withVSt taskId
-					( \vst -> case editor.Editor.genUI [] resetMode vst of
+					( \vst -> case editor.Editor.genUI 'DM'.newMap [] resetMode vst of
 						(Ok (ui,st),vst) = (Ok (Left (l,editor.Editor.valueFromState st,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),st,taskTime)), vst)
 						(Error e, vst)  = (Error (exception e), vst)
 					)
@@ -285,7 +285,7 @@ where
 
 initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)
 initEditorState taskId mode editor iworld = withVSt taskId
-	( \vst -> case editor.Editor.genUI [] (uniqueMode mode) vst of
+	( \vst -> case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
 		(Ok (_, st), vst) = (Ok st,               vst)
 		(Error e,    vst) = (Error $ exception e, vst)
 	)
@@ -334,7 +334,7 @@ refreshView_ taskId editor shared onRefresh l ov st taskTime iworld
 						Nothing = (Ok (Left (l,Just v,change,st,taskTime)), iworld)
 				Error e = (Error (exception e), iworld)
 
-uniqueMode :: (EditMode a) ->  *(EditMode a)
+uniqueMode :: (EditMode a) -> *(EditMode a)
 uniqueMode mode = case mode of
 	Enter    = Enter
 	Update x = Update x

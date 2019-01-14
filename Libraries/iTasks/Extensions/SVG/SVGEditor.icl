@@ -94,11 +94,11 @@ where
 			| otherwise
 				= (jsNull,jsTrace "Unknown attribute change" world)
 
-	genUI :: !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI, !s), !*VSt) | JSEncode{|*|} s
-	genUI dp mode vst = case editModeValue mode of
+	genUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI, !s), !*VSt) | JSEncode{|*|} s
+	genUI attr dp mode vst = case editModeValue mode of
 		Nothing = (Error "SVG editors cannot be used in enter mode.", vst)
 		Just val
-			# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr $ encodeOnServer val]
+			# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr $ encodeOnServer val, attr]
 			= (Ok (uia UIComponent attr, val), vst)
 
 	onEdit :: !DataPath !(!DataPath, !s) !s !*VSt -> (!MaybeErrorString (!UIChange, !s), !*VSt)
