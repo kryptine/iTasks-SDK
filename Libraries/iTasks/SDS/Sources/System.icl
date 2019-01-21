@@ -72,7 +72,7 @@ taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|session,listId,
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
-currentTaskInstanceAttributes :: SDSSequence () TaskAttributes TaskAttributes
+currentTaskInstanceAttributes :: SimpleSDSSequence TaskAttributes
 currentTaskInstanceAttributes
 	= sdsSequence "currentTaskInstanceAttributes"
 		id

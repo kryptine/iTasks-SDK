@@ -106,7 +106,7 @@ viewLayout = updateMapStatus EditMode @! ()
 sharedMapAction :: SimpleSDSLens (MapAction SectionStatus)
 sharedMapAction = sharedStore "sharedMapAction" (FocusOnMap 0)	// start at the top-level (all maps)
 
-sharedEditShip :: SDSParallel () (Maps2D,MapAction SectionStatus) (Maps2D,MapAction SectionStatus)
+sharedEditShip :: SimpleSDSParallel (Maps2D,MapAction SectionStatus)
 sharedEditShip = maps2DShare >*< sharedMapAction
 
 manageDevices :: Task ()

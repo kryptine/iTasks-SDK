@@ -24,6 +24,6 @@ startAuthEngine :: Domain -> Task ()
 
 enterDomain :: Task Domain
 
-currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)
+currentDistributedUser :: SimpleSDSParallel (User,Domain)
 
 currentDomain :: SDSLens () Domain ()

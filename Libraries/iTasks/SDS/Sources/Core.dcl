@@ -15,7 +15,7 @@ constShare :: !a -> SDSSource p a ()
 nullShare :: SDSSource p () a
 
 // Useful placeholder when you need a share don't intent to use it
-unitShare :: SDSSource () () ()
+unitShare :: SimpleSDSSource ()
 
 // Random source
 randomInt :: SDSSource () Int ()

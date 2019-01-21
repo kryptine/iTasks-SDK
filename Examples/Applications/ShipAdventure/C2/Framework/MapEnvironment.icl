@@ -91,7 +91,7 @@ sectionForUserShare user = mapRead (sectionForUser user) sectionUsersShare
 focusedSectionUsersShare :: FocusedSectionUsersShare
 focusedSectionUsersShare = mapLens "focusedSectionUsersShare" sectionUsersShare (Just [])
 
-inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> SDSSequence () (IntMap (Object o)) (IntMap (Object o)) | iTask o
+inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> SimpleSDSSequence (IntMap (Object o)) | iTask o
 inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryForUserSection" +++ toString user) id mkP2 (\_ _ -> Right mkr) (SDSWrite write1) (SDSWrite write2) (sectionForUserShare user) inventoryForSectionShare
   where
   mkP2 p (Just c3d) = c3d

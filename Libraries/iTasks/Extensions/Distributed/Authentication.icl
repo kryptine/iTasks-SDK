@@ -187,7 +187,7 @@ startAuthEngine (Domain domain)
 authServerInfoShare :: SimpleSDSLens String
 authServerInfoShare = sharedStore "authServer" ""
 
-currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)
+currentDistributedUser :: SimpleSDSParallel (User,Domain)
 currentDistributedUser = sdsParallel "communicationDetailsByNo" param read (SDSWriteConst writel) (SDSWriteConst writer) currentUser authServerInfoShare
 where
 	param p = (p,p)

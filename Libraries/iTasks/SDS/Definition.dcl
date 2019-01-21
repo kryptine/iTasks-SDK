@@ -156,6 +156,11 @@ instance toString (WebServiceShareOptions p r w)
 //some registered parameter of type p needs to be notified.
 :: SDSNotifyPred p          :== Timespec p -> Bool
 
+/**
+ * A SDSSource with no parameter and equal read and write type.
+ */
+:: SimpleSDSSource a :== SDSSource () a a
+
 //Sources provide direct access to a data source
 :: SDSSource p r w = SDSSource !(SDSSourceOptions p r w)
 
@@ -214,6 +219,11 @@ required type w. The reducer has the job to turn this ws into w.
 	= SDSNotify      !(pw rs w -> SDSNotifyPred pq)
 	| SDSNotifyConst !(pw w    -> SDSNotifyPred pq)
 
+/**
+ * A SDSSelect with no parameter and equal read and write type.
+ */
+:: SimpleSDSSelect a :== SDSSelect () a a
+
 //Merge two sources by selecting one based on the parameter
 :: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !(sds1 p1 r w) !(sds2 p2 r w) !(SDSSelectOptions p r w p1 p2)
                    & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
@@ -224,6 +234,11 @@ required type w. The reducer has the job to turn this ws into w.
 	, notifyl :: !SDSLensNotify p1 p2 w r
 	, notifyr :: !SDSLensNotify p2 p1 w r
 	}
+
+/**
+ * A SDSParallel with no parameter and equal read and write type.
+ */
+:: SimpleSDSParallel a :== SDSParallel () a a
 
 //Read from and write to two independent SDS's
 :: SDSParallel p r w
@@ -248,6 +263,11 @@ required type w. The reducer has the job to turn this ws into w.
 	, writer :: !SDSLensWrite p w r2 w2
 	}
 
+/**
+ * A SDSSequence with no parameter and equal read and write type.
+ */
+:: SimpleSDSSequence a :== SDSSequence () a a
+
 //Read from and write to two dependent SDS's
 //The read value from the first is used to compute the parameter for the second
 :: SDSSequence p r w =
@@ -266,6 +286,11 @@ required type w. The reducer has the job to turn this ws into w.
 	, writer :: !SDSLensWrite p w r2 w2
 	}
 
+/**
+ * A SDSCache with no parameter and equal read and write type.
+ */
+:: SimpleSDSCache a :== SDSCache () a a
+
 // TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writeable for SDSCache. iTask p seems to solve this for unknown reasons.
 :: SDSCache p r w = E. sds: SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & iTask p & TC r & TC w
 :: SDSCacheOptions p r w  =
@@ -273,6 +298,11 @@ required type w. The reducer has the job to turn this ws into w.
 	}
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
+
+/**
+ * A SDSRemoteSource with no parameter and equal read and write type.
+ */
+:: SimpleSDSRemoteSource a :== SDSRemoteSource () a a
 
 /**
  * A SDSRemoteSource is a share tree living on another system. Evaluating it will cause an
@@ -299,6 +329,12 @@ required type w. The reducer has the job to turn this ws into w.
 	, fromTextResponse     :: !String p Bool -> MaybeErrorString (!Maybe r, !Maybe String)
 	, writeMessageHandlers :: !Maybe (!p w -> String, !p String -> MaybeErrorString (Maybe (SDSNotifyPred p)))
 	}
+
+/**
+ * A SDSRemoteService with no parameter and equal read and write type.
+ */
+:: SimpleSDSRemoteService a :== SDSRemoteService () a a
+
 /**
  * A SDSRemoteServive is a share which allows you to connect to the outside world.
  * For now it just allows you to send HTTP messages and receive responses asynchronously.

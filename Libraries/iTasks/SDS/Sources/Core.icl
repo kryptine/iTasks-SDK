@@ -18,7 +18,7 @@ constShare v = createReadOnlySDS (\_ env -> (v, env))
 nullShare :: SDSSource p () a
 nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const (const False)), env))
 
-unitShare :: SDSSource () () ()
+unitShare :: SimpleSDSSource ()
 unitShare = nullShare
 
 worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDSSource p r w
