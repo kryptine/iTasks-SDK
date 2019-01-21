@@ -26,7 +26,7 @@ doAddRemoveOpen     :: (Task a) (r -> Task b) (r -> Task c) Workspace (sds () (M
 // Utility
 
 viewAndEdit :: (Task a) (Task b) -> Task b | iTask a & iTask b
-viewOrEdit :: d (sds () a a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
+viewOrEdit :: d (Shared sds a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
 
 doOrClose		:: (Task a)						-> Task (Maybe a) | iTask a
 doOrCancel		:: (Task a)						-> Task (Maybe a) | iTask a
@@ -43,7 +43,7 @@ oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toProm
 enterMultiple :: !String !Int (Task a) -> Task [a] | iTask a
 
 //Work on multiple items from a shared list and add
-manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (sds () [Int] [Int]) -> Task () | RWShared sds
+manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
 
 //Ok/Cancel transition
 (>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
@@ -53,6 +53,6 @@ manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (sds () [Int] [Int]) 
 manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 
 //Reading network streams
-syncNetworkChannel      :: String Int String (String -> m) (m -> String) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
-consumeNetworkStream    :: ([m] -> Task ()) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
+syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
+consumeNetworkStream    :: ([m] -> Task ()) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 

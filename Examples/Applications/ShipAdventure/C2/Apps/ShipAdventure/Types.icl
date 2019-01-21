@@ -458,12 +458,12 @@ where
 			-> ((((((((ms2d`, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl`)
 		}
 
-setAlarm :: !User !(!Coord3D, !SectionStatus) !(sds () MySectionStatusMap MySectionStatusMap) -> Task () | RWShared sds
+setAlarm :: !User !(!Coord3D, !SectionStatus) !(Shared sds MySectionStatusMap) -> Task () | RWShared sds
 setAlarm user (alarmLoc, status) shStatusMap
   =   setSectionStatus alarmLoc status shStatusMap
   >>| addLog user ""  ("Resets " <+++ status <+++ " in Section " <+++ alarmLoc <+++ " to False.")
 
-setSectionStatus :: !Coord3D !SectionStatus !(sds () (SectionStatusMap SectionStatus) (SectionStatusMap SectionStatus)) -> Task () | RWShared sds
+setSectionStatus :: !Coord3D !SectionStatus !(Shared sds (SectionStatusMap SectionStatus)) -> Task () | RWShared sds
 setSectionStatus roomNumber status statusMap
   = upd ('DM'.put roomNumber status) statusMap @! ()
 

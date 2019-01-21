@@ -43,10 +43,10 @@ where
 	changeTask handleValue value
 		= handleValue value @? const NoValue
 
-proxyTask :: (sds () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
+proxyTask :: (Shared sds (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 proxyTask value_share onDestroy = Task (eval value_share)
 where
-    eval :: (sds () (TaskValue a) (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
+    eval :: (Shared sds (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
     eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
             # (val,iworld)  = readRegister taskId value_share iworld
             = case val of
@@ -64,7 +64,7 @@ taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValu
 where
 	store_name = "taskValueShare_" +++ (toString taskid)
 
-customEval :: (sds () (TaskValue a) (TaskValue a)) (Task a) -> (Task a) | iTask a & RWShared sds
+customEval :: (Shared sds (TaskValue a)) (Task a) -> (Task a) | iTask a & RWShared sds
 customEval value_share (Task eval) = Task eval`
         where
         eval` event evalOpts state iworld

@@ -136,7 +136,7 @@ where
 							(Just (id, reqs)) -> (Just (id, [request:reqs]))
 							Nothing            -> Nothing
 
-	process :: (sds () InstanceServerShare InstanceServerShare) -> Task () | RWShared sds
+	process :: (Shared sds InstanceServerShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where
@@ -497,7 +497,7 @@ where
         onDisconnect state share
                 = (Ok state, Just share)
 
-        process :: (sds () ClientShare ClientShare) Int -> Task () | RWShared sds
+        process :: (Shared sds ClientShare) Int -> Task () | RWShared sds
         process share clientId
                 = forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
         where
@@ -590,7 +590,7 @@ sendDistributedInstance _ task attributes domain
 	>>- \clientId -> upd (\s=:{ClientShare|responses=or} -> {ClientShare| s & responses = or ++ ["instance add " +++ (toString id) +++ " " +++ (serializeToBase64 (Remote_Task task attributes id))]}) (instanceClientShare (fromMaybe 0 clientId))
 	>>| proxyTask valueShare (onDestroy id (instanceClientShare (fromMaybe 0 clientId)))
 where
-	onDestroy :: InstanceNo (sds () ClientShare ClientShare) *IWorld -> *IWorld | RWShared sds
+	onDestroy :: InstanceNo (Shared sds ClientShare) *IWorld -> *IWorld | RWShared sds
 	onDestroy id share iworld
 		# (error,iworld) = modify (\s=:{ClientShare|responses=or} ->{ClientShare| s & responses = or ++ ["instance destory " +++ (toString id)]}) share EmptyContext iworld
 		= iworld
@@ -619,7 +619,7 @@ wrapperTask instanceno clientId
 	>>- \task -> case deserializeFromBase64 task symbols of
 		(Remote_Task task _ _) = evalRemoteTask task (valueChange instanceno) @! ())
 where
-	loadTask :: InstanceNo Bool (sds () String String) -> Task String | RWShared sds
+	loadTask :: InstanceNo Bool (Shared sds String) -> Task String | RWShared sds
 	loadTask instanceno force shared
 		= viewInformation "Loading task" [] "Please wait, the task is loaded ..."
 		||- (addWrapperTaskHandler instanceno (handlerTask shared)
@@ -627,10 +627,10 @@ where
                      >>| (watch shared >>* [OnValue (ifValue (\v -> not (v == "")) return)])
 		) >>- \result -> if (result=="ASSIGNED") (assinged instanceno shared) (return result)
 
-	handlerTask :: (sds () String String) String -> Task () | RWShared sds
+	handlerTask :: (Shared sds String) String -> Task () | RWShared sds
 	handlerTask shared data = set data shared @! ()
 
-	assinged :: InstanceNo (sds () String String) -> Task String | RWShared sds
+	assinged :: InstanceNo (Shared sds String) -> Task String | RWShared sds
 	assinged instanceno shared
 		= viewInformation "Task is assigned to another node" []
 			"You can takeover the task. Please take in mind that the progress at the other device maybe lost."

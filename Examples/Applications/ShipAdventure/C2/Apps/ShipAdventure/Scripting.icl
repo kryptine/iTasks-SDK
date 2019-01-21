@@ -30,7 +30,7 @@ changeFloodScript = changeScript "Handling Flood" handleFloodScript
 changeSmokeScript :: Task ()
 changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript
 
-changeScript :: !String !(sds () [Script] [Script]) -> Task () | RWShared sds
+changeScript :: !String !(Shared sds [Script]) -> Task () | RWShared sds
 changeScript prompt script
   =   viewSharedInformation ("Current Script: " <+++ prompt) [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
   >>* [ OnAction (Action "Fine") (always (return ()))

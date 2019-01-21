@@ -585,7 +585,7 @@ getObjectOfType {Actor | carrying} objType` = case [obj \\ obj <- carrying | obj
 
 autoMove :: !Coord3D !Coord3D
             !(Coord3D Coord3D (SectionStatusMap r) SectionExitLockMap SectionHopLockMap Graph -> Maybe ([Coord3D], Distance))
-            !User !(sds () (SectionStatusMap r) (SectionStatusMap r)) !(UserActorShare o a)
+            !User !(Shared sds (SectionStatusMap r)) !(UserActorShare o a)
          -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 autoMove thisSection target pathFun user shipStatusShare userToActorShare
   | thisSection == target = return True

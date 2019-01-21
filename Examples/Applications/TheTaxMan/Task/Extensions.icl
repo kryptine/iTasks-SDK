@@ -38,11 +38,11 @@ crud` :: !d !((f r) -> [r]) !(r (f r) -> f` w)  !(r (f r) -> f` w)
      -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
 crud` descr toList putItem delItem sh = crudWith descr [] [] [] [] toList putItem delItem sh
 
-editStore :: String (sds () [a] [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
+editStore :: String (Shared sds [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
 editStore prompt store
 	= crud` (Title prompt) id (\item items -> sort [item:items]) (\item items -> removeMember item items) store
 
-addToStore :: [a] !(sds () [a] [a]) -> Task () | iTask a & RWShared sds
+addToStore :: [a] !(Shared sds [a]) -> Task () | iTask a & RWShared sds
 addToStore new store
 	= upd (\content -> content ++ new) store @! ()
 

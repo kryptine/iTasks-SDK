@@ -147,7 +147,7 @@ fromSQLWithId :: [SQLValue] -> (Int,a) | mbFromSQL a
 fromSQLWithId row = (fromSQL [last row],fromSQL (init row))
 
 //UTIL SDS Combinators
-(>++>) infixl 6     :: (sds1 () SQLDatabaseDef SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
+(>++>) infixl 6     :: (Shared sds1 SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
 (>++>) db sds = sdsSequence ">++>" id (\p db -> (db,p)) (\_ _ -> Right snd) (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w))) (sdsFocus () db) sds
 
 sqlReadSDS :: String -> SDSSource (SQLDatabaseDef,QueryDef) [r] () | mbFromSQL r

@@ -172,7 +172,7 @@ actionStatusByNo                :: SDSLens InstanceNo   ActionStatus ActionStatu
 numActionsByContact             :: SDSLens ContactNo Int ()
 
 //Todo items
-todoItemTask                :: () (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+todoItemTask                :: () (Shared sds ActionStatus) -> Task () | RWShared sds
 blankTodoItem               ::                                                   CatalogAction
 predefinedTodoItem          :: String ItemMeta                                -> CatalogAction
 predefinedInstantItem       :: String ItemMeta ActionProgress ((SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction
@@ -183,7 +183,7 @@ predefinedIncidentItem      :: String ItemMeta (IncidentNo (SDSLens () ActionSta
 predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a
 
 //Action lists items
-listItemTask                :: (String,ActionPlan) (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+listItemTask                :: (String,ActionPlan) (Shared sds ActionStatus) -> Task () | RWShared sds
 blankListItem               ::                                                   CatalogAction
 predefinedListItem          :: String ItemMeta ActionPlan                        -> CatalogAction
 configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)        -> CatalogAction | iTask c

@@ -129,14 +129,14 @@ taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) Insta
 /**
  * Convenience lens for lookups in Maps. Returns Nothing on a missing key.
  */
-mapMaybeLens :: !String !(sds () (Map a b) (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
+mapMaybeLens :: !String !(Shared sds (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
 
 /**
  * Convenience lens for lookups in Maps. Can use a default value on a missing key, gives an error if no default is supplied.
  */
-mapLens :: !String !(sds () (Map a b) (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
+mapLens :: !String !(Shared sds (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
 
 /**
  * Convenience lens for lookups in IntMaps. Can use a default value on a missing key, gives an error if no default is supplied.
  */
-intMapLens :: !String !(sds () (IntMap a) (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds
+intMapLens :: !String !(Shared sds (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds

@@ -201,7 +201,7 @@ where
         [p:_]   = Ok p
         _       = Error (exception "taskListItemProgress: item not found")
 
-mapMaybeLens :: !String !(sds () (Map a b) (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
+mapMaybeLens :: !String !(Shared sds (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
 mapMaybeLens name origShare = sdsLens name (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) origShare
 where
     read :: !a !(Map a b) -> MaybeError TaskException (Maybe b) | < a & == a
@@ -216,7 +216,7 @@ where
     reducer p map = case 'DM'.get p map of
       (Just r) = Ok r
 
-mapLens :: !String !(sds () (Map a b) (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
+mapLens :: !String !(Shared sds (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
 mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) (Just reducer) origShare
   where
   read :: !(Maybe b) !a !(Map a b) -> MaybeError TaskException b | < a & == a
@@ -238,7 +238,7 @@ mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDS
     Just b = Ok b
     Nothing = Error (exception (name +++ " (mapLens): Index not found"))
 
-intMapLens :: !String !(sds () (IntMap a) (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds
+intMapLens :: !String !(Shared sds (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds
 intMapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) (Just (reducer mdef)) origShare
   where
   read :: !(Maybe a) !Int !(IntMap a) -> MaybeError TaskException a

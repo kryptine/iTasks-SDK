@@ -89,7 +89,7 @@ viewAndEdit view edit
     = forever (view >>* [OnAction (Action "Edit") (always edit)])
 
 //Move to common tasks
-viewOrEdit :: d (sds () a a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
+viewOrEdit :: d (Shared sds a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
 viewOrEdit prompt s log
 	= forever (view >>* [OnAction (Action "/Edit") (hasValue edit)]) @! ()
 where
@@ -166,7 +166,7 @@ where
     more list =   viewInformation () [] ()
               >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
 
-manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (sds () [Int] [Int]) -> Task () | RWShared sds
+manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
     =   get refsList
     >>- \initList ->
@@ -209,7 +209,7 @@ where
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
-syncNetworkChannel      :: String Int String (String -> m) (m -> String) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
+syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
     = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect} @! ()
 where
@@ -229,7 +229,7 @@ where
     onDisconnect l (received,receiveStopped,send,sendStopped)
 		= (Ok l,Just (received,True,send,sendStopped))
 
-consumeNetworkStream    :: ([m] -> Task ()) (sds () ([m],Bool,[m],Bool) ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
+consumeNetworkStream    :: ([m] -> Task ()) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 consumeNetworkStream processTask channel
     = ((watch channel >>* [OnValue (ifValue ifProcess process)]) <! id) @! ()
 where

@@ -12,14 +12,14 @@ playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
 	manipulateMap m
 	) <<@ ArrangeWithSideBar 0 LeftSide 600 True @! ()
 
-manipulateMap :: (sds () LeafletMap LeafletMap) -> Task () | RWShared sds
+manipulateMap :: (Shared sds LeafletMap) -> Task () | RWShared sds
 manipulateMap m = updateSharedInformation () [] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 
-managePerspective :: (sds () LeafletMap LeafletMap) -> Task () | RWShared sds
+managePerspective :: (Shared sds LeafletMap) -> Task () | RWShared sds
 managePerspective m = updateSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) Nothing m)  @! ()
 
-manageMapObjects :: (sds () LeafletMap LeafletMap) -> Task () | RWShared sds
+manageMapObjects :: (Shared sds LeafletMap) -> Task () | RWShared sds
 manageMapObjects m = updateSharedInformation (Title "Manage objects") [UpdateAs toPrj fromPrj] m
 				   -|| addDemoObjects m
 				   @! ()

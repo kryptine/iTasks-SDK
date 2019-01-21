@@ -475,7 +475,7 @@ where
 		= ConnectionInstance opts channel
 
 addIOTask :: !TaskId
-			 !(sds () Dynamic Dynamic)
+			 !(Shared sds Dynamic)
 			 !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
 			 !(IOTaskOperations .ioChannels readData closeInfo)
 			 !(ConnectionId initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))

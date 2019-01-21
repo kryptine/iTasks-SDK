@@ -27,7 +27,7 @@ viewContactCommunicationMeans   :: ContactNo    -> Task [CommunicationMean]
 updateContactPosition           :: ContactNo -> Task (Maybe (Maybe ContactPosition))
 updateContactStatus             :: ContactNo -> Task (Maybe (Maybe ContactStatus))
 
-updateSharedContactRefList      :: d (sds () [ContactNo] [ContactNo]) -> Task [ContactNo] | toPrompt d & RWShared sds
+updateSharedContactRefList      :: d (Shared sds [ContactNo]) -> Task [ContactNo] | toPrompt d & RWShared sds
 selectKnownOrDefineNewContact   :: Task (Either ContactNo NewContact)
 createContactIfNew              :: (Either ContactNo NewContact) -> Task ContactNo
 
@@ -36,7 +36,7 @@ createContact			        :: NewContact -> Task ContactNo
 deleteContact			        :: ContactNo -> Task ()
 
 addContactPhoto                 :: ContactNo Document -> Task ContactPhoto
-updatePosition			        :: ContactPosition String (sds () Contact Contact) -> Task Contact | RWShared sds
+updatePosition			        :: ContactPosition String (Shared sds Contact) -> Task Contact | RWShared sds
 
 createCommunicationMean         :: ContactNo NewCommunicationMean -> Task CommunicationMeanId
 deleteCommunicationMean         :: CommunicationMeanId -> Task ()
@@ -44,4 +44,4 @@ deleteCommunicationMean         :: CommunicationMeanId -> Task ()
 //Check credentials for contacts that can log in
 verifyContactCredentials        :: Credentials -> Task (Maybe User)
 
-viewContactsOnMap           :: (sds1 () [ContactGeo] w) (sds2 () (Maybe (Either ContactNo MMSI)) (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w & RWShared sds1 & RWShared sds2
+viewContactsOnMap           :: (sds1 () [ContactGeo] w) (Shared sds2 (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w & RWShared sds1 & RWShared sds2

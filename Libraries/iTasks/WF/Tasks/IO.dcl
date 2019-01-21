@@ -30,7 +30,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
  * @param Pseudotty settings
  * @result Task returning the exit code on termination
  */
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed

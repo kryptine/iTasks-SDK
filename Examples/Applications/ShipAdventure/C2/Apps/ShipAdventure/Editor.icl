@@ -272,7 +272,7 @@ editSectionContents
                )
              ] @! () //TODO <<@ ApplyLayout layout @! ()
   where
-  updateSectionEditor :: !String ![ChoiceOption a] (sds1 () [a] [a]) (sds2 () [a] [a]) -> Task [a] | iTask a & RWShared sds1 & RWShared sds2
+  updateSectionEditor :: !String ![ChoiceOption a] (Shared sds1 [a]) (Shared sds2 [a]) -> Task [a] | iTask a & RWShared sds1 & RWShared sds2
   updateSectionEditor d updOpts listShare focusedShare
 	= editSharedMultipleChoiceWithShared (Title d) updOpts listShare focusedShare
 

@@ -56,7 +56,7 @@ toOrderBySQL        :: [RowOrderDef] -> String
 
 fromSQLWithId       :: [SQLValue] -> (Int,a) | mbFromSQL a
 
-(>++>) infixl 6     :: (sds1 () SQLDatabaseDef SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
+(>++>) infixl 6     :: (Shared sds1 SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
 
 sqlReadSDS          :: String -> SDSSource (SQLDatabaseDef,QueryDef) [r] () | mbFromSQL r
 sqlReadWriteOneSDS  :: String -> SDSSource (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r

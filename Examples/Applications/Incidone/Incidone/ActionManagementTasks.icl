@@ -194,7 +194,7 @@ predefinedContactItem identity meta mbGroup contactTask
 where
     task status contactNo = contactTask status contactNo @? const NoValue
 
-updateSharedActionStatus :: (sds () ActionStatus ActionStatus) -> Task ActionStatus | RWShared sds
+updateSharedActionStatus :: (Shared sds ActionStatus) -> Task ActionStatus | RWShared sds
 updateSharedActionStatus status
     = watch status
         >^* [OnAction (Action "Mark active") (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
@@ -265,7 +265,7 @@ userActionCatalog :: SDSLens () [UserCatalogAction] [UserCatalogAction]
 userActionCatalog = sharedStore "UserActionCatalog" []
 
 //Todo items
-todoItemTask :: () (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+todoItemTask :: () (Shared sds ActionStatus) -> Task () | RWShared sds
 todoItemTask _ status
     = viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status @! ()
 
@@ -287,7 +287,7 @@ userTodoItem :: String ItemMeta -> CatalogAction
 userTodoItem identity meta = predefinedTodoItem identity meta
 
 //Alert item
-alertItemTask :: (ContactNo,Maybe P2000Message) (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+alertItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
 alertItemTask contactNo status = communicationItemTask contactNo status
 
 configureAlertItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo, Maybe P2000Message),ActionStatus)
@@ -311,7 +311,7 @@ userAlertItem identity meta def
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks (configureUserAlertItemTask meta def) alertItemTask}
 
 //Inform items
-informItemTask :: (ContactNo,Maybe P2000Message) (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+informItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
 informItemTask contactNo status = communicationItemTask contactNo status
 
 configureInformItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
@@ -336,7 +336,7 @@ userInformItem identity meta def
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks (configureUserInformItemTask meta def) informItemTask}
 
 //List items
-listItemTask :: (String,ActionPlan) (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+listItemTask :: (String,ActionPlan) (Shared sds ActionStatus) -> Task () | RWShared sds
 listItemTask (title,plan) status
     =   upd (\s -> {ActionStatus|s & title = title}) status
     >>- \{ActionStatus|contacts,incidents} ->
@@ -427,7 +427,7 @@ configureUserCommunicationItemTask type meta {CommunicationActionDefinition|cont
 configureUserCommunicationItemTask type _ _ initContacts initIncidents
     = configureCommunicationItemTask type initContacts initIncidents
 
-communicationItemTask :: (ContactNo,Maybe P2000Message) (sds () ActionStatus ActionStatus) -> Task () | RWShared sds
+communicationItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
 communicationItemTask (contactNo,mbP2000Template) status
     //View action description
     =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status
@@ -631,7 +631,7 @@ where
         >>- \updated ->
             logActionUpdated updated @! (Just updated)
 
-edit :: (a -> Task a) (sds () a a) -> Task (Maybe a) | iTask a & RWShared sds //TODO: Move to util
+edit :: (a -> Task a) (Shared sds a) -> Task (Maybe a) | iTask a & RWShared sds //TODO: Move to util
 edit task sds
     =   get sds
     >>- \current ->
@@ -677,12 +677,12 @@ where
     incidents status
         = mapReadWrite (\{ActionStatus|incidents}-> incidents, \incidents status -> Just {ActionStatus|status & incidents=incidents}) Nothing status
 
-manageSubActions :: ActionPlan (sds () ActionStatus ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
+manageSubActions :: ActionPlan (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 manageSubActions plan status list
     =  (manageCurrentSubActionItems status list) -||- (addSuggestedSubActionItems plan status list) <<@ ArrangeHorizontal
     @? const NoValue
 
-manageCurrentSubActionItems :: (sds () ActionStatus ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
+manageCurrentSubActionItems :: (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 manageCurrentSubActionItems status list
     =   enterChoiceWithShared (Title "Current Actions") [ChooseFromGrid (format o thd3)] (subTaskItems list)
     >^* [OnAction (Action "Add action") (always (get status >>- \{ActionStatus|contacts,incidents} -> addSubAction contacts incidents list))]
@@ -696,7 +696,7 @@ where
     formatProgress p
         = "<div style=\"display:inline-block; width:16px; height:16px; margin-right:10px;\" class=\"icon-action-" +++ toString p +++ "\"></div>"
 
-addSuggestedSubActionItems :: ActionPlan (sds () ActionStatus ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
+addSuggestedSubActionItems :: ActionPlan (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 addSuggestedSubActionItems plan status list
     =   plan.suggestedActions
     >&> \suggestions ->

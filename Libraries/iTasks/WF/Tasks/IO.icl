@@ -38,7 +38,7 @@ liftOSErr f iw = case (liftIWorld f) iw of
 	(Error (_, e), iw) = (Error (exception e), iw)
 	(Ok a, iw) = (Ok a, iw)
 
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 externalProcess poll cmd args dir mopts sdsin sdsout = Task eval
 where
 	fjson = mb2error (exception "Corrupt taskstate") o fromDeferredJSON

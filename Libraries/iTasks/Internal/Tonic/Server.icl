@@ -305,7 +305,7 @@ acceptAndViewTonicTraces
       ||-
     viewSharedInformation "Logged traces" [] tonicServerShare @! ()
 
-acceptTonicTraces :: !(sds () TMessageStore TMessageStore) -> Task [ServerState] | RWShared sds
+acceptTonicTraces :: !(Shared sds TMessageStore) -> Task [ServerState] | RWShared sds
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
                                    | onConnect     = onConnect

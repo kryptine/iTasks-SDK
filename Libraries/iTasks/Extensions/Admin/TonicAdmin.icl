@@ -68,7 +68,7 @@ tonicStaticBrowser rs
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseFromDropdown id]
   noModuleSelection = viewInformation () [] "Select module..."
 
-tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (sds () NavStack NavStack) TonicModule -> Task () | RWShared sds
+tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared sds NavStack) TonicModule -> Task () | RWShared sds
 tonicBrowseWithModule allbps rs navstack tm
   =           (selectTask tm
            >&> withSelection noTaskSelection (
@@ -90,7 +90,7 @@ tonicBrowseWithModule allbps rs navstack tm
   noTaskSelection = viewInformation () [] "Select task..."
 
 
-viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(sds () NavStack NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
+viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared sds NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
 viewStaticTask allbps rs navstack bpref tm tt depth compact
   =          get navstack
   >>~ \ns -> (showStaticBlueprint rs bpref (expandTask allbps depth tt) compact depth
@@ -281,7 +281,7 @@ tonicDynamicBrowser rs
   //# (as,bs) = split xs
   //= merge f (mergeSortBy f as) (mergeSortBy f bs)
 
-tonicDynamicBrowser` :: [TaskAppRenderer] (sds () NavStack NavStack) -> Task () | RWShared sds
+tonicDynamicBrowser` :: [TaskAppRenderer] (Shared sds NavStack) -> Task () | RWShared sds
 tonicDynamicBrowser` rs navstack =
   ((activeBlueprintInstances -&&- blueprintViewer) /* <<@ ArrangeVertical */) @! ()
 where
@@ -379,7 +379,7 @@ getModuleAndTask allbps mn tn
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
 
-viewInstance :: ![TaskAppRenderer] !(sds () NavStack NavStack) !DynamicDisplaySettings !BlueprintInstance
+viewInstance :: ![TaskAppRenderer] !(Shared sds NavStack) !DynamicDisplaySettings !BlueprintInstance
                 !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) !ClickMeta
              -> Task () | RWShared sds
 viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskName}} selDetail meta=:{click_target_bpident = {bpident_compId = Just tid}}

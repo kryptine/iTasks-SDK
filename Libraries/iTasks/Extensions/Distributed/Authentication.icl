@@ -64,7 +64,7 @@ where
 	onDisconnect state share
 		= (Ok state, Just share)
 
-	process :: (sds () AuthShare AuthShare) -> Task () | RWShared sds
+	process :: (Shared sds AuthShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where

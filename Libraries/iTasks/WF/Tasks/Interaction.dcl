@@ -113,10 +113,10 @@ editSelection :: !d !Bool !(SelectOption c a) c [Int] -> Task [a] | toPrompt d &
 editSelectionWithShared :: !d !Bool !(SelectOption c a) (sds () c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w & RWShared sds
 
 //Options: local, selection: shared
-editSharedSelection :: !d !Bool !(SelectOption c a) c (sds () [Int] [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & RWShared sds
+editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared sds [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & RWShared sds
 
 //Options: shared, selection: shared
-editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (sds1 () c w) (sds2 () [Int] [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 
 /**
 * More specific selection from lists
@@ -151,15 +151,15 @@ updateChoiceWithSharedAs             :: !d ![ChoiceOption o] !(sds () [o] w) (o 
 updateMultipleChoiceWithShared       :: !d ![ChoiceOption a] !(sds () [a] w) [a] -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds
 updateMultipleChoiceWithSharedAs     :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds
 
-editSharedChoice                     :: !d ![ChoiceOption a] ![a] (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & RWShared sds
-editSharedChoiceAs                   :: !d [ChoiceOption o] ![o] !(o -> a) (sds () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a & RWShared sds
-editSharedMultipleChoice             :: !d ![ChoiceOption a] ![a] (sds () [a] [a]) -> Task [a] | toPrompt d & iTask a & RWShared sds
-editSharedMultipleChoiceAs           :: !d [ChoiceOption o] ![o] !(o -> a) (sds () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask a & RWShared sds
+editSharedChoice                     :: !d ![ChoiceOption a] ![a] (Shared sds (Maybe a)) -> Task a | toPrompt d & iTask a & RWShared sds
+editSharedChoiceAs                   :: !d [ChoiceOption o] ![o] !(o -> a) (Shared sds (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a & RWShared sds
+editSharedMultipleChoice             :: !d ![ChoiceOption a] ![a] (Shared sds [a]) -> Task [a] | toPrompt d & iTask a & RWShared sds
+editSharedMultipleChoiceAs           :: !d [ChoiceOption o] ![o] !(o -> a) (Shared sds [a]) -> Task [a] | toPrompt d & iTask o & iTask a & RWShared sds
 
-editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
-editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
-editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
-editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
+editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds1 () [a] w) (Shared sds2 (Maybe a)) -> Task a | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
+editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (Shared sds2 (Maybe a)) -> Task a | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds1 () [a] w) (Shared sds2 [a]) -> Task [a] | toPrompt d & iTask a & TC w & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (Shared sds2 [a]) -> Task [a] | toPrompt d & iTask o & TC w & iTask a & RWShared sds1 & RWShared sds2
 
 /**
 * Wait for a share to match a certain predicate

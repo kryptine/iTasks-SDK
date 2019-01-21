@@ -43,12 +43,12 @@ createChatSession enter update
    >>= \me ->  		enterMultipleChoiceWithShared ("select chatters") [ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 
-startChats :: (Task a) (User a -> Task b) [User] (sds () [b] [b]) -> Task [b] | iTask a & iTask b & RWShared sds
+startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds
 startChats enter update chatters chatStore
 	= 	allTasks[(user, "chat") @: chatWith user enter update chatStore \\ user <- chatters]
 	>>| get chatStore
 
-chatWith :: User (Task a) (User a -> Task b) (sds () [b] [b]) -> Task () | iTask a & iTask b & RWShared sds
+chatWith :: User (Task a) (User a -> Task b) (Shared sds [b]) -> Task () | iTask a & iTask b & RWShared sds
 chatWith me enter update chatStore
 	=  	viewSharedInformation ("Chat History:") [] chatStore
 	   	||-

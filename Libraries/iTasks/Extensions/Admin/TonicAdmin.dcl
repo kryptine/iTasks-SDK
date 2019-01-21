@@ -14,7 +14,7 @@ tonic :: Task ()
 
 tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
 
-tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (sds () NavStack NavStack) TonicModule -> Task () | RWShared sds
+tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared sds NavStack) TonicModule -> Task () | RWShared sds
 
 tonicStaticWorkflow   :: [TaskAppRenderer] -> Workflow
 
@@ -22,4 +22,4 @@ tonicDynamicBrowser   :: [TaskAppRenderer] -> Task ()
 
 tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
 
-viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(sds () NavStack NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
+viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared sds NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
