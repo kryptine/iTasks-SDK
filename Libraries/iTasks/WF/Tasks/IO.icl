@@ -162,4 +162,13 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
+    eval event evalOpts tree=:(TCDestroy (TCInit taskId ts)) iworld=:{ioStates}
+		# ioStates = case 'DM'.get taskId ioStates of
+            Just (IOActive values)  = 'DM'.put taskId (IODestroyed values) ioStates
+            _                       = ioStates
+        = (DestroyedResult,{iworld & ioStates = ioStates})
+
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
+
+
+derive JSONEncode Event, Set
