@@ -165,7 +165,7 @@ maps2DToGraph :: !Maps2D -> Graph
 
 autoMove :: !Coord3D !Coord3D
             !(Coord3D Coord3D (SectionStatusMap r) SectionExitLockMap SectionHopLockMap Graph -> Maybe ([Coord3D], Distance))
-            !User !(sds () (SectionStatusMap r) (SectionStatusMap r)) !(UserActorShare o a)
+            !User !(Shared sds (SectionStatusMap r)) !(UserActorShare o a)
          -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 pickupObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectionInventoryShare o)
              -> Task () | iTask o & iTask a

@@ -2,9 +2,9 @@ definition module Task.Extensions
 
 import iTasks
 
-editStore :: String (sds () [a] [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
+editStore :: String (Shared sds [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
 
-addToStore :: [a] !(sds () [a] [a]) -> Task () | iTask a & RWShared sds
+addToStore :: [a] !(Shared sds [a]) -> Task () | iTask a & RWShared sds
 
 appendTitledTopLevelTask :: String (Task a) -> Task TaskId | iTask a
 

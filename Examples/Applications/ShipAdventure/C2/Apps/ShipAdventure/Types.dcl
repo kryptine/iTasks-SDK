@@ -174,7 +174,7 @@ allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
 
 // setting and resetting of the detection systems:
 
-setAlarm         :: !User !(!Coord3D, !SectionStatus) !(sds () MySectionStatusMap MySectionStatusMap) -> Task () | RWShared sds
+setAlarm         :: !User !(!Coord3D, !SectionStatus) !(Shared sds MySectionStatusMap) -> Task () | RWShared sds
 
 // making images from a map
 

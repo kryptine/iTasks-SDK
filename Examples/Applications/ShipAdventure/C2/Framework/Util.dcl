@@ -24,15 +24,15 @@ derive class iTask Location
 
 /* Utility tasks */
 
-editSharedList :: (sds () [a] [a]) -> Task () | iTask a & RWShared sds
+editSharedList :: (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListWithTask :: (a -> Task a) (sds () [a] [a]) -> Task () | iTask a & RWShared sds
+editSharedListWithTask :: (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListWithTaskTask :: (Task a)  (a -> Task a) (sds () [a] [a]) -> Task () | iTask a & RWShared sds
+editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListGeneric :: [EditSharedListOption a] (sds () [a] [a]) -> Task () | iTask a & RWShared sds
+editSharedListGeneric :: [EditSharedListOption a] (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-updateItemInSharedList :: a (a -> Bool) (sds () [a] [a]) -> Task [a] | iTask a & RWShared sds
+updateItemInSharedList :: a (a -> Bool) (Shared sds [a]) -> Task [a] | iTask a & RWShared sds
 
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 
