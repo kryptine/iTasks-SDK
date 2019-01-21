@@ -21,9 +21,6 @@ import Text.HTML
 
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
-unitShare :: SDSSource () () ()
-unitShare = nullShare
-
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterAs fromf:_]
 	= interact d unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} gEditor{|*|} @ (\((),v) -> fromf v)
