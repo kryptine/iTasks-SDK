@@ -6,8 +6,8 @@ if [ -e "$CLEAN_HOME"/etc/IDEEnvs ]; then
 	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak2,}' EXIT
 	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak2}
 	sed -i.bak "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" "$CLEAN_HOME"/etc/IDEEnvs
-	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&:-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
-    sed -i.bak 's|EnvironmentCompiler:	lib/exe/cocl:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
+	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&::-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
+	sed -i.bak 's|EnvironmentCompiler:	lib/exe/cocl:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
 fi
 
 #Create BasicAPIExamples
