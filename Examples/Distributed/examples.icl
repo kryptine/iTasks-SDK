@@ -92,7 +92,7 @@ updateMyShared
 
 derive class iTask ServerRole
 
-serverRoleShare :: SDSLens () ServerRole ServerRole
+serverRoleShare :: SimpleSDSLens ServerRole
 serverRoleShare = sharedStore "serverRoleShare" NoneServer
 
 getDomain :: Task Domain

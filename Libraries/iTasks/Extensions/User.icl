@@ -123,7 +123,7 @@ where
 
 derive class iTask		Credentials
 
-currentUser :: SDSLens () User User
+currentUser :: SimpleSDSLens User
 currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) Nothing currentTaskInstanceAttributes
 where
 	notify _ _ _ = const (const True)

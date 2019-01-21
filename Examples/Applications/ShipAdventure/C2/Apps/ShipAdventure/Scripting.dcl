@@ -25,9 +25,9 @@ import C2.Apps.ShipAdventure.Types
 
 derive class iTask Target, Script, Condition
 
-handleFireScript 	:: SDSLens () [Script] [Script]
-handleFloodScript 	:: SDSLens () [Script] [Script]
-handleSmokeScript 	:: SDSLens () [Script] [Script]
+handleFireScript 	:: SimpleSDSLens [Script]
+handleFloodScript 	:: SimpleSDSLens [Script]
+handleSmokeScript 	:: SimpleSDSLens [Script]
 
 changeFireScript	:: Task ()
 changeFloodScript 	:: Task ()

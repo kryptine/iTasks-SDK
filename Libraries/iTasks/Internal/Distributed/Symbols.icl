@@ -12,7 +12,7 @@ import iTasks.Internal.SDS
 import iTasks.Internal.Task
 import iTasks.Internal.IWorld
 
-symbolsShare :: SDSLens () String String
+symbolsShare :: SimpleSDSLens String
 symbolsShare = sharedStore "symbols" ""
 
 storeSymbols :: String !*IWorld -> (MaybeError TaskException Int, !*IWorld)

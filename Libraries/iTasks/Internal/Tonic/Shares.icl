@@ -16,13 +16,13 @@ sdsUnsafeRead focus iworld
   = case res of
       Ok ('DSDS'.ReadingDone x) -> (x, iworld)
 
-selectedBlueprint :: SDSLens () (Maybe ClickMeta) (Maybe ClickMeta)
+selectedBlueprint :: SimpleSDSLens (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)
 
-selectedDetail :: SDSLens () (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
+selectedDetail :: SimpleSDSLens (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
 selectedDetail = sdsFocus "selectedDetail" (removeMaybe (Just Nothing) memoryShare)
 
-storedOutputEditors :: SDSLens () (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
+storedOutputEditors :: SimpleSDSLens (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
 storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
                                   (removeMaybe (Just 'DM'.newMap) memoryShare)
 
@@ -47,7 +47,7 @@ outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite 
     (True, Just (_, n`, _, st`)) -> n <> n` || st =!= st`
     _                            -> False
 
-tonicSharedRT :: SDSLens () TonicRTMap TonicRTMap
+tonicSharedRT :: SimpleSDSLens TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
                              (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
@@ -89,7 +89,7 @@ where
                                       _                    -> False
 
 
-tonicEnabledSteps :: SDSLens () (Map TaskId (Map ExprId [UI])) (Map TaskId (Map ExprId [UI]))
+tonicEnabledSteps :: SimpleSDSLens (Map TaskId (Map ExprId [UI]))
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
@@ -139,7 +139,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
 
   reducer p ws = read p ws
 
-staticDisplaySettings :: SDSLens () StaticDisplaySettings StaticDisplaySettings
+staticDisplaySettings :: SimpleSDSLens StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (removeMaybe (Just
                                      { StaticDisplaySettings
                                      | unfold_depth    = 0
@@ -147,10 +147,10 @@ staticDisplaySettings = sdsFocus "staticDisplaySettings" (removeMaybe (Just
                                      , show_comments   = True
                                      }) memoryShare)
 
-queryShare :: SDSLens () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
+queryShare :: SimpleSDSLens (Maybe BlueprintQuery)
 queryShare = sdsFocus "queryShare" (removeMaybe (Just Nothing) memoryShare)
 
-dynamicDisplaySettings :: SDSLens () DynamicDisplaySettings DynamicDisplaySettings
+dynamicDisplaySettings :: SimpleSDSLens DynamicDisplaySettings
 dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (removeMaybe (Just
                                      { DynamicDisplaySettings
                                      | unfold_depth    = 0

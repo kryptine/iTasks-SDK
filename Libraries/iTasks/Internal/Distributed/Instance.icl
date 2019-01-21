@@ -38,7 +38,7 @@ from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor M
 
 derive class iTask DistributedTaskInstance, DistributedTaskInstances, Source
 
-distributedInstances :: SDSLens () DistributedTaskInstances DistributedTaskInstances
+distributedInstances :: SimpleSDSLens DistributedTaskInstances
 distributedInstances = sharedStore "distributedInstances" {DistributedTaskInstances|lastId = 0, instances = [] }
 
 :: ClientFilters =
@@ -645,7 +645,7 @@ where
 
 :: WrapperTaskHandelers :== Map Int String
 
-wrapperTaskHandelersShare :: SDSLens () WrapperTaskHandelers WrapperTaskHandelers
+wrapperTaskHandelersShare :: SimpleSDSLens WrapperTaskHandelers
 wrapperTaskHandelersShare = memoryShare_ "wrapper_task_handelers" 'DM'.newMap
 
 addWrapperTaskHandler :: Int (String -> Task ()) -> Task ()

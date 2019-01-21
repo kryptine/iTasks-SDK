@@ -80,7 +80,7 @@ instance == Border
                    }
 
 :: UserActorMap   objType actorStatus        :== Map User (Actor objType actorStatus)
-:: UserActorShare objType actorStatus        :== SDSLens ()   (UserActorMap objType actorStatus)  (UserActorMap objType actorStatus)
+:: UserActorShare objType actorStatus        :== SimpleSDSLens (UserActorMap objType actorStatus)
 :: FocusedUserActorShare objType actorStatus :== SDSLens User (Maybe (Actor objType actorStatus)) (Actor objType actorStatus)
 
 :: SectionStatusMap    roomStatus          :== Map Coord3D roomStatus // [Coord3D |-> roomStatus]
@@ -90,19 +90,19 @@ instance == Border
 :: SectionHopLockMap                       :== Map Coord3D [Coord3D]
 
 
-:: SectionStatusShare           roomStatus          :== SDSLens ()      (SectionStatusMap roomStatus) (SectionStatusMap roomStatus) // [Coord3D |-> roomStatus]
-:: SectionInventoryShare        objType             :== SDSLens ()      (SectionInventoryMap objType) (SectionInventoryMap objType) // [Coord3D |-> [ObjId |-> Object]]
-:: SectionUsersShare                                :== SDSLens ()      SectionUsersMap               SectionUsersMap
+:: SectionStatusShare           roomStatus          :== SimpleSDSLens (SectionStatusMap roomStatus) // [Coord3D |-> roomStatus]
+:: SectionInventoryShare        objType             :== SimpleSDSLens (SectionInventoryMap objType) // [Coord3D |-> [ObjId |-> Object]]
+:: SectionUsersShare                                :== SimpleSDSLens SectionUsersMap
 :: FocusedSectionStatusShare    roomStatus          :== SDSLens Coord3D roomStatus                    roomStatus // [Coord3D |-> roomStatus]
 :: FocusedSectionInventoryShare objType             :== SDSLens Coord3D (IntMap (Object objType))     (IntMap (Object objType)) // [Coord3D |-> [ObjId |-> Object]]
 :: FocusedSectionUsersShare                         :== SDSLens Coord3D [User]                        [User]
 
-:: DrawMapForActor r o a :== User (SDSLens () (SectionStatusMap r) (SectionStatusMap r)) (UserActorShare o a) (SDSLens () (SectionInventoryMap o) (SectionInventoryMap o)) -> Task ()
+:: DrawMapForActor r o a :== User (SimpleSDSLens (SectionStatusMap r)) (UserActorShare o a) (SimpleSDSLens (SectionInventoryMap o)) -> Task ()
 
 instance == (Actor o a)
 instance == (Object obj) | == obj
 
-maps2DShare :: SDSLens () Maps2D Maps2D
+maps2DShare :: SimpleSDSLens Maps2D
 
 sharedGraph :: SDSLens () Graph ()
 
@@ -112,11 +112,11 @@ sectionForUserShare :: User -> SDSLens () (Maybe Coord3D) SectionUsersMap
 
 focusedSectionUsersShare :: FocusedSectionUsersShare
 
-lockedExitsShare :: SDSLens () SectionExitLockMap SectionExitLockMap
+lockedExitsShare :: SimpleSDSLens SectionExitLockMap
 
 lockStatusForExit :: SDSLens Coord3D [Dir] [Dir]
 
-lockedHopsShare :: SDSLens () SectionHopLockMap SectionHopLockMap
+lockedHopsShare :: SimpleSDSLens SectionHopLockMap
 
 lockStatusForHop :: SDSLens Coord3D [Coord3D] [Coord3D]
 

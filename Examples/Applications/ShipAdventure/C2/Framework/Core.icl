@@ -132,7 +132,7 @@ makeWorkspaceTab :: String (Workspace -> Task a) Workspace -> Task () | iTask a
 makeWorkspaceTab title t ws = t ws <<@ (Title title) @! ()
 
 //Notifications are stored newest first
-notifications :: SDSLens () [(DateTime,String)] [(DateTime,String)]
+notifications :: SimpleSDSLens [(DateTime,String)]
 notifications = sharedStore "notifications" []
 
 //Only show notifications added in the last 5 seconds

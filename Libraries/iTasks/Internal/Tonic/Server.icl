@@ -26,7 +26,7 @@ from iTasks.Internal.IWorld import :: ConnectionId
 
 derive class iTask ViewerSettings
 
-shViewerSettings :: SDSLens () ViewerSettings ViewerSettings
+shViewerSettings :: SimpleSDSLens ViewerSettings
 shViewerSettings = sharedStore "shViewerSettings" { recording = True
                                                   , selectedBlueprint = Nothing
                                                   }
@@ -35,10 +35,10 @@ foldT_ :: (a -> Task ()) [a] -> Task ()
 foldT_ f []       = return ()
 foldT_ f [x : xs] = f x >>| foldT_ f xs
 
-liveRunStateShare :: SDSLens () TonicGenRTMap TonicGenRTMap
+liveRunStateShare :: SimpleSDSLens TonicGenRTMap
 liveRunStateShare = sharedStore "liveRunStateShare" 'DM'.newMap
 
-recordingsShare :: SDSLens () (Map DateTime [TonicMessage]) (Map DateTime [TonicMessage])
+recordingsShare :: SimpleSDSLens (Map DateTime [TonicMessage])
 recordingsShare = sharedStore "recordingsShare" 'DM'.newMap
 
 recordingForDateTimeShare :: SDSLens DateTime [TonicMessage] ()
@@ -161,7 +161,7 @@ flattenRTMap m = flatten (flattenRTMap` ('DM'.toList m))
 
 :: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
 
-saSelectedBlueprint :: SDSLens () (Maybe (ComputationId, BlueprintIdent)) (Maybe (ComputationId, BlueprintIdent)) 
+saSelectedBlueprint :: SimpleSDSLens (Maybe (ComputationId, BlueprintIdent))
 saSelectedBlueprint = sharedStore "saSelectedBlueprint" Nothing
 
 liveStandAloneViewer :: Task ()
@@ -273,7 +273,7 @@ mkInstance nid tf =
                            , bpr_taskName   = tf.tf_name }
   }
 
-messageArchive :: SDSLens () [TonicMessage] [TonicMessage]
+messageArchive :: SimpleSDSLens [TonicMessage]
 messageArchive = sharedStore "messageArchive" []
 
 
@@ -285,7 +285,7 @@ messageArchive = sharedStore "messageArchive" []
 
 derive class iTask TMessageStore
 
-tonicServerShare :: SDSLens () TMessageStore TMessageStore
+tonicServerShare :: SimpleSDSLens TMessageStore
 tonicServerShare = sharedStore "tonicServerShare" { TMessageStore
                                                   | ts_recording       = True
                                                   , ts_allMsgs         = []

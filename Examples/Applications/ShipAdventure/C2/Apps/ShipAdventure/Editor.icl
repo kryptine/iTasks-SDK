@@ -103,7 +103,7 @@ mapTitleFontSize    =: 10.0
 ********************************************************************************************************************/
 viewLayout = updateMapStatus EditMode @! ()
 
-sharedMapAction :: SDSLens () (MapAction SectionStatus) (MapAction SectionStatus)
+sharedMapAction :: SimpleSDSLens (MapAction SectionStatus)
 sharedMapAction = sharedStore "sharedMapAction" (FocusOnMap 0)	// start at the top-level (all maps)
 
 sharedEditShip :: SDSParallel () (Maps2D,MapAction SectionStatus) (Maps2D,MapAction SectionStatus)
@@ -172,7 +172,7 @@ derive class iTask EditDeviceType, EditDevice
 manageCables :: Task ()
 manageCables = intMapCrudWith "Cables" [ChooseFromGrid id] [] [] [] (\cable -> cable.Cable.cableId) myCables @! ()
 
-intMapCrud :: !String !(r -> Int) !(SDSLens () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrud :: !String !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
 intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
@@ -180,7 +180,7 @@ intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkI
   delItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   delItem mkId item allItems = 'DIS'.del (mkId item) allItems
 
-intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(SDSLens () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
 intMapCrudWith descr cos eos vos uos mkId share = crudWith descr cos eos vos uos 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r

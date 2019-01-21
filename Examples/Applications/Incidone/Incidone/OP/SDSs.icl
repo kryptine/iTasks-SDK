@@ -21,10 +21,10 @@ dbLinkSDS notifyId table col1 col2 = databaseDef >++> sqlLinkSDS notifyId table 
 //ACCESS SDS
 
 //TODO: Also store in database
-allContactPhotos :: SDSLens () (Map ContactNo [ContactPhoto]) (Map ContactNo [ContactPhoto]) 
+allContactPhotos :: SimpleSDSLens (Map ContactNo [ContactPhoto])
 allContactPhotos = sharedStore "ContactPhotos" 'DM'.newMap
 
-lastAISImport :: SDSLens () (Maybe (DateTime,String,Int)) (Maybe (DateTime,String,Int))
+lastAISImport :: SimpleSDSLens (Maybe (DateTime,String,Int))
 lastAISImport = sharedStore "lastAISImport" Nothing
 
 allCommunications :: SDSLens () [CommunicationDetails] ()

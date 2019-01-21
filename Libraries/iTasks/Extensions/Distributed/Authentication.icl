@@ -184,7 +184,7 @@ startAuthEngine :: Domain -> Task ()
 startAuthEngine (Domain domain)
 	= set domain authServerInfoShare @! ()
 
-authServerInfoShare :: SDSLens () String String
+authServerInfoShare :: SimpleSDSLens String
 authServerInfoShare = sharedStore "authServer" ""
 
 currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)

@@ -5,7 +5,7 @@ import Text, System.Time
 import Incidone.Util.TaskPatterns
 
 //Notifications are stored newest first
-notifications :: SDSLens () [(DateTime,String)] [(DateTime,String)] 
+notifications :: SimpleSDSLens [(DateTime,String)]
 notifications = sharedStore "notifications" []
 
 //Only show notifications added in the last 5 seconds

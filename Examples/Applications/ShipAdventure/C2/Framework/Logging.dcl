@@ -12,7 +12,7 @@ derive class iTask Log
 
 // shared store for logging events
 
-myLog 	:: SDSLens () [Log] [Log]
+myLog 	:: SimpleSDSLens [Log]
 
 // tasks for logging:
 

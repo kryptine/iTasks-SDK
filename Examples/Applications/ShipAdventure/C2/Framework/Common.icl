@@ -23,7 +23,7 @@ defSettings =
   , selection   = -1
   }
 
-mapState :: SDSLens () MapState MapState
+mapState :: SimpleSDSLens MapState
 mapState = sharedStore "mapState" defSettings
 
 selectedContactShare :: SDSLens () (Maybe Entity) Entity
@@ -38,10 +38,10 @@ selectedContactShare = sdsLens "selectedContactShare" (const ()) (SDSRead read) 
   notify :: () MapState Entity -> SDSNotifyPred ()
   notify _ _ _ = \_ _ -> False
 
-userMapState :: User -> SDSLens () MapState MapState
+userMapState :: User -> SimpleSDSLens MapState
 userMapState u = sharedStore ("userMapState" +++ toString u) defSettings
 
-entityMap :: SDSLens () EntityMap EntityMap
+entityMap :: SimpleSDSLens EntityMap
 entityMap = sharedStore "entityMap" 'DIS'.newMap
 
 registerEntity :: (Int -> Entity) -> Task Entity

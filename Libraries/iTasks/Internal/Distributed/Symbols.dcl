@@ -9,9 +9,9 @@ from symbols_in_program import :: Symbol
 from iTasks.Internal.IWorld import :: IWorld
 from Data.Error import :: MaybeError
 from iTasks.WF.Definition import :: TaskException
-from iTasks.SDS.Definition import :: SDSLens
+from iTasks.SDS.Definition import :: SDSLens, :: SimpleSDSLens
 
-symbolsShare :: SDSLens () String String
+symbolsShare :: SimpleSDSLens String
 
 storeSymbols :: String !*IWorld -> (MaybeError TaskException Int, !*IWorld)
 

@@ -22,7 +22,7 @@ derive class iTask DeviceFeatures
 hasCamera :: DeviceFeatures -> Bool
 hasCamera {DeviceFeatures|camera} = camera
 
-device :: SDSLens () DeviceFeatures DeviceFeatures
+device :: SimpleSDSLens DeviceFeatures
 device = sharedStore "deviceFeaturs" {DeviceFeatures| camera = False }
 
 manageDeviceFeaturs :: Task DeviceFeatures

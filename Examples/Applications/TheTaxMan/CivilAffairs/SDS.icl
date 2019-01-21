@@ -2,5 +2,5 @@ implementation module CivilAffairs.SDS
 
 import CivilAffairs.UoD
 
-citizens :: SDSLens () [Citizen] [Citizen]
+citizens :: SimpleSDSLens [Citizen]
 citizens = sharedStore "citizens" []

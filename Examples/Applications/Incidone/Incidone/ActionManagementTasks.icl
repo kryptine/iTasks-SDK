@@ -100,7 +100,7 @@ fromSelfActionStatus status (_,items) = case [i \\ i=:{TaskListItem|taskId,self}
     [{TaskListItem|taskId,attributes}:_] = Ok (Just [(taskId,fromActionStatus status attributes)])
     _                                    = Error (exception "Task id not found in self management share")
 
-selfActionStatus :: (SharedTaskList a) -> SDSLens () ActionStatus ActionStatus | iTask a
+selfActionStatus :: (SharedTaskList a) -> SimpleSDSLens ActionStatus | iTask a
 selfActionStatus list = sdsFocus taskListFilter (mapReadWriteError (toSelfActionStatus,fromSelfActionStatus) Nothing list)
 where
     taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
@@ -171,24 +171,24 @@ where
 addDefaultStatus :: (Task c) -> ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) | iTask c
 addDefaultStatus task = \initContacts initIncidents -> task @ \c -> (c,{ActionStatus|defaultValue & contacts = initContacts, incidents = initIncidents})
 
-predefinedInstantItem :: String ItemMeta ActionProgress ((SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction
+predefinedInstantItem :: String ItemMeta ActionProgress ((SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction
 predefinedInstantItem identity meta=:{ItemMeta|title,description} progress task
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer itemtask}
 where
     configer initContacts initIncidents = return ((),{ActionStatus|title=title,description=description,progress=progress,contacts=initContacts,incidents=initIncidents})
     itemtask _ status = task status @? const NoValue
 
-predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
+predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
 predefinedConfigurableItem identity meta configer task
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer (\c s -> task c s @? const NoValue)}
 
-predefinedIncidentItem      :: String ItemMeta (IncidentNo (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedIncidentItem      :: String ItemMeta (IncidentNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 predefinedIncidentItem identity meta incidentTask
     = toIncidentAction {ActionDefinition|identity=identity,meta=meta,task=task}
 where
     task status incidentNo = incidentTask status incidentNo @? const NoValue
 
-predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 predefinedContactItem identity meta mbGroup contactTask
     = toContactAction mbGroup {ActionDefinition|identity=identity,meta=meta,task=task}
 where
@@ -261,7 +261,7 @@ builtinActionCatalog = constShare
     :crewListActions
     ]
 
-userActionCatalog :: SDSLens () [UserCatalogAction] [UserCatalogAction]
+userActionCatalog :: SimpleSDSLens [UserCatalogAction]
 userActionCatalog = sharedStore "UserActionCatalog" []
 
 //Todo items
@@ -740,7 +740,7 @@ where
             = configer initContacts initIncidents <<@ Title "Configure" /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
             >>? \(config,initStatus) -> addAction identity initStatus list (\l -> task config l)
 
-addAction :: String ActionStatus (SharedTaskList a) ((SDSLens () ActionStatus ActionStatus) -> Task ()) -> Task TaskId | iTask a
+addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
     >>| appendTask (Detached attributes True) (\l -> (task (selfActionStatus l) @? const NoValue)) list

@@ -5,4 +5,4 @@ import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Types
 
 shipEditorTabs  :: Task ()
-sharedMapAction :: SDSLens () (MapAction SectionStatus) (MapAction SectionStatus)
+sharedMapAction :: SimpleSDSLens (MapAction SectionStatus)

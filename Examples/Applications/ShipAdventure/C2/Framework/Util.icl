@@ -142,7 +142,7 @@ innersplitscreenview  main left
 
 sidebar ts = allSideBar 0 TopSide 25 ts @! ()
 
-chats ::  SDSLens () [ChatMessage] [ChatMessage]
+chats ::  SimpleSDSLens [ChatMessage]
 chats = sharedStore "chats" []
 
 derive class iTask ChatMessage
@@ -161,7 +161,7 @@ where
 editChats :: Task ()
 editChats  = editSharedList chats
 
-debugstore :: SDSLens () [String] [String]
+debugstore :: SimpleSDSLens [String]
 debugstore = sharedStore "debugstore" []
 
 addDebug :: String -> Task ()

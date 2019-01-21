@@ -289,7 +289,7 @@ processIOTask :: !Int
 				 !TaskId
 				 !Int
 				 !Bool
-				 !(SDSLens () Dynamic Dynamic)
+				 !(SimpleSDSLens Dynamic)
 				 !(IOTaskOperations .ioChannels readData closeInfo)
 				 !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
 				 !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))

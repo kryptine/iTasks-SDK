@@ -42,10 +42,10 @@ newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 //A global index of all task instances is maintained
 
 //This counter is used to ensure unique instance numbers
-nextInstanceNo :: SDSLens () Int Int
+nextInstanceNo :: SimpleSDSLens Int
 
 //This index contains all meta-data about the task instances on this engine
-taskInstanceIndex :: SDSLens () [TIMeta] [TIMeta]
+taskInstanceIndex :: SimpleSDSLens [TIMeta]
 
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
@@ -59,12 +59,12 @@ taskInstanceAttributes  :: SDSLens InstanceNo TaskAttributes TaskAttributes
 topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
-allInstanceIO           :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec))
+allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 
 //=== Task instance input: ===
 
 //When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
-taskEvents :: SDSLens () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
+taskEvents :: SimpleSDSLens (Queue (InstanceNo,Event))
 
 // === Evaluation state of instances: ===
 taskInstanceReduct      :: SDSLens InstanceNo TIReduct TIReduct
@@ -101,7 +101,7 @@ derive gEq TaskOutputMessage
 
 :: TaskOutput :== Queue TaskOutputMessage
 
-taskOutput          :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)
+taskOutput          :: SimpleSDSLens (Map InstanceNo TaskOutput)
 taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 
 //=== Access functions: ===

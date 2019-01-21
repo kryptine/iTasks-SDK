@@ -6,40 +6,40 @@ import Task.Extensions
 //import iTasks.API.Extensions.Admin.TonicAdmin
 //import iTasks._Framework.Tonic
 
-realEstateOwners		:: SDSLens () [RealEstateOwner] [RealEstateOwner]
+realEstateOwners		:: SimpleSDSLens [RealEstateOwner]
 realEstateOwners		= sharedStore "realEstateOwners" []
 
-decisions 				:: SDSLens () [Decision] [Decision]
+decisions 				:: SimpleSDSLens [Decision]
 decisions				= sharedStore "decisions" []
 
-collectionsProcessed	:: SDSLens () [Collection] [Collection]
+collectionsProcessed	:: SimpleSDSLens [Collection]
 collectionsProcessed	= sharedStore "collectionsProcessed" []
 
-collectionClaims		:: SDSLens () [Collection] [Collection]
+collectionClaims		:: SimpleSDSLens [Collection]
 collectionClaims		= sharedStore "collectionClaims" []
 
-collectionPayments		:: SDSLens () [Collection] [Collection]
+collectionPayments		:: SimpleSDSLens [Collection]
 collectionPayments		= sharedStore "collectionPayments" []
 
-acceptedSolarPanels		:: SDSLens () [AcceptedSolarPanel] [AcceptedSolarPanel]
+acceptedSolarPanels		:: SimpleSDSLens [AcceptedSolarPanel]
 acceptedSolarPanels		= sharedStore "acceptedSolarPanels" ["monocrystalline","polycrystalline","amorphous"]
 
-solarPanelSubsidyRequests :: SDSLens () [TaxSolarPanelDossier] [TaxSolarPanelDossier]
+solarPanelSubsidyRequests :: SimpleSDSLens [TaxSolarPanelDossier]
 solarPanelSubsidyRequests = sharedStore "SolarPanelSubsidyRequests" []
 
-currentDecisions :: SSN (DecisionStatus -> Bool) Date -> SDSLens () [Decision] [Decision]
+currentDecisions :: SSN (DecisionStatus -> Bool) Date -> SimpleSDSLens [Decision]
 currentDecisions ssn pred date = mapRead (decisionsAfter ssn pred date) decisions
 
-currentPayments :: SSN Date -> SDSLens () [Collection] [Collection]
+currentPayments :: SSN Date -> SimpleSDSLens [Collection]
 currentPayments ssn date = mapReadCollections ssn date collectionPayments
 
-currentClaims :: SSN Date -> SDSLens () [Collection] [Collection]
+currentClaims :: SSN Date -> SimpleSDSLens [Collection]
 currentClaims ssn date = mapReadCollections ssn date collectionClaims
 
-currentProcessed :: SSN Date -> SDSLens () [Collection] [Collection]
+currentProcessed :: SSN Date -> SimpleSDSLens [Collection]
 currentProcessed ssn date = mapReadCollections ssn date collectionsProcessed
 
-mapReadCollections :: SSN Date (SDSLens () [Collection] [Collection]) -> SDSLens () [Collection] [Collection]
+mapReadCollections :: SSN Date (SimpleSDSLens [Collection]) -> SimpleSDSLens [Collection]
 mapReadCollections ssn date collectionStore = mapRead (collectionsAfter ssn date) collectionStore
 
 currentRealEstate :: Citizen -> SDSLens () [OwnedRealEstate] [CadastreRealEstate]

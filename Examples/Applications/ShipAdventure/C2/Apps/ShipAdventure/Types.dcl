@@ -149,14 +149,14 @@ instance toString Device
 // shared stores:
 
 myUserActorMap   :: UserActorShare ObjectType ActorStatus
-myStatusMap      :: SDSLens () MySectionStatusMap        MySectionStatusMap
-myInventoryMap   :: SDSLens () MySectionInventoryMap     MySectionInventoryMap
-myNetwork        :: SDSLens () Network                   Network
-myCables         :: SDSLens () (IntMap Cable)            (IntMap Cable)
-myDevices        :: SDSLens () (IntMap Device)           (IntMap Device)
-commandAims      :: SDSLens () [CommandAim]              [CommandAim]
-capabilityMap    :: SDSLens () CapabilityToDeviceKindMap CapabilityToDeviceKindMap
-disabledSections :: SDSLens () (Set Coord3D)             (Set Coord3D)
+myStatusMap      :: SimpleSDSLens MySectionStatusMap
+myInventoryMap   :: SimpleSDSLens MySectionInventoryMap
+myNetwork        :: SimpleSDSLens Network
+myCables         :: SimpleSDSLens (IntMap Cable)
+myDevices        :: SimpleSDSLens (IntMap Device)
+commandAims      :: SimpleSDSLens [CommandAim]
+capabilityMap    :: SimpleSDSLens CapabilityToDeviceKindMap
+disabledSections :: SimpleSDSLens (Set Coord3D)
 
 deviceKindsForCapability      :: SDSLens Capability CapabilityExpr    CapabilityExpr
 statusInSectionShare          :: SDSLens Coord3D    SectionStatus     SectionStatus

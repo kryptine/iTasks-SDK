@@ -70,7 +70,7 @@ instance == Border where
 
 infinity =: 67108864
 
-maps2DShare :: SDSLens () Maps2D Maps2D
+maps2DShare :: SimpleSDSLens Maps2D
 maps2DShare = sharedStore "maps2DShare" []
 
 sharedGraph :: SDSLens () Graph ()
@@ -100,13 +100,13 @@ inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryF
   write1 p r1 w = Ok Nothing
   write2 p r2 w = Ok (Just w)
 
-lockedExitsShare :: SDSLens () SectionExitLockMap SectionExitLockMap
+lockedExitsShare :: SimpleSDSLens SectionExitLockMap
 lockedExitsShare = sharedStore "lockedExitsShare" 'DM'.newMap
 
 lockStatusForExit :: SDSLens Coord3D [Dir] [Dir]
 lockStatusForExit = mapLens "lockStatusForExit" lockedExitsShare (Just [])
 
-lockedHopsShare :: SDSLens () SectionHopLockMap SectionHopLockMap
+lockedHopsShare :: SimpleSDSLens SectionHopLockMap
 lockedHopsShare = sharedStore "lockedHopsShare" 'DM'.newMap
 
 lockStatusForHop :: SDSLens Coord3D [Coord3D] [Coord3D]

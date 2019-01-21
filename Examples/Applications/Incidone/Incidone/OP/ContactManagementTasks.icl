@@ -44,7 +44,7 @@ where
 
     fromOpenOption [{ContactShortWithIncidents|contactNo}] = contactNo
 
-    selIds :: (Shared sds (Maybe (Either ContactNo MMSI))) -> SDSLens () [Int] [Int] | RWShared sds
+    selIds :: (Shared sds (Maybe (Either ContactNo MMSI))) -> SimpleSDSLens [Int] | RWShared sds
 	selIds sel = mapReadWrite (toPrj,fromPrj) (Just \p w. Ok (toPrj w)) sel
 	where
 		toPrj Nothing = []

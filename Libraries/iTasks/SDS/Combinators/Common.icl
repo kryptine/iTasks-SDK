@@ -167,7 +167,7 @@ taskListSelfId tasklist = mapRead (\(_,items) -> hd [taskId \\ {TaskListItem|tas
 where
     listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=True,includeValue=False,includeAttributes=False,includeProgress=False}
 
-taskListSelfManagement :: !(SharedTaskList a) -> SDSLens () TaskAttributes TaskAttributes | TC a
+taskListSelfManagement :: !(SharedTaskList a) -> SimpleSDSLens TaskAttributes | TC a
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) (Just reducer) (sdsFocus listFilter tasklist)
 where
     toPrj (_,items) = case [m \\ m=:{TaskListItem|taskId,self} <- items | self] of

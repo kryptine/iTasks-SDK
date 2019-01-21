@@ -56,11 +56,11 @@ chatDialog :: User [Entity] -> Task ()
 
 editChats :: Task ()
 
-chats ::  SDSLens () [ChatMessage] [ChatMessage]
+chats ::  SimpleSDSLens [ChatMessage]
 
 viewChats :: Int -> Task ()
 
-debugstore :: SDSLens () [String] [String]
+debugstore :: SimpleSDSLens [String]
 
 addDebug :: String -> Task ()
 

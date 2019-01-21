@@ -12,8 +12,8 @@ from Data.Maybe import :: Maybe
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.
 */
-sharedStore :: !String !a -> SDSLens () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedDynamicStore :: !String !a -> SDSLens () a a | TC a
+sharedStore :: !String !a -> SimpleSDSLens a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedDynamicStore :: !String !a -> SimpleSDSLens a | TC a
 
 // Generic access to the store
 storeNamespaces :: SDSSource () [String] ()

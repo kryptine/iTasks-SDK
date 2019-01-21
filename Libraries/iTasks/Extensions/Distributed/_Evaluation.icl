@@ -59,7 +59,7 @@ where
     rep ResetEvent = ReplaceUI (ui UIEmpty)
     rep _          = NoChange
 
-taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a
+taskValueShare :: Int ->  SimpleSDSLens (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))
 where
 	store_name = "taskValueShare_" +++ (toString taskid)

@@ -225,9 +225,9 @@ fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)
 fromLeafletBounds :: !LeafletBounds -> (!(!Real,!Real),!(!Real,!Real))
 fromLeafletBounds {LeafletBounds|southWest,northEast} = (fromLeafletLatLng southWest,fromLeafletLatLng northEast)
 
-standardPerspective :: SDSLens () ContactMapPerspective ContactMapPerspective
+standardPerspective :: SimpleSDSLens ContactMapPerspective
 standardPerspective = sharedStore "standardPerspective" defaultValue
 
-standardMapLayers :: SDSLens () [ContactMapLayer] [ContactMapLayer]
+standardMapLayers :: SimpleSDSLens [ContactMapLayer]
 standardMapLayers = sharedStore "standardMapLayers" [{ContactMapLayer|title="Local OSM tiles",def=CMTileLayer "/tiles/{z}/{x}/{y}.png"}]
 

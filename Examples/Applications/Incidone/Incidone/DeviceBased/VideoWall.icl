@@ -7,7 +7,7 @@ import Text, Text.HTML, Data.List, iTasks.Internal.HtmlUtil
 
 derive class iTask WallContent
 
-wallContent :: SDSLens () WallContent WallContent
+wallContent :: SimpleSDSLens WallContent
 wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 
 viewVideoWallContent :: Task WallContent

@@ -5,4 +5,4 @@ import CivilAffairs.UoD
 /** citizens:
 		this shared data source keeps track of all registered citizens.
 */
-citizens :: SDSLens () [Citizen] [Citizen]
+citizens :: SimpleSDSLens [Citizen]

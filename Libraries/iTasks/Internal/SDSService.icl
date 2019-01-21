@@ -32,7 +32,7 @@ import Text
 sdsServiceTask :: Int -> Task ()
 sdsServiceTask port = Task eval
 where
-	share :: SDSLens () SDSEvaluations SDSEvaluations
+	share :: SimpleSDSLens SDSEvaluations
 	share = sharedStore "sdsServiceTaskShare" 'Map'.newMap
 
 	eval event evalOpts tree=:(TCInit taskId ts) iworld

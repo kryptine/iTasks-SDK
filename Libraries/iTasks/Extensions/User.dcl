@@ -63,7 +63,7 @@ derive gEditor 			User, UserConstraint, Username, Password
 derive class iTask	Credentials
 
 //* Authentication of the current instance
-currentUser 			:: SDSLens () User User
+currentUser 			:: SimpleSDSLens User
 //* Authentication of a task instance instance
 taskInstanceUser 		:: SDSLens InstanceNo User User
 

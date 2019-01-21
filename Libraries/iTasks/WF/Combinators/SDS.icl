@@ -21,7 +21,7 @@ import Data.Maybe, Data.Error
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError
 import qualified Data.Map as DM
 
-withShared :: !b !((SDSLens () b b) -> Task a) -> Task a | iTask a & iTask b
+withShared :: !b !((SimpleSDSLens b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld

@@ -11,8 +11,8 @@ import Incidone.OP.Concepts
     }
 derive class iTask ContactFilter
 
-allContactPhotos                :: SDSLens () (Map ContactNo [ContactPhoto]) (Map ContactNo [ContactPhoto])
-lastAISImport                   :: SDSLens () (Maybe (DateTime,String,Int)) (Maybe (DateTime,String,Int))
+allContactPhotos                :: SimpleSDSLens (Map ContactNo [ContactPhoto])
+lastAISImport                   :: SimpleSDSLens (Maybe (DateTime,String,Int))
 
 allCommunications			    :: SDSLens () 				[CommunicationDetails] 	()
 allIncidents				    :: SDSLens () 				[Incident] 				()

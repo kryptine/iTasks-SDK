@@ -15,7 +15,7 @@ import iTasks.Internal.Serialization
 import System.FilePath
 import StdTuple, StdFunc, StdArray, StdBool, StdChar, StdInt, StdString
 
-sharedDynamicStore :: !String !a -> SDSLens () a a | TC a
+sharedDynamicStore :: !String !a -> SimpleSDSLens a | TC a
 sharedDynamicStore storeId defaultV
 	= mapReadWriteError (read, write) (Just reducer) (sharedStore storeId (dynamic defaultV))
 where
@@ -26,7 +26,7 @@ where
 
 	reducer p d = read d
 
-sharedStore :: !String !a -> SDSLens () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore :: !String !a -> SimpleSDSLens a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV
 	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES True InJSONFile (Just defaultV))
 

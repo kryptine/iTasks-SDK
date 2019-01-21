@@ -55,11 +55,11 @@ rawInstanceShares    = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM
 rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
 
 //Master instance index
-taskInstanceIndex :: SDSLens () [TIMeta] [TIMeta]
+taskInstanceIndex :: SimpleSDSLens [TIMeta]
 taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 
 //Next instance no counter
-nextInstanceNo :: SDSLens () Int Int
+nextInstanceNo :: SimpleSDSLens Int
 nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
 taskInstanceIO :: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
@@ -71,11 +71,11 @@ where
 	notify instanceNo _ _ 	= (==) instanceNo
   r1 instanceNo ws = Ok ('DM'.get instanceNo ws)
 
-allInstanceIO :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec))
+allInstanceIO :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances
-taskEvents :: SDSLens () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
+taskEvents :: SimpleSDSLens (Queue (InstanceNo,Event))
 taskEvents = sdsFocus "events" rawInstanceEvents
 
 //Instance evaluation state
@@ -97,7 +97,7 @@ taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") 
 
 :: TaskOutput :== Queue TaskOutputMessage
 
-taskOutput :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)
+taskOutput :: SimpleSDSLens (Map InstanceNo TaskOutput)
 taskOutput = sdsFocus "taskOutput" rawInstanceOutput
 
 taskInstanceOutput :: SDSLens InstanceNo TaskOutput TaskOutput

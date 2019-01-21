@@ -16,9 +16,9 @@ from C2.Framework.ContactPosition import :: ContactMapPerspective
 
 derive class iTask MapState
 
-mapState :: SDSLens () MapState MapState
+mapState :: SimpleSDSLens MapState
 
-entityMap :: SDSLens () EntityMap EntityMap
+entityMap :: SimpleSDSLens EntityMap
 
 registerEntity :: (Int -> Entity) -> Task Entity
 
@@ -34,4 +34,4 @@ periodicallyUpdateEntity :: !Int -> Task ()
 
 mapView :: (sds () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w & RWShared sds
 
-userMapState :: User -> SDSLens () MapState MapState 
+userMapState :: User -> SimpleSDSLens MapState

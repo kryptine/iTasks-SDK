@@ -280,7 +280,7 @@ findIndex target (Just val) options = [i \\ o <- options & i <- [0..] | target o
 findIndices :: (o -> a) [a] [o] -> [Int] | gEq{|*|} a
 findIndices target vals options = [i \\ o <- options & i <- [0..] | isMemberGen (target o) vals]
 
-findIndexShare :: (o -> a) [o] (Shared sds (Maybe a)) -> SDSLens () [Int] [Int] | TC a & RWShared sds & gEq{|*|} a
+findIndexShare :: (o -> a) [o] (Shared sds (Maybe a)) -> SimpleSDSLens [Int] | TC a & RWShared sds & gEq{|*|} a
 findIndexShare target options sds = mapReadWrite (tof sds target options,fromf sds target options) Nothing sds
 where
 	tof :: (Shared sds (Maybe a)) (o -> a) [o] (Maybe a) -> [Int] |  gEq{|*|} a
@@ -289,7 +289,7 @@ where
 	fromf :: (Shared sds (Maybe a)) (o -> a) [o] [Int] (Maybe a) -> Maybe (Maybe a) |  gEq{|*|} a
 	fromf _ target options w _ = Just (listToMaybe (findSelection target options w))
 
-findIndicesShare :: (o -> a) [o] (Shared sds [a]) -> SDSLens () [Int] [Int] | TC a & RWShared sds & gEq{|*|} a
+findIndicesShare :: (o -> a) [o] (Shared sds [a]) -> SimpleSDSLens [Int] | TC a & RWShared sds & gEq{|*|} a
 findIndicesShare target options sds = mapReadWrite (tof,fromf) Nothing sds
 where
 	tof v = findIndices target v options

@@ -13,4 +13,4 @@ evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 
 proxyTask :: (Shared sds (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 
-taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a
+taskValueShare :: Int ->  SimpleSDSLens (TaskValue a) | iTask a

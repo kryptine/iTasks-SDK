@@ -12,7 +12,7 @@ from System.FilePath import :: FilePath
 * @param The initial value of the shared variable
 * @param The task which uses the shared variable
 */
-withShared :: !b !((SDSLens () b b) -> Task a) -> Task a | iTask a & iTask b
+withShared :: !b !((SimpleSDSLens b) -> Task a) -> Task a | iTask a & iTask b
 
 /**
 * Expose the taskId during execution

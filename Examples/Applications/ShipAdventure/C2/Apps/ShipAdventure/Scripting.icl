@@ -12,13 +12,13 @@ import qualified Data.Map as DM
 
 derive class iTask Target, Script, Condition
 
-handleFireScript :: SDSLens () [Script] [Script]
+handleFireScript :: SimpleSDSLens [Script]
 handleFireScript = sharedStore "handleFireScript" []
 
-handleFloodScript :: SDSLens () [Script] [Script]
+handleFloodScript :: SimpleSDSLens [Script]
 handleFloodScript = sharedStore "handleFloodScript" []
 
-handleSmokeScript :: SDSLens () [Script] [Script]
+handleSmokeScript :: SimpleSDSLens [Script]
 handleSmokeScript = sharedStore "handleSmokeScript" []
 
 changeFireScript :: Task ()

@@ -92,7 +92,7 @@ instance == Capability where
 myUserActorMap :: UserActorShare ObjectType ActorStatus
 myUserActorMap = sharedStore "myUserActorMap" 'DM'.newMap
 
-myStatusMap :: SDSLens () MySectionStatusMap MySectionStatusMap
+myStatusMap :: SimpleSDSLens MySectionStatusMap
 myStatusMap = sharedStore "myStatusMap" 'DM'.newMap
 
 statusInSectionShare :: SDSLens Coord3D SectionStatus SectionStatus
@@ -102,7 +102,7 @@ deviceKindsForCapability :: SDSLens Capability CapabilityExpr CapabilityExpr
 deviceKindsForCapability
   = mapLens "deviceKindsForCapability" capabilityMap Nothing
 
-myInventoryMap :: SDSLens () MySectionInventoryMap MySectionInventoryMap
+myInventoryMap :: SimpleSDSLens MySectionInventoryMap
 myInventoryMap = sharedStore "myInventoryMap" 'DM'.newMap
 
 viewDisabledDevices :: Task ()
@@ -311,7 +311,7 @@ devicesInSectionShare
   write2 :: Coord3D !(IntMap Device) ![Device] -> MaybeError TaskException (Maybe (IntMap Device))
   write2 _ deviceMap devices = Ok (Just (foldr (\device deviceMap -> 'DIS'.put device.Device.deviceId device deviceMap) deviceMap devices))
 
-myDevices :: SDSLens () (IntMap Device) (IntMap Device)
+myDevices :: SimpleSDSLens (IntMap Device)
 myDevices = sharedStore "myDevices" devices
   where
   devices = 'DIS'.fromList [  f dt
@@ -320,10 +320,10 @@ myDevices = sharedStore "myDevices" devices
   f :: !Device -> (!DeviceId, !Device)
   f dev = (dev.Device.deviceId, dev)
 
-commandAims :: SDSLens () [CommandAim] [CommandAim]
+commandAims :: SimpleSDSLens [CommandAim]
 commandAims = sharedStore "commandAims" []
 
-capabilityMap :: SDSLens () CapabilityToDeviceKindMap CapabilityToDeviceKindMap
+capabilityMap :: SimpleSDSLens CapabilityToDeviceKindMap
 capabilityMap = sharedStore "capabilityMap" ('DM'.fromList defaultList)
   where
   defaultList
@@ -343,7 +343,7 @@ instance * CapabilityExpr where
 cap :: DeviceKind -> CapabilityExpr
 cap k = DeviceExpr k
 
-myNetwork :: SDSLens () Network Network
+myNetwork :: SimpleSDSLens Network
 myNetwork = sharedStore "myNetwork"
   { Network
   | devices      = 'DM'.newMap
@@ -351,7 +351,7 @@ myNetwork = sharedStore "myNetwork"
   , cableMapping = 'DIS'.newMap
   }
 
-myCables :: SDSLens () (IntMap Cable) (IntMap Cable)
+myCables :: SimpleSDSLens (IntMap Cable)
 myCables = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing myNetwork
   where
   read :: !Network -> MaybeError TaskException (IntMap Cable)
@@ -440,7 +440,7 @@ where
 		, updModel = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), _)  (ms2d`, cl`) -> ((((((((((disSects, ms2d`), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl`)
 		}
 
-disabledSections :: SDSLens () (Set Coord3D) (Set Coord3D)
+disabledSections :: SimpleSDSLens (Set Coord3D)
 disabledSections = sharedStore "disabledSections" 'DS'.newSet
 
 updateSectionStatus :: !Coord3D -> Task (MapAction SectionStatus)

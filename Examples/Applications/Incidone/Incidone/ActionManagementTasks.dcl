@@ -18,7 +18,7 @@ import Incidone.OP.Concepts
 :: ActionDefinition c
     = { identity    :: String
       , meta        :: ItemMeta
-      , task        :: c (SDSLens () ActionStatus ActionStatus) -> Task ()
+      , task        :: c (SimpleSDSLens ActionStatus) -> Task ()
       }
 
 //Wrapped action for storage in the action catalog
@@ -36,7 +36,7 @@ import Incidone.OP.Concepts
 :: ActionTasks
     = E.c sds: ActionTasks
         ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) //Configuration task
-        (c (SDSLens () ActionStatus ActionStatus) -> Task ()) & iTask c   //An action item that needs to be configured before it can be deployed
+        (c (SimpleSDSLens ActionStatus) -> Task ()) & iTask c   //An action item that needs to be configured before it can be deployed
 
 :: ActionProgress
     = ActionPlanned
@@ -158,7 +158,7 @@ addDefaultStatus            :: (Task c) -> ([ContactNo] [IncidentNo] -> Task (c,
 //Shared catalog of predefined action items
 actionCatalog           :: SDSLens () [CatalogAction] ()
 builtinActionCatalog    :: SDSSource () [CatalogAction] ()
-userActionCatalog       :: SDSLens () [UserCatalogAction] [UserCatalogAction]
+userActionCatalog       :: SimpleSDSLens [UserCatalogAction]
 
 //Shares providing filtered views on iTasks task instances.
 //They select only those detached tasks that are tagged to be action items
@@ -175,12 +175,12 @@ numActionsByContact             :: SDSLens ContactNo Int ()
 todoItemTask                :: () (Shared sds ActionStatus) -> Task () | RWShared sds
 blankTodoItem               ::                                                   CatalogAction
 predefinedTodoItem          :: String ItemMeta                                -> CatalogAction
-predefinedInstantItem       :: String ItemMeta ActionProgress ((SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction
-predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
+predefinedInstantItem       :: String ItemMeta ActionProgress ((SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction
+predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
 
 //Contact or incident
-predefinedIncidentItem      :: String ItemMeta (IncidentNo (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a
-predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SDSLens () ActionStatus ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedIncidentItem      :: String ItemMeta (IncidentNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 
 //Action lists items
 listItemTask                :: (String,ActionPlan) (Shared sds ActionStatus) -> Task () | RWShared sds

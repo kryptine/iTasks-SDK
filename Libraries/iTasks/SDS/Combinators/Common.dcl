@@ -38,7 +38,7 @@ sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(Maybe (S
 sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} ps & TC ps & TC r & TC w & RWShared sds
 
 // Introduce a new parameter
-sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(Maybe (!SDSReducer p ws w)) !(sds ps rs ws) -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
+sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(Maybe (SDSReducer p ws w)) !(sds ps rs ws) -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
 
 // Treat symmetric sources with optional values as if they always have a value.
 // You can provide a default value, if you don't it will trigger a read error
@@ -113,7 +113,7 @@ taskListSelfId :: !(SharedTaskList a) -> SDSLens () TaskId () | TC a
 /**
 * Get the current tasks management meta data share
 */
-taskListSelfManagement :: !(SharedTaskList a) -> SDSLens () TaskAttributes TaskAttributes | TC a
+taskListSelfManagement :: !(SharedTaskList a) -> SimpleSDSLens TaskAttributes | TC a
 /**
 * Get the value of a specific task in the list
 * The paramater is either the index in the list or a specific task id
