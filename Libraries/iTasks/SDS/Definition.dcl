@@ -96,10 +96,9 @@ where
 	 * @param sds to read from.
 	 * @param parameter used for reading
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
-	 * @param When Just, denotes reading + registering for changes.
-	 * @param Identity of the sds to read, not guaranteed to be the identify of the current sds we're reading from. (lenses, sequences, etc.)
+	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
-	readSDS :: !(sds p r w) !p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld
+	readSDS :: !(sds p r w) !p !TaskContext !SDSIdentity !*IWorld
 	        -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Readable sds
@@ -110,8 +109,9 @@ where
 	 * @param parameter used for reading
 	 * @param context in which to read. Async sds's use the context to retrieve the task id.
 	 * @param taskId which registers itself for changes to the sds.
+	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
-	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !*IWorld
+	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !SDSIdentity !*IWorld
 	                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Writeable sds | Identifiable sds
@@ -247,13 +247,13 @@ required type w. The reducer has the job to turn this ws into w.
 	  & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 	| E. p1 r1 p2 r2 w2 sds1 sds2:
 	  SDSParallelWriteLeft !(sds1 p1 r1 w) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w p2 r2 w2 p r w)
-	  & RWShared sds1 & Readable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
+	  & RWShared sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
 	| E. p1 r1 w1 p2 r2 sds1 sds2:
 	  SDSParallelWriteRight !(sds1 p1 r1 w1) !(sds2 p2 r2 w) !(SDSParallelOptions p1 r1 w1 p2 r2 w p r w)
-	  & Readable sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
+	  & Registrable sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
 	| E. p1 r1 w1 p2 r2 w2 sds1 sds2:
 	  SDSParallelWriteNone !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
-	  & Readable sds1 & Readable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
 	{ name   :: !String

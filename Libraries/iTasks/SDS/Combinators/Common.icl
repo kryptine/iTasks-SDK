@@ -100,7 +100,7 @@ where
     write1 _ w = Ok (Just (fst w))
     write2 _ w = Ok (Just (snd w))
 
-(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Readable sds2
+(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Registrable sds2
 (>*|) l r = SDSParallelWriteLeft l r opts
 where
   opts = {SDSParallelOptions| name = ">*|"
@@ -110,7 +110,7 @@ where
          , writer = SDSWriteConst (\_ _. Ok Nothing)
        }
 
-(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Readable sds1 & RWShared sds2
+(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & RWShared sds2
 (|*<) l r = SDSParallelWriteRight l r opts
 where
   opts = {SDSParallelOptions| name = "|*<"
@@ -120,7 +120,7 @@ where
          , writer = SDSWriteConst (\_ w. Ok (Just w))
        }
 
-(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Readable sds1 & Readable sds2
+(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & Registrable sds2
 (|*|) l r = SDSParallelWriteNone l r opts
 where
   opts = {SDSParallelOptions| name = "|*|"
