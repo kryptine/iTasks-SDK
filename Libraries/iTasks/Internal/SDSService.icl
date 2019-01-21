@@ -117,7 +117,7 @@ where
 	| size request == 0 = (Error "Received empty request", iworld)
 	| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 	= case deserializeFromBase64 request symbols of
-		(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) (sdsIdentity sds) iworld of
+		(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) iworld of
 			(Error (_, e), iworld)							= (Error e, iworld)
 			(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 (Ok v))), iworld)
 			(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld)

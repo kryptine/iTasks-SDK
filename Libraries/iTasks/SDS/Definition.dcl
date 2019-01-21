@@ -96,9 +96,8 @@ where
 	 * @param sds to read from.
 	 * @param parameter used for reading
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
-	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
-	readSDS :: !(sds p r w) !p !TaskContext !SDSIdentity !*IWorld
+	readSDS :: !(sds p r w) !p !TaskContext !*IWorld
 	        -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Readable sds
