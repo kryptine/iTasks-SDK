@@ -36,7 +36,7 @@ derive JSONEncode Queue, Event
 derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode Queue, Event
 
-derive gDefault TIMeta
+derive gDefault TIMeta, TIType
 derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
@@ -133,25 +133,35 @@ newDocumentId iworld=:{IWorld|random}
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
     //Create the initial instance data in the store
-    # progress  = {InstanceProgress|value=Unstable,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
+    # progress  = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
-createTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (applyLayout defaultSessionLayout task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
-    # instanceNo            = fromOk mbInstanceNo
+    # (Ok instanceNo,iworld) = newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # progress              = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
+    # progress              = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants             = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
+
+createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException InstanceNo, !*IWorld) | iTask a
+createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+    # (Ok instanceNo,iworld) = newInstanceNo iworld
+    # progress              = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants             = {InstanceConstants|type=StartupInstance,build=appVersion,issuedAt=clock}
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
+  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
+  `b` \iworld -> (Ok instanceNo, iworld)
 
 (`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
 (`b`) (Ok _, st)    f = f st
@@ -161,8 +171,9 @@ createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAtt
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (applyLayout defaultSessionLayout task) task
     # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
+	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
+    # progress             = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants            = {InstanceConstants|type=PersistentInstance mbListId,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -257,23 +268,37 @@ where
         existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
 
     selectRows tfilter is = filter (filterPredicate tfilter) is
-    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,listId,session,build,issuedAt,progress,attributes}
-        # constants  = if includeConstants (Just {InstanceConstants|listId=listId,session=session,build=build,issuedAt=issuedAt}) Nothing
+    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceType,build,issuedAt,progress,attributes}
+		# listId = case instanceType of
+			(TIPersistent _ (Just listId)) = listId
+			_                              = TaskId 0 0
+		# type = case instanceType of
+			(TIStartup) = StartupInstance
+			(TISession _) = SessionInstance
+			(TIPersistent _ mbListId) = PersistentInstance mbListId
+
+        # constants  = if includeConstants (Just {InstanceConstants|type=type,build=build,issuedAt=issuedAt}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
         # attributes = if includeAttributes (Just attributes) Nothing
         = (instanceNo,constants,progress,attributes)
 
     updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
-        # i = if includeConstants (maybe i (\{InstanceConstants|listId,session,build,issuedAt}
-                                            -> {TIMeta|i & listId=listId,session=session,build=build,issuedAt=issuedAt}) mbC) i
+        # i = if includeConstants (maybe i (\{InstanceConstants|type,build,issuedAt}
+                                            -> {TIMeta|i & instanceType = instanceType i type mbP ,build=build,issuedAt=issuedAt}) mbC) i
         # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
+	where
+		instanceType _ (StartupInstance) _ = TIStartup
+		instanceType _ (SessionInstance) (Just {InstanceProgress|instanceKey=Just key}) = TISession key
+		instanceType _ (PersistentInstance mbListId) (Just {InstanceProgress|instanceKey=Just key}) = TIPersistent key mbListId
+
+		instanceType {instanceType} _ _ = instanceType
 
     filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession,matchAttribute} i
         =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
         &&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
-        &&  (maybe True (\m -> i.TIMeta.session == m) onlySession)
+        &&  (maybe True (\m -> (i.instanceType =: (TISession _)) == m ) onlySession)
 		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.attributes))) matchAttribute)
 
     notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
@@ -334,7 +359,7 @@ where
         items = [{TaskListItem|taskId = TaskId instanceNo 0, listId = listId
                  , detached = True, self = instanceNo == curInstance
                  , value = NoValue, progress = Just progress, attributes = attributes
-                 } \\ (instanceNo,Just {InstanceConstants|listId},Just progress, Just attributes) <- instances]
+                 } \\ (instanceNo,Just {InstanceConstants|type=PersistentInstance (Just listId)},Just progress, Just attributes) <- instances]
 
     write _ _ [] = Ok Nothing
     write _ (instances,_) updates = Ok (Just (map (updateInstance updates) instances))

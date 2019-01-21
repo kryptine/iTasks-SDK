@@ -20,7 +20,7 @@ import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
 from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 
-derive gEq TIMeta
+derive gEq TIMeta, TIType
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -76,7 +76,7 @@ where
     evalTaskInstance` instanceNo event iworld=:{clock,current}
     # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
-	# constants=:{InstanceConstants|session,listId} = fromOk constants
+	# constants=:{InstanceConstants|type} = fromOk constants
 	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromOk oldReduct
@@ -88,8 +88,8 @@ where
 		# (Exception description) = value
 		= exitWithException instanceNo description iworld
 	//Eval instance
-    # (currentSession,currentAttachment) = case (session,attachedTo) of
-        (True,_)                                  = (Just instanceNo,[])
+    # (currentSession,currentAttachment) = case (type,attachedTo) of
+        (SessionInstance,_)                       = (Just instanceNo,[])
         (_,[])                                    = (Nothing,[])
         (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
 	//Update current process id & eval stack in iworld
