@@ -12,8 +12,8 @@ import iTasks.Internal.Serialization, iTasks.Internal.Generic.Visualization
 import Data.CircularStack
 import Data.Error, Data.Either
 
-derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
-derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
 
 instance toString DeferredJSON where
     toString (DeferredJSON x)        = toString $ toJSON x

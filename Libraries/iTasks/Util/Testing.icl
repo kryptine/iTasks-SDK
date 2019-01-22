@@ -11,7 +11,7 @@ import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options} 
-from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
+from iTasks.Internal.TaskStore import createSessionTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
@@ -122,7 +122,7 @@ where
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level
-		# (res,iworld) = createTaskInstance task 'DM'.newMap iworld
+		# (res,iworld) = createSessionTaskInstance task 'DM'.newMap iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
 				//Apply all events

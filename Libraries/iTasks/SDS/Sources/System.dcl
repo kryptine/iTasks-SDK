@@ -17,7 +17,7 @@ from Data.Maybe import :: Maybe
 //* Types to view the server's internal table of running task instances
 :: TaskInstance =
 	{ instanceNo	    :: !InstanceNo			//* Unique global identification
-    , instanceKey       :: !InstanceKey         //* Random string that a client needs to provide to access the task instance
+    , instanceKey       :: !Maybe InstanceKey   //* Random string that a client needs to provide to access the task instance
     , session           :: !Bool                //* Is this a session
 	, listId            :: !TaskId              //* Reference to parent tasklist
     , build             :: !String              //* Application build version when the instance was created
