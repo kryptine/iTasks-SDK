@@ -12,6 +12,7 @@ from Data.Set as DS import qualified newSet, insert, delete, toList, fromList, n
 from Data.Set import instance Foldable Set
 from Data.Tuple import appSnd
 from Data.Map import instance Functor (Map k)
+from Data.Foldable import maximum
 
 import Text.GenJSON
 
