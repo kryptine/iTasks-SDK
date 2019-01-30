@@ -5,7 +5,7 @@ from   StdFunc import id, const
 import Data.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
-import ScalableExts.Scalable
+import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
