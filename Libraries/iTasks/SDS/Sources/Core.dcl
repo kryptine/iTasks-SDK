@@ -20,6 +20,9 @@ unitShare :: SDS () () ()
 // Random source
 randomInt :: SDS () Int ()
 
+// Random string (the parameters determines its length)
+randomString :: SDS Int String ()
+
 // world function share
 worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDS p r w 
 

@@ -123,13 +123,11 @@ newInstanceNo iworld
             = (Error e,iworld)
 
 newInstanceKey :: !*IWorld -> (!InstanceKey, !*IWorld)
-newInstanceKey iworld=:{IWorld|random}
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
+newInstanceKey iworld = generateRandomString 32 iworld
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
-newDocumentId iworld=:{IWorld|random}
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
-	
+newDocumentId iworld = generateRandomString 32 iworld
+
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
     //Create the initial instance data in the store

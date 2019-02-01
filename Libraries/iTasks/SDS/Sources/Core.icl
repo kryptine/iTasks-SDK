@@ -4,6 +4,7 @@ import iTasks.SDS.Definition
 import iTasks.Internal.SDS
 import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
+import iTasks.Internal.Util
 import System.FilePath, System.Directory, System.File
 import Text, Text.GenJSON
 import StdFile, StdTuple, StdArray, StdBool, StdList, StdString
@@ -38,6 +39,9 @@ randomInt = createReadOnlySDS randomInt
 where
 	randomInt () iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
+
+randomString :: SDS Int String ()
+randomString = createReadOnlySDS generateRandomString
 
 memoryShare :: SDS String (Maybe a) (Maybe a) | TC a
 memoryShare = createReadWriteSDS "_core_" "memoryShare" read write
