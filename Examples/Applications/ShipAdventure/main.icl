@@ -37,7 +37,7 @@ importDemoUsers = allTasks (map mkDemoUser namesRoles)
   where
   mkDemoUser t
     # u = demoUser t
-    = catchAll (createUser u) (\_ -> return u)
+    = catchAll (createUser u @ const u) (\_ -> return u)
   demoUser (ppname, username, role)
     = { UserAccount
       | credentials = { Credentials
