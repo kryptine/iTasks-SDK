@@ -27,7 +27,7 @@ find . -name "*.prj.default" | while read f; do
 find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; cpm make"
 #With generic fusion
-find . -name "*.prj" -not -name "IncidoneCCC.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+find . -name "*.prj" -not -name "IncidoneCCC.prj" -not -name "examples.prj" -not -name "RemoteShareExamples.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
 	"cd {}; sed -i.bak 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests

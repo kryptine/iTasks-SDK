@@ -7,8 +7,8 @@ import iTasks.Extensions.DateTime
 
 crudWith :: !d ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r]
             !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
-            (RWShared () (f r) (f` w))
-         -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w)
+            (sds () (f r) (f` w))
+         -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
 crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = forever crud
 where
   crud
@@ -34,15 +34,15 @@ where
 	@! ()
 
 crud` :: !d !((f r) -> [r]) !(r (f r) -> f` w)  !(r (f r) -> f` w)
-        (RWShared () (f r) (f` w))
-     -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w)
+        (sds () (f r) (f` w))
+     -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
 crud` descr toList putItem delItem sh = crudWith descr [] [] [] [] toList putItem delItem sh
 
-editStore :: String (Shared [a]) -> Task () | iTask a & Eq a & Ord a
+editStore :: String (Shared sds [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
 editStore prompt store
 	= crud` (Title prompt) id (\item items -> sort [item:items]) (\item items -> removeMember item items) store
 
-addToStore :: [a] !(Shared [a]) -> Task () | iTask a
+addToStore :: [a] !(Shared sds [a]) -> Task () | iTask a & RWShared sds
 addToStore new store
 	= upd (\content -> content ++ new) store @! ()
 

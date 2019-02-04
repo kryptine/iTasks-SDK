@@ -66,7 +66,7 @@ citizenFromSSN				:: SSN [Citizen] -> Maybe Citizen
 /** nameHomeAddressFromCitizen citizen=:{home_address=Just address} = nha:
 		@nha contains the @citizen.name and @address.
 	nameHomeAddressFromCitizen citizen=:{home_address=Nothing}:
-		is undefined.
+		is abort undefined.
 */
 nameHomeAddressFromCitizen	:: Citizen -> NameHomeAddress
 

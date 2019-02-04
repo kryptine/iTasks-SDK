@@ -149,32 +149,32 @@ instance toString Device
 // shared stores:
 
 myUserActorMap   :: UserActorShare ObjectType ActorStatus
-myStatusMap      :: RWShared () MySectionStatusMap        MySectionStatusMap
-myInventoryMap   :: RWShared () MySectionInventoryMap     MySectionInventoryMap
-myNetwork        :: RWShared () Network                   Network
-myCables         :: RWShared () (IntMap Cable)            (IntMap Cable)
-myDevices        :: RWShared () (IntMap Device)           (IntMap Device)
-commandAims      :: RWShared () [CommandAim]              [CommandAim]
-capabilityMap    :: RWShared () CapabilityToDeviceKindMap CapabilityToDeviceKindMap
-disabledSections :: RWShared () (Set Coord3D)             (Set Coord3D)
+myStatusMap      :: SimpleSDSLens MySectionStatusMap
+myInventoryMap   :: SimpleSDSLens MySectionInventoryMap
+myNetwork        :: SimpleSDSLens Network
+myCables         :: SimpleSDSLens (IntMap Cable)
+myDevices        :: SimpleSDSLens (IntMap Device)
+commandAims      :: SimpleSDSLens [CommandAim]
+capabilityMap    :: SimpleSDSLens CapabilityToDeviceKindMap
+disabledSections :: SimpleSDSLens (Set Coord3D)
 
-deviceKindsForCapability      :: RWShared Capability CapabilityExpr    CapabilityExpr
-statusInSectionShare          :: RWShared Coord3D    SectionStatus     SectionStatus
+deviceKindsForCapability      :: SDSLens Capability CapabilityExpr    CapabilityExpr
+statusInSectionShare          :: SDSLens Coord3D    SectionStatus     SectionStatus
 inventoryInSectionShare       :: FocusedSectionInventoryShare ObjectType
-deviceIdInNetworkSectionShare :: RWShared Coord3D    [DeviceId]        [DeviceId]
-devicesInSectionShare         :: RWShared Coord3D    [Device]          [Device]
-deviceWithIdShare             :: RWShared DeviceId   Device            Device
-cableWithIdShare              :: RWShared CableId    Cable             Cable
-cablesInSectionShare          :: RWShared Coord3D    [Cable]           [Cable]
+deviceIdInNetworkSectionShare :: SDSLens Coord3D    [DeviceId]        [DeviceId]
+devicesInSectionShare         :: SDSSequence Coord3D    [Device]          [Device]
+deviceWithIdShare             :: SDSLens DeviceId   Device            Device
+cableWithIdShare              :: SDSLens CableId    Cable             Cable
+cablesInSectionShare          :: SDSLens Coord3D    [Cable]           [Cable]
 
 cablesForSection              :: !Coord3D !Network -> [Cable]
 
-allActiveAlarms    :: ReadOnlyShared [(!Coord3D, !SectionStatus)]
-allAvailableActors :: ReadOnlyShared [(!Coord3D, !MyActor)]
+allActiveAlarms    :: SDSLens () [(!Coord3D, !SectionStatus)] ()
+allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
 
 // setting and resetting of the detection systems:
 
-setAlarm         :: !User !(!Coord3D, !SectionStatus) !(Shared MySectionStatusMap) -> Task ()
+setAlarm         :: !User !(!Coord3D, !SectionStatus) !(Shared sds MySectionStatusMap) -> Task () | RWShared sds
 
 // making images from a map
 

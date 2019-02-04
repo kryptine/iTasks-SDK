@@ -2,7 +2,7 @@ definition module iTasks.Internal.TaskState
 
 from iTasks.Internal.TaskEval import :: TonicOpts, :: TaskTime
 
-from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes
+from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: Event
 from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
@@ -61,9 +61,12 @@ derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
 	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
 	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
 
+:: AsyncAction = Read | Write | Modify
+
 :: TaskTree
 	= TCInit          !TaskId !TaskTime	//Initial state for all tasks
 	| TCBasic         !TaskId !TaskTime !DeferredJSON !Bool //Encoded value and stable indicator
+	| TCAwait		  !AsyncAction !TaskId !TaskTime !TaskTree
 	| TCInteract      !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
 	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
 	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
@@ -74,7 +77,6 @@ derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
 	| TCAttribute     !TaskId !String !TaskTree
 	| TCNop
 	| TCDestroy       !TaskTree //Marks a task state as garbage that must be destroyed (TODO: replace by explicit event)
-	| TCExposedShared !TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 
@@ -88,7 +90,7 @@ derive JSONEncode DeferredJSON
 derive JSONDecode DeferredJSON
 derive gEq        DeferredJSON
 derive gText      DeferredJSON
-	
+
 :: ParallelTaskState =
 	{ taskId			:: !TaskId					//Identification
     , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
@@ -104,5 +106,6 @@ derive gText      DeferredJSON
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
     | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
+
 
 

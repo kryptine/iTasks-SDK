@@ -31,6 +31,6 @@ addCancebleTaskForUser  :: String User TaskPrio (User -> Task a) -> Task (Maybe 
 // creates a watch on a store: task is added to the side panel tasks of user as soon as condition is met
 // if priority is Immediate the task is started in the main workspace
 
-makeWatchTask :: String User TaskPrio (RWShared () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r
+makeWatchTask :: String User TaskPrio (sds () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r & RWShared sds & TC w
 
 addNotification :: String -> Task ()

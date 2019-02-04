@@ -70,7 +70,6 @@ where
 	makeTable
 		= [{users = [], date = date} \\ date <- dates]
 
-	askAll :: (Shared [MeetingOption]) -> Task MeetingOption
 	askAll table
 		= 			allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
 		>>- \_ ->	enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table

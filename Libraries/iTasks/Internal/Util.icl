@@ -10,14 +10,17 @@ from iTasks.Extensions.DateTime import :: Date{..}, :: Time{..}, :: DateTime(..)
 import qualified Control.Monad as M
 import qualified Data.Map as DM
 from Data.Map import :: Map
-	
+
 show :: ![String] !*World -> *World
 show lines world
 	# (console,world)	= stdio world
 	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
 	# (_,world)			= fclose console world
 	= world
-	
+
+iShow :: ![String] !*IWorld -> *IWorld
+iShow lines iworld = {iworld & world = show lines iworld.world}
+
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year

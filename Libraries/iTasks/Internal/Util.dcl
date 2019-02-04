@@ -15,6 +15,8 @@ from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage, :: May
 
 show :: ![String] !*World -> *World
 
+iShow :: ![String] !*IWorld -> *IWorld
+
 tmToDateTime :: !Tm -> DateTime
 
 //Path conversion

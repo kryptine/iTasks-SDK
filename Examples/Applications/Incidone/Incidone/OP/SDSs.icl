@@ -5,34 +5,35 @@ import qualified Data.Map as DM
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.Conversions
 import Incidone.Util.SQLSDS
-import Data.Functor, Data.Either
+import Data.Functor, Data.Either, Data.Tuple, Data.Func
 
 derive class iTask ContactFilter
 
-dbReadSDS :: String -> ROShared QueryDef [r] | mbFromSQL r & TC r
+dbReadSDS :: String -> SDSSequence QueryDef [r] () | mbFromSQL r & TC r
 dbReadSDS notifyId = databaseDef >++> sqlReadSDS notifyId
 
-dbReadWriteOneSDS :: String -> RWShared QueryDef r r | mbFromSQL, mbToSQL r & gDefault{|*|} r & TC r
+dbReadWriteOneSDS :: String -> SDSSequence QueryDef r r | mbFromSQL, mbToSQL r & gDefault{|*|} r & TC r
 dbReadWriteOneSDS notifyId = databaseDef >++> sqlReadWriteOneSDS notifyId
 
-dbLinkSDS :: String String String String -> RWShared (Maybe [Int]) [(Int,Int)] [(Int,Int)]
+dbLinkSDS :: String String String String -> SDSSequence (Maybe [Int]) [(Int,Int)] [(Int,Int)]
 dbLinkSDS notifyId table col1 col2 = databaseDef >++> sqlLinkSDS notifyId table col1 col2
 
 //ACCESS SDS
 
-allContactPhotos :: Shared (Map ContactNo [ContactPhoto]) //TODO: Also store in database
+//TODO: Also store in database
+allContactPhotos :: SimpleSDSLens (Map ContactNo [ContactPhoto])
 allContactPhotos = sharedStore "ContactPhotos" 'DM'.newMap
 
-lastAISImport :: Shared (Maybe (DateTime,String,Int))
+lastAISImport :: SimpleSDSLens (Maybe (DateTime,String,Int))
 lastAISImport = sharedStore "lastAISImport" Nothing
 
-allCommunications :: ROShared () [CommunicationDetails]
+allCommunications :: SDSLens () [CommunicationDetails] ()
 allCommunications = sdsFocus Nothing filteredCommunications
 
-filteredCommunications :: ROShared (Maybe RowFilterDef) [CommunicationDetails]
+filteredCommunications :: SDSLens (Maybe RowFilterDef) [CommunicationDetails] ()
 filteredCommunications
     = mapRead (\(communication,aboutIncidents) -> map (addAboutIncidentsToCommunication aboutIncidents) communication)
-                        (filteredCommunicationsBase |+| sdsFocus () communicationAboutIncidentsIndexed)
+                        (filteredCommunicationsBase |*| sdsFocus () communicationAboutIncidentsIndexed)
 where
     addAboutIncidentsToCommunication aboutIncidents communication=:{CommunicationDetails|communicationNo}
         = {CommunicationDetails|communication
@@ -40,12 +41,12 @@ where
           }
     communicationAboutIncidentsIndexed = mapRead groupByFst communicationAboutIncidents
 
-filteredCommunicationsBase :: ROShared (Maybe RowFilterDef) [CommunicationDetails]
+filteredCommunicationsBase :: SDSLens (Maybe RowFilterDef) [CommunicationDetails] ()
 filteredCommunicationsBase = sdsTranslate "filteredCommunicationsBase" query (dbReadSDS "filteredCommunicationsBase")
 where
     query rows = {columns = columnsCommunicationDetails, rows = rows , order = Just [OrderDesc ("Communication","communicationNo")]}
 
-communicationAboutIncidents :: ROShared () [(CommunicationNo,IncidentShort)]
+communicationAboutIncidents :: SDSLens () [(CommunicationNo,IncidentShort)] ()
 communicationAboutIncidents = mapRead (map fromSQLWithId) (sdsFocus query (dbReadSDS "communicationAboutIncidents"))
 where
  query =
@@ -56,10 +57,10 @@ where
     , order      = Nothing
     }
 
-communicationByNo :: RWShared CommunicationNo Communication Communication
-communicationByNo = mapReadWrite (readPrj,writePrj)
+communicationByNo :: SDSLens CommunicationNo Communication Communication
+communicationByNo = mapReadWrite (readPrj,writePrj) (Just \p w. Ok (readPrj w))
     (communicationByNoBase
-     >+< sdsTranslate "communicationByNoIncidents" (\p -> Just [p]) incidentNosByCommunicationNosIndexed)
+     >*< sdsTranslate "communicationByNoIncidents" (\p -> Just [p]) incidentNosByCommunicationNosIndexed)
 where
 	readPrj (communication=:{Communication|communicationNo},ilinks)
         = {Communication
@@ -70,7 +71,7 @@ where
 		= Just (communication,'DM'.put communicationNo aboutIncidents ilinks)
 	writePrj _ _ = Nothing
 
-communicationByNoBase :: RWShared CommunicationNo Communication Communication
+communicationByNoBase :: SDSSequence CommunicationNo Communication Communication
 communicationByNoBase = databaseDef >++> sqlShare "communicationByNo" readFun writeFun
 where
     query communicationNo
@@ -100,7 +101,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		                = (Ok (), cur)
 
-communicationDetailsByNo :: RWShared CommunicationNo CommunicationDetails CommunicationDetails
+communicationDetailsByNo :: SDSParallel CommunicationNo CommunicationDetails CommunicationDetails
 communicationDetailsByNo = sdsParallel "communicationDetailsByNo" param read (SDSWriteConst writel) (SDSWriteConst writer) communicationDetailsByNoBase incidentsByCommunicationShort
 where
     param p = (p,p)
@@ -108,7 +109,7 @@ where
     writel _ communication = Ok (Just communication)
     writer _ communication = Ok (Just [incidentNo \\ {IncidentShort|incidentNo} <- communication.CommunicationDetails.aboutIncidents])
 
-communicationDetailsByNoBase ::  RWShared CommunicationNo CommunicationDetails CommunicationDetails
+communicationDetailsByNoBase ::  SDSSequence CommunicationNo CommunicationDetails CommunicationDetails
 communicationDetailsByNoBase = databaseDef >++> sqlShare "communicationByNo" readFun writeFun
 where
     //TODO use a write query that does multiple table updates
@@ -151,36 +152,38 @@ where
             _
 		        = (Ok (), cur)
 
-phoneCallByNo :: RWShared CommunicationNo PhoneCall PhoneCall
+phoneCallByNo :: SDSLens CommunicationNo PhoneCall PhoneCall
 phoneCallByNo = sdsTranslate "phoneCallByNo" query (dbReadWriteOneSDS "phoneCallByNo")
 where
     query communicationNo = {columns=columnsPhoneCall,rows=Just (EqualsValue ("PhoneCall","communicationNo") [SQLVInteger communicationNo]),order=Nothing}
 
-phoneCallByReference :: RWShared PhoneCallReference PhoneCall PhoneCall
+phoneCallByReference :: SDSLens PhoneCallReference PhoneCall PhoneCall
 phoneCallByReference = sdsTranslate "phoneCallByReference" query (dbReadWriteOneSDS "phoneCallByReference")
 where
     query ref = {columns=columnsPhoneCall,rows=Just (EqualsValue ("PhoneCall","externalRef") [SQLVText ref]),order=Nothing}
 
-radioCallByNo :: RWShared CommunicationNo RadioCall RadioCall
+radioCallByNo :: SDSLens CommunicationNo RadioCall RadioCall
 radioCallByNo = sdsTranslate "radioCallByNo" query (dbReadWriteOneSDS "radioCallByNo")
 where
     query communicationNo = {columns=columnsRadioCall,rows=Just (EqualsValue ("RadioCall","communicationNo") [SQLVInteger communicationNo]),order=Nothing}
 
-emailMessageByNo :: RWShared CommunicationNo EmailMessage EmailMessage
+emailMessageByNo :: SDSLens CommunicationNo EmailMessage EmailMessage
 emailMessageByNo = sdsTranslate "emailMessageByNo" query (dbReadWriteOneSDS "emailMessageByNo")
 where
     query communicationNo = {columns=columnsEmailMessage,rows=Just (EqualsValue ("EmailMessage","communicationNo") [SQLVInteger communicationNo]),order=Nothing}
 
-p2000MessageByNo :: RWShared CommunicationNo P2000Message P2000Message
+p2000MessageByNo :: SDSLens CommunicationNo P2000Message P2000Message
 p2000MessageByNo = sdsTranslate "p2000MessageByNo" query (dbReadWriteOneSDS "P2000MessageByNo")
 where
     query communicationNo = {columns=columnsP2000Message,rows=Just (EqualsValue ("P2000Message","communicationNo") [SQLVInteger communicationNo]),order=Nothing}
 
-allIncidents :: ROShared () [Incident]
+allIncidents :: SDSLens () [Incident] ()
 allIncidents = filteredIncidents Nothing
 
-filteredIncidents :: (Maybe RowFilterDef) -> ReadOnlyShared [Incident]
-filteredIncidents mbWhere = mapRead prj (baseIncidents mbWhere |+| sdsFocus Nothing contactNosByIncidentNosIndexed |+| sdsFocus Nothing communicationNosByIncidentNosIndexed)
+filteredIncidents :: (Maybe RowFilterDef) -> SDSLens () [Incident] ()
+filteredIncidents mbWhere = mapRead prj (baseIncidents mbWhere 
+	|*| sdsFocus Nothing contactNosByIncidentNosIndexed
+	|*| sdsFocus Nothing communicationNosByIncidentNosIndexed)
 where
 	prj ((incidents,cnlinks),cmlinks) = map (addLinks cnlinks cmlinks) incidents
 
@@ -191,32 +194,32 @@ where
 		  , communications = fromMaybe [] ('DM'.get incidentNo cmlinks)
 		  }
 
-detailsIncidents :: (Maybe RowFilterDef) -> ReadOnlyShared [IncidentDetails]
+detailsIncidents :: (Maybe RowFilterDef) -> SDSLens () [IncidentDetails] ()
 detailsIncidents mbWhere = mapRead (map prj) (baseIncidents mbWhere)
 where
     prj {Incident|incidentNo,title,summary,type,phase}
       = {IncidentDetails|incidentNo=incidentNo,title=title,summary=summary,type=type,phase=phase}
 
-baseIncidents :: (Maybe RowFilterDef) -> ReadOnlyShared [Incident]
+baseIncidents :: (Maybe RowFilterDef) -> SDSLens () [Incident] ()
 baseIncidents rows = sdsFocus query (dbReadSDS "allIncidents")
 where
  query = {columns = columnsIncident, rows = rows, order = Nothing}
 
-filteredIncidentsShort :: ROShared (Maybe RowFilterDef) [IncidentShort]
+filteredIncidentsShort :: SDSLens (Maybe RowFilterDef) [IncidentShort] ()
 filteredIncidentsShort = sdsTranslate "filteredIncidentsShort" query (dbReadSDS "allIncidents")
 where
     query rows = {columns = columnsIncidentShort, rows = rows, order = Nothing}
 
-allIncidentsShort :: ROShared () [IncidentShort]
+allIncidentsShort :: SDSLens () [IncidentShort] ()
 allIncidentsShort = sdsFocus Nothing filteredIncidentsShort
 
-openIncidents :: ROShared () [Incident]
+openIncidents :: SDSLens () [Incident] ()
 openIncidents =	filteredIncidents (Just openIncidentsCond)
 
-openIncidentsShort :: ROShared () [IncidentShort]
+openIncidentsShort :: SDSLens () [IncidentShort] ()
 openIncidentsShort = sdsFocus (Just openIncidentsCond) filteredIncidentsShort
 
-openIncidentsDetails ::	ROShared () [IncidentDetails]
+openIncidentsDetails ::	SDSLens () [IncidentDetails] ()
 openIncidentsDetails = detailsIncidents (Just openIncidentsCond)
 
 openIncidentsCond :: RowFilterDef
@@ -225,14 +228,14 @@ openIncidentsCond = OrCondition (EqualsValue ("Incident","closed") [SQLVInteger 
 closedIncidentsCond :: RowFilterDef
 closedIncidentsCond = EqualsValue ("Incident","closed") [SQLVInteger 1]
 
-recentIncidents :: ROShared () [Incident]
+recentIncidents :: SDSLens () [Incident] ()
 recentIncidents = filteredIncidents (Just closedIncidentsCond)
 
-recentIncidentsDetails :: ROShared () [IncidentDetails]
+recentIncidentsDetails :: SDSLens () [IncidentDetails] ()
 recentIncidentsDetails = detailsIncidents (Just closedIncidentsCond)
 
-incidentsByContactShort	:: RWShared ContactNo [IncidentShort] [IncidentNo]
-incidentsByContactShort = databaseDef>++> sqlShare "incidentsByContact" readFun writeFun
+incidentsByContactShort	:: SDSSequence ContactNo [IncidentShort] [IncidentNo]
+incidentsByContactShort = databaseDef >++> sqlShare "incidentsByContact" readFun writeFun
 where
     query contactNo =
         {columns = InnerJoin columnsIncidentShort {name="contacts_incidents",alias="contacts_incidents",columns=[]} ("Incident","incidentNo") ("contacts_incidents","contacts")
@@ -256,7 +259,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		= (Ok (),cur)
 
-incidentsByContactDetails :: RWShared ContactNo [IncidentDetails] [IncidentNo]
+incidentsByContactDetails :: SDSSequence ContactNo [IncidentDetails] [IncidentNo]
 incidentsByContactDetails = databaseDef  >++> sqlShare "incidentsByContact" readFun writeFun
 where
     query contactNo =
@@ -282,7 +285,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		= (Ok (),cur)
 
-incidentsByCommunicationShort :: RWShared CommunicationNo [IncidentShort] [IncidentNo]
+incidentsByCommunicationShort :: SDSSequence CommunicationNo [IncidentShort] [IncidentNo]
 incidentsByCommunicationShort = databaseDef >++> sqlShare "incidentsByCommunication" readFun writeFun
 where
     columns = InnerJoin columnsIncidentShort {name="communications_aboutIncidents",alias="communications_aboutIncidents",columns=[]}
@@ -307,18 +310,18 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		= (Ok (),cur)
 
-incidentsByNosShort :: ROShared [IncidentNo] [IncidentShort]
+incidentsByNosShort :: SDSLens [IncidentNo] [IncidentShort] ()
 incidentsByNosShort = sdsTranslate "incidentsByNosShort" cond filteredIncidentsShort
 where
     cond []  = Just (EqualsValue ("Incident","incidentNo") [SQLVInteger 0]) //Don't match anythig
     cond nos = Just (EqualsValue ("Incident","incidentNo") (map SQLVInteger nos))
 
-incidentByNo :: RWShared IncidentNo Incident Incident
-incidentByNo = mapReadWrite (readPrj,writePrj)
+incidentByNo :: SDSLens IncidentNo Incident Incident
+incidentByNo = mapReadWrite (readPrj,writePrj) (Just \p ((w, _), _). Ok w)
     (incidentByNoBase
-     >+< (sdsTranslate "incidentByNoContacts" (\p -> Just [p]) contactNosByIncidentNosIndexed)
-     >+< (sdsTranslate "incidentByNoCommunications" (\p -> Just [p]) communicationNosByIncidentNosIndexed)
-     >+| incidentLog)
+     >*< (sdsTranslate "incidentByNoContacts" (\p -> Just [p]) contactNosByIncidentNosIndexed)
+     >*< (sdsTranslate "incidentByNoCommunications" (\p -> Just [p]) communicationNosByIncidentNosIndexed)
+     >*| incidentLog)
 where
 	readPrj (((incident,cnlinks),cmlinks),log)
         = {Incident
@@ -332,7 +335,7 @@ where
 		= Just ((incident,'DM'.put incidentNo contacts cnlinks),'DM'.put incidentNo communications cmlinks)
 	writePrj _ _ = Nothing
 
-incidentByNoBase :: RWShared IncidentNo Incident Incident
+incidentByNoBase :: SDSSequence IncidentNo Incident Incident
 incidentByNoBase = databaseDef >++> sqlShare "incidentByNo" readFun writeFun
 where
     query incidentNo = {columns=columnsIncident,rows=Just (EqualsValue ("Incident","incidentNo") [SQLVInteger incidentNo]),order=Nothing}
@@ -360,25 +363,25 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 						= (Ok (),cur)
 
-incidentTitleByNo :: RWShared IncidentNo String String
+incidentTitleByNo :: SDSLens IncidentNo String String
 incidentTitleByNo = sdsTranslate "incidentTitleByNo" query (dbReadWriteOneSDS "incidentTitleByNo")
 where
     query incidentNo = {columns=columnsIncidentTitle,rows=Just (EqualsValue ("Incident","incidentNo") [SQLVInteger incidentNo]),order=Nothing}
     columnsIncidentTitle = BaseTable {name="Incident",alias="Incident",columns=["title"]}
 
-incidentWeather :: RWShared IncidentNo WeatherData WeatherData
+incidentWeather :: SDSLens IncidentNo WeatherData WeatherData
 incidentWeather = sdsTranslate "incidentWeather" query (dbReadWriteOneSDS "incidentByWeather")
 where
     query incidentNo = {columns=columnsWeatherData,rows=Just (EqualsValue ("WeatherData","incidentNo") [SQLVInteger incidentNo]),order=Nothing}
 
-incidentLog :: RWShared IncidentNo [LogEntry] LogEntry
+incidentLog :: SDSParallel IncidentNo [LogEntry] LogEntry
 incidentLog = sdsParallel "incidentLog" param read (SDSWriteConst (\_ w -> Ok (Just w))) (SDSWriteConst (\_ _ -> Ok Nothing)) incidentLogBase allContactPhotos
 where
     param p = (p,())
     read (logEntries,photos) = [{LogEntry|e & loggedBy = fmap (addAvatarPhotos photos) e.LogEntry.loggedBy} \\ e <- logEntries]
     addAvatarPhotos photos a=:{ContactAvatar|contactNo} = {ContactAvatar|a & photos = fromMaybe [] ('DM'.get contactNo photos)}
 
-incidentLogBase :: RWShared IncidentNo [LogEntry] LogEntry
+incidentLogBase :: SDSSequence IncidentNo [LogEntry] LogEntry
 incidentLogBase = databaseDef >++> sqlShare "incidentLog" readFun writeFun
 where
     query incidentNo = {columns=columnsLogEntry,rows=Just (EqualsValue ("LogEntry","incident") [SQLVInteger incidentNo]),order = Just [OrderDesc ("LogEntry","loggedAt")]}
@@ -395,35 +398,35 @@ where
             (take 5 (toSQL entry)) cur
         = (Ok (),cur)
 
-incidentOverview :: ROShared IncidentNo IncidentOverview
-incidentOverview = mapRead prj (incidentByNo |+| contactsByIncident)
+incidentOverview :: SDSLens IncidentNo IncidentOverview ()
+incidentOverview = mapRead prj (incidentByNo |*| contactsByIncident)
 where
     prj ({Incident|title,summary,type},contacts)
         = {IncidentOverview|title=title,summary=summary,type=type
           ,contactsNeedingHelp=[{ContactNameTypePosition|name=name,type=type,position=position} \\ {Contact|name,type,position,needsHelp} <- contacts | needsHelp]
         }
 
-contactNosByIncidentNosIndexed :: RWShared (Maybe [IncidentNo]) (Map IncidentNo [ContactNo]) (Map IncidentNo [ContactNo])
-contactNosByIncidentNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) contactNosByIncidentNos
+contactNosByIncidentNosIndexed :: SDSLens (Maybe [IncidentNo]) (Map IncidentNo [ContactNo]) (Map IncidentNo [ContactNo])
+contactNosByIncidentNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) (Just \p ws. Ok (groupByFst ws)) contactNosByIncidentNos
 
-contactNosByIncidentNos :: RWShared (Maybe [IncidentNo]) [(IncidentNo,ContactNo)] [(IncidentNo,ContactNo)]
+contactNosByIncidentNos :: SDSSequence (Maybe [IncidentNo]) [(IncidentNo,ContactNo)] [(IncidentNo,ContactNo)]
 contactNosByIncidentNos = dbLinkSDS "contactNosByIncidentNos" "contacts_incidents" "contacts" "incidents"
 
-communicationNosByIncidentNosIndexed :: RWShared (Maybe [IncidentNo]) (Map IncidentNo [CommunicationNo]) (Map IncidentNo [CommunicationNo])
-communicationNosByIncidentNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) communicationNosByIncidentNos
+communicationNosByIncidentNosIndexed :: SDSLens (Maybe [IncidentNo]) (Map IncidentNo [CommunicationNo]) (Map IncidentNo [CommunicationNo])
+communicationNosByIncidentNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) (Just \p ws. Ok (groupByFst ws)) communicationNosByIncidentNos
 
-communicationNosByIncidentNos :: RWShared (Maybe [IncidentNo]) [(IncidentNo,CommunicationNo)] [(IncidentNo,CommunicationNo)]
+communicationNosByIncidentNos :: SDSSequence (Maybe [IncidentNo]) [(IncidentNo,CommunicationNo)] [(IncidentNo,CommunicationNo)]
 communicationNosByIncidentNos = dbLinkSDS "communicationNosByIncidentNos" "communications_aboutIncidents" "communications" "aboutIncidents"
 
-allContacts :: ROShared () [Contact]
+allContacts :: SDSLens () [Contact] ()
 allContacts = sdsFocus Nothing filteredContacts
 
-filteredContacts :: ROShared (Maybe RowFilterDef) [Contact]
+filteredContacts :: SDSLens (Maybe RowFilterDef) [Contact] ()
 filteredContacts = mapRead prj
     (    allContactsBase
-     |+| sdsFocus Nothing incidentNosByContactNosIndexed
-     |+| sdsFocus Nothing communicationNosByContactNosIndexed
-     |+| sdsFocus () allContactPhotos)
+     |*| sdsFocus Nothing incidentNosByContactNosIndexed
+     |*| sdsFocus Nothing communicationNosByContactNosIndexed
+     |*| sdsFocus () allContactPhotos)
 where
 	prj (((contacts,ilinks),clinks),photos) = [addPhotos photos (addLinks ilinks clinks c) \\ c <- contacts]
 
@@ -439,7 +442,7 @@ where
           & photos              = fromMaybe [] ('DM'.get contactNo photos)
           }
 
-allContactsBase :: ROShared (Maybe RowFilterDef) [Contact]
+allContactsBase :: SDSLens (Maybe RowFilterDef) [Contact] ()
 allContactsBase = sdsTranslate "allContactsBase" query (dbReadSDS "allContacts")
 where
     query rows =
@@ -448,7 +451,7 @@ where
        , order = Just [OrderAsc ("Contact","name")]
        }
 
-sqlFilteredContactsShort :: ROShared (Maybe RowFilterDef) [ContactShort]
+sqlFilteredContactsShort :: SDSLens (Maybe RowFilterDef) [ContactShort] ()
 sqlFilteredContactsShort = sdsTranslate "sqlFilteredContactsShort" query (dbReadSDS "allContacts")
 where
     query rows =
@@ -457,7 +460,7 @@ where
         , order     = Just [OrderAsc ("Contact","name")]
         }
 
-filteredContactsGeo :: ROShared (Maybe RowFilterDef) [ContactGeo]
+filteredContactsGeo :: SDSLens (Maybe RowFilterDef) [ContactGeo] ()
 filteredContactsGeo = sdsTranslate "filteredContactsGeo" query (dbReadSDS "allContacts")
 where
     query rows =
@@ -466,21 +469,21 @@ where
         , order     = Just [OrderAsc ("Contact","name")]
         }
 
-allContactsShort :: ROShared () [ContactShort]
+allContactsShort :: SDSLens () [ContactShort] ()
 allContactsShort = sdsFocus Nothing sqlFilteredContactsShort
 
-filteredContactsShort :: ROShared ContactFilter [ContactShort]
+filteredContactsShort :: SDSLens ContactFilter [ContactShort] ()
 filteredContactsShort = sdsTranslate "filteredContactsShort" param sqlFilteredContactsShort
 where
     param {filterByName=Just name}  = Just (LikeValue ("Contact","name") (name+++"%"))
     param _                         = Nothing
 
-contactsWithGroupShort :: ROShared String [ContactShort]
+contactsWithGroupShort :: SDSLens String [ContactShort] ()
 contactsWithGroupShort = sdsTranslate "contactsWithGroupShort" query sqlFilteredContactsShort
 where
     query group = Just (EqualsValue ("Contact","group") (toSQL group))
 
-contactsOfOpenIncidentsShort :: ROShared () [ContactShortWithIncidents]
+contactsOfOpenIncidentsShort :: SDSSequence () [ContactShortWithIncidents] ()
 contactsOfOpenIncidentsShort = sdsSequence "contactsOfOpenIncidentsShort" id param (\_ _ -> Right read) writel writer contactsOfOpenIncidentsShortBase openIncidentsByContactsShortIndexed
 where
     writel = SDSWriteConst (\_ _ -> Ok Nothing)
@@ -491,7 +494,7 @@ where
 
     openIncidentsByContactsShortIndexed = mapRead groupByFst openIncidentsByContactsShort
 
-contactsOfOpenIncidentsShortBase :: ROShared () [ContactShortWithIncidents]
+contactsOfOpenIncidentsShortBase :: SDSLens () [ContactShortWithIncidents] ()
 contactsOfOpenIncidentsShortBase = sdsFocus query (dbReadSDS "contactsOfOpenIncidentsShort")
 where
 /*
@@ -512,7 +515,7 @@ where
         , rows      = Just (AndCondition (NotCondition (EqualsNull ("Contact","contactNo"))) (OrCondition (EqualsValue ("Incident","closed") [SQLVInteger 0]) (EqualsNull ("Incident","closed"))))
         , order     = Nothing
         }
-contactsOfOpenIncidentsGeo :: ROShared () [ContactGeo]
+contactsOfOpenIncidentsGeo :: SDSLens () [ContactGeo] ()
 contactsOfOpenIncidentsGeo = sdsFocus query (dbReadSDS "contactsOfOpenIncidentsGeo")
 where
     /*
@@ -534,7 +537,7 @@ where
         , order     = Nothing
         }
 
-openIncidentsByContactsShort :: ROShared [ContactNo] [(ContactNo,IncidentShort)]
+openIncidentsByContactsShort :: SDSSequence [ContactNo] [(ContactNo,IncidentShort)] ()
 openIncidentsByContactsShort = databaseDef >++> sqlShare "openIncidentsByContacts" readFun writeFun
 where
     query contactNo =
@@ -556,7 +559,7 @@ where
 	writeFun contactNo _ cur
 		= (Ok (),cur)
 
-contactsOfOpenIncidents :: ROShared () [Contact]
+contactsOfOpenIncidents :: SDSLens () [Contact] ()
 contactsOfOpenIncidents = sdsFocus query (dbReadSDS "contactsOfOpenIncidents") //TODO: Add incidents and communications fields, and use select distinct
 where
  /*
@@ -578,35 +581,35 @@ where
         , order     = Just [OrderAsc ("Contact","name")]
         }
 
-contactsNeedingHelpShort :: ROShared () [ContactShort]
+contactsNeedingHelpShort :: SDSLens () [ContactShort] ()
 contactsNeedingHelpShort = sdsTranslate "contactsNeedingHelpShort" query sqlFilteredContactsShort
 where
     query group = Just (EqualsValue ("Contact","needsHelp") (toSQL True))
 
-contactsProvidingHelpShort :: ROShared () [ContactShort]
+contactsProvidingHelpShort :: SDSLens () [ContactShort] ()
 contactsProvidingHelpShort = sdsTranslate "contactsProvidingHelpShort" query sqlFilteredContactsShort
 where
     query group = Just (EqualsValue ("Contact","providesHelp") (toSQL True))
 
-contactsProvidingHelpGeo :: ROShared () [ContactGeo]
+contactsProvidingHelpGeo :: SDSLens () [ContactGeo] ()
 contactsProvidingHelpGeo = sdsTranslate "contactsProvidingHelpGeo" query filteredContactsGeo
 where
     query group = Just (EqualsValue ("Contact","providesHelp") (toSQL True))
 
-contactsByNos :: ROShared [ContactNo] [Contact]
+contactsByNos :: SDSLens [ContactNo] [Contact] ()
 contactsByNos = sdsTranslate "contactsByNos" cond filteredContacts
 where
     cond []  = Just (EqualsValue ("Contact","contactNo") [SQLVInteger 0]) //Don't match anythig
     cond nos = Just (EqualsValue ("Contact","contactNo") (map SQLVInteger nos))
 
-contactsByNosShort :: ROShared [ContactNo] [ContactShort]
+contactsByNosShort :: SDSLens [ContactNo] [ContactShort] ()
 contactsByNosShort = sdsTranslate "contactsByNosShort" cond sqlFilteredContactsShort
 where
     cond []  = Just (EqualsValue ("Contact","contactNo") [SQLVInteger 0]) //Don't match anythig
     cond nos = Just (EqualsValue ("Contact","contactNo") (map SQLVInteger nos))
 
 
-contactsByIncident :: RWShared IncidentNo [Contact] [ContactNo]
+contactsByIncident :: SDSSequence IncidentNo [Contact] [ContactNo]
 contactsByIncident = databaseDef >++> sqlShare "allContacts" readFun writeFun
 where
     query incidentNo =
@@ -632,7 +635,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		= (Ok (),cur)
 
-contactsByIncidentShort	:: RWShared IncidentNo [ContactShort] [ContactNo]
+contactsByIncidentShort	:: SDSSequence IncidentNo [ContactShort] [ContactNo]
 contactsByIncidentShort = databaseDef >++> sqlShare "contactsByIncidentShort" readFun writeFun
 where
     query incidentNo =
@@ -658,7 +661,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		= (Ok (),cur)
 
-contactsByIncidentGeo :: ROShared IncidentNo [ContactGeo]
+contactsByIncidentGeo :: SDSLens IncidentNo [ContactGeo] ()
 contactsByIncidentGeo = sdsTranslate "contactsByIncidentGeo" query (dbReadSDS "contactsByIncidentShort")
 where
     query incidentNo =
@@ -667,12 +670,12 @@ where
         ,order   = Just [OrderAsc ("Contact","name")]
         }
 
-contactByNo :: RWShared ContactNo Contact Contact
-contactByNo = mapReadWrite (readPrj,writePrj)
+contactByNo :: SDSLens ContactNo Contact Contact
+contactByNo = mapReadWrite (readPrj,writePrj) (Just \p ((w, _), _). Ok w)
     (contactByNoBase
-     >+< sdsTranslate "contactByNoIncident" (\p -> Just [p]) incidentNosByContactNosIndexed
-     >+< sdsTranslate "contactByNoCommunications" (\p -> Just [p]) communicationNosByContactNosIndexed
-     >+| contactPhotos)
+     >*< sdsTranslate "contactByNoIncident" (\p -> Just [p]) incidentNosByContactNosIndexed
+     >*< sdsTranslate "contactByNoCommunications" (\p -> Just [p]) communicationNosByContactNosIndexed
+     >*| contactPhotos)
 where
 	readPrj (((contact,ilinks),clinks),photos) = (addPhotos photos o addLinks ilinks clinks) contact
 
@@ -692,7 +695,7 @@ where
 		= Just ((contact,'DM'.put contactNo incidents ilinks),'DM'.put contactNo communicationsWith clinks)
 	writePrj _ _ = Nothing
 
-contactByNoBase :: RWShared ContactNo Contact Contact
+contactByNoBase :: SDSSequence ContactNo Contact Contact
 contactByNoBase = databaseDef >++> sqlShare "contactByNo" readFun writeFun
 where
     query contactNo
@@ -729,7 +732,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		                = (Ok (), cur)
 
-contactByMMSI :: RWShared MMSI (Maybe Contact) (Maybe Contact)
+contactByMMSI :: SDSSequence MMSI (Maybe Contact) (Maybe Contact)
 contactByMMSI = databaseDef >++> sqlShare "contactByMMSI" readFun writeFun
 where
     //Find the first contact that has a VHFRadio communication mean with matching mmsi
@@ -780,7 +783,7 @@ where
 		| isJust err	= (Error (toString (fromJust err)),cur)
 		    = (Ok (),cur)
 
-contactByCredentials :: ROShared Credentials (Maybe Contact)
+contactByCredentials :: SDSLens Credentials (Maybe Contact) ()
 contactByCredentials = mapRead listToMaybe (sdsTranslate "contactByCredentials" query (dbReadSDS "contactByCredentials"))
 where
  query credentials =
@@ -790,7 +793,7 @@ where
     }
 
 
-contactCommunicationMeans :: ROShared ContactNo [CommunicationMean]
+contactCommunicationMeans :: SDSLens ContactNo [CommunicationMean] ()
 contactCommunicationMeans = sdsTranslate "contactCommunicationMeans" query (dbReadSDS "allCommunicationMeans")
 where
     query contactNo = {columns=columns,rows=rows contactNo,order = Nothing}
@@ -799,7 +802,7 @@ where
                 {name="communicationMeans1_communicationMeans2",alias="communicationMeans1_communicationMeans2",columns=[]}
                 ("communicationMeans1_communicationMeans2","communicationMeans1") ("CommunicationMean","id")
 
-communicationMeanById :: RWShared CommunicationMeanId CommunicationMean CommunicationMean
+communicationMeanById :: SDSSequence CommunicationMeanId CommunicationMean CommunicationMean
 communicationMeanById = databaseDef >++> sqlShare "communicationMeanById" readFun writeFun
 where
     readFun id cur
@@ -820,92 +823,94 @@ where
             (Just e, cur) = (Error (toString e), cur)
             (_, cur)      = (Ok (), cur)
 
-contactMMSI :: ROShared ContactNo (Maybe MMSI)
+contactMMSI :: SDSLens ContactNo (Maybe MMSI) ()
 contactMMSI = mapRead toPrj contactCommunicationMeans
 where
     toPrj means = case [mmsi \\{CommunicationMean|type=CMVHF,mmsi=Just mmsi} <- means] of
         [mmsi:_]    = Just mmsi
         _           = Nothing
 
-contactAIS :: ROShared ContactNo (Maybe AISContact)
+contactAIS :: SDSSequence ContactNo (Maybe AISContact) ()
 contactAIS = sdsSequence "contactAIS" id (\_ mbMMSI -> mbMMSI) (\_ _ -> Right snd) (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w)))
 	contactMMSI (roMaybe (toReadOnly AISContactByMMSI))
 
-contactCommunications :: ROShared ContactNo [CommunicationDetails]
+contactCommunications :: SDSLens ContactNo [CommunicationDetails] ()
 contactCommunications = sdsTranslate "contactCommunications" cond filteredCommunications
 where
     cond contactNo = Just (OrCondition (EqualsValue ("Communication","withContact") [SQLVInteger contactNo])
                             (EqualsValue ("Communication","handledBy") [SQLVInteger contactNo]))
 
-contactPhotos :: RWShared ContactNo [ContactPhoto] [ContactPhoto]
-contactPhotos = sdsSplit "contactPhotos" param read write allContactPhotos
+contactPhotos :: SDSLens ContactNo [ContactPhoto] [ContactPhoto]
+contactPhotos = sdsSplit "contactPhotos" param read write (Just reducer) allContactPhotos
 where
     param p             = ((),p)
     read p all          = fromMaybe [] ('DM'.get p all)
     write p all photos  = ('DM'.put p photos all, const ((==) p))
+    reducer p w 		= Ok (read p w)
 
-contactAccess :: RWShared ContactNo ContactAccess ContactAccess
-contactAccess = mapReadWrite (read,write) contactByNoBase
+contactAccess :: SDSLens ContactNo ContactAccess ContactAccess
+contactAccess = mapReadWrite (read,write) (Just reducer) contactByNoBase
 where
     read {Contact|account,access} = {ContactAccess|account=account,access=access}
     write {ContactAccess|account,access} contact = Just {Contact|contact & account = account, access=access}
+    reducer p ws = Ok (read ws) 
 
-contactAvatar :: ROShared ContactNo ContactAvatar
+contactAvatar :: SDSLens ContactNo ContactAvatar ()
 contactAvatar = mapRead toAvatar (toReadOnly contactByNo)
 where
     toAvatar {Contact|contactNo,name,type,photos=photos} = {ContactAvatar|contactNo=contactNo,name=name,type=type,photos=photos}
 
-personDetailsByNo :: RWShared ContactNo PersonDetails PersonDetails
+personDetailsByNo :: SDSLens ContactNo PersonDetails PersonDetails
 personDetailsByNo = sdsTranslate "personDetailsByNo" query (dbReadWriteOneSDS "personDetailsByNo")
 where
     query contactNo = {columns=columnsPersonDetails,rows=Just (EqualsValue ("Person","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-vesselDetailsByNo :: RWShared ContactNo VesselDetails VesselDetails
+vesselDetailsByNo :: SDSLens ContactNo VesselDetails VesselDetails
 vesselDetailsByNo = sdsTranslate "vesselDetailsByNo" query (dbReadWriteOneSDS "vesselDetailsByNo")
 where
     query contactNo = {columns=columnsVesselDetails,rows=Just (EqualsValue ("Vessel","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-surferDetailsByNo :: RWShared ContactNo SurferDetails SurferDetails
+surferDetailsByNo :: SDSLens ContactNo SurferDetails SurferDetails
 surferDetailsByNo = sdsTranslate "surferDetailsByNo" query (dbReadWriteOneSDS "surferDetailsByNo")
 where
     query contactNo = {columns=columnsDiverDetails,rows=Just (EqualsValue ("Surfer","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-diverDetailsByNo :: RWShared ContactNo DiverDetails DiverDetails
+diverDetailsByNo :: SDSLens ContactNo DiverDetails DiverDetails
 diverDetailsByNo = sdsTranslate "diverDetailsByNo" query (dbReadWriteOneSDS "diverDetailsByNo")
 where
     query contactNo = {columns=columnsDiverDetails,rows=Just (EqualsValue ("Diver","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-airplaneDetailsByNo :: RWShared ContactNo AirplaneDetails AirplaneDetails
+airplaneDetailsByNo :: SDSLens ContactNo AirplaneDetails AirplaneDetails
 airplaneDetailsByNo = sdsTranslate "airplaneDetailsByNo" query (dbReadWriteOneSDS "airplaneDetailsByNo")
 where
     query contactNo = {columns=columnsAirplaneDetails,rows=Just (EqualsValue ("Airplane","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-helicopterDetailsByNo :: RWShared ContactNo HelicopterDetails HelicopterDetails
+helicopterDetailsByNo :: SDSLens ContactNo HelicopterDetails HelicopterDetails
 helicopterDetailsByNo = sdsTranslate "helicopterDetailsByNo" query (dbReadWriteOneSDS "helicopterDetailsByNo")
 where
     query contactNo = {columns=columnsHelicopterDetails,rows=Just (EqualsValue ("Helicopter","contactNo") [SQLVInteger contactNo]), order=Nothing}
 
-incidentNosByContactNosIndexed :: RWShared (Maybe [ContactNo]) (Map ContactNo [IncidentNo]) (Map ContactNo [IncidentNo])
-incidentNosByContactNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) incidentNosByContactNos
+incidentNosByContactNosIndexed :: SDSLens (Maybe [ContactNo]) (Map ContactNo [IncidentNo]) (Map ContactNo [IncidentNo])
+incidentNosByContactNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) (Just \p w -> Ok (groupByFst w)) incidentNosByContactNos
 
-incidentNosByContactNos :: RWShared (Maybe [ContactNo]) [(ContactNo,IncidentNo)] [(ContactNo,IncidentNo)]
+incidentNosByContactNos :: SDSSequence (Maybe [ContactNo]) [(ContactNo,IncidentNo)] [(ContactNo,IncidentNo)]
 incidentNosByContactNos = dbLinkSDS "incidentNosByContactNos" "contacts_incidents" "incidents" "contacts"
 
-incidentNosByCommunicationNosIndexed :: RWShared (Maybe [CommunicationNo]) (Map CommunicationNo [IncidentNo]) (Map CommunicationNo [IncidentNo])
-incidentNosByCommunicationNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) incidentNosByCommunicationNos
+incidentNosByCommunicationNosIndexed :: SDSLens (Maybe [CommunicationNo]) (Map CommunicationNo [IncidentNo]) (Map CommunicationNo [IncidentNo])
+incidentNosByCommunicationNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) (Just \p w. Ok (groupByFst w)) incidentNosByCommunicationNos
 
-incidentNosByCommunicationNos :: RWShared (Maybe [CommunicationNo]) [(CommunicationNo,IncidentNo)] [(CommunicationNo,IncidentNo)]
+incidentNosByCommunicationNos :: SDSSequence (Maybe [CommunicationNo]) [(CommunicationNo,IncidentNo)] [(CommunicationNo,IncidentNo)]
 incidentNosByCommunicationNos = dbLinkSDS "incidentNosByCommunicationNos" "communications_aboutIncidents" "aboutIncidents" "communications"
 
-communicationNosByContactNosIndexed :: RWShared (Maybe [ContactNo]) (Map ContactNo [CommunicationNo]) (Map ContactNo [CommunicationNo])
-communicationNosByContactNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) communicationNosByContactNos
+communicationNosByContactNosIndexed :: SDSLens (Maybe [ContactNo]) (Map ContactNo [CommunicationNo]) (Map ContactNo [CommunicationNo])
+communicationNosByContactNosIndexed = mapReadWrite (groupByFst,\w _ -> Just (ungroupByFst w)) (Just \p w. Ok (groupByFst w)) communicationNosByContactNos
 
-communicationNosByContactNos :: RWShared (Maybe [ContactNo]) [(ContactNo,CommunicationNo)] [(ContactNo,CommunicationNo)]
+communicationNosByContactNos :: SDSLens (Maybe [ContactNo]) [(ContactNo,CommunicationNo)] [(ContactNo,CommunicationNo)]
 communicationNosByContactNos = sdsTranslate "communicationNosByContactNos" (const ()) (sharedStore "FIXME" [])
 //communicationNosByContactNos = dbLinkSDS "communicationNosByContactNos" "Communication" "communicationNo" "withContact"
 //TODO: This set should be merged with the "handledBy" relation betweeen communications and contacts
 
-sqlFilteredAISContacts :: ROShared (Maybe RowFilterDef) [AISContact]
+sqlFilteredAISContacts :: SDSLens (Maybe RowFilterDef) [AISContact] ()
 sqlFilteredAISContacts = sdsTranslate "sqlFilteredAISContacts" query (dbReadSDS "allAISContacts")
 where
     query rows =
@@ -914,10 +919,10 @@ where
         , order     = Nothing
         }
 
-allAISContacts :: ROShared () [AISContact]
+allAISContacts :: SDSLens () [AISContact] ()
 allAISContacts = sdsFocus Nothing sqlFilteredAISContacts
 
-boundedAISContacts :: ROShared ContactBounds [AISContact]
+boundedAISContacts :: SDSLens ContactBounds [AISContact] ()
 boundedAISContacts = sdsTranslate "boundedAISContacts" query sqlFilteredAISContacts  //TODO: Filter by bounds
 where
     query ((latmin,lonmin),(latmax,lonmax))
@@ -928,7 +933,7 @@ where
                              (SmallerEqualsValue ("AISContact","position_lon") (SQLVReal lonmax)))
             )
 
-AISContactByMMSI :: RWShared MMSI (Maybe AISContact) (Maybe AISContact)
+AISContactByMMSI :: SDSSequence MMSI (Maybe AISContact) (Maybe AISContact)
 AISContactByMMSI = databaseDef >++> sqlShare "allAISContacts" readFun writeFun
 where
     readFun mmsi cur
@@ -957,12 +962,12 @@ where
             	= (Ok (), cur)
         = (Ok (),cur)
 
-currentUserAvatar :: ROShared () (Maybe ContactAvatar)
+currentUserAvatar :: SDSSequence () (Maybe ContactAvatar) ()
 currentUserAvatar = sdsSequence "userContactNo" id (\_ u -> userContactNo u) (\_ _ -> Right snd) writel writer currentUser (roMaybe (mapRead Just (toReadOnly contactAvatar)))
 where
-    writel = SDSWriteConst (\_ _ -> Ok Nothing)
+    writel = SDSWriteConst (\_ w -> Ok Nothing)
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-currentUserContactNo :: ROShared () ContactNo
+currentUserContactNo :: SDSLens () ContactNo ()
 currentUserContactNo = mapReadError (\u -> maybe (Error (exception "User has no contact no")) Ok (userContactNo u)) (toReadOnly currentUser)
 

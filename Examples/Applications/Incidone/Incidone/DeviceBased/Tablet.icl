@@ -13,7 +13,7 @@ where
     header
         = viewInformation () [] ("REMOTE CONTROL") //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
 
-    mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
+    mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
     selectContent
         = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide 300 False)
 
@@ -27,10 +27,10 @@ where
     where
         title = "Configure Content"
         configure "Overview"
-            = get (standardMapLayers |+| standardPerspective)
+            = get (standardMapLayers |*| standardPerspective)
             >>- \(baseLayers,perspective) ->
                 withShared perspective
-                \p -> updateSharedInformation (Title title) [UpdateAs (toMap baseLayers) fromMap] (p >+| mapContacts) @ fst
+                \p -> updateSharedInformation (Title title) [UpdateAs (toMap baseLayers) fromMap] (p >*| mapContacts) @ fst
             //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where

@@ -19,22 +19,22 @@ ROOT_USER :== { StoredUserAccount
               , roles       = ["admin","manager"]
               }
 
-userAccounts :: Shared [StoredUserAccount]
+userAccounts :: SDSLens () [StoredUserAccount] [StoredUserAccount]
 userAccounts = sdsFocus "UserAccounts" (storeShare NS_APPLICATION_SHARES False InJSONFile (Just [ROOT_USER]))
 
-users :: ReadOnlyShared [User]
+users :: SDSLens () [User] ()
 users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.StoredUserAccount.credentials.StoredCredentials.username) a.StoredUserAccount.roles a.StoredUserAccount.title
 									\\ a <- accounts]
-					 , \() accounts -> Nothing) userAccounts
+					 , \() _ -> Nothing) (Just \_ _ -> Ok ()) userAccounts
 
-usersWithRole :: !Role -> ReadOnlyShared [User]
+usersWithRole :: !Role -> SDSLens () [User] ()
 usersWithRole role = mapRead (filter (hasRole role)) users
 where
 	hasRole role (AuthenticatedUser _ roles _) = isMember role roles
 	hasRole _ _ = False
 
-userAccount :: UserId -> Shared (Maybe StoredUserAccount)
-userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) userAccounts
+userAccount :: UserId -> SDSLens () (Maybe StoredUserAccount) (Maybe StoredUserAccount)
+userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) (Just \_ accounts -> Ok (getAccount userId accounts)) userAccounts
 where
 	getAccount :: UserId [StoredUserAccount] -> Maybe StoredUserAccount
 	getAccount userId accounts = case [a \\ a <- accounts | identifyUserAccount a == userId] of
