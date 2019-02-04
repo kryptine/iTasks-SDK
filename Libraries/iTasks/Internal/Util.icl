@@ -62,3 +62,7 @@ apIWTransformer :: *env (*env -> *(MaybeError TaskException (TaskResult a), *env
 apIWTransformer iw f = case f iw of
 	(Error e, iw) = (ExceptionResult e, iw)
 	(Ok tv, iw) = (tv, iw)
+
+generateRandomString :: !Int !*IWorld -> (!String, !*IWorld)
+generateRandomString length iworld=:{IWorld|random}
+	= (toString (take length [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop length random})

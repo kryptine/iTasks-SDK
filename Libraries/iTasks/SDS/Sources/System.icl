@@ -61,11 +61,18 @@ where
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 toTaskListItem :: !InstanceData -> TaskListItem a
-toTaskListItem (instanceNo,Just {InstanceConstants|listId},Just progress, Just attributes) //TODO Set self for current evaluating instance
+toTaskListItem (instanceNo,Just {InstanceConstants|type},Just progress, Just attributes) //TODO Set self for current evaluating instance
+	# listId = case type of
+		(PersistentInstance (Just listId)) = listId
+		_ = (TaskId 0 0)
 	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
+taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|type,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
+	# session = (type =: SessionInstance)
+	# listId = case type of
+		(PersistentInstance (Just listId)) = listId
+		_ = (TaskId 0 0)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
       ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
 

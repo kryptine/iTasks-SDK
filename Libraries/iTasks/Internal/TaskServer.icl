@@ -19,6 +19,9 @@ from iTasks.Internal.TaskStore import queueRefresh
 import iTasks.WF.Tasks.IO
 import iTasks.SDS.Combinators.Common
 
+from Data.Foldable import maximum
+from Data.List import instance Foldable []
+
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
 //have been temporarily removed.
@@ -42,16 +45,10 @@ init its cts bts iworld
 	= {iworld & ioTasks = {done=[],todo=listeners ++ map (BackgroundInstance {bgInstId=0}) bts}, ioStates = ioStates,  world = world}
 where
 	createInitialInstances :: [StartupTask] !*IWorld -> *IWorld
-	createInitialInstances its iworld
-		# (mbNextNo,iworld) = read nextInstanceNo EmptyContext iworld
-		| (mbNextNo =: (Ok (ReadingDone 1))) = createAll its iworld //This way we check if it is the initial run of the program
-							   = iworld
-
-	createAll :: [StartupTask] !*IWorld -> *IWorld
-	createAll [] iworld = iworld
-	createAll [{StartupTask|task=TaskWrapper task,attributes}:ts] iworld
-		= case createTaskInstance task attributes iworld of
-			(Ok _,iworld) = createAll ts iworld
+	createInitialInstances [] iworld = iworld
+	createInitialInstances [{StartupTask|task=TaskWrapper task,attributes}:ts] iworld
+		= case createStartupTaskInstance task attributes iworld of
+			(Ok _,iworld) = createInitialInstances ts iworld
 			(Error (_,e),iworld) = abort e
 
 	queueAll :: !*IWorld -> *IWorld
@@ -522,7 +519,7 @@ where
 		(Just (IODestroyed connectionMap)) = maxList ('DM'.keys connectionMap)
 
 	maxList [] = 0
-	maxList list = inc ('DL'.maximum list)
+	maxList list = inc (maximum list)
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
@@ -566,7 +563,7 @@ halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
 
 nextConnId :: [ConnectionId] -> ConnectionId
 nextConnId [] = 0
-nextConnId m = inc ('DL'.maximum m)
+nextConnId m = inc (maximum m)
 
 ioStateString :: !IOStates -> String
 ioStateString ioStates

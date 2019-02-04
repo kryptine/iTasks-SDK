@@ -20,6 +20,9 @@ unitShare :: SimpleSDSSource ()
 // Random source
 randomInt :: SDSSource () Int ()
 
+// Random string (the parameters determines its length)
+randomString :: SDSSource Int String ()
+
 // world function share
 worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDSSource p r w
 

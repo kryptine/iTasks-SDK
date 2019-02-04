@@ -394,7 +394,7 @@ where
 	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
 
 	createTaskInstance` req [{WebTask|path,task=WebTaskWrapper task}:taskUrls] iworld
-		| req.HTTPRequest.req_path == uiUrl path = createTaskInstance (task req) 'DM'.newMap iworld
+		| req.HTTPRequest.req_path == uiUrl path = createSessionTaskInstance (task req) 'DM'.newMap iworld
 		| otherwise = createTaskInstance` req taskUrls iworld
 
 	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
@@ -415,7 +415,7 @@ where
 	verifyKeys instances iworld = filterSt verifyKey instances iworld
 	where
 		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
-			(Ok (ReadingDone {InstanceProgress|instanceKey}),iworld) = (viewportKey == instanceKey,iworld)
+			(Ok (ReadingDone {InstanceProgress|instanceKey=Just key}),iworld) = (viewportKey == key,iworld)
 			(_,iworld) = (False,iworld)
 
 		filterSt p [] s = ([],s)

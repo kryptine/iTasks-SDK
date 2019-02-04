@@ -834,12 +834,12 @@ where
 		| otherwise
 		//Take over the instance. We generate a new key, so the other instance will no longer have access
 		# (newKey,iworld) = newInstanceKey iworld
-        # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
+        # progress      = {InstanceProgress|progress & instanceKey = Just newKey, attachedTo = [taskId:attachmentChain]}
 		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 		//Clear all input and output of that instance
-		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld
-		# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld
-		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
+		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld 
+		# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld 
+		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build (Just newKey)) iworld
 
 	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{options={appVersion},current={taskInstance}}
 		//Load instance
@@ -848,9 +848,9 @@ where
 		# curStatus = case progress of
 			(Ok (ReadingDone progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
 			    | build <> appVersion    = ASIncompatible
-				| value =:(Exception _) = case value of (Exception s) = ASExcepted s
-				| attachedId <> taskId   = ASInUse attachedId
-									 	 = ASAttached (value =: Stable)
+				| value =: (Exception _) = ASExcepted "unable to read progress"
+				| attachedId <> taskId   = ASInUse attachedId	
+				                         = ASAttached (value =: Stable)
 			_                            = ASDeleted
 		//Determine UI change
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
@@ -870,14 +870,14 @@ where
 	determineUIChange event curStatus prevStatus instanceNo instanceKey
 		| curStatus === prevStatus && not (event =: ResetEvent) = NoChange
 		| curStatus =: (ASInUse _)    = ReplaceUI inuse
-		| curStatus =: ASExcepted _     = ReplaceUI exception
-		| curStatus =: ASIncompatible = ReplaceUI incompatible
+		| curStatus =: (ASExcepted _)    = ReplaceUI exception
+		| curStatus =: ASIncompatible || instanceKey =: Nothing = ReplaceUI incompatible
 		| otherwise     		      = ReplaceUI viewport
 	where
 		inuse        = stringDisplay "This task is already in use"
 		exception    = stringDisplay "An exception occurred in this task"
 		incompatible = stringDisplay "This task can no longer be evaluated"
-		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr instanceKey]))
+		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr (fromJust instanceKey)]))
 
 withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
 withCleanupHook patch (Task orig)

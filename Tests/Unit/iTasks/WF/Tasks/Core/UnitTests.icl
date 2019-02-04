@@ -14,7 +14,7 @@ expPromptUI msg
 						,("width",JSONString "flex"),("minWidth",JSONString "wrap"),("height",JSONString "wrap")])
 			[uia UITextView ('DM'.fromList [("value",JSONString msg)])]
 
-minimalInteractUI = testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual
+minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where
 	task :: Task ((),String)
 	task = interact "TEST" unitShare handlers gEditor{|*|}

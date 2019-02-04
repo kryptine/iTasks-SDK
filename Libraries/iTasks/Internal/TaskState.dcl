@@ -18,8 +18,8 @@ from System.Time import :: Timestamp, :: Timespec
 from Data.GenEq import generic gEq
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
-derive JSONEncode TIMeta, TIReduct, TaskTree
-derive JSONDecode TIMeta, TIReduct, TaskTree
+derive JSONEncode TIMeta, TIType, TIReduct, TaskTree
+derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -27,9 +27,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: TIMeta =
     //Static information
 	{ instanceNo	:: !InstanceNo			//Unique global identification
-    , instanceKey   :: !InstanceKey         //Random string that a client needs to provide to access the task instance
-	, listId        :: !TaskId              //Reference to parent tasklist
-    , session       :: !Bool                //Is this a session
+	, instanceType  :: !TIType              //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
     , build         :: !String              //Application build version when the instance was created
     , issuedAt      :: !Timespec
     //Evaluation information
@@ -37,6 +35,11 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
     //Identification and classification information
 	, attributes    :: !TaskAttributes      //Arbitrary meta-data
 	}
+
+:: TIType
+	= TIStartup
+	| TISession !InstanceKey
+	| TIPersistent !InstanceKey !(Maybe TaskId)
 
 :: TIReduct =
 	{ task			:: !Task DeferredJSON               //Main task definition
@@ -68,7 +71,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
 	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
 	| TCShared        !TaskId !TaskTime !TaskTree
-	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !String
+	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !(Maybe String)
 	| TCStable        !TaskId !TaskTime !DeferredJSON
 	| TCLayout        !(!LUI,!LUIMoves) !TaskTree
 	| TCAttribute     !TaskId !String !TaskTree

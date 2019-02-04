@@ -5,7 +5,7 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import ScalableExts.Scalable
+import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList
 from   StdFunc import id, const, o

@@ -15,7 +15,7 @@ main :: Task ()
 main = multiUserExample @! ()
 
 multiUserExample
-	=				set (map mkUserAccount logins) userAccounts
+	=				allTasks (map (createUser o mkUserAccount) logins)
 	>>|				viewInformation "Login under one of the following names (password = login name)" []
 						(foldl (+++) "" (map (\n -> n +++ ", ") logins))
 					-||-
@@ -24,7 +24,7 @@ multiUserExample
 	>>|				loginAndManageWork "Chat_4_2 Example"
 where
 	mkUserAccount name
-		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
+		= {UserAccount| credentials = {Credentials| username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
 
 
 // -------------------------------------------------------------------------

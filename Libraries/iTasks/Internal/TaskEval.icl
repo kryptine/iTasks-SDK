@@ -21,7 +21,7 @@ import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
 from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 
-derive gEq TIMeta
+derive gEq TIMeta, TIType
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -75,13 +75,13 @@ evalTaskInstance instanceNo event iworld
 	= (res,iworld)
 where
 	evalTaskInstance` instanceNo event iworld=:{clock,current}
-	# (constants, iworld)       = read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
+	# (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
-	# constants=:{InstanceConstants|session,listId} = directResult (fromOk constants)
-	# (oldReduct, iworld)		= read (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
+	# constants=:{InstanceConstants|type} = directResult (fromOk constants)
+	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = directResult (fromOk oldReduct)
-	# (oldProgress,iworld)      = read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
+	# (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
 	# oldProgress=:{InstanceProgress|value,attachedTo} = directResult (fromOk oldProgress)
 	//Check exception
@@ -89,10 +89,10 @@ where
 		# (Exception description) = value
 		= exitWithException instanceNo description iworld
 	//Eval instance
-	# (currentSession,currentAttachment) = case (session,attachedTo) of
-		(True,_)                                  = (Just instanceNo,[])
-		(_,[])                                    = (Nothing,[])
-		(_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
+    # (currentSession,currentAttachment) = case (type,attachedTo) of
+        (SessionInstance,_)                       = (Just instanceNo,[])
+        (_,[])                                    = (Nothing,[])
+        (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# iworld					= {iworld & current =

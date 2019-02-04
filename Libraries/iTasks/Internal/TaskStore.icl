@@ -36,7 +36,7 @@ derive JSONEncode Queue, Event
 derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode Queue, Event
 
-derive gDefault TIMeta
+derive gDefault TIMeta, TIType
 derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
@@ -125,35 +125,43 @@ newInstanceNo iworld
 			= (Error e,iworld)
 
 newInstanceKey :: !*IWorld -> (!InstanceKey, !*IWorld)
-newInstanceKey iworld=:{IWorld|random}
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
+newInstanceKey iworld = generateRandomString 32 iworld
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
-newDocumentId iworld=:{IWorld|random}
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
+newDocumentId iworld = generateRandomString 32 iworld
 
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
-	//Create the initial instance data in the store
-	# progress  = {InstanceProgress|value=Unstable,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-	# constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
-	=            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+    //Create the initial instance data in the store
+    # progress  = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
-createTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (applyLayout defaultSessionLayout task) task
-	# (mbInstanceNo,iworld) = newInstanceNo iworld
-	# instanceNo            = fromOk mbInstanceNo
-	# (instanceKey,iworld)  = newInstanceKey iworld
-	# progress              = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-	# constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
-	=            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+    # (mbInstanceNo,iworld) = newInstanceNo iworld
+    # (Ok instanceNo,iworld) = newInstanceNo iworld
+    # (instanceKey,iworld)  = newInstanceKey iworld
+    # progress              = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants             = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
+
+createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException InstanceNo, !*IWorld) | iTask a
+createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+    # (Ok instanceNo,iworld) = newInstanceNo iworld
+    # progress              = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants             = {InstanceConstants|type=StartupInstance,build=appVersion,issuedAt=clock}
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
+  `b` \iworld -> (Ok instanceNo, iworld)
 
 (`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
 (`b`) (Ok _, st)    f = f st
@@ -161,11 +169,12 @@ createTaskInstance task attributes iworld=:{options={appVersion,autoLayout},curr
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-  # task = if autoLayout (applyLayout defaultSessionLayout task) task
-  # (instanceKey,iworld) = newInstanceKey iworld
-  # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-  # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
-  =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	# task = if autoLayout (applyLayout defaultSessionLayout task) task
+    # (instanceKey,iworld) = newInstanceKey iworld
+	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
+    # progress             = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants            = {InstanceConstants|type=PersistentInstance mbListId,build=appVersion,issuedAt=clock}
+    =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
@@ -228,58 +237,72 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
 filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just \filter metas -> read filter metas) taskInstanceIndex
 where
-	param tfilter = ()
+    param tfilter = ()
 
-	read tfilter is = Ok (map (selectColumns tfilter) (selectRows tfilter is))
+    read tfilter is = Ok (map (selectColumns tfilter) (selectRows tfilter is))
 
-	write p is ws = Ok (Just (write` p is ws))
+    write p is ws = Ok (Just (write` p is ws))
+    where
+        //Pairwise update (under the assumption that both lists are sorted by ascending instance number)
+        write` p is [] = [i \\ i <- is | not (filterPredicate p i)] //Remove all items that match the filter but are not in write list
+        write` p [] ws = [updateColumns p i w \\ w <- ws & i <- repeat defaultValue] //Add new items
+        write` p [i=:{TIMeta|instanceNo}:is] [w=:(wNo,_,_,_):ws]
+            | instanceNo == wNo     = [updateColumns p i w:write` p is ws] //Update the appropriate columns
+            | filterPredicate p i   = write` p is [w:ws]    //If w is not the next element, it may be because it is outside the filter, if it isn't it is apparently deleted
+                                    = [i:write` p is [w:ws]] //I was outside the filter, just leave it unchanged
+
+    notify wfilter rs ws ts qfilter
+	    | not (overlappingColumns wfilter qfilter)      = False //If there are no overlapping columns, we definitely don't need to notify
+	    | overlappingRows qfilter wfilter rs            = True  //If there are records that match both filters, we need to notify
+        | matchingRows qfilter (newRows rs wfilter ws)  = True  //If there are new rows that the registered filter we need to notify
+	    | otherwise                                     = False
+    
+    overlappingColumns x y
+	    =    (x.InstanceFilter.includeConstants   && y.InstanceFilter.includeConstants)
+	    || (x.InstanceFilter.includeProgress    && y.InstanceFilter.includeProgress)
+	    || (x.InstanceFilter.includeAttributes  && y.InstanceFilter.includeAttributes)
+
+    overlappingRows qfilter wfilter rs
+	    = any (\r -> filterPredicate qfilter r && filterPredicate wfilter r) rs
+    matchingRows qfilter rs
+        = any (filterPredicate qfilter) rs
+
+    newRows rs wfilter ws =  [updateColumns wfilter defaultValue w \\ w=:(no,_,_,_) <- ws | not (isMember no existingInstances)]
+    where	
+        existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
+
+    selectRows tfilter is = filter (filterPredicate tfilter) is
+    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceType,build,issuedAt,progress,attributes}
+		# listId = case instanceType of
+			(TIPersistent _ (Just listId)) = listId
+			_                              = TaskId 0 0
+		# type = case instanceType of
+			(TIStartup) = StartupInstance
+			(TISession _) = SessionInstance
+			(TIPersistent _ mbListId) = PersistentInstance mbListId
+
+        # constants  = if includeConstants (Just {InstanceConstants|type=type,build=build,issuedAt=issuedAt}) Nothing
+        # progress   = if includeProgress (Just progress) Nothing
+        # attributes = if includeAttributes (Just attributes) Nothing
+        = (instanceNo,constants,progress,attributes)
+
+    updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
+        # i = if includeConstants (maybe i (\{InstanceConstants|type,build,issuedAt}
+                                            -> {TIMeta|i & instanceType = instanceType i type mbP ,build=build,issuedAt=issuedAt}) mbC) i
+        # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
+        # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
+        = {TIMeta|i & instanceNo = iNo}
 	where
-		//Pairwise update (under the assumption that both lists are sorted by ascending instance number)
-		write` p is [] = [i \\ i <- is | not (filterPredicate p i)] //Remove all items that match the filter but are not in write list
-		write` p [] ws = [updateColumns p i w \\ w <- ws & i <- repeat defaultValue] //Add new items
-		write` p [i=:{TIMeta|instanceNo}:is] [w=:(wNo,_,_,_):ws]
-			| instanceNo == wNo     = [updateColumns p i w:write` p is ws] //Update the appropriate columns
-			| filterPredicate p i   = write` p is [w:ws]    //If w is not the next element, it may be because it is outside the filter, if it isn't it is apparently deleted
-									= [i:write` p is [w:ws]] //I was outside the filter, just leave it unchanged
+		instanceType _ (StartupInstance) _ = TIStartup
+		instanceType _ (SessionInstance) (Just {InstanceProgress|instanceKey=Just key}) = TISession key
+		instanceType _ (PersistentInstance mbListId) (Just {InstanceProgress|instanceKey=Just key}) = TIPersistent key mbListId
 
-	notify wfilter rs ws ts qfilter
-		| not (overlappingColumns wfilter qfilter)      = False //If there are no overlapping columns, we definitely don't need to notify
-		| overlappingRows qfilter wfilter rs            = True  //If there are records that match both filters, we need to notify
-		| matchingRows qfilter (newRows rs wfilter ws)  = True  //If there are new rows that the registered filter we need to notify
-		| otherwise                                     = False
+		instanceType {instanceType} _ _ = instanceType
 
-	overlappingColumns x y
-		=    (x.InstanceFilter.includeConstants   && y.InstanceFilter.includeConstants)
-		|| (x.InstanceFilter.includeProgress    && y.InstanceFilter.includeProgress)
-		|| (x.InstanceFilter.includeAttributes  && y.InstanceFilter.includeAttributes)
-
-	overlappingRows qfilter wfilter rs
-		= any (\r -> filterPredicate qfilter r && filterPredicate wfilter r) rs
-	matchingRows qfilter rs
-		= any (filterPredicate qfilter) rs
-
-	newRows rs wfilter ws =  [updateColumns wfilter defaultValue w \\ w=:(no,_,_,_) <- ws | not (isMember no existingInstances)]
-	where
-		existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
-
-	selectRows tfilter is = filter (filterPredicate tfilter) is
-	selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,listId,session,build,issuedAt,progress,attributes}
-		# constants  = if includeConstants (Just {InstanceConstants|listId=listId,session=session,build=build,issuedAt=issuedAt}) Nothing
-		# progress   = if includeProgress (Just progress) Nothing
-		# attributes = if includeAttributes (Just attributes) Nothing
-		= (instanceNo,constants,progress,attributes)
-
-	updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
-		# i = if includeConstants (maybe i (\{InstanceConstants|listId,session,build,issuedAt}
-											-> {TIMeta|i & listId=listId,session=session,build=build,issuedAt=issuedAt}) mbC) i
-		# i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
-		# i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
-		= {TIMeta|i & instanceNo = iNo}
-
-	filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession,matchAttribute} i
-		=   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
-		&&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
-		&&  (maybe True (\m -> i.TIMeta.session == m) onlySession)
+    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession,matchAttribute} i
+        =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
+        &&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
+        &&  (maybe True (\m -> (i.instanceType =: (TISession _)) == m ) onlySession)
 		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.attributes))) matchAttribute)
 
 	notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
@@ -332,27 +355,27 @@ topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId
 topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer)
 					 ((sdsFocus filter filteredInstanceIndex) >*| currentInstanceShare)
 where
-	param _ = ()
-	filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
-			 ,includeConstants=True,includeProgress=True,includeAttributes=True}
-	read _ (instances,curInstance) = Ok (TaskId 0 0, items)
-	where
-		items = [{TaskListItem|taskId = TaskId instanceNo 0, listId = listId
-				 , detached = True, self = instanceNo == curInstance
-				 , value = NoValue, progress = Just progress, attributes = attributes
-				 } \\ (instanceNo,Just {InstanceConstants|listId},Just progress, Just attributes) <- instances]
+    param _ = ()
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
+             ,includeConstants=True,includeProgress=True,includeAttributes=True}
+    read _ (instances,curInstance) = Ok (TaskId 0 0, items)
+    where
+        items = [{TaskListItem|taskId = TaskId instanceNo 0, listId = listId
+                 , detached = True, self = instanceNo == curInstance
+                 , value = NoValue, progress = Just progress, attributes = attributes
+                 } \\ (instanceNo,Just {InstanceConstants|type=PersistentInstance (Just listId)},Just progress, Just attributes) <- instances]
 
-	write _ _ [] = Ok Nothing
-	write _ (instances,_) updates = Ok (Just (map (updateInstance updates) instances))
-	where
-		updateInstance updates (instanceNo,c,p,a) = (instanceNo,c,p,foldr updateAttributes a updates)
-		where
-			updateAttributes (TaskId targetNo 0,attrNew) attrOld = if (targetNo == instanceNo) (Just attrNew) attrOld
-			updateAttributes _ attrOld = attrOld
+    write _ _ [] = Ok Nothing
+    write _ (instances,_) updates = Ok (Just (map (updateInstance updates) instances))
+    where
+        updateInstance updates (instanceNo,c,p,a) = (instanceNo,c,p,foldr updateAttributes a updates)
+        where
+            updateAttributes (TaskId targetNo 0,attrNew) attrOld = if (targetNo == instanceNo) (Just attrNew) attrOld
+            updateAttributes _ attrOld = attrOld
 
-	notify _ _ _ _ = True
+    notify _ _ _ _ = True
 
-	reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(!TaskId,!TaskAttributes)]
+    reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(!TaskId,!TaskAttributes)]
 	reducer p ws = Ok (map ff ws)
 	where
 	  ff (i, _, _, Just attr) = (TaskId i 0, attr)

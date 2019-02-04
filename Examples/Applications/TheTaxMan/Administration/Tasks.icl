@@ -3,7 +3,7 @@ implementation module Administration.Tasks
 import iTasks
 import Text
 import Text.HTML
-import Data.Either, Data.Maybe
+import Data.Either, Data.Maybe, Data.Functor
 import Task.Extensions
 import System.Directory, System.FilePath
 import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS
@@ -121,8 +121,8 @@ convertExampleData
 	>>= \cadastre -> viewInformation "cadastre:" [] cadastre
 	>>|				readLinesFromFile (examplefilepath curDir "officers.txt")
 	>>- \officers -> importDemoUsersFlow
-	>>- \demoAccounts ->
-					set ([{UserAccount | credentials = 	{ username = Username "root", password = Password "root"}
+	>>- \demoAccounts -> allTasks
+					(createUser <$> [{UserAccount | credentials = 	{ username = Username "root", password = Password "root"}
 		 								, title = Just "root", roles = ["admin","programmer","god"]
 		 								}] ++
 						 [{UserAccount | demo & roles = ["admin"]} 	\\ demo <- demoAccounts] ++
@@ -139,7 +139,7 @@ convertExampleData
 		 								}
 		 								\\ cv <- cvs]
 
-					) userAccounts
+					)
 	>>=				viewInformation "accounts" []
 	>>|	viewInformation "Done!" [] ()
 where
