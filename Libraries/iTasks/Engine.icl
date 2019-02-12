@@ -49,17 +49,17 @@ doTasks startable world = doTasksWithOptions defaultEngineCLIOptions startable w
 
 doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World -> *World | Startable a
 doTasksWithOptions initFun startable world
-	# (cli,world)			= getCommandLine world
-	# (options,world)       = defaultEngineOptions world
-	# mbOptions             = initFun cli options
-	| mbOptions =:(Error _) = show (fromError mbOptions) world
-	# options               = fromOk mbOptions
-	# iworld				= createIWorld options world
-	# (res,iworld) 			= initJSCompilerState iworld
-	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# (symbolsResult, iworld) = initSymbolsShare options.distributed options.appName iworld
+	# (cli,world)                = getCommandLine world
+	# (options,world)            = defaultEngineOptions world
+	# mbOptions                  = initFun cli options
+	| mbOptions =:(Error _)      = show (fromError mbOptions) world
+	# options                    = fromOk mbOptions
+	# iworld                     = createIWorld options world
+	# (res,iworld)               = initJSCompilerState iworld
+	| res =:(Error _)            = show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
-	# iworld				= serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime)
+	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime)
 	                                engineTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
@@ -79,8 +79,7 @@ where
 			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
 
 	engineTasks =
- 		[BackgroundTask updateClock,
- 		 BackgroundTask (processEvents MAX_EVENTS)
+ 		[BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
 			[BackgroundTask stopOnStable]
 			[BackgroundTask removeOutdatedSessions

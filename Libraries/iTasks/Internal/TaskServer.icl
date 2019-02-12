@@ -10,6 +10,7 @@ import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
+import iTasks.Internal.EngineTasks
 import iTasks.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
@@ -78,8 +79,10 @@ loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
 	//Check which mainloop tasks have data available
 	# (todo,chList,world) = select mbTimeout todo world
+	# (merr, iworld) = updateClock {iworld & ioTasks = {done=[],todo=todo}, world = world}
+	| merr=:(Error _) = abort "Error updating clock"
 	//Process the select result
-	# iworld =:{shutdown,ioTasks={done}} = process 0 chList {iworld & ioTasks = {done=[],todo=todo}, world = world}
+	# iworld =:{shutdown,ioTasks={done}} = process 0 chList iworld
 	//Move everything from the done list  back to the todo list
 	# iworld = {iworld & ioTasks={todo = reverse done,done=[]}}
 	//Everything needs to be re-evaluated
@@ -153,7 +156,7 @@ where
 		= (n + 1,[x:xs])
 
 //TODO: Use share notification to trigger task re-evaluation based on io events
-process :: !Int [(!Int,!SelectResult)] !*IWorld -> !*IWorld
+process :: !Int [(!Int,!SelectResult)] !*IWorld -> *IWorld
 process i chList iworld=:{ioTasks={done,todo=[]}} = iworld
 process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:todo]},ioStates,world}
 	# taskId=:(TaskId instanceNo _) = lopts.ListenerInstanceOpts.taskId

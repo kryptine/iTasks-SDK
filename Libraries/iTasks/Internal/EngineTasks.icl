@@ -52,14 +52,12 @@ where
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClock iworld=:{IWorld|clock,world}
-    //Determine current date and time
-	# (timespec,world) 	= nsTime world
-    # iworld = {iworld & world = world}
-    //Write SDS if necessary
-    # (mbe,iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
-    = case mbe of
-    	(Error e ) -> (Error e, iworld)
-    	(_) -> (Ok (), iworld)
+	//Determine current date and time
+	# (timespec,world) = nsTime world
+	# iworld & world   = world
+	//Write SDS if necessary
+	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
+	= (() <$ mbe, iworld)
 
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
