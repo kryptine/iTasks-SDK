@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Edit a shared note" sharedNotes
 
-Start :: *World -> *World
-Start world
-	= startEngine sharedNotes world
+main :: Task ()
+main = sharedNotes @! ()
 
 // Update and view shared notifications
 

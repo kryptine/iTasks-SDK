@@ -5,9 +5,10 @@ module TestShareBetweenSessions
 */
 import iTasks
 
-Start world = startEngine [ publish "/t0" (const t0)
-                          , publish "/t1" (const t1)
-                          ] world
+Start world = doTasks
+	[ onReqeust "/t0" (const t0)
+    , onRequest "/t1" (const t1)
+	] world
 
 myShare :: Shared Int
 myShare = sharedStore "myShare" 0

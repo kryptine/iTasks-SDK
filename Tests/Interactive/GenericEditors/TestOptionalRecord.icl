@@ -1,5 +1,5 @@
 module TestOptionalRecord
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 :: TwoFieldRecord =
     { first     :: Int
@@ -10,4 +10,4 @@ derive class iTask TwoFieldRecord
 test :: Task (Maybe TwoFieldRecord)
 test = testCommonInteractions "Optional record"
 
-Start world = startEngine test world
+Start world = doTasks test world

@@ -11,7 +11,7 @@ import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options} 
-from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
+from iTasks.Internal.TaskStore import createSessionTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
@@ -29,7 +29,7 @@ import Testing.Options
 derive class iTask InteractiveTest
 
 gText{|UnitTest|} _ _			            = []
-gEditor{|UnitTest|} = emptyEditor 
+gEditor{|UnitTest|} = emptyEditorWithErrorInEnterMode "A unit test cannot be entered."
 JSONEncode{|UnitTest|} _ c	   = [dynamicJSONEncode c]
 JSONDecode{|UnitTest|} _ [c:r] = (dynamicJSONDecode c,r)
 JSONDecode{|UnitTest|} _ r	   = (Nothing,r)
@@ -52,7 +52,7 @@ where
 assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> UnitTest
 assertWorld name exp sut = {UnitTest|name=name,test=test}
 where
-	test w 
+	test w
 		# (res,w) = sut w
 		= (if (exp res) Passed (Failed Nothing),w)
 
@@ -82,21 +82,21 @@ filterTestsByName :: String [UnitTest] -> [UnitTest]
 filterTestsByName pattern tests = filter (\{UnitTest|name} -> indexOf pattern name >= 0) tests
 
 //UTILITY TASKS
-testEditor :: (Editor a) a EditMode -> Task a | iTask a
-testEditor editor model mode
-	=   (interact "Editor test" mode unitShare {onInit = const ((),model), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l v -> (l,v,Nothing)} editor @ snd
+testEditor :: (Editor a) (EditMode a) -> Task a | iTask a
+testEditor editor mode
+	=   (interact "Editor test" unitShare {onInit = const ((),mode), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
 	)  <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) )
 
-testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
-testEditorWithShare editor model mode = (withShared model
+testEditorWithShare :: (Editor a) a Bool -> Task a | iTask a
+testEditorWithShare editor model viewMode = (withShared model
 	\smodel ->
-		updateSharedInformation "Edit the shared source" [] smodel 
+		updateSharedInformation "Edit the shared source" [] smodel
 		||-
-	    interact "Editor under test" mode smodel {onInit = \r -> ((),r)
-												 ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
-												 ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
-	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)) 
+	    interact "Editor under test" smodel {onInit = \r -> ((),if viewMode View Update $ r)
+	                                        ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
+	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
+	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
@@ -112,7 +112,7 @@ testCommonInteractions typeName
 testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> EndEventType) -> UnitTest | iTask a
 testTaskOutput name task events exp comparison = {UnitTest|name=name,test=test}
 where
-	test world 
+	test world
 		# (options,world) = defaultEngineOptions world
 		# iworld = createIWorld {options & autoLayout = False} world
 		//Initialize JS compiler support
@@ -122,25 +122,25 @@ where
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level
-		# (res,iworld) = createTaskInstance task iworld
+		# (res,iworld) = createSessionTaskInstance task 'DM'.newMap iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
 				//Apply all events
-				# (res,iworld) = applyEvents instanceNo events iworld 
+				# (res,iworld) = applyEvents instanceNo events iworld
 				= case res of
 					(Ok ())
 						//Collect output
-						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceOutput) iworld
+						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 						# world = destroyIWorld iworld
 						//Compare result
 						# verdict = case res of
-							Ok queue = comparison exp (toList queue)
+							Ok ('SDS'.ReadingDone queue) = comparison exp (toList queue)
 							(Error (_,e)) = Failed (Just Crashed)
 						= (verdict,world)
 					(Error e)
 						# world = destroyIWorld iworld
 						= (Failed (Just Crashed),world)
-			(Error (_,e)) 	
+			(Error (_,e))
 				# world = destroyIWorld iworld
 				= (Failed (Just Crashed),world)
 
@@ -194,7 +194,7 @@ runUnitTests suites world
 			# console                  = foldl (\c m -> fwrites (m +++ "\n") c) console msgs
 			# (_,world)			       = fclose console world
 			= setReturnCode 1 world
-where	
+where
 	runTest options (results,(console,world)) {UnitTest|name,test}
 		//Just print names
 		| options.list
@@ -203,18 +203,18 @@ where
 		//Skip
 		| skipTest name options
 			= (results,(console,world))
-		//Check if the test should run	
-		| otherwise 
+		//Check if the test should run
+		| otherwise
 			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
 			# (result,world) = test world
 			# message = case result of
-				Passed = "PASSED" 
+				Passed = "PASSED"
 				Failed _ = "FAILED"
-				Skipped = "SKIPPED" 
+				Skipped = "SKIPPED"
 			# console = fwrites (toString (toJSON (EndEvent {EndEvent|name=name,event=result,message=message})) +++ "\n") console
 			= ([(name,result):results],(console,world))
 
-	skipTest name {runs,skip}	
+	skipTest name {runs,skip}
 		| isMember name skip = True //Explicitly skipped
 		| runs =: [] = False //Run all
 		| otherwise = isMember name [name \\ {TestRun|name} <- runs] //Check if it was listed

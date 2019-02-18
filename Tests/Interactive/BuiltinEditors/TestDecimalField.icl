@@ -4,4 +4,4 @@ import iTasks, iTasks.Internal.Test.Definition
 test :: Task Real
 test = testEditor decimalField 3.14 Update
 
-Start world = startEngine test world
+Start world = doTasks test world

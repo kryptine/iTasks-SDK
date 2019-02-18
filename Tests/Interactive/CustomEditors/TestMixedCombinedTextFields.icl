@@ -9,4 +9,4 @@ where
     password = pink (withLabelAttr "Password" passwordField)
     pink e = withAttributes (styleAttr "background-color: pink") e
 
-Start world = startEngine test world
+Start world = doTasks test world

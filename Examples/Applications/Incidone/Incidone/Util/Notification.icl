@@ -5,11 +5,11 @@ import Text, System.Time
 import Incidone.Util.TaskPatterns
 
 //Notifications are stored newest first
-notifications :: Shared [(DateTime,String)]
+notifications :: SimpleSDSLens [(DateTime,String)]
 notifications = sharedStore "notifications" []
 
 //Only show notifications added in the last 5 seconds
-currentNotifications :: ReadOnlyShared [String]
+currentNotifications :: SDSLens () [String] ()
 currentNotifications = mapRead prj (currentDateTime |*| notifications)
 where
     prj (now,notifications) = [toString dt +++ msg \\ (dt,msg) <- notifications | limit now dt ]

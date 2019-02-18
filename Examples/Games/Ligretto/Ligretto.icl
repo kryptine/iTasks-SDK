@@ -23,4 +23,4 @@ import MultiUser.Tasks
 
 Start :: *World -> *World
 Start world
-	= StartMultiUserTasks [ workflow "Ligretto" "Play Ligretto" play_Ligretto ] [] world
+	= startMultiUserTasks [ workflow "Ligretto" "Play Ligretto" play_Ligretto ] [] world

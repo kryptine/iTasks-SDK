@@ -12,14 +12,14 @@ playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
 	manipulateMap m
 	) <<@ ArrangeWithSideBar 0 LeftSide 600 True @! ()
 
-manipulateMap :: (Shared LeafletMap) -> Task ()
+manipulateMap :: (Shared sds LeafletMap) -> Task () | RWShared sds
 manipulateMap m = updateSharedInformation () [] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 
-managePerspective :: (Shared LeafletMap) -> Task ()
-managePerspective m = updateSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) m)  @! ()
+managePerspective :: (Shared sds LeafletMap) -> Task () | RWShared sds
+managePerspective m = updateSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) Nothing m)  @! ()
 
-manageMapObjects :: (Shared LeafletMap) -> Task ()
+manageMapObjects :: (Shared sds LeafletMap) -> Task () | RWShared sds
 manageMapObjects m = updateSharedInformation (Title "Manage objects") [UpdateAs toPrj fromPrj] m
 				   -|| addDemoObjects m
 				   @! ()
@@ -43,7 +43,7 @@ where
 		>>- \marker -> upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [marker]}) m
 
 	toRandomMarker (rLat,rLng)
-		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False, popup = Nothing}
+		= Marker {markerId = LeafletObjectID markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False, popup = Nothing}
 	where
 		lat = 52.0 + (toReal (500 + (rLat rem 1000)) / 1000.0)
 		lng = 6.0 + (toReal (500 + (rLng rem 1000)) / 1000.0)
@@ -53,7 +53,7 @@ where
 	addMarkerConnectingLine m
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [line objects]}) m
 	where
-		line objects = Polyline { polylineId = "markerConnection"
+		line objects = Polyline { polylineId = LeafletObjectID "markerConnection"
                                 , style      = [Style (LineStrokeColor "#f0f"), Style (LineStrokeWidth 4)]
                                 , points     = points objects
                                 }
@@ -62,7 +62,7 @@ where
 	addMarkerConnectingPolygon m
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [polygon objects]}) m
 	where
-		polygon objects = Polygon { polygonId = "markerConnection"
+		polygon objects = Polygon { polygonId = LeafletObjectID "markerConnection"
                                   , style     = [ Style (PolygonLineStrokeColor "#000")
                                                 , Style (PolygonLineStrokeWidth 2)
                                                 , Style (PolygonFillColor "#0f0")
@@ -75,6 +75,6 @@ where
 		= upd (\l=:{LeafletMap|perspective={LeafletPerspective|cursor},objects} -> {LeafletMap|l & objects = withMarkerFromCursor cursor objects}) m
 	where
 		withMarkerFromCursor Nothing objects = objects
-		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
+		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = LeafletObjectID "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
 
-Start world = startEngine playWithMaps world
+Start world = doTasks playWithMaps world

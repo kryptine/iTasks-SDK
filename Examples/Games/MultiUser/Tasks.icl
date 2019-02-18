@@ -3,24 +3,25 @@ implementation module MultiUser.Tasks
 import iTasks
 import iTasks.Extensions.Admin.UserAdmin
 
-StartMultiUserTasks :: [Workflow] [PublishedTask] *World -> *World
-StartMultiUserTasks workflows tasks world
+startMultiUserTasks :: [Workflow] [StartableTask] *World -> *World
+startMultiUserTasks workflows tasks world
 	= startTask [ workflow "Manage users"  "Manage system users..."   manageUsers
 				: workflows
 				] tasks world
 
 startTask taskList tasks world
-	= startEngine [ publish "/" (\_-> browseExamples taskList)
-                  : tasks
-				  ] world
+	= doTasks [ onStartup (installWorkflows taskList)
+	          , onRequest "/" browseExamples
+              : tasks
+              ] world
 where
-	browseExamples taskList = forever (
+	browseExamples = forever (
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-		>>* [OnAction (Action "Login") (hasValue (browseAuthenticated taskList))
+		>>* [OnAction (Action "Login") (hasValue browseAuthenticated)
 			] )
 
-	browseAuthenticated taskList {Credentials|username,password}
+	browseAuthenticated {Credentials|username,password}
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist taskList)
+			Just user 	= workAs user manageWorkOfCurrentUser
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()

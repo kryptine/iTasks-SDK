@@ -147,10 +147,10 @@ fromSQLWithId :: [SQLValue] -> (Int,a) | mbFromSQL a
 fromSQLWithId row = (fromSQL [last row],fromSQL (init row))
 
 //UTIL SDS Combinators
-(>++>) infixl 6 :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p & TC r & TC w
+(>++>) infixl 6     :: (Shared sds1 SQLDatabaseDef) (sds2 (SQLDatabaseDef,p) r w) -> SDSSequence p r w | iTask p & TC r & TC w & RWShared sds1 & RWShared sds2
 (>++>) db sds = sdsSequence ">++>" id (\p db -> (db,p)) (\_ _ -> Right snd) (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w))) (sdsFocus () db) sds
 
-sqlReadSDS :: String -> ROShared (SQLDatabaseDef,QueryDef) [r] | mbFromSQL r
+sqlReadSDS :: String -> SDSSource (SQLDatabaseDef,QueryDef) [r] () | mbFromSQL r
 sqlReadSDS notifyId = sqlShare notifyId readFun writeFun
 where
     readFun query cur
@@ -163,7 +163,7 @@ where
 
     writeFun _ _ cur = (Ok (), cur)
 
-sqlReadWriteOneSDS :: String -> RWShared (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
+sqlReadWriteOneSDS :: String -> SDSSource (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
 sqlReadWriteOneSDS notifyId = sqlShare notifyId readFun writeFun
 where
     readFun query cur
@@ -197,7 +197,7 @@ where
                             = (Ok (), cur)
 */
 
-sqlLinkSDS :: String String String String-> RWShared (SQLDatabaseDef,Maybe [Int]) [(Int,Int)] [(Int,Int)]
+sqlLinkSDS :: String String String String-> SDSSource (SQLDatabaseDef,Maybe [Int]) [(Int,Int)] [(Int,Int)]
 sqlLinkSDS notifyId table col1 col2 = sqlShare notifyId readFun writeFun
 where
     query match
@@ -231,7 +231,7 @@ where
 ungroupByFst :: (Map a [b]) -> [(a,b)]
 ungroupByFst index = flatten [[(a,b) \\ b <- bs] \\ (a,bs) <- 'DM'.toList index]
 
-roMaybe :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p & TC r
+roMaybe :: (sds p (Maybe r) ()) -> SDSSelect (Maybe p) (Maybe r) () | iTask p & TC r & RWShared sds
 roMaybe sds = sdsSelect "roMaybe" choose  (SDSNotifyConst (\_ _ _ _ -> False)) (SDSNotifyConst (\_ _ _ _-> False)) (constShare Nothing) sds
 where
     choose Nothing  = Left ()

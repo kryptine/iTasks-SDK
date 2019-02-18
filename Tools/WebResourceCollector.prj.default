@@ -1,7 +1,7 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	iTasks
+	Target:	StdEnv
 	Exec:	{Project}/WebResourceCollector
 	CodeGen
 		CheckStacks:	False
@@ -27,7 +27,7 @@ Global
 			GenericFusion:	False
 			DescExL:	False
 		Output
-			Output:	ShowConstructors
+			Output:	NoConsole
 			Font:	Monaco
 			FontSize:	9
 			WriteStdErr:	False
@@ -42,6 +42,9 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+		Path:	{Application}/lib/StdEnv
+		Path:	{Application}/lib/Dynamics
+		Path:	{Application}/lib/Platform
 	Precompile:	
 	Postlink:	
 MainModule

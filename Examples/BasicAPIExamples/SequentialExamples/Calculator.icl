@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Calculator" calculator
 
-Start :: *World -> *World
-Start world
-	= startEngine calculator world
+main :: Task ()
+main = calculator @! ()
 
 :: CalculatorState = { display :: Int, n :: Int}
 

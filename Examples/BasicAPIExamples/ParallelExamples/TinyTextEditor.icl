@@ -8,9 +8,8 @@ import Text, Data.Maybe
 wf :: String -> Workflow
 wf a = workflow a "Tiny text editor" editWithStatistics
 
-Start :: *World -> *World
-Start world
-	= startEngine editWithStatistics world
+main :: Task ()
+main = editWithStatistics @! ()
 
 :: Statistics 	= 	{	lineCount :: Int
 					,	wordCount :: Int
@@ -33,11 +32,11 @@ editWithStatistics
 							>>*	 [ OnAction (Action "Quit") (always (return ()))
 								 ]
 
-editFile :: String (Shared String)  -> Task ()
+editFile :: String (Shared sds String)  -> Task () | RWShared sds
 editFile fileName sharedFile
 	=	updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile @! ()
 
-showStatistics :: (Shared String) -> Task ()
+showStatistics :: (Shared sds String) -> Task () | RWShared sds
 showStatistics sharedFile = viewSharedInformation "Statistics:" [ViewAs stat] sharedFile @! ()
 where
 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
@@ -48,7 +47,7 @@ where
 		lengthWords "" 	 = 0
 		lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
-replace :: Replace (Shared String) -> Task ()
+replace :: Replace (Shared sds String) -> Task () | RWShared sds
 replace cmnd sharedFile
  = 	(	updateInformation "Replace:" [] cmnd
 	>>*	[ OnAction (Action "Replace") (hasValue substitute)

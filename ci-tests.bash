@@ -3,10 +3,11 @@ set -e
 
 #Update IDEEnvs
 if [ -e "$CLEAN_HOME"/etc/IDEEnvs ]; then
-	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak,}' EXIT
-	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak}
+	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak2,}' EXIT
+	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak2}
 	sed -i.bak "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" "$CLEAN_HOME"/etc/IDEEnvs
-	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&:-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
+	sed -i.bak 's#EnvironmentLinker:	lib/exe/linker#&::-lmysqlclient -lsqlite3#g' "$CLEAN_HOME"/etc/IDEEnvs
+	sed -i.bak 's|EnvironmentCompiler:	lib/exe/cocl:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
 fi
 
 #Create BasicAPIExamples
@@ -22,7 +23,12 @@ fi
 find . -name "*.prj.default" | while read f; do
 		cp "$f" "$(dirname $f)/$(basename -s .prj.default $f)".prj
 	done
-find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c "cd {}; cpm make"
+#Without generic fusion
+find . -name "*.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+	"cd {}; cpm make"
+#With generic fusion
+find . -name "*.prj" -not -name "IncidoneCCC.prj" -not -name "examples.prj" -not -name "RemoteShareExamples.prj" -exec dirname {} \; | sort -u | xargs -I{} sh -c\
+	"cd {}; sed -i.bak 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
 find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 cleantest -f human -r

@@ -19,13 +19,12 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (updateInformation "On Click" [UpdateUsing id (\_ v = v) (fromSVGEditor
-						                                                                          { initView    = id
-						                                                                          , renderImage = const count
-						                                                                          , updView     = \m _ = m
-						                                                                          , updModel    = \_ v = v
-						                                                                          })] 0))] world
-
+	= doTasks (updateInformation "On Click"
+		[UpdateUsing id (\_ v = v) (fromSVGEditor
+			{ initView    = id
+			, renderImage = const count
+			, updModel    = \_ v = v
+			})] 0) world
 
 /**	count n tags = image:
 	@image displays the number of times that you've clicked on the text. The initial value is @n.

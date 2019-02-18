@@ -1,6 +1,5 @@
 implementation module C2.Framework.ContactPosition
 import iTasks
-import iTasks.Extensions.GIS.GoogleMap
 import iTasks.Extensions.GIS.Leaflet
 import qualified Data.Map as DM
 import Data.Functor, Text
@@ -9,7 +8,7 @@ import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
 
-from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser p t), instance Applicative (Parser s t), instance Functor (Parser s t)
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser p t), instance pure (Parser s t), instance <*> (Parser s t), instance Functor (Parser s t)
 import C2.Framework.GeoRoutines
 import Math.Geometry
 import Data.Maybe
@@ -62,8 +61,8 @@ where
     frac        = ('PK'.symbol '.' 'PD'. <:&> nums) 'PK'. <!> 'PK'.yield []
     nums        = 'PD'. <!+> ('PK'.satisfy isDigit)
 
-googleMapContactPosition :: LatLng -> GoogleMapPosition
-googleMapContactPosition (lat, lng) = {GoogleMapPosition|lat=toDeg lat,lng= toDeg lng}
+leafletMapContactPosition :: LatLng -> LeafletLatLng
+leafletMapContactPosition (lat, lng) = {LeafletLatLng|lat=toDeg lat,lng= toDeg lng}
 
 derive class iTask ContactMap, ContactMapMarker, ContactMapMarkerType
 
@@ -97,32 +96,6 @@ where
     type _ _                                        = CMOther
 */
 
-toGoogleMap :: ContactMap -> GoogleMap
-toGoogleMap {ContactMap|perspective,markers}
-    = {GoogleMap|defaultValue
-      &perspective = toGoogleMapPerspective perspective
-      ,markers = convMarkers markers
-      }
-where
-    convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
-    where
-        conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-            = {GoogleMapMarker
-              |markerId=markerId
-              ,position = googleMapContactPosition position
-              ,title = title
-              ,icon = fmap (\t -> icon heading t selected) type
-              ,infoWindow = Nothing
-              ,draggable = False
-              ,selected = selected
-              }
-
-	    icon heading type selected
-		    = GoogleMapComplexIcon
-                {image = "ship-icons-sprite.png", size = (24,24)
-		        ,origin = (cat type * 24, ((maybe 24 (\d -> toInt d / 15) heading) * 24)  + (if selected 600 0))
-				,anchor = (12,12)
-                }
 
 cat CMAIS       = 0
 cat CMUnit      = 0
@@ -134,20 +107,6 @@ cat CMSelf      = 0
 cat CMHVU       = 1
 cat _           = 0
 
-toGoogleMapPerspective :: ContactMapPerspective -> GoogleMapPerspective
-toGoogleMapPerspective {ContactMapPerspective|center=(lat,lng),zoom}
-    = {GoogleMapPerspective|type=ROADMAP,center={GoogleMapPosition|lat=toDeg lat,lng=toDeg lng},zoom=zoom}
-
-fromGoogleMap :: GoogleMap -> ContactMap
-fromGoogleMap {GoogleMap|perspective,markers}
-    //For now, just update the perspective
-    = {ContactMap|perspective = fromGoogleMapPerspective perspective
-                 ,markers = []}
-
-fromGoogleMapPerspective :: GoogleMapPerspective -> ContactMapPerspective
-fromGoogleMapPerspective {GoogleMapPerspective|center,zoom}
-    = {ContactMapPerspective|center=(deg center.GoogleMapPosition.lat, deg center.GoogleMapPosition.lng),zoom=zoom,cursor=Nothing}
-
 toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,markers}
     = {LeafletMap|perspective = toLeafletPerspective perspective
@@ -158,9 +117,9 @@ toLeafletMap {ContactMap|perspective,markers}
 where
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected, popup = Nothing}
+        = Marker {LeafletMarker|markerId = LeafletObjectID markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> LeafletIconID (iconIndex heading t selected)) type, selected = selected, popup = Nothing}
 
-	icon i = {LeafletIcon|iconId=toString i,iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
+	icon i = {LeafletIcon|iconId=LeafletIconID (toString i),iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
     iconIndex heading type selected = toString (cat type + ( (maybe 24 (\d -> toInt d / 15) heading) + (if selected 25 0)) * 5)
 
 toLeafletPerspective :: ContactMapPerspective -> LeafletPerspective
@@ -180,7 +139,7 @@ fromLeafletMap {LeafletMap|perspective,objects}
 where
     toMarkers objects
         = [{ContactMapMarker|markerId=markerId,title=Nothing,position = fromLeafletLatLng position, type=Nothing,heading=Nothing,selected=selected}
-          \\ Marker {LeafletMarker|markerId,position,selected} <- objects]
+          \\ Marker {LeafletMarker|markerId = LeafletObjectID markerId,position,selected} <- objects]
 
 fromLeafletPerspective :: LeafletPerspective -> ContactMapPerspective
 fromLeafletPerspective {LeafletPerspective|center,cursor,zoom}

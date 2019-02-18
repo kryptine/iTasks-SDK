@@ -17,13 +17,12 @@ lucida			= normalFontDef "Lucida Console"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Grids" [ViewUsing id (fromSVGEditor
-		                                                                          { initView    = id
-		                                                                          , renderImage = const grids
-		                                                                          , updView     = \m _ = m
-		                                                                          , updModel    = \_ v = v
-		                                                                          })] 0))] world
-
+	= doTasks (viewInformation "Grids"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const grids
+			, updModel    = \_ v = v
+			})] 0) world
 
 /**	grids model tags = image:
 	@image shows all grid-layout combinations.

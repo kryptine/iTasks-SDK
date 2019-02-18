@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for deleting an attribute" @! () >> return
 where
     layout = delUIAttributes (SelectKeys ["direction"])
 
-Start world = startEngine test world
+Start world = doTasks test world

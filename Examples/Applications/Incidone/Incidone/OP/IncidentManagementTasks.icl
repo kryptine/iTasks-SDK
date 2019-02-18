@@ -39,7 +39,7 @@ manageIncidentSituationInfo incidentNo
         ,OnAction (Action "/Close incident") (always (confirmCloseIncident incidentNo <<@ InWindow))
         ]
 where
-    situation = mapReadWrite (toPrj,fromPrj) (sdsFocus incidentNo incidentByNo)
+    situation = mapReadWrite (toPrj,fromPrj) (Just \_ w. Ok (toPrj w)) (sdsFocus incidentNo incidentByNo)
     where
         toPrj {Incident|title,summary,type,phase}
 	        = {IncidentBasic|title,summary,type,phase}
@@ -164,7 +164,7 @@ viewIncidentDetails incidentNo
 where
     incident = sdsFocus incidentNo incidentByNo
 
-updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | toPrompt d
+updateSharedIncidentRefList     :: d Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | toPrompt d & RWShared sds
 updateSharedIncidentRefList d compact refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]

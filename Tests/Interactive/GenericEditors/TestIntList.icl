@@ -1,8 +1,8 @@
 module TestIntList
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task [Int]
 test = testCommonInteractions "Int list"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

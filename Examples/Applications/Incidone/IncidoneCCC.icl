@@ -35,11 +35,12 @@ import Incidone.DeviceBased.Tablet
 
 
 Start :: *World -> *World
-Start world = startEngine [publish "/"                 (\_ -> ccPerson)
-						  ,publish "/wall"             (\_ -> viewVideoWallContent)
-						  ,publish "/wall-control"     (\_ -> selectVideoWallContent)
-                          ,publish "/exercise-control" (\_ -> controlExercise)
-						  ] world
+Start world = doTasks
+	[onRequest "/" ccPerson
+	,onRequest "/wall" viewVideoWallContent
+	,onRequest "/wall-control" selectVideoWallContent
+	,onRequest "/exercise-control" controlExercise
+	] world
 where
 	//Main task for command center operators
 	ccPerson :: Task ()
@@ -54,15 +55,18 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	= (	enterCredentials
+	= 	enterCredentials <<@ (ApplyLayout credentialsLayout)
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact])) //Compact layout before login, full screen afterwards
+		]  
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
 		= 	viewInformation () [] (DivTag [ClassAttr "identify-app",StyleAttr "width: 350px; height: 55px; margin-bottom: 5px"] [])
 		||-	enterInformation () []
+
+	//Compact layout before login, full screen afterwards
+	credentialsLayout = sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact]
 
 	verifyCredentials :: Credentials -> Task (Maybe User)
 	verifyCredentials credentials=:{Credentials|username,password}

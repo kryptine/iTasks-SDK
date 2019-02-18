@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Enter text" enterText
 
-Start :: *World -> *World
-Start world
-	= startEngine enterText world
+main :: Task ()
+main = enterText @! ()
 
 enterText :: Task String
 enterText

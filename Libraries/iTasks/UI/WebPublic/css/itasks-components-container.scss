@@ -155,6 +155,12 @@
 	position: relative;
 	top: 3px;
 }
+.#{$prefix}tab-disabled .#{$prefix}tabicon {
+    opacity: 0.5;
+}
+.#{$prefix}tab-disabled span {
+    color: #aaa;
+}
 .#{$prefix}tabitems {
 	z-index: 2;
 	border: 1px solid $tab-border-color;

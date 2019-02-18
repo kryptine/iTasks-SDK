@@ -11,7 +11,7 @@ wf a = workflow "Enter a positive number" positiveNumber
 
 Start :: *World -> *World
 Start world
-	= startEngine positiveNumber world
+	= doTasks positiveNumber world
 
 positiveNumber :: Task Int
 positiveNumber

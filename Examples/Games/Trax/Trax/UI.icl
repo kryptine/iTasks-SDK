@@ -8,7 +8,8 @@ import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
-derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge, /*Coordinate,*/ Maybe
+derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge
+derive JSDecode TraxSt, User, Trax, TraxTile, TileEdge
 
 :: RenderMode = ViewMode | PlayMode
 
@@ -16,7 +17,6 @@ updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
 updateTraxEditor turn = UpdateUsing id (const id) (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage PlayMode turn
-									, updView     = const id
 									, updModel    = flip const
 									})
 
@@ -24,7 +24,6 @@ viewTraxEditor :: ViewOption TraxSt
 viewTraxEditor = ViewUsing id (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage ViewMode False
-									, updView     = const id
 									, updModel    = flip const
 									})
 

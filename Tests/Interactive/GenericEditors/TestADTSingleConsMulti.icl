@@ -1,5 +1,5 @@
 module TestADTSingleConsMulti
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 :: ADTSingleConsMulti = ADTSingleConsMulti Int String
 derive class iTask ADTSingleConsMulti
@@ -7,5 +7,5 @@ derive class iTask ADTSingleConsMulti
 test :: Task ADTSingleConsMulti
 test = testCommonInteractions "ADTSingleConsMulti"
 
-Start world = startEngine test world
+Start world = doTasks test world
 

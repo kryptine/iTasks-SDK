@@ -17,6 +17,8 @@ layoutCombinatorContainers = sequenceLayouts
 	[layoutSubUIs (SelectByType UIInteract) layoutInteract
 	,layoutSubUIs (SelectByType UIStep) layoutStep
 	,layoutSubUIs (SelectByType UIParallel) layoutParallel
+	//There can still be buttons (e.g. when a parallel has been transformed to a tabset
+	,layoutSubUIs (SelectByType UIAction) layoutAsButton
 	]
 
 layoutStep = sequenceLayouts
@@ -66,11 +68,11 @@ where
 	HasActions = SelectByContains (SelectAND SelectChildren (SelectByType UIAction))
 
 	layoutWithoutActions = setUIType UIContainer
-	layoutWithActions = sequenceLayouts [setUIType UIPanel, addButtonBar]
+	layoutWithActions = sequenceLayouts [setUIType UIPanel, addToolBar]
 
 layoutInteract = sequenceLayouts
-	[setTitle 
-	,layoutEditor 
+	[setTitle
+	,layoutEditor
 	,removePromptIfEmpty
 	,setContainerType
 	]
@@ -128,7 +130,7 @@ layoutVarCons = sequenceLayouts
 	[setUIType UIContainer
 	,setUIAttributes (directionAttr Horizontal)
 	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UICons)) layoutVarCons
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIVarCons)) layoutVarCons
 	]
 
 layoutList :: LayoutRule
@@ -146,6 +148,12 @@ layoutAsButton = sequenceLayouts
 where
 	toButtonAttributes attr 
 		= maybe attr (\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a]) ('DM'.get "actionId" attr)
+
+addToolBar = sequenceLayouts
+	[insertChildUI 0 (ui UIToolBar)
+	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0] 0 //Move all actions to the buttonbar
+	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs SelectChildren layoutAsButton) //Transform actions to buttons
+	]
 
 addButtonBar = sequenceLayouts
 	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar

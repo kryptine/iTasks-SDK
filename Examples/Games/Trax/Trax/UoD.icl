@@ -14,7 +14,6 @@ import Text
 lookup1 x = fromJust o (lookup x)
 
 derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
-derive bimap []
 derive gMap Maybe
 
 :: TraxTile                             // a tile connects two edges:

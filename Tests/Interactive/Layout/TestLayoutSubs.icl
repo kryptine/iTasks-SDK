@@ -6,4 +6,4 @@ test = (updateInformation () [] "Test for layouting a sub ui" @! () >>= return) 
 where
     layout = layoutSubUIs (SelectByPath [0]) (setUIType UIDebug)
 
-Start world = startEngine test world
+Start world = doTasks test world

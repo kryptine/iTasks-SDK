@@ -6,7 +6,7 @@ import qualified Text.Parsers.ZParsers.ParsersKernel as PK
 import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
-from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser s t), instance Applicative (Parser s t), instance Functor (Parser s t)
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser s t), instance pure (Parser s t), instance <*> (Parser s t), instance Functor (Parser s t)
 import iTasks.Extensions.GIS.LeafletNavalIcons
 
 import Incidone.OP.Concepts
@@ -215,8 +215,9 @@ where
 fromLeafletLayer cl ll = cl
 */
 
-selectionFromLeafletMap :: LeafletMap -> [String]
-selectionFromLeafletMap {LeafletMap|objects} = [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
+selectionFromLeafletMap :: LeafletMap -> [LeafletObjectID]
+selectionFromLeafletMap {LeafletMap|objects} =
+    [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
 
 fromLeafletLatLng :: !LeafletLatLng -> (!Real,!Real)
 fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)
@@ -224,9 +225,9 @@ fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)
 fromLeafletBounds :: !LeafletBounds -> (!(!Real,!Real),!(!Real,!Real))
 fromLeafletBounds {LeafletBounds|southWest,northEast} = (fromLeafletLatLng southWest,fromLeafletLatLng northEast)
 
-standardPerspective :: Shared ContactMapPerspective
+standardPerspective :: SimpleSDSLens ContactMapPerspective
 standardPerspective = sharedStore "standardPerspective" defaultValue
 
-standardMapLayers :: Shared [ContactMapLayer]
+standardMapLayers :: SimpleSDSLens [ContactMapLayer]
 standardMapLayers = sharedStore "standardMapLayers" [{ContactMapLayer|title="Local OSM tiles",def=CMTileLayer "/tiles/{z}/{x}/{y}.png"}]
 

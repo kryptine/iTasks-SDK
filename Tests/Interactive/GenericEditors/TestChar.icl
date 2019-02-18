@@ -1,7 +1,7 @@
 module TestChar
-import iTasks, iTasks.Internal.Test.Definition
+import iTasks, iTasks.Util.Testing
 
 test :: Task Char
 test = testCommonInteractions "Char"
 
-Start world = startEngine test world
+Start world = doTasks test world

@@ -3,18 +3,19 @@ implementation module iTasks.WF.Combinators.Common
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON, Data.Func
 import iTasks.Internal.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
 import iTasks.SDS.Combinators.Common
-from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON, :: AsyncAction
 from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 from iTasks.Extensions.DateTime import waitForTimer
 from iTasks.UI.Definition import :: UIType(UILoader)
 
+import iTasks.Internal.SDS
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
@@ -23,7 +24,6 @@ import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combina
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Prompt
-import iTasks.UI.Tune
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
@@ -90,24 +90,32 @@ justdo task
 	Just x	= return x
 	Nothing	= throw ("The task returned nothing.")
 
-sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence _ tasks = seqTasks tasks
-where
-	seqTasks []		= return []
-	seqTasks [t:ts]	= t >>- \a -> seqTasks ts >>- \as -> return [a:as]
+sequence :: ![Task a]  -> Task [a] | iTask a
+sequence tasks = foreverStIf
+	//Continue while there are tasks left
+	(not o isEmpty o snd)
+	//Initial state, empty accumulator, all tasks
+	([], tasks)
+	//Run the first task and add it to the accumulator
+	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
+	//When done, just return the accumulator
+	@ reverse o fst
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
-	>>- \tv->case tv of
-		[(_, Value i True)] = treturn i
-		_ = throw "Corrupt parallel in foreverStIf"
+foreverStIf pred st t = parallel [(Embedded, par st Nothing)] [] @? fromParValue
 where
 	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
 	par st Nothing tlist
 		| not (pred st) = treturn st
-		= get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
-			>>- \(_, [{TaskListItem|taskId}])->t st
-			>>- \st`->appendTask Embedded (par st` (Just taskId)) tlist @? const NoValue
+		= step
+			(t st)
+			id
+			[ OnValue $ ifStable \st` -> get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
+			                             appendTask Embedded (par st` (Just taskId)) tlist    @! st`
+		    ]
+
+	fromParValue (Value [(_, val=:Value _ _)] _) = val
+	fromParValue _                               = NoValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
@@ -119,7 +127,7 @@ where
 where
 	res	(Value [_,(_,Value (Right b) s)] _)	= Value b s
 	res _									= NoValue
-	
+
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
 	= parallel
@@ -127,7 +135,7 @@ where
 where
 	res	(Value [(_,Value (Left a) s),_] _)	= Value a s
 	res _									= NoValue
-	
+
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
 	= parallel
@@ -136,25 +144,25 @@ where
 	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _)	= Value (a,b) (sa && sb)
 	res _														    = NoValue
 
-feedForward :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+feedForward :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 feedForward taska taskbf = parallel
 	[(Embedded, \s -> taska @ Left)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @ Right)
+	,(Embedded, \s -> taskbf (mapRead prj (sdsFocus (Left 0) (taskListItemValue s))) @ Right)
 	] [] @? res
 where
 	prj (Value (Left a) _)  = Just a
 	prj _					= Nothing
-	
+
 	res (Value [_,(_,Value (Right b) s)] _)	= Value b s
 	res _									= NoValue
-	
-(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+
+(>&>) infixl 1  :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 (>&>) taska taskbf = feedForward taska taskbf
-				
-feedSideways :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+
+feedSideways :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 feedSideways taska taskbf = parallel
     [(Embedded, \s -> taska)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @? const NoValue)
+	,(Embedded, \s -> taskbf (mapRead prj (sdsFocus (Left 0) (taskListItemValue s))) @? const NoValue)
     ] [] @? res
 where
 	prj (Value a _)	= Just a
@@ -163,8 +171,24 @@ where
     res (Value [(_,v):_] _) = v
     res _                   = NoValue
 
-(>&^) infixl 1 :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+(>&^) infixl 1 :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 (>&^) taska taskbf = feedSideways taska taskbf
+
+feedBidirectionally :: !((SDSLens () (Maybe b) ()) -> Task a) !((SDSLens () (Maybe a) ()) -> Task b)
+                    -> Task (a, b) | iTask a & iTask b
+feedBidirectionally taskaf taskbf = parallel
+	[(Embedded, \s -> taskaf (mapRead prjR (toReadOnly (sdsFocus (Left 1) (taskListItemValue s)))) @ Left)
+	,(Embedded, \s -> taskbf (mapRead prjL (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @ Right)
+	] [] @? res
+where
+	prjL (Value (Left a) _)  = Just a
+	prjL _                   = Nothing
+
+	prjR (Value (Right a) _) = Just a
+	prjR _                   = Nothing
+
+	res (Value [(_,Value (Left a) sa),(_,Value (Right b) sb)] _) = Value (a,b) (sa && sb)
+	res _                                                        = NoValue
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
@@ -183,7 +207,7 @@ where
 
     allStable cur (_,Value _ s) = cur && s
     allStable cur _             = False
-				
+
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
 
@@ -193,13 +217,13 @@ randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
-whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
+whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds & TC w
 whileUnchanged share task
 	= 	( (get share >>- \val ->
             try (
 					((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))])
 					  -||- (task val @ Just)
-					 ) <<@ ApplyLayout (sequenceLayouts [removeSubUIs (SelectByPath [0]), unwrapUI])) 
+					 ) <<@ ApplyLayout (sequenceLayouts [removeSubUIs (SelectByPath [0]), unwrapUI]))
                 (\ShareChanged -> (return Nothing) )
           ) <! isJust
         )
@@ -212,12 +236,12 @@ instance toString ShareChanged where toString ShareChanged = "Share changed exce
 onlyJust (Value (Just x) s) = Value x s
 onlyJust _                  = NoValue
 
-whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & Registrable sds
 whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
-withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b & iTask c
+withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
@@ -227,7 +251,7 @@ compute :: !String a -> Task a | iTask a
 compute s a = enterInformation s [EnterUsing id ed] >>~ \_->return a
 where
 	ed :: Editor Bool
-	ed = fieldComponent UILoader
+	ed = fieldComponent UILoader Nothing
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
@@ -240,7 +264,7 @@ never :: b (TaskValue a) -> Maybe b
 never taskb val	= Nothing
 
 ifValue :: (a -> Bool) (a -> b) (TaskValue a) -> Maybe b
-ifValue pred ataskb (Value a _) 
+ifValue pred ataskb (Value a _)
     | pred a 	= Just (ataskb a)
     | otherwise = Nothing
 ifValue _ _ _ = Nothing

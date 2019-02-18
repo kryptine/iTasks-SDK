@@ -7,8 +7,9 @@ import Task.Extensions
 import iTasks.UI.Definition, iTasks.Extensions.Admin.UserAdmin
 
 Start :: *World -> *World
-Start world = startEngine
-	[ publish "/"       (\_ -> loginAndManageWorkList "Welcome at the taxman" workflows <<@ ApplyLayout (setUIAttributes (titleAttr "The Taxman")))
+Start world = doTasks
+	[onStartup (installWorkflows workflows)
+	,onRequest "/" (loginAndManageWork "The Taxman")
 	] world
 
 workflows :: [Workflow]

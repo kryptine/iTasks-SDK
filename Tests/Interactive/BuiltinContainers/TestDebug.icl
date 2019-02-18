@@ -5,4 +5,4 @@ test :: Task String
 test =   viewInformation () [] "This is the content of the container"
      <<@ ApplyLayout (wrapUI UIDebug)
 
-Start world = startEngine test world
+Start world = doTasks test world

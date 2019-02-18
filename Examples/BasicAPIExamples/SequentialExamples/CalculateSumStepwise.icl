@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Calculate the Sum Stepwise" calculateSumStepwise
 
-Start :: *World -> *World
-Start world
-	= startEngine calculateSumStepwise world
+main :: Task ()
+main = calculateSumStepwise @! ()
 
 calculateSumStepwise :: Task Int
 calculateSumStepwise

@@ -110,7 +110,21 @@ itasks.Panel = {
 	
 		return el;	
 	},
-
+	setTitle(title) {
+		var me = this;
+		if(me.headerEl != null) {
+			var titleEl = me.headerEl.getElementsByTagName('span')[0];
+			titleEl.textContent = title;
+		} else if(me.tabEl != null) {
+			var titleEl = me.tabEl.getElementsByTagName('span')[0];
+			titleEl.textContent = title;
+		}
+	},
+	onAttributeChange: function(name,value) {
+		if(name == 'title') {
+			this.setTitle(value);	
+		}	
+	}
 };
 itasks.TabSet = {
 	cssCls: 'tabset',
@@ -147,44 +161,69 @@ itasks.TabSet = {
     },
 	createTabEl: function (cmp) {
 		var me = this, tab, label, icon;
-
 		tab = document.createElement('li');
-        label = document.createElement('a');
-		label.innerHTML = '<span>'+ (cmp.attributes.title || '-')+'</span>';
-		label.href = '#';
+		label = document.createElement('a');
+		if (cmp.type == 'Button'){
+			label.innerHTML = '<span>'+ (cmp.attributes.text || '-')+'</span>';
+			label.href = '#';
+			label.addEventListener('click',function(e) {
+            	if(cmp.attributes.enabled) {
+					cmp.doEditEvent(cmp.attributes.taskId,cmp.attributes.editorId,cmp.attributes.value);
+            	}
+				e.preventDefault();
+			},me);
+			if(!cmp.attributes.enabled) {
+				tab.classList.add(me.cssPrefix + 'tab-disabled');
+			}
+			cmp.domEl.style.display = "none";
+		} else {
+			label.innerHTML = '<span>'+ (cmp.attributes.title || '-')+'</span>';
+			label.href = '#';
+	
+			label.addEventListener('click',function(e) {
+				var tabEl = e.target.parentElement.parentElement,	
+					tabBar = tabEl.parentElement,
+					idx = Array.prototype.indexOf.call(tabBar.children,tabEl);
+	
+				me.setActiveTab(idx);
+				e.preventDefault();
+			},me);
+		}
 
-		label.addEventListener('click',function(e) {
-			var tabEl = e.target.parentElement.parentElement,	
-				tabBar = tabEl.parentElement,
-				idx = Array.prototype.indexOf.call(tabBar.children,tabEl);
+		if(cmp.attributes.iconCls) {
+			icon = document.createElement('div');
+			icon.classList.add(me.cssPrefix + 'tabicon');
+			icon.classList.add(cmp.attributes.iconCls);
+			label.insertBefore(icon,label.childNodes[0]);
+		}
+		tab.appendChild(label);
+	
+		if (cmp.type !== 'Button'){
+			if(cmp.attributes.closeTaskId) {
+				closeLink = document.createElement('a');
+				closeLink.innerHTML = 'x';
+				closeLink.href = '#';
+				closeLink.classList.add(me.cssPrefix + 'tabclose');
+				closeLink.addEventListener('click',function(e) {
+					me.doEditEvent(cmp.attributes.closeTaskId,null,'Close');
+					e.preventDefault();
+				},me);
+	
+				tab.appendChild(closeLink);
+			}
+			if(cmp.selected) {
+				tab.classList.add(me.cssPrefix + 'selected');
+			}
+		}
 
-			me.setActiveTab(idx);
-            e.preventDefault();
-		},me);
+		//Hide the tab for children that are windows
+		if(cmp.type === 'Window') {
+			tab.style.display = 'none';
+		}
 
-        if(cmp.attributes.iconCls) {
-            icon = document.createElement('div');
-            icon.classList.add(me.cssPrefix + 'tabicon');
-            icon.classList.add(cmp.attributes.iconCls);
-            label.insertBefore(icon,label.childNodes[0]);
-        }
-        tab.appendChild(label);
+		//Add a reference to the tab on the related child element
+		cmp.tabEl = tab;
 
-        if(cmp.attributes.closeTaskId) {
-            closeLink = document.createElement('a');
-            closeLink.innerHTML = 'x';
-            closeLink.href = '#';
-            closeLink.classList.add(me.cssPrefix + 'tabclose');
-            closeLink.addEventListener('click',function(e) {
-                me.doEditEvent(cmp.attributes.closeTaskId,null,'Close');
-                e.preventDefault();
-            },me);
-
-            tab.appendChild(closeLink);
-        }
-        if(cmp.selected) {
-            tab.classList.add(me.cssPrefix + 'selected');
-        }
 		return tab;
 	},
 	setActiveTab: function(idx) {

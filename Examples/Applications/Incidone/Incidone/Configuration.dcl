@@ -34,15 +34,15 @@ from iTasks.Extensions.Web import :: URL
 derive class iTask DBConfig, AISConfig, AsteriskConfig, SMTPConfig, WebLinksConfig, WebLink
 
 //Master configuration shares
-databaseConfig				:: Shared DBConfig
-aisLinkConfig               :: Shared AISConfig
-asteriskLinkConfig          :: Shared AsteriskConfig
-smtpConfig                  :: Shared SMTPConfig
-webLinksConfig              :: Shared WebLinksConfig
-adminPassword               :: Shared Password
+databaseConfig     :: SimpleSDSLens DBConfig
+aisLinkConfig      :: SimpleSDSLens AISConfig
+asteriskLinkConfig :: SimpleSDSLens AsteriskConfig
+smtpConfig         :: SimpleSDSLens SMTPConfig
+webLinksConfig     :: SimpleSDSLens WebLinksConfig
+adminPassword      :: SimpleSDSLens Password
 
 //Derived configuration shares
-databaseDef                 :: RWShared () SQLDatabaseDef SQLDatabaseDef
+databaseDef                 :: SimpleSDSLens SQLDatabaseDef
 
 //Conversion functions
 toDatabaseDef               :: DBConfig -> SQLDatabaseDef

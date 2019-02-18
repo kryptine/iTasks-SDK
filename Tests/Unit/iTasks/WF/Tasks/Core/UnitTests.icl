@@ -1,7 +1,7 @@
 module iTasks.WF.Tasks.Core.UnitTests
 import iTasks.Util.Testing
 import qualified Data.Map as DM
-import Data.Either
+import Data.Either, Data.Maybe
 import Text.GenPrint
 
 derive gPrint TaskOutputMessage
@@ -14,11 +14,11 @@ expPromptUI msg
 						,("width",JSONString "flex"),("minWidth",JSONString "wrap"),("height",JSONString "wrap")])
 			[uia UITextView ('DM'.fromList [("value",JSONString msg)])]
 
-minimalInteractUI = testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual
+minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where
 	task :: Task ((),String)
-	task = interact "TEST" Update unitShare handlers gEditor{|*|}
-	handlers = {onInit = \() -> ((),"Hello world"), onEdit = \_ l v -> (l,v,Nothing), onRefresh = \_ l v -> (l,v,Nothing)}
+	task = interact "TEST" unitShare handlers gEditor{|*|}
+	handlers = {onInit = \() -> ((),Update "Hello world"), onEdit = \_ l v -> (l,fromJust v,Nothing), onRefresh = \_ l v -> (l,fromJust v,Nothing)}
 
 	events = [Left ResetEvent]
 	exp = [TOUIChange (ReplaceUI expMinimalEditorUI)]

@@ -10,9 +10,8 @@ import iTasks.Extensions.Clock
 wf :: String -> Workflow
 wf a = workflow a "View the current Date and Time" showDateAndTime
 
-Start :: *World -> *World
-Start world
-	= startEngine showDateAndTime world
+main :: Task ()
+main = showDateAndTime @! ()
 
 showDateAndTime :: Task Time
 showDateAndTime

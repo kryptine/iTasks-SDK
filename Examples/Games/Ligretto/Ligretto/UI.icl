@@ -5,17 +5,17 @@ from   StdFunc import id, const
 import Data.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
-import ScalableExts.Scalable
+import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 derive JSEncode GameSt, Player, Color, Hand, Card, SideUp
+derive JSDecode GameSt, Player, Color, Hand, Card, SideUp
 
 ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
 ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 
@@ -23,7 +23,6 @@ accoladesEditor :: !Color -> UpdateOption GameSt GameSt
 accoladesEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 

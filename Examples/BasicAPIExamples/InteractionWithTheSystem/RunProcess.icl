@@ -7,8 +7,8 @@ import Text.Terminal.VT100
 wf :: String -> Workflow
 wf a = workflow a "Run a process, e.g. /bin/bash" runProcess
 
-Start :: *World -> *World
-Start w = startEngine runProcess w
+main :: Task ()
+main = runProcess @! ()
 
 runProcess :: Task Int
 runProcess = enterInformation "Command" [] -&&- enterInformation "Arguments" []

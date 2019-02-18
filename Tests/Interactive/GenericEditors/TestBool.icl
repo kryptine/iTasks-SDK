@@ -1,7 +1,7 @@
 module TestBool
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task Bool
 test = testCommonInteractions "Bool"
 
-Start world = startEngine test world
+Start world = doTasks test world

@@ -8,6 +8,9 @@ import iTasks.Extensions.DateTime
 wf :: String -> Workflow
 wf a = workflow a "Enter a person" enterPerson
 
+main :: Task ()
+main = enterPerson @! ()
+
 :: Person	=	{ name			:: String
 				, gender		:: Gender
 				, dateOfBirth	:: Date
@@ -16,10 +19,6 @@ wf a = workflow a "Enter a person" enterPerson
 			|	Female
 
 derive class iTask Person, Gender
-
-Start :: *World -> *World
-Start world
-	= startEngine enterPerson world
 
 enterPerson :: Task Person
 enterPerson

@@ -8,6 +8,9 @@ import iTasks.Extensions.DateTime
 wf :: String -> Workflow
 wf a = workflow a "Enter a family tree" enterFamily
 
+main :: Task ()
+main = enterFamily @! ()
+
 :: Family	=	{ person 		:: Person
 				, married		:: Maybe Person
 				, children		:: [Family]
@@ -21,10 +24,6 @@ wf a = workflow a "Enter a family tree" enterFamily
 			|	Female
 
 derive class iTask Family, Person, Gender
-
-Start :: *World -> *World
-Start world
-	= startEngine enterFamily world
 
 enterFamily :: Task Family
 enterFamily

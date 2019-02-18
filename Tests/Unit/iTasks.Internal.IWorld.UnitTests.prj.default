@@ -2,7 +2,7 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	StdEnv
-	Exec:	{Project}/iTasks.Internal.IWorld.UnitTests
+	Exec:	{Project}*iTasks.Internal.IWorld.UnitTests
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -49,7 +49,7 @@ Global
 		Path:	{Application}*lib*StdEnv
 		Path:	{Application}*lib*TCPIP
 		Path:	{Application}*lib*Platform
-		Path:	{Application}*lib*Platform/Deprecated/StdLib
+		Path:	{Application}*lib*Platform*Deprecated*StdLib
 	Precompile:	
 	Postlink:	
 MainModule

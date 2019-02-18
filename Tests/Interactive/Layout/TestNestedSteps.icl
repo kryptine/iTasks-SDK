@@ -6,4 +6,4 @@ test =   viewInformation () [] "Step 1"
      >>| viewInformation () [] "Step 3"
      >>| viewInformation () [] "Step 4"
 
-Start world = startEngine test world
+Start world = doTasks test world

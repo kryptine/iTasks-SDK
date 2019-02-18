@@ -4,4 +4,4 @@ import iTasks.Extensions.Dashboard
 
 test = viewInformation "LED" [] LightOnRed
 
-Start world = startEngine test world
+Start world = doTasks test world

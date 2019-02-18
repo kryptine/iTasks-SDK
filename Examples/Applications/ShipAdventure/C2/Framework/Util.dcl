@@ -24,15 +24,15 @@ derive class iTask Location
 
 /* Utility tasks */
 
-editSharedList :: (Shared [a]) -> Task () | iTask a
+editSharedList :: (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListWithTask :: (a -> Task a) (Shared [a]) -> Task () | iTask a
+editSharedListWithTask :: (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared [a]) -> Task () | iTask a
+editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-editSharedListGeneric :: [EditSharedListOption a] (Shared [a]) -> Task () | iTask a
+editSharedListGeneric :: [EditSharedListOption a] (Shared sds [a]) -> Task () | iTask a & RWShared sds
 
-updateItemInSharedList :: a (a -> Bool) (Shared [a]) -> Task [a] | iTask a
+updateItemInSharedList :: a (a -> Bool) (Shared sds [a]) -> Task [a] | iTask a & RWShared sds
 
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 
@@ -56,11 +56,11 @@ chatDialog :: User [Entity] -> Task ()
 
 editChats :: Task ()
 
-chats ::  Shared [ChatMessage]
+chats ::  SimpleSDSLens [ChatMessage]
 
 viewChats :: Int -> Task ()
 
-debugstore :: Shared [String]
+debugstore :: SimpleSDSLens [String]
 
 addDebug :: String -> Task ()
 

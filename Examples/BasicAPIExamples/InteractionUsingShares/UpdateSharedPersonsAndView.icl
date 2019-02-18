@@ -7,9 +7,8 @@ import iTasks
 wf :: String -> Workflow
 wf a = workflow a "Edit a shared list of persons" enterSharedPersons
 
-Start :: *World -> *World
-Start world
-	= startEngine enterSharedPersons world
+main :: Task ()
+main = enterSharedPersons @! ()
 
 :: Person =
 	{ name			:: String
