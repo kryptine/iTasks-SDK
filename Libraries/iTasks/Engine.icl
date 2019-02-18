@@ -46,8 +46,6 @@ doTasksWithOptions initFun startable world
 	| mbOptions =:(Error _)      = show (fromError mbOptions) world
 	# options                    = fromOk mbOptions
 	# iworld                     = createIWorld options world
-	# (res,iworld)               = initJSCompilerState iworld
-	| res =:(Error _)            = show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld

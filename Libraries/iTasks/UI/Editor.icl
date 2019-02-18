@@ -1,8 +1,9 @@
 implementation module iTasks.UI.Editor
 
 import StdBool, StdMisc, StdList, StdTuple
-import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
+import Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
+import iTasks.Internal.Client.Serialization
 import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JS.Encoding
 import qualified Data.Map as DM
 import Text, Text.GenJSON
@@ -151,14 +152,14 @@ withClientSideInit ::
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
-        (Ok (saplDeps, saplInit),iworld)
-			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
-                                        ,("editorId",JSONString (editorId dp))
-                                        ,("saplDeps",JSONString saplDeps)
-                                        ,("saplInit",JSONString saplInit)
-                                        ]
-            = (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
-        (Error e,iworld)
-            = (Error e, {VSt|vst & iworld = iworld})
-    (Error e,vst) = (Error e,vst)
+	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serialize_for_client initUI iworld of
+		(Ok initUI,iworld)
+			# extraAttr = 'DM'.fromList
+				[("taskId",  JSONString taskId)
+				,("editorId",JSONString (editorId dp))
+				,("initUI",  JSONString initUI)
+				]
+			-> (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
+		(Error e,iworld)
+			-> (Error e, {VSt|vst & iworld = iworld})
+	e -> e

@@ -1,10 +1,10 @@
 **/Clean System Files
 *-data
-*-sapl
 *-www
 *.prj
 *.prp
 *.exe
+*.bc
 .sass-cache
 BasicAPIExamples.icl
 .ctest-results.json

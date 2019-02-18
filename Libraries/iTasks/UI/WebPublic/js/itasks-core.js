@@ -31,7 +31,7 @@ itasks.Component = {
 	init: function() {
 		var me = this;
 		me.lastFire = 0;
-		me.initSaplCustomization();
+		me.initUI();
 		me.initComponent();
 		me.initChildren();
 		me.renderComponent();
@@ -39,22 +39,10 @@ itasks.Component = {
 		me.initialized = true;
 		return me;
 	},
-	initSaplCustomization: function() { //When necessary, apply customizatons for Check if some of the component's methods are custom defined using sapl/js
-		var me = this, fun, evalfun;
-		//Initialize linked sapl functions 
-		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
-			if(typeof SAPL_DEBUG !== 'undefined' && SAPL_DEBUG) {
-				console.log("BEGIN SAPL DEBUG");
-				console.log(me.attributes.saplDeps);
-				console.log("END SAPL DEBUG");
-			} else {
-				me.evalJs(me.attributes.saplDeps);
-        	}
-			me.replaceJsDynamicUnify();
-		}
-		//Decode and evaluate the sapl initialization function
-		if(me.attributes.saplInit !=null && me.attributes.saplInit!= '') {
-			Sapl.feval([me.evalJsVal(me.attributes.saplInit),[___wrapJS(me),"JSWorld"]]);
+	initUI: function() {
+		var me=this;
+		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
+			abc_interpreter.apply_to_elem_and_JSWorld(me.attributes.initUI, me);
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently

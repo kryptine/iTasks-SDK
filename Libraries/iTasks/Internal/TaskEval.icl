@@ -176,10 +176,6 @@ where
 
 	mbResetUIState instanceNo ResetEvent iworld
 		# (_,iworld) = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld
-		//Remove all js compiler state for this instance
-		# iworld=:{jsCompilerState=jsCompilerState} = iworld
-		# jsCompilerState = fmap (\state -> {state & skipMap = 'DM'.del instanceNo state.skipMap}) jsCompilerState
-		# iworld = {iworld & jsCompilerState = jsCompilerState}
 		= iworld
 
 	mbResetUIState _ _ iworld = iworld
