@@ -57,7 +57,7 @@ JSEncode{|CONS of {gcd_name,gcd_index,gcd_strict_arguments}|} fx (CONS x)
 JSEncode{|RECORD of {grd_name}|} fx (RECORD x) = [JSONArray [JSONInt 0, JSONString ("_" +++ grd_name) : fx x]]
 
 JSEncode{|FIELD of {gfd_cons,gfd_index}|} fx (FIELD x)
-| gfd_cons.grd_strict_arguments bitand (1 << gfd_index) == 0
+| gfd_cons.grd_strict_fields bitand (1 << gfd_index) == 0
 	= fx x
 	= case fx x of
 		[JSONArray [arr]] -> [arr]
