@@ -336,7 +336,7 @@ randomChoice		:: ![a]										-> Task a				| iTask a
 * When the share changes the task is restarted
 */
 whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds & TC w
-whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & Registrable sds
+whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & TC w & iTask b & Registrable sds
 
 /**
 * Do a task when there is a Just value in the share

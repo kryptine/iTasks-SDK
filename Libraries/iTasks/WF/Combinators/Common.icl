@@ -236,7 +236,7 @@ instance toString ShareChanged where toString ShareChanged = "Share changed exce
 onlyJust (Value (Just x) s) = Value x s
 onlyJust _                  = NoValue
 
-whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & Registrable sds
+whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & TC w & iTask b & Registrable sds
 whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
