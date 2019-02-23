@@ -26,7 +26,7 @@ instance addValueAttribute Task
 //instance addConstantAttribute Editor
 
 //Setting attributes based on an SDS value (only possible for tasks)
-class addSDSAttribute f :: !String (sds () r w) (r -> b) !(f a) -> f a | toAttribute b & TC r & TC w & Registrable, Readable sds
+class addSDSAttribute f :: !String !sds !(r -> b) !(f a) -> f a | toAttribute b & TC r & Registrable sds () r
 instance addSDSAttribute Task
 
 class toAttribute a where toAttribute :: a -> String
@@ -51,8 +51,8 @@ class tunev b a f | iTask a :: !(b a) !(f a) -> f a
 :: ApplyAttribute a = ApplyAttribute String a
 instance tune (ApplyAttribute a) Task | toAttribute a
 
-:: ApplySDSAttribute a r w = E. sds: ApplySDSAttribute String (sds () r w) (r -> a) & Readable, Registrable sds
-instance tune (ApplySDSAttribute a r w) Task | toAttribute a & TC r & TC w
+:: ApplySDSAttribute a r = E. sds: ApplySDSAttribute !String !sds !(r -> a) & Readable sds () r & Registrable sds () r
+instance tune (ApplySDSAttribute a r) Task | toAttribute a & TC r
 
 //* Apply a layout to a task
 applyLayout :: LayoutRule (Task a) -> Task a

@@ -57,25 +57,31 @@ where
     reducer _ (Just a)  = Ok a
     reducer _ Nothing   = maybe (Error (exception "Required value not available in shared data source")) Ok defaultValue
 
-mapRead :: !(r -> r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapRead :: !(r -> r`) !sds -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapRead read sds = mapReadError (\r -> Ok (read r)) sds
 
-mapWrite :: !(w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapWrite :: !(w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapWrite write reducer sds = mapWriteError (\r w -> Ok (write r w)) reducer sds
 
-mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapReadWrite (read,write) reducer sds = mapReadWriteError (\r -> Ok (read r), (\r w -> Ok (write r w))) reducer sds
 
-mapReadError :: !(r -> MaybeError TaskException r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapReadError :: !(r -> MaybeError TaskException r`) !sds -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapReadError read sds = sdsProject (SDSLensRead read) (SDSBlindWrite (Ok o Just)) (Just \_ ws. Ok ws) sds
 
-mapWriteError :: !(w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapWriteError :: !(w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapWriteError write reducer sds = sdsProject (SDSLensRead Ok) (SDSLensWrite (flip write)) reducer sds
 
-mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 mapReadWriteError (read,write) reducer sds = sdsProject (SDSLensRead read) (SDSLensWrite (flip write)) reducer sds
 
-mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+
+mapSingle :: !sds -> SDSLens p r w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p [r] [w]
 mapSingle sds = sdsProject (SDSLensRead read) (SDSBlindWrite write) (Just reducer) sds
 where
     read [x]    = Ok x
@@ -86,21 +92,21 @@ where
 
     reducer p ws = read ws
 
-toReadOnly :: !(sds p r w) -> SDSLens p r () | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+toReadOnly :: !sds -> SDSLens p r () | gText{|*|} p & TC p & TC r & RWShared sds p r w
 toReadOnly sds = sdsProject (SDSLensRead Ok) (SDSBlindWrite \_. Ok Nothing) Nothing sds
 
-toDynamic :: !(sds p r w) -> (SDSLens p Dynamic Dynamic) | gText{|*|} p & TC p & TC r & TC w & RWShared sds //FIXME: Use 1 lens directly
+toDynamic :: !sds -> SDSLens p Dynamic Dynamic | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w //FIXME: Use 1 lens directly
 toDynamic sds = mapRead (\r -> (dynamic r :: r^)) (mapWrite (\(w :: w^) _ -> Just w) (Just reducer) sds)
 where
     reducer _ w = Ok (dynamic w)
 
-(>*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) (wx,wy)     | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
+(>*<) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) (wx,wy)	| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 p rx wx & RWShared sds2 p ry wy
 (>*<) l r = sdsParallel ">*<" (\p -> (p,p)) id (SDSWriteConst write1) (SDSWriteConst write2) l r
   where
     write1 _ w = Ok (Just (fst w))
     write2 _ w = Ok (Just (snd w))
 
-(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Registrable sds2
+(>*|) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) wx           | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 p rx wx & Registrable sds2 p ry wy
 (>*|) l r = SDSParallelWriteLeft l r opts
 where
   opts = {SDSParallelOptions| name = ">*|"
@@ -110,7 +116,8 @@ where
          , writer = SDSWriteConst (\_ _. Ok Nothing)
        }
 
-(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & RWShared sds2
+
+(|*<) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) wy           | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 p rx wx & RWShared sds2 p ry wy
 (|*<) l r = SDSParallelWriteRight l r opts
 where
   opts = {SDSParallelOptions| name = "|*<"
@@ -120,7 +127,7 @@ where
          , writer = SDSWriteConst (\_ w. Ok (Just w))
        }
 
-(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & Registrable sds2
+(|*|) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) ()			| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 p rx wx & Registrable sds2 p ry wy
 (|*|) l r = SDSParallelWriteNone l r opts
 where
   opts = {SDSParallelOptions| name = "|*|"
@@ -130,7 +137,7 @@ where
          , writer = SDSWriteConst (\_ _. Ok Nothing)
         }
 
-symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 & RWShared sds2
+symmetricLens :: !(a b -> b) !(b a -> a) !sds1 !sds2 -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 p a a & RWShared sds2 p b b
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)
 where
 	sharedAll = sharedA >*< sharedB
@@ -201,7 +208,8 @@ where
         [p:_]   = Ok p
         _       = Error (exception "taskListItemProgress: item not found")
 
-mapMaybeLens :: !String !(Shared sds (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
+
+mapMaybeLens :: !String !sds -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & Shared sds (Map a b)
 mapMaybeLens name origShare = sdsLens name (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) origShare
 where
     read :: !a !(Map a b) -> MaybeError TaskException (Maybe b) | < a & == a
@@ -216,7 +224,7 @@ where
     reducer p map = case 'DM'.get p map of
       (Just r) = Ok r
 
-mapLens :: !String !(Shared sds (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
+mapLens :: !String !sds !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & Shared sds (Map a b)
 mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) (Just reducer) origShare
   where
   read :: !(Maybe b) !a !(Map a b) -> MaybeError TaskException b | < a & == a
@@ -238,7 +246,7 @@ mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDS
     Just b = Ok b
     Nothing = Error (exception (name +++ " (mapLens): Index not found"))
 
-intMapLens :: !String !(Shared sds (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds
+intMapLens :: !String !sds !(Maybe a) -> SDSLens Int a a | TC a & Shared sds (IntMap a)
 intMapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) (Just (reducer mdef)) origShare
   where
   read :: !(Maybe a) !Int !(IntMap a) -> MaybeError TaskException a

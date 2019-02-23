@@ -58,7 +58,7 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interact :: !d !(sds () r w) (EditInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interact :: !d !sds !(EditInteractionHandlers l r w v) !(Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds () r w
 interact prompt shared handlers editor
 =  Task (eval prompt shared handlers editor)
 where
@@ -173,7 +173,8 @@ where
                 # info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
                 = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
-interactView :: !d (sds () r w) (ViewInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+
+interactView :: !d !sds !(ViewInteractionHandlers l r w v) !(Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds () r
 interactView prompt shared handlers editor
 = Task (eval prompt shared handlers editor)
 where

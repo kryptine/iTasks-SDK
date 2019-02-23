@@ -92,11 +92,11 @@ instance toString OSException
     , onRefresh :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
 	}
 
-interact :: !d !(sds () r w) (EditInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interact :: !d !sds !(EditInteractionHandlers l r w v) !(Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds () r w
 
 :: ViewInteractionHandlers l r w v =
     { onInitView    :: !(r -> (!l, !EditMode v))
     , onRefreshView :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
 	}
 
-interactView :: !d (sds () r w) (ViewInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactView :: !d !sds !(ViewInteractionHandlers l r w v) !(Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds () r

@@ -29,20 +29,20 @@ from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
     | SDSBlindWrite    (wt      -> MaybeError TaskException (Maybe ws)) //No-need to read the original source
 
 // Fix a focus parameter
-sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & JSONEncode{|*|} p & TC p & TC r & TC w & RWShared sds
+sdsFocus :: !p !sds -> (SDSLens p` r w) | gText{|*|} p & JSONEncode{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 
 // Projection of the domain with a lens
-sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(Maybe (SDSReducer p ws w)) !(sds p rs ws) -> SDSLens p r w | gText{|*|} p & TC p & TC rs & TC ws & RWShared sds
+sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(Maybe (SDSReducer p ws w)) !sds -> SDSLens p r w | gText{|*|} p & TC p & TC rs & TC ws & RWShared sds p rs ws
 
 // Translate the parameter space
-sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} ps & TC ps & TC r & TC w & RWShared sds
+sdsTranslate :: !String !(p -> ps) !sds -> SDSLens p r w |  gText{|*|} ps & TC ps & TC r & TC w & RWShared sds ps r w
 
 // Introduce a new parameter
-sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(Maybe (SDSReducer p ws w)) !(sds ps rs ws) -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
+sdsSplit :: !String !(p -> (!ps,!pn)) !(pn rs -> r) !(pn rs w -> (!ws,!SDSNotifyPred pn)) !(Maybe (SDSReducer p ws w)) !sds -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds ps rs ws
 
 // Treat symmetric sources with optional values as if they always have a value.
 // You can provide a default value, if you don't it will trigger a read error
-removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | gText{|*|} p & TC p & TC a & RWShared sds
+removeMaybe :: !(Maybe a) !sds -> SDSLens p a a | gText{|*|} p & TC p & TC a & RWShared sds p (Maybe a) (Maybe a)
 
 /**
 * Maps the read type, the write type or both of a shared reference to another one using a functional mapping.
@@ -53,29 +53,28 @@ removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | gText{
 * @param A reference to shared data
 * @return A reference to shared data of another type
 */
-mapRead :: !(r -> r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-mapWrite :: !(w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapRead :: !(r -> r`) !sds -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
+mapWrite :: !(w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
+mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 
-mapReadError :: !(r -> MaybeError TaskException r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-mapWriteError :: !(w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapReadError :: !(r -> MaybeError TaskException r`) !sds -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
+mapWriteError :: !(w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
+mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(Maybe (SDSReducer p w w`)) !sds -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 
-toReadOnly :: !(sds p r w) -> SDSLens p r () | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+toReadOnly :: !sds -> SDSLens p r () | gText{|*|} p & TC p & TC r & RWShared sds p r w
 
-toDynamic :: !(sds p r w) -> (SDSLens p Dynamic Dynamic) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
-
+toDynamic :: !sds -> SDSLens p Dynamic Dynamic | gText{|*|} p & TC p & TC r & TC w & RWShared sds p r w
 
 //Map a list SDS of one element to the element itself
-mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapSingle :: !sds -> SDSLens p r w | gText{|*|} p & TC p & TC r & TC w & RWShared sds p [r] [w]
 
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
-(>*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) (wx,wy)	| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx           | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Registrable sds2
-(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy           | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & RWShared sds2
-(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()			| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & Registrable sds2
+(>*<) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) (wx,wy)	| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 p rx wx & RWShared sds2 p ry wy
+(>*|) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) wx           | gText{|*|} p & TC p & TC rx & TC ry & TC wx & RWShared sds1 p rx wx & Registrable sds2 p ry
+(|*<) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) wy           | gText{|*|} p & TC p & TC rx & TC ry & TC wy & Registrable sds1 p rx & RWShared sds2 p ry wy
+(|*|) infixl 6 :: !sds1 !sds2 -> SDSParallel p (rx,ry) ()			| gText{|*|} p & TC p & TC rx & TC ry & Registrable sds1 p rx & Registrable sds2 p ry
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -87,7 +86,7 @@ mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | gText{|*|} p & TC p & TC r & 
 * @param SymmetricShared b
 * @param RWShared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 & RWShared sds2
+symmetricLens :: !(a b -> b) !(b a -> a) !sds1 !sds2 -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 p a a & RWShared sds2 p b b
 
 //Derived versions of tasks lists
 /**
@@ -129,14 +128,14 @@ taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) Insta
 /**
  * Convenience lens for lookups in Maps. Returns Nothing on a missing key.
  */
-mapMaybeLens :: !String !(Shared sds (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
+mapMaybeLens :: !String !sds -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & Shared sds (Map a b)
 
 /**
  * Convenience lens for lookups in Maps. Can use a default value on a missing key, gives an error if no default is supplied.
  */
-mapLens :: !String !(Shared sds (Map a b)) !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & RWShared sds
+mapLens :: !String !sds !(Maybe b) -> SDSLens a b b | < a & == a & TC a & TC b & Shared sds (Map a b)
 
 /**
  * Convenience lens for lookups in IntMaps. Can use a default value on a missing key, gives an error if no default is supplied.
  */
-intMapLens :: !String !(Shared sds (IntMap a)) !(Maybe a) -> SDSLens Int a a | TC a & RWShared sds
+intMapLens :: !String !sds !(Maybe a) -> SDSLens Int a a | TC a & Shared sds (IntMap a)

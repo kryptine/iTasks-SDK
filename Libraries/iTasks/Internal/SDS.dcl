@@ -10,61 +10,61 @@ from iTasks.WF.Definition import class iTask
 from iTasks.WF.Definition import :: TaskException, :: TaskId, :: InstanceNo
 import iTasks.SDS.Definition
 
-instance Identifiable SDSSource
-instance Readable SDSSource
-instance Writeable SDSSource
-instance Modifiable SDSSource
-instance Registrable SDSSource
+instance Identifiable (SDSSource p r w)
+instance Readable (SDSSource p r w) p r
+instance Writeable (SDSSource p r w) p w
+instance Modifiable (SDSSource p r w) p r w
+instance Registrable (SDSSource p r w) p r
 
-instance Identifiable SDSLens
-instance Readable SDSLens
-instance Writeable SDSLens
-instance Modifiable SDSLens
-instance Registrable SDSLens
+instance Identifiable (SDSLens p r w)
+instance Readable (SDSLens p r w) p r
+instance Writeable (SDSLens p r w) p w
+instance Modifiable (SDSLens p r w) p r w
+instance Registrable (SDSLens p r w) p r
 
-instance Identifiable SDSCache
-instance Readable SDSCache
-instance Writeable SDSCache
-instance Modifiable SDSCache
-instance Registrable SDSCache
+instance Identifiable (SDSCache p r w)
+instance Readable (SDSCache p r w) p r
+instance Writeable (SDSCache p r w) p w
+instance Modifiable (SDSCache p r w) p r w
+instance Registrable (SDSCache p r w) p r
 
-instance Identifiable SDSSequence
-instance Readable SDSSequence
-instance Writeable SDSSequence
-instance Modifiable SDSSequence
-instance Registrable SDSSequence
+instance Identifiable (SDSSequence p r w)
+instance Readable (SDSSequence p r w) p r
+instance Writeable (SDSSequence p r w) p w
+instance Modifiable (SDSSequence p r w) p r w
+instance Registrable (SDSSequence p r w) p r
 
-instance Identifiable SDSSelect
-instance Readable SDSSelect
-instance Writeable SDSSelect
-instance Modifiable SDSSelect
-instance Registrable SDSSelect
+instance Identifiable (SDSSelect p r w)
+instance Readable (SDSSelect p r w) p r
+instance Writeable (SDSSelect p r w) p w
+instance Modifiable (SDSSelect p r w) p r w
+instance Registrable (SDSSelect p r w) p r
 
-instance Identifiable SDSParallel
-instance Readable SDSParallel
-instance Writeable SDSParallel
-instance Modifiable SDSParallel
-instance Registrable SDSParallel
+instance Identifiable (SDSParallel p r w)
+instance Readable (SDSParallel p r w) p r
+instance Writeable (SDSParallel p r w) p w
+instance Modifiable (SDSParallel p r w) p r w
+instance Registrable (SDSParallel p r w) p r
 
-instance Identifiable SDSRemoteService
-instance Readable SDSRemoteService
-instance Writeable SDSRemoteService
-instance Modifiable SDSRemoteService
-instance Registrable SDSRemoteService
+instance Identifiable (SDSRemoteService p r w)
+instance Readable (SDSRemoteService p r w) p r
+instance Writeable (SDSRemoteService p r w) p w
+instance Modifiable (SDSRemoteService p r w) p r w
+instance Registrable (SDSRemoteService p r w) p r
 
-instance Identifiable SDSRemoteSource
-instance Readable SDSRemoteSource
-instance Writeable SDSRemoteSource
-instance Modifiable SDSRemoteSource
-instance Registrable SDSRemoteSource
+instance Identifiable (SDSRemoteSource p r w)
+instance Readable (SDSRemoteSource p r w) p r
+instance Writeable (SDSRemoteSource p r w) p w
+instance Modifiable (SDSRemoteSource p r w) p r w
+instance Registrable (SDSRemoteSource p r w) p r
 
-instance Identifiable SDSDebug
-instance Readable SDSDebug
-instance Writeable SDSDebug
-instance Modifiable SDSDebug
-instance Registrable SDSDebug
+instance Identifiable (SDSDebug p r w)
+instance Readable (SDSDebug p r w) p r
+instance Writeable (SDSDebug p r w) p w
+instance Modifiable (SDSDebug p r w) p r w
+instance Registrable (SDSDebug p r w) p r
 
-:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds
+:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds p r w
 
 //Internal creation functions:
 
@@ -90,10 +90,10 @@ createReadOnlySDSError ::
 directResult :: (AsyncRead r w) -> r
 
 //Internal access functions
-sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
+sdsIdentity :: !sds -> SDSIdentity | Identifiable sds
 
 :: AsyncRead r w = ReadingDone r
-	| E. sds: Reading (sds () r w) & TC r & TC w & Readable sds & Registrable sds
+	| E. sds: Reading !sds & TC r & TC w & Registrable sds () r
 
 /*
  * Read the SDS. TaskContext is used to determine whether a read is done in the
@@ -104,23 +104,23 @@ sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
  *	task will be notified when it is ready), or a direct result in the case of
  *	a blocking read.
  */
-read 			:: !(sds () r w) 			!TaskContext !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable sds
+read 			:: !sds 			!TaskContext !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable sds () r
 
 //Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Readable, Registrable sds
+readRegister	:: !TaskId                  !sds !*IWorld -> (!MaybeError TaskException (AsyncRead r w), !*IWorld) | TC r & TC w & Registrable sds () r
 
 :: AsyncWrite r w = WritingDone
-	| E. sds: Writing (sds () r w) & Writeable sds & TC r & TC w
+	| E. sds: Writing !sds & Writeable sds () w & TC r & TC w
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld)	| TC r & TC w & Writeable sds
+write			:: !w					    !sds !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld)	| TC r & TC w & Writeable sds () w
 
 
 :: AsyncModify r w = ModifyingDone w & TC w
-	| E. sds: Modifying (sds () r w) (r -> w) & Modifiable sds & TC r & TC w
+	| E. sds: Modifying !sds (r -> w) & Modifiable sds () r w & TC r & TC w
 
 //Read followed by write. The 'a' typed value is a result that is returned
-modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
+modify :: !(r -> w)          !sds !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds () r w
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued

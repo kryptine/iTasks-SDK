@@ -217,7 +217,7 @@ randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
-whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds & TC w
+whileUnchanged :: !sds (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds () r
 whileUnchanged share task
 	= 	( (get share >>- \val ->
             try (
@@ -236,12 +236,12 @@ instance toString ShareChanged where toString ShareChanged = "Share changed exce
 onlyJust (Value (Just x) s) = Value x s
 onlyJust _                  = NoValue
 
-whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & Registrable sds
+whileUnchangedWith :: !(r r -> Bool) !sds (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds () r
 whileUnchangedWith eq share task
 	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
-withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
+withSelection :: (Task c) (a -> Task b) sds -> Task b | iTask a & iTask b & iTask c & RWShared sds () (Maybe a) ()
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a

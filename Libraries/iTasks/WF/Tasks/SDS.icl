@@ -18,7 +18,7 @@ where
 
 derive class iTask SharedException
 
-get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
+get :: !sds -> Task r | iTask r & Readable sds r
 get shared = Task (eval shared)
 where
 	eval :: (sds () a w) Event TaskEvalOpts TaskTree !*IWorld -> (TaskResult a, !*IWorld) | TC w & TC a & Readable sds & iTask a
@@ -59,7 +59,7 @@ where
 	# sdsEvalStates = 'DM'.del (fromOk (taskIdFromTaskTree tree)) sdsEvalStates
 	= (DestroyedResult, {iworld & sdsEvalStates = sdsEvalStates})
 
-set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
+set :: !w !sds -> Task w | iTask w & Writeable sds () w
 set val shared = Task (eval val shared)
 where
 	eval :: a (sds () r a) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult a, !*IWorld) | iTask a & TC r & Writeable sds
@@ -92,7 +92,7 @@ where
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
-upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
+upd :: !(r -> w) !sds -> Task w | iTask r & iTask w & RWShared sds () r w
 upd fun shared = Task (eval fun shared)
 where
 	eval :: (r -> w) (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult w, !*IWorld) | iTask r & iTask w & RWShared sds
@@ -129,7 +129,7 @@ where
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
-watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
+watch :: !sds -> Task r | iTask r & Registrable sds () r
 watch shared = Task (eval shared)
 where
 	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld

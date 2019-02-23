@@ -335,14 +335,14 @@ randomChoice		:: ![a]										-> Task a				| iTask a
 * Do a task as long while monitoring that a shared state remains unchanged.
 * When the share changes the task is restarted
 */
-whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds & TC w
-whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & Registrable sds
+whileUnchanged :: !sds (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds () r
+whileUnchangedWith :: !(r r -> Bool) !sds (r -> Task b) -> Task b | iTask r & iTask b & Registrable sds () r
 
 /**
 * Do a task when there is a Just value in the share
 * Do a default task when there is a Nothing value
 */
-withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
+withSelection :: (Task c) (a -> Task b) sds -> Task b | iTask a & iTask b & iTask c & RWShared sds () (Maybe a) ()
 
 /**
 * Append a task to the set of top level tasks

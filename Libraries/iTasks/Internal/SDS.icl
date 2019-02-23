@@ -59,7 +59,7 @@ createSDS ns id read write = SDSSource
 	}
 
 //Construct the identity of an sds
-sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
+sdsIdentity :: !sds -> SDSIdentity | Identifiable sds
 sdsIdentity s = 'Text'.concat (nameSDS s [])
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)

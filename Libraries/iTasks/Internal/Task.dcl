@@ -42,8 +42,8 @@ derive gEq				Task
 /**
 * Wraps a set of connection handlers and a shared source as a connection task
 */
-wrapConnectionTask :: (ConnectionHandlers l r w) (sds () r w) -> ConnectionTask | TC l & TC r & TC w & RWShared sds
-wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> ConnectionTask | TC l & TC r & TC w & RWShared sds
+wrapConnectionTask :: !(ConnectionHandlers l r w) !sds -> ConnectionTask | TC l & TC r & TC w & RWShared sds () r w
+wrapIWorldConnectionTask :: !(ConnectionHandlersIWorld l r w) !sds -> ConnectionTask | TC l & TC r & TC w & RWShared sds () r w
 
 /**
 * Create a task that finishes instantly

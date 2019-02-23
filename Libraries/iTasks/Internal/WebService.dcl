@@ -41,7 +41,7 @@ from System.Time                    import :: Timespec
     , onDisconnect    :: !(HTTPRequest r ConnectionState        *IWorld -> *(!Maybe w, !*IWorld))                                       // is called on disconnect
     }
 
-httpServer :: !Int !Timespec ![WebService r w] (sds () r w) -> ConnectionTask | TC r & TC w & RWShared sds
+httpServer :: !Int !Timespec ![WebService r w] sds -> ConnectionTask | TC r & TC w & RWShared sds () r w
 
 :: OutputQueues :== Map InstanceNo TaskOutput
 

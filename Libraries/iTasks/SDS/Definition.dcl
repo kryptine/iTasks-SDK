@@ -32,37 +32,37 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	/**
 	 * Reading from the share has yielded a result. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: ReadResult !r !(sds p r w) & RWShared sds & TC r & TC w
+	E. sds: ReadResult !r !sds & RWShared sds p r w & TC r & TC w
 	/**
 	 * Reading from the share has not yet yielded a result because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next read operation.
 	 */
-	| E. sds: AsyncRead !(sds p r w) & RWShared sds & TC r & TC w
+	| E. sds: AsyncRead !sds & RWShared sds p r w & TC r & TC w
 
 :: WriteResult p r w =
 	/**
 	 * Writing to the share has succeeded. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
+	E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !sds & TC r & TC w & RWShared sds p r w
 	/**
 	 * Denotes that writing to a SDS had lead to some asynchronous action.
 	 * We return a new version of the share, which MUST be used for the next write operation.
 	 * The SDS is required to be a Readable AND Writeable, because writing to a SDS may require reading from another.
 	 */
-	| E. sds: AsyncWrite !(sds p r w) & RWShared sds & TC r & TC w
+	| E. sds: AsyncWrite !sds & RWShared sds p r w & TC r & TC w
 
 :: ModifyResult p r w =
 	/**
 	 * Modifying the share has succeeded, all asynchronous operations have finished.
 	 */
-	E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
+	E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !sds & TC r & TC w & RWShared sds p r w
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.
 	 * TODO: We include the modify function so that async operations can be resumed later. This should
 	 * 		 not be necessary.
 	 */
-	| E. sds: AsyncModify !(sds p r w) !(r -> MaybeError TaskException w) & RWShared sds
+	| E. sds: AsyncModify !sds !(r -> MaybeError TaskException w) & RWShared sds p r w
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
@@ -87,9 +87,9 @@ where
 	/**
 	 * Identify the shared datasource
 	 */
-	nameSDS :: !(sds p r w) ![String] -> [String]
+	nameSDS :: !sds ![String] -> [String]
 
-class Readable sds | Identifiable sds
+class Readable sds ~p ~r | Identifiable sds
 where
 	/**
 	 * Read from a sds
@@ -97,10 +97,10 @@ where
 	 * @param parameter used for reading
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
 	 */
-	readSDS :: !(sds p r w) !p !TaskContext !*IWorld
+	readSDS :: !sds !p !TaskContext !*IWorld
 	        -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class Registrable sds | Readable sds
+class Registrable sds ~p ~r | Readable sds p r
 where
 	/**
 	 * Register to a sds. Reads the value and registers the task to get a refresh event when the sds is changed.
@@ -110,10 +110,10 @@ where
 	 * @param taskId which registers itself for changes to the sds.
 	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
-	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !SDSIdentity !*IWorld
+	readRegisterSDS :: !sds !p !TaskContext !TaskId !SDSIdentity !*IWorld
 	                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class Writeable sds | Identifiable sds
+class Writeable sds ~p ~w | Identifiable sds
 where
 	/**
 	 * Write a value directly to a sds.
@@ -122,10 +122,10 @@ where
 	 * @param context in which to write. Async sdss use the context to retrieve the task id.
 	 * @param value which to write to the sds.
 	 */
-	writeSDS :: !(sds p r w) !p !TaskContext !w !*IWorld
+	writeSDS :: !sds !p !TaskContext !w !*IWorld
 	         -> *(!MaybeError TaskException (WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class Modifiable sds | Readable, Writeable sds
+class Modifiable sds ~p ~r ~w | Readable sds p r & Writeable sds p w
 where
 	/**
 	 * Modify the SDS with the given function
@@ -134,15 +134,15 @@ where
 	 * @param parameter
 	 * @param The context in which to read/write to the SDS
 	 */
-	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) !p !TaskContext !*IWorld
+	modifySDS :: !(r -> MaybeError TaskException w) !sds !p !TaskContext !*IWorld
 	          -> *(!MaybeError TaskException (ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class RWShared sds | Modifiable, Registrable sds
+class RWShared sds ~p ~r ~w | Modifiable sds p r w & Registrable sds p r
 
 /**
  * A SDS with no parameters and equal read and write types.
  */
-:: Shared sds a :== sds () a a
+class Shared sds ~a | RWShared sds () a a
 
 :: SDSShareOptions =
 	{ domain :: !String
@@ -167,7 +167,7 @@ instance toString (WebServiceShareOptions p r w)
 	// In the case that this reading is asynchronous, writing could also be asynchronous. This
 	// option allows to temporarily store the read result, so that we can start rewriting in order
 	//  to write to the SDS, using the stored read value.
-	| E. sds: SDSValue !Bool !r !(sds p r w) & RWShared sds & TC p & TC r & TC w
+	| E. sds: SDSValue !Bool !r !sds & RWShared sds p r w & TC p & TC r & TC w
 
 :: SDSSourceOptions p r w =
 	{ name  :: !String
@@ -181,8 +181,8 @@ instance toString (WebServiceShareOptions p r w)
 :: SimpleSDSLens a :== SDSLens () a a
 
 //Lenses select and transform data
-:: SDSLens p r w  = E. ps rs ws sds: SDSLens !(sds ps rs ws) !(SDSLensOptions p r w ps rs ws)
-                  & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
+:: SDSLens p r w  = E. ps rs ws sds: SDSLens !sds !(SDSLensOptions p r w ps rs ws)
+                  & RWShared sds p r w & gText{|*|} ps & TC ps & TC rs & TC ws
 
 :: SDSLensOptions p r w ps rs ws =
 	{ name    :: !String
@@ -224,8 +224,8 @@ required type w. The reducer has the job to turn this ws into w.
 :: SimpleSDSSelect a :== SDSSelect () a a
 
 //Merge two sources by selecting one based on the parameter
-:: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !(sds1 p1 r w) !(sds2 p2 r w) !(SDSSelectOptions p r w p1 p2)
-                   & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
+:: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !sds1 !sds2 !(SDSSelectOptions p r w p1 p2)
+                   & RWShared sds1 p1 r w & RWShared sds2 p2 r w & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
 
 :: SDSSelectOptions p r w p1 p2 =
 	{ name    :: !String
@@ -242,17 +242,17 @@ required type w. The reducer has the job to turn this ws into w.
 //Read from and write to two independent SDS's
 :: SDSParallel p r w
 	= E. p1 r1 w1 p2 r2 w2 sds1 sds2:
-	  SDSParallel !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
-	  & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	  SDSParallel !sds1 !sds2 !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
+	  & RWShared sds1 p1 r1 w1 & RWShared sds2 p2 r2 w2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 	| E. p1 r1 p2 r2 w2 sds1 sds2:
-	  SDSParallelWriteLeft !(sds1 p1 r1 w) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w p2 r2 w2 p r w)
-	  & RWShared sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
+	  SDSParallelWriteLeft !sds1 !sds2 !(SDSParallelOptions p1 r1 w p2 r2 w2 p r w)
+	  & RWShared sds1 p1 r1 w & Registrable sds2 p2 r2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
 	| E. p1 r1 w1 p2 r2 sds1 sds2:
-	  SDSParallelWriteRight !(sds1 p1 r1 w1) !(sds2 p2 r2 w) !(SDSParallelOptions p1 r1 w1 p2 r2 w p r w)
-	  & Registrable sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
+	  SDSParallelWriteRight !sds1 !sds2 !(SDSParallelOptions p1 r1 w1 p2 r2 w p r w)
+	  & Registrable sds1 p1 r1 & RWShared sds2 p2 r2 w & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
 	| E. p1 r1 w1 p2 r2 w2 sds1 sds2:
-	  SDSParallelWriteNone !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
-	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	  SDSParallelWriteNone !sds1 !sds2 !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
+	  & Registrable sds1 p1 r1 & Registrable sds2 p2 r2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
 	{ name   :: !String
@@ -271,10 +271,8 @@ required type w. The reducer has the job to turn this ws into w.
 //The read value from the first is used to compute the parameter for the second
 :: SDSSequence p r w =
 	E. p1 r1 w1 p2 r2 w2 sds1 sds2:
-	SDSSequence !(sds1 p1 r1 w1)
-	            !(sds2 p2 r2 w2)
-	            !(SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w)
-	& RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	SDSSequence !sds1 !sds2 !(SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w)
+	& RWShared sds1 p1 r1 w1 & RWShared sds2 p2 r2 w2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w =
 	{ name   :: !String
@@ -308,7 +306,7 @@ required type w. The reducer has the job to turn this ws into w.
  * asynchronous message to be sent to the other server to retrieve the value for the
  * specified operation.
  */
-:: SDSRemoteSource p r w = E. sds: SDSRemoteSource !(sds p r w) !(Maybe ConnectionId) !SDSShareOptions & RWShared sds
+:: SDSRemoteSource p r w = E. sds: SDSRemoteSource !sds !(Maybe ConnectionId) !SDSShareOptions & RWShared sds p r w
 
 :: WebServiceShareOptions p r w = HTTPShareOptions !(HTTPHandlers p r w)
                                 | TCPShareOptions !(TCPHandlers p r w)
@@ -340,4 +338,4 @@ required type w. The reducer has the job to turn this ws into w.
  */
 :: SDSRemoteService p r w = SDSRemoteService !(Maybe ConnectionId) !(WebServiceShareOptions p r w)
 
-:: SDSDebug p r w = E. sds: SDSDebug !String !(sds p r w) & RWShared sds
+:: SDSDebug p r w = E. sds: SDSDebug !String !sds & RWShared sds p r w
