@@ -21,6 +21,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Data.Map.GenJSON
 import Text
 
 /** hostname, connection on which to send the reply, accumulated data received **/

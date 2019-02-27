@@ -4,6 +4,7 @@ import iTasks
 from Text import class Text, instance Text String
 import qualified Text as T
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 from Data.Map import :: Map
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.List as DL
