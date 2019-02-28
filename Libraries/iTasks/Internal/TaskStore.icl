@@ -23,6 +23,7 @@ import iTasks.WF.Combinators.Tune
 import iTasks.Extensions.Document
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
