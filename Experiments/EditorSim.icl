@@ -41,23 +41,62 @@ import iTasks.Extensions.SVG.SVGEditor
 :: NxtEditorClient c m =
   { init      :: (Maybe c) -> NxtDOM
   , state     :: NxtDOM -> c
-  , onEvent   :: NxtDOMRef String NxtDOM -> ([NxtWithVersion m],NxtDOM)
-  , onMessage :: (NxtWithVersions m) NxtDOM -> ([NxtWithVersion m],NxtDOM)
+  , onEvent   :: NxtDOMRef String NxtDOM -> ([NxtClientOutMessage m],NxtDOM)
+  , onMessage :: (NxtClientInMessage m) NxtDOM -> ([NxtClientOutMessage m],NxtDOM)
   }
 
 :: NxtEditorServer p r w s c m =
-  { init      :: p -> (s,c)
+  { init      :: p NxtMajorVersion -> (s, NxtVersionTree, c)
   , parameter :: s -> p
   , value     :: s -> Maybe w
-  , onRefresh :: r s NxtVersion -> ([NxtWithVersions m], s, NxtVersion, NxtWrite) 
-  , onMessage :: (NxtWithVersion m) s NxtVersion -> ([NxtWithVersions m], s, NxtVersion, Bool)
+  , onRefresh :: r NxtMajorVersion s NxtVersionTree -> ([NxtServerOutMessage m], s, NxtVersionTree, NxtWrite) 
+  , onMessage :: (NxtServerInMessage m) s NxtVersionTree -> ([NxtServerOutMessage m], s, NxtVersionTree, Bool)
   }
 
 :: NxtWrite :== Bool //The Bool is a 'write' signal that indicates if something significant has changed
-:: NxtVersion :== (!Int,!Int) //First: which read from sds, Second: which revision by edits
 
-:: NxtWithVersion m = { message :: m, version :: NxtVersion }
-:: NxtWithVersions m = { message :: m, oldVersion :: NxtVersion, newVersion :: NxtVersion }
+:: NxtVersion :== (!NxtMajorVersion,!NxtMinorVersion) //First: which read from sds, Second: which revision by edits
+:: NxtMajorVersion :== Int
+:: NxtMinorVersion :== Int
+
+//Together with the served side state we need to track all versions explicitly
+//(the client versions are encoded in the DOM)
+:: NxtVersionTree
+	= NVTBasic     !NxtVersion
+	| NVTGlue      !NxtVersionTree !NxtVersionTree
+	| NVTMultiple  !NxtVersion [NxtVersionTree]
+
+//Messages commonly only affect part of a datastructure, so no complete version tree is communicated
+:: NxtPartialVersionTree 
+	= NVPVersion !(Maybe NxtVersion) ![(Int,NxtPartialVersionTree)]
+
+:: NxtWithPartialVersion m = { message :: m, version :: NxtPartialVersionTree }
+:: NxtWithPartialVersions m = { message :: m, oldVersion :: NxtPartialVersionTree, newVersion :: NxtPartialVersionTree}
+
+:: NxtClientInMessage m
+	= NxtClientInRemote m NxtPartialVersionTree NxtPartialVersionTree //(message, oldVersion, newVersion)
+	| NxtClientInLocal m //local loopback on client
+
+:: NxtClientOutMessage m = NxtClientOut m NxtPartialVersionTree //(message, version)
+
+:: NxtServerInMessage m
+	= NxtServerInRemote m NxtPartialVersionTree
+	| NxtServerInLocal m NxtMajorVersion //When we feedback messages, we need to pass along the major version of message that created the feedback
+
+:: NxtServerOutMessage m = NxtServerOut m NxtPartialVersionTree NxtPartialVersionTree
+
+
+//TODO: this is not minimal enough: We create a partial version info structure, but it actually contains all versions!
+toPartialVersion (NVTBasic v) = NVPVersion (Just v) []
+toPartialVersion (NVTGlue v1 v2) = NVPVersion Nothing [(0,toPartialVersion v1),(1,toPartialVersion v2)]
+toPartialVersion (NVTMultiple v vs) = NVPVersion (Just v) [(n,toPartialVersion cv) \\ cv <- vs & n <- [0..]]
+
+emptyPartialVersion = NVPVersion Nothing []
+selectPartialVersion pos (NVPVersion _ items) = case [v \\ (i,v) <- items | i == pos] of
+	[v:_] = v
+	_     = emptyPartialVersion
+
+maxMajorVersion (NVPVersion mbv vs) = foldr max (maybe 0 fst mbv) (map (maxMajorVersion o snd) vs)
 
 //Simulated DOM/JSWorld
 :: NxtDOMRef :== [Int]
@@ -66,16 +105,18 @@ import iTasks.Extensions.SVG.SVGEditor
 :: NxtDOMNode = 
 	{ attributes :: Map String String
 	, children   :: [NxtDOMNode]
+	, history    :: [(NxtVersion,NxtDOMNode)] //Would normally be tracked in JS outside the DOM
 	}
 
 :: VersionedServerState s =
 	{ state            :: s
-	, readVersion      :: Int //Increments each time the linked sds refreshes
-	, editVersion      :: Int //Increments each time an edit message is received from the client, resets when readVersion is incremented
+	, readVersion      :: NxtMajorVersion //Increments each time the linked sds refreshes
+	, stateVersion     :: NxtVersionTree //Holds the versions of all parts of an editor
 	}
 
 //Untyped clientside configuration
 :: NxtUI :== Map String String
+//:: NxtUI = { attributes  :: Map String String, children :: [NxtUI]}
 
 //Untyped message for transfer and configuration
 :: NxtChange
@@ -89,7 +130,10 @@ import iTasks.Extensions.SVG.SVGEditor
   | NxtRemChild Int
   | NxtUpdChild Int NxtChange
 
-derive class iTask NxtDOMNode, NxtWithVersion, NxtWithVersions, VersionedServerState, NxtChange, NxtAttrChange, NxtStructureChange
+derive class iTask NxtDOMNode, VersionedServerState, NxtChange, NxtAttrChange, NxtStructureChange
+derive class iTask NxtWithPartialVersion, NxtWithPartialVersions, NxtVersionTree, NxtPartialVersionTree
+derive class iTask NxtServerInMessage, NxtServerOutMessage, NxtClientInMessage, NxtClientOutMessage
+
 derive JSEncode NxtDOMNode, Map
 derive JSDecode NxtDOMNode, Map
 
@@ -113,9 +157,32 @@ where
   encodeEditUI :: c -> NxtUI
   decodeEditUI :: NxtUI -> c
 
-nextVersion (version,_) = (version + 1, 0)
+
 nextRevision (version,revision) = (version, revision + 1)
-checkRevision (v1,r1) (v2,r2) = (v1 == v2) && (r1 == r2 + 1) //Only accept the next revision
+
+checkRevision (NVPVersion (Just (v1,r1)) _) (v2,r2) = (v1 == v2) && (r1 == r2 + 1) //Only accept the next revision
+checkRevision _ _ = False
+
+getVersionFromDOM {NxtDOMNode|attributes}
+	# major = maybe 0 toInt ('DM'.get "major-version" attributes)
+	# minor = maybe 0 toInt ('DM'.get "minor-version" attributes)
+	= (major,minor) 
+
+setVersionInDOM (major,minor) dom=:{NxtDOMNode|attributes}
+	# attributes = 'DM'.put "major-version" (toString major) attributes
+	# attributes = 'DM'.put "minor-version" (toString minor) attributes
+	= {NxtDOMNode|dom & attributes = attributes}
+
+pushHistoryInDOM dom=:{attributes,children,history}
+	# version = getVersionFromDOM dom
+	= {NxtDOMNode|attributes = attributes, children = children, history = [(version,dom):history]}
+
+resetHistoryInDOM dom = {NxtDOMNode|dom & history = []}
+
+//Get the version of a child element in a compound structure
+childversion pos mv = case [v \\ (n,v) <- mv | n == pos] of
+	[] = NVPVersion Nothing []
+	vs = last vs
 
 //Definitions of a test editor
 nxtNumberField :: NxtEditor () Int Int String String String
@@ -124,33 +191,69 @@ where
  client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
  where
   init c
-    = {NxtDOMNode|attributes = 'DM'.fromList [("type","numberfield"),("value",maybe "" fromString c)], children = []}
+    = {NxtDOMNode|attributes = 'DM'.fromList [("type","numberfield"),("value",maybe "" fromString c)], children = [], history = []}
 
   state dom=:{NxtDOMNode|attributes} = fromMaybe "" ('DM'.get "value" attributes)
 
   onEvent [] e dom=:{NxtDOMNode|attributes}
-	# version = maybe (0,0) (nextRevision o fromVersionAttr) ('DM'.get "version" attributes)
-    # msg = [{message=e,version=version}]
-    # dom = {NxtDOMNode|dom & attributes = 'DM'.put "value" (fromString e) $ 'DM'.put "version" (toVersionAttr version) attributes}
+	# version = nextRevision $ getVersionFromDOM dom
+    # msg = [NxtClientOut e (NVPVersion (Just version) [])]
+	# dom = pushHistoryInDOM dom
+    # dom = setVersionInDOM version {NxtDOMNode|dom & attributes = 'DM'.put "value" (fromString e) attributes}
     = (msg,dom)
   onEvent _ _ dom = ([],dom)
 
-  onMessage {message,oldVersion,newVersion} dom=:{NxtDOMNode|attributes}
-	//TODO: Revert to old version, apply value and replay edits 
-	# attributes = 'DM'.put "value" message attributes
-	# attributes = 'DM'.put "version" (toVersionAttr newVersion) attributes
-    = ([],{NxtDOMNode|dom & attributes = attributes})
+  onMessage (NxtClientInLocal message) dom=:{NxtDOMNode|attributes,history}
+	# version = nextRevision $ getVersionFromDOM dom
+    # msg = [NxtClientOut message (NVPVersion (Just version) [])]
+	# dom = pushHistoryInDOM dom
+    # dom = setVersionInDOM version {NxtDOMNode|dom & attributes = 'DM'.put "value" message attributes}
+    = (msg,dom)
+
+  onMessage (NxtClientInRemote message (NVPVersion (Just oldVersion) _) (NVPVersion (Just newVersion) _)) dom=:{NxtDOMNode|attributes,history}
+	# version = getVersionFromDOM dom
+	| version <> oldVersion //The server was not up-to date, mitigate potential conflict
+		# curValue = fromJust ('DM'.get "value" attributes)
+		# oldValue = firstJust ['DM'.get "value" attributes \\ (v,{NxtDOMNode|attributes}) <- history | v == oldVersion]
+		//If we only extended the message, we can add the extension 
+		| startsWith oldValue curValue
+			# extension = subString (textSize oldValue) (textSize curValue) curValue
+			# newValue = message +++ extension
+			//Set message value as first step in history
+			# dom = setVersionInDOM newVersion dom
+			# dom = {NxtDOMNode|dom & attributes = 'DM'.put "value" message attributes}
+			# dom = pushHistoryInDOM $ resetHistoryInDOM dom
+			//Retore the extension and set as message
+			# newVersion = nextRevision newVersion
+			# dom = setVersionInDOM newVersion dom
+			# dom = {NxtDOMNode|dom & attributes = 'DM'.put "value" newValue attributes}
+    		# msg = [NxtClientOut newValue (NVPVersion (Just newVersion) [])]
+			= (msg,dom)
+		| otherwise //Too bad, we have lost our edits, best notify the user somehow by a visual or audible cue
+			# dom = {NxtDOMNode|dom & attributes = 'DM'.put "value" message attributes}
+			# dom = setVersionInDOM newVersion dom
+			# dom = resetHistoryInDOM dom
+			= ([],dom)
+	| otherwise //Everything was as expected
+		# dom = {NxtDOMNode|dom & attributes = 'DM'.put "value" message attributes}
+		# dom = setVersionInDOM newVersion dom
+		# dom = resetHistoryInDOM dom
+		= ([],dom)
+  where
+    firstJust [Just x:_] = x
 
  server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
  where
-  init () = ("","")
+  init () v = ("",NVTBasic (v,0), "")
   parameter _ = ()
   value s = Just (toInt s)
 
-  onRefresh s _ v = ([{message=toString s, oldVersion = v, newVersion = nextVersion v}], toString s, nextVersion v, False)
-  onMessage {message,version} c v 
-	| checkRevision version v = ([], message, nextRevision v, True)
-	| otherwise               = ([], c, v, False)
+  onRefresh r rv  _ (NVTBasic v)
+	= ([NxtServerOut (toString r) (NVPVersion (Just v) []) (NVPVersion (Just (rv,0)) [])], toString r,NVTBasic (rv,0), False)
+
+  onMessage (NxtServerInRemote message version) c (NVTBasic v )
+	| checkRevision version v = ([], message, NVTBasic (nextRevision v), True)
+	| otherwise               = ([], c, NVTBasic v, False)
 
 nxtButton :: NxtEditor () Bool Bool Bool (String,Bool) Bool
 nxtButton = {client=client,server=server}
@@ -159,7 +262,7 @@ where
  where
   init c 
 	# (label,clicked) = fromMaybe ("button",False) c
-	= {NxtDOMNode|attributes = 'DM'.fromList [("type","button"),("label",label),("clicked",if clicked "true" "false")],children = []}
+	= {NxtDOMNode|attributes = 'DM'.fromList [("type","button"),("label",label),("clicked",if clicked "true" "false")],children = [], history = []}
 
   state dom=:{NxtDOMNode|attributes}
 	# clicked = case 'DM'.get "clicked" attributes of
@@ -169,51 +272,139 @@ where
 	= (label,clicked)
 
   onEvent [] "click" dom=:{NxtDOMNode|attributes}
-    # msg = [{message = True, version = (0,0)}]
-    # dom = {NxtDOMNode|dom & attributes = 'DM'.put "clicked" "true" attributes}
+	# major = maybe 0 toInt ('DM'.get "major-version" attributes)
+	# minor = maybe 1 (inc o toInt) ('DM'.get "minor-version" attributes)
+    # msg = [NxtClientOut True (NVPVersion (Just (major,minor)) [])]
+    # dom = {NxtDOMNode|dom & attributes = 'DM'.put "minor-version" (toString minor) $'DM'.put "clicked" "true" attributes}
     = (msg,dom)
   onEvent _ _ dom
 	= ([],dom)
 
-  onMessage {message,oldVersion,newVersion} dom=:{NxtDOMNode|attributes}
-    = ([],{NxtDOMNode|dom & attributes = 'DM'.put "clicked" (if message "true" "false") attributes})
+  onMessage (NxtClientInLocal value) dom=:{NxtDOMNode|attributes} //Similar to onEvent, but can also set value to False
+	# major = maybe 0 toInt ('DM'.get "major-version" attributes)
+	# minor = maybe 1 (inc o toInt) ('DM'.get "minor-version" attributes)
+    # msg = [NxtClientOut value (NVPVersion (Just (major,minor)) [])]
+    # dom = {NxtDOMNode|dom & attributes = 'DM'.put "minor-version" (toString minor) $'DM'.put "clicked" "false" attributes}
+    = (msg,dom)
+
+  onMessage (NxtClientInRemote message oldVersion newVersion) dom=:{NxtDOMNode|attributes}
+	# attributes = 'DM'.put "clicked" (if message "true" "false") attributes
+	//Update version
+	# attributes = case newVersion of
+		(NVPVersion (Just (major,minor)) _)
+			= 'DM'.put "minor-version" (toString minor) $ 'DM'.put "major-version" (toString major) attributes
+		_ 
+			= attributes
+    = ([],{NxtDOMNode|dom & attributes = attributes})
 
  server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
  where
-  init _ = (False,("Click me",False))
+  init () v = (False,NVTBasic (v,0),("Click me",False))
   parameter _ = ()
   value s = Just s
 
-  onRefresh s _ v = ([{message = s, oldVersion = v, newVersion = nextVersion v}], s, nextVersion v, False)
+  onRefresh r rv _ (NVTBasic v) = ([NxtServerOut r (NVPVersion (Just v) []) (NVPVersion (Just (rv,0)) [])], r, NVTBasic (rv,0), False)
 
-  onMessage {message,version} c v
-	| checkRevision version v = ([], message, nextRevision v, True)
-	| otherwise               = ([], c, v, False)
+  onMessage (NxtServerInRemote message version) c (NVTBasic v)
+	| checkRevision version v = ([], message, NVTBasic (nextRevision v), True)
+	| otherwise               = ([], c, NVTBasic v, False)
 
 
 toVersionAttr (x,y) = toString x +++ "-" +++ toString y
 
 fromVersionAttr s = case split "-" s of
-	[x,"-",y:_] = (toInt x,toInt y)
-	_           = (0,0)
+	[x,y:_] = (toInt x,toInt y)
+	_       = (0,0)
 
-addVersionAttr key version (NxtNoChange) = NxtChange [NxtSetAttr key (toVersionAttr version)] []
-addVersionAttr key version (NxtChange attrChanges childChanges) = NxtChange (attrChanges ++ [NxtSetAttr key (toVersionAttr version)]) childChanges
-addVersionAttr key version (NxtReplace attrs) = NxtReplace ('DM'.put key (toVersionAttr version) attrs)
+addVersionAttr key (Just version) (NxtNoChange) = NxtChange [NxtSetAttr key (toVersionAttr version)] []
+addVersionAttr key (Just version) (NxtChange attrChanges childChanges) = NxtChange (attrChanges ++ [NxtSetAttr key (toVersionAttr version)]) childChanges
+addVersionAttr key (Just version) (NxtReplace attrs) = NxtReplace ('DM'.put key (toVersionAttr version) attrs)
+addVersionAttr key Nothing message = message
 
-getVersionAttr key enc = (0,0) //TODO
+getVersionAttr key (NxtChange attrChanges childChanges)
+	= case [fromVersionAttr v \\ NxtSetAttr k v <- attrChanges | key == k] of
+		[] =  Nothing
+		versions = Just (last versions)
+getVersionAttr key (NxtReplace attrs) 
+	= fmap fromVersionAttr ('DM'.get key attrs)
+getVersionAttr key enc = Nothing
 
-instance EditMessage (NxtWithVersion m) | EditMessage m
+overlayVersions key (NVPVersion Nothing []) (NxtNoChange) = NxtNoChange
+overlayVersions key (NVPVersion mbv cvs) (NxtNoChange) = NxtChange attrChanges childChanges
 where
-	encodeEditMessage {message,version} = addVersionAttr "version" version $ encodeEditMessage message
-	decodeEditMessage enc = {message=decodeEditMessage enc, version = getVersionAttr "version" enc}
+	attrChanges = maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
+	childChanges = [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
 
-instance EditMessage (NxtWithVersions m) | EditMessage m
+overlayVersions key (NVPVersion mbv cvs) (NxtChange attrChanges childChanges) = NxtChange attrChanges` childChanges`
+where
+	attrChanges` = attrChanges ++ maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
+	childChanges` = childChanges ++ [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
+
+overlayVersions key (NVPVersion mbv cvs) (NxtReplace attrs) = NxtReplace attrs` //TODO: Cannot handle nested versions yet
+where 
+	attrs` = maybe attrs (\version -> 'DM'.put key (toVersionAttr version) attrs) mbv
+
+getOverlayedVersions key NxtNoChange = NVPVersion Nothing []
+getOverlayedVersions key (NxtReplace attrs)
+	= NVPVersion (fmap fromVersionAttr ('DM'.get key attrs)) []
+getOverlayedVersions key (NxtChange attrChanges childChanges)
+	# version = foldl setVersion Nothing attrChanges
+	# childVersions = [(n, getOverlayedVersions key change) \\ (NxtUpdChild n change) <- childChanges]
+	= NVPVersion version (filter (not o emptyChange o snd) childVersions)
+where
+	setVersion cur (NxtSetAttr k v) = if (k == key) (Just (fromVersionAttr v)) cur
+	setVersion cur _ = cur
+
+	emptyChange (NVPVersion Nothing []) = True
+	emptyChange _ = False
+
+instance EditMessage (NxtServerOutMessage m) | EditMessage m
+where
+	encodeEditMessage (NxtServerOut message oldVersion newVersion)
+		= overlayVersions "old-version" oldVersion
+		$ overlayVersions "new-version" newVersion
+		$ encodeEditMessage message
+
+	decodeEditMessage enc
+		= let  message = decodeEditMessage enc
+		       oldVersion = getOverlayedVersions "old-version" enc
+		       newVersion = getOverlayedVersions "new-version" enc
+		  in (NxtServerOut message oldVersion newVersion)
+
+instance EditMessage (NxtClientOutMessage m) | EditMessage m
+where
+	encodeEditMessage (NxtClientOut message version)
+		= overlayVersions "version" version
+		$ encodeEditMessage message
+
+	decodeEditMessage enc
+		= let message = decodeEditMessage enc
+		      version = getOverlayedVersions "version" enc
+		  in (NxtClientOut message version)
+
+instance EditMessage (NxtWithPartialVersion m) | EditMessage m
+where
+	encodeEditMessage {message,version}
+		= overlayVersions "version" version
+		$ encodeEditMessage message
+
+	decodeEditMessage enc
+		= {message=decodeEditMessage enc
+		  ,version = getOverlayedVersions "version" enc
+		  }
+
+instance EditMessage (NxtWithPartialVersions m) | EditMessage m
 where
 	encodeEditMessage {message,oldVersion,newVersion}
-		= addVersionAttr "old-version" oldVersion $ addVersionAttr "new-version" newVersion $ encodeEditMessage message
+		= overlayVersions "old-version" oldVersion
+		$ overlayVersions "new-version" newVersion
+		$ encodeEditMessage message
+
 	decodeEditMessage enc
-		= {message=decodeEditMessage enc, oldVersion = getVersionAttr "old-version" enc, newVersion = getVersionAttr "new-version" enc}
+		= {message=decodeEditMessage enc
+		  ,oldVersion = getOverlayedVersions "old-version" enc
+		  ,newVersion = getOverlayedVersions "new-version" enc
+		  }
 
 instance EditMessage String //If strings are used as edit type, it's just the value attribute
 where
@@ -271,7 +462,6 @@ where
 	decodeEditMessage (NxtChange _ [NxtRemChild pos:_]) = NxtRemoveChild pos
 	decodeEditMessage (NxtChange _ [NxtUpdChild pos m:_]) = NxtUpdateChild pos (decodeEditMessage m)
 
-/*
 // ### Composition
 
 //Combine two editors into one that can do both
@@ -284,6 +474,31 @@ alternative ::
 	(NxtEditor (Either p1 p2) (Either r1 r2) (Either w1 w2) (Either s1 s2) (Either c1 c2) (Either m1 m2))
 alternative e1 e2 = {NxtEditor|server=server,client=client} 
 where
+	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
+	where
+		init (Left p) mv = let (s,vs,c) = (e1.server.NxtEditorServer.init p mv) in  (Left s,vs,Left c)
+		init (Right p) mv = let (s,vs,c) = (e2.server.NxtEditorServer.init p mv) in (Right s,vs,Right c)
+
+		parameter (Left s) = Left (e1.server.NxtEditorServer.parameter s)
+		parameter (Right s) = Right (e2.server.NxtEditorServer.parameter s)
+
+		value (Left s) = fmap Left (e1.server.NxtEditorServer.value s)
+		value (Right s) = fmap Right (e2.server.NxtEditorServer.value s)
+
+		onRefresh (Left r) rv (Left s) sv
+			# (ms,s,sv,w) = e1.server.NxtEditorServer.onRefresh r rv s sv
+			= ([NxtServerOut (Left message) oldVersion newVersion \\ (NxtServerOut message oldVersion newVersion) <- ms], Left s, sv, w)
+		onRefresh (Right r) rv (Right s) sv
+			# (ms,s,sv,w) = e2.server.NxtEditorServer.onRefresh r rv s sv
+			= ([NxtServerOut (Right message) oldVersion newVersion \\ (NxtServerOut message oldVersion newVersion) <- ms], Right s, sv, w)
+
+		onMessage (NxtServerInRemote (Left m) version) (Left s) sv 
+			# (ms,s,sv,w) = e1.server.NxtEditorServer.onMessage (NxtServerInRemote m version) s sv
+			= ([NxtServerOut (Left message) oldVersion newVersion \\ (NxtServerOut message oldVersion newVersion) <- ms], Left s, sv, w)
+		onMessage (NxtServerInRemote (Right m) version) (Right s) sv
+			# (ms,s,sv,w) = e2.server.NxtEditorServer.onMessage (NxtServerInRemote m version) s sv
+			= ([NxtServerOut (Right message) oldVersion newVersion \\ (NxtServerOut message oldVersion newVersion) <- ms], Right s, sv, w)
+
     client = {init = init, onEvent = onEvent, onMessage = onMessage, state = state}
 	where
 		init Nothing
@@ -307,136 +522,119 @@ where
     		# alt = fromJust ('DM'.get "alternative" attributes)
 			| alt == "left"
 				# (ms,dom) = e1.client.NxtEditorClient.onEvent ref event dom 
-				= (map Left ms,dom)
+				= ([NxtClientOut (Left message) version \\ (NxtClientOut message version) <- ms], dom)
 			| otherwise
 				# (ms,dom) = e2.client.NxtEditorClient.onEvent ref event dom 
-				= (map Right ms,dom)
+				= ([NxtClientOut (Right message) version \\ (NxtClientOut message version) <- ms], dom)
 
-		onMessage (Left msg) dom 
-			# (ms,dom) = e1.client.NxtEditorClient.onMessage msg dom 
-			= (map Left ms,dom)
-		onMessage (Right msg) dom 
-			# (ms,dom) = e2.client.NxtEditorClient.onMessage msg dom 
-			= (map Right ms,dom)
+		onMessage (NxtClientInRemote (Left m) oldVersion newVersion) dom 
+			# (ms,dom) = e1.client.NxtEditorClient.onMessage (NxtClientInRemote m oldVersion newVersion) dom 
+			= ([NxtClientOut (Left message) version \\ (NxtClientOut message version) <- ms], dom)
+		onMessage (NxtClientInRemote (Right m) oldVersion newVersion) dom 
+			# (ms,dom) = e2.client.NxtEditorClient.onMessage (NxtClientInRemote m oldVersion newVersion) dom 
+			= ([NxtClientOut (Right message) version \\ (NxtClientOut message version) <- ms], dom)
 
-	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
-	where
-		init (Left p) = (\(s,c) -> (Left s,Left c)) (e1.server.NxtEditorServer.init p)
-		init (Right p) = (\(s,c) -> (Right s,Right c)) (e2.server.NxtEditorServer.init p)
-
-		parameter (Left s) = Left (e1.server.NxtEditorServer.parameter s)
-		parameter (Right s) = Right (e2.server.NxtEditorServer.parameter s)
-
-		value (Left s) = fmap Left (e1.server.NxtEditorServer.value s)
-		value (Right s) = fmap Right (e2.server.NxtEditorServer.value s)
-
-		onRefresh (Left r) (Left s) 
-			# (ms,s,w) = e1.server.NxtEditorServer.onRefresh r s
-			= (map Left ms, Left s, w)
-		onRefresh (Right r) (Right s) 
-			# (ms,s,w) = e2.server.NxtEditorServer.onRefresh r s
-			= (map Right ms, Right s, w)
-
-		onMessage (Left m) (Left s) 
-			# (ms,s,w) = e1.server.NxtEditorServer.onMessage m s
-			= (map Left ms, Left s, w)
-		onMessage (Right m) (Right s) 
-			# (ms,s,w) = e2.server.NxtEditorServer.onMessage m s
-			= (map Right ms, Right s, w)
-*/
-
-/*
 multiple :: (NxtEditor p r w s c m) -> (NxtEditor p [Maybe r] [Maybe w] (p,[s]) [c] (ContainerMsg c m))
 multiple editor = {NxtEditor|server=server,client=client}
 where
+	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
+	where
+		init p v = ((p,[]),NVTMultiple (v,0) [], [])
+		parameter (p,_) = p
+		value (_,ss) = Just (map editor.server.NxtEditorServer.value ss)
+
+		onRefresh mbrs rv (p,ss) (NVTMultiple stv vs)//A naive linear side by side diff to see what needs updating
+			# (msgs,ss,vs,write) = compare 0 ss vs mbrs
+			= (msgs, (p,ss), NVTMultiple stv vs, False)//By default we need to do a diff
+		where
+			//Compare first items side by side
+			compare i [s:ss] [v:vs] [Nothing:mbrs]
+				# (msgs, ss, vs, write) = compare (i + 1) ss vs mbrs
+				= (msgs, [s:ss], [v:vs], write)
+
+			compare i [s:ss] [vo:vs] [Just r:mbrs]
+				# (ms, s, vn, writes) = editor.server.NxtEditorServer.onRefresh r rv s vo
+				# (msgs, ss, vs, writess) = compare (i + 1) ss vs mbrs
+				= ([NxtServerOut (NxtUpdateChild i message) (toPartialVersion vo) (toPartialVersion vn) \\ (NxtServerOut message oldVersion newVersion) <- ms] ++ msgs
+				  , [s:ss], [vn:vs], writes || writess) //TODO: determine proper versions...
+
+			//New read list has more items
+			compare i [] _ mbrs
+				# (msgs, ss, vs, ws) = unzip4 [create i` mbr \\ mbr <- mbrs & i` <- [i..]]
+				= (flatten msgs, ss, vs, or ws)
+			where
+				create i mbr
+					# (s,vi,c) = editor.server.NxtEditorServer.init p (fst stv)
+					# (ms, s, v, write) = maybe ([],s,vi,False) (\r -> editor.server.NxtEditorServer.onRefresh r rv s vi) mbr 
+					= ([NxtServerOut (NxtInsertChild i (Just c)) emptyPartialVersion (toPartialVersion vi)
+					   :[NxtServerOut (NxtUpdateChild i message) (NVPVersion Nothing [(i,oldVersion)]) (NVPVersion Nothing [(i,newVersion)]) \\ (NxtServerOut message oldVersion newVersion) <- ms]], s, v, write)
+
+			//New read list has less (remove existing)
+			compare i ss _ [] = (repeatn (length ss) (NxtServerOut (NxtRemoveChild i) emptyPartialVersion emptyPartialVersion),[],[],False) //TODO: versions...
+
+
+		onMessage (NxtServerInRemote (NxtUpdateChild pos m) (NVPVersion _ mv)) (p,ss) (NVTMultiple stv vs)//Route to the corresponding child
+			| pos >= length ss || pos < 0 = ([],(p,ss),NVTMultiple stv vs,False) //Out of bounds, (maybe abort instead for the simulation)
+			# (ms,s,v,write) = editor.server.NxtEditorServer.onMessage (NxtServerInRemote m (childversion pos mv)) (ss !! pos) (vs !! pos)
+			= ([NxtServerOut (NxtUpdateChild pos message) (multiversion pos oldVersion) (multiversion pos newVersion)
+			   \\ (NxtServerOut message oldVersion newVersion) <-ms ], (p, updateAt pos s ss), NVTMultiple stv (updateAt pos v vs), write)
+			//TODO: create the right version structure
+            where
+				multiversion pos v = NVPVersion Nothing [(pos,v)]
+
+		onMessage (NxtServerInRemote (NxtRemoveChild pos) (NVPVersion _ mv)) (p,ss) (NVTMultiple stv vs)
+			| pos >= length ss || pos < 0 = ([],(p,ss),NVTMultiple stv vs, False) //Out of bounds, (maybe abort instead for the simulation)
+			= ([], (p, removeAt pos ss), NVTMultiple stv (removeAt pos vs), True)
+
+		onMessage (NxtServerInRemote (NxtInsertChild pos Nothing) (NVPVersion _ mv)) (p,ss) (NVTMultiple stv vs)
+			| pos > length ss || pos < 0 = ([],(p,ss),NVTMultiple stv vs, False) //Out of bounds, (maybe abort instead for the simulation)
+			# (s,v,_) = editor.server.NxtEditorServer.init p (fst stv) 
+			= ([], (p, insertAt pos s ss), NVTMultiple stv (insertAt pos v vs), True)
+
     client = {init = init, onEvent = onEvent, onMessage = onMessage, state = state}
 	where
-		init Nothing = {NxtDOMNode|attributes = attributes, children = []}
+		init Nothing = {NxtDOMNode|attributes = attributes, children = [], history = []}
 		init (Just cs)
-			= {NxtDOMNode|attributes = attributes, children = [editor.client.NxtEditorClient.init (Just c) \\ c <- cs]}
+			= {NxtDOMNode|attributes = attributes, children = [editor.client.NxtEditorClient.init (Just c) \\ c <- cs], history = []}
 		attributes = 'DM'.fromList [("type","multiple")]
 
 		onEvent [n:ref] event dom=:{NxtDOMNode|children}
 			| n < 0 || n >= length children = ([],dom)
 			# (ms,child) = editor.client.NxtEditorClient.onEvent ref event (children !! n)
-			= (map (NxtUpdateChild n) ms, {NxtDOMNode|dom & children = updateAt n child children})
+			= ([NxtClientOut (NxtUpdateChild n message) (NVPVersion Nothing [(n,version)]) \\ (NxtClientOut message version) <- ms], {NxtDOMNode|dom & children = updateAt n child children})
 		onEvent _ _ dom
 			= ([],dom)
 
-		onMessage (NxtInsertChild pos c) dom=:{NxtDOMNode|children}
+		onMessage (NxtClientInRemote (NxtInsertChild pos c) oldVersion newVersion) dom=:{NxtDOMNode|children} //TODO: Check structure versions...
 			# child = editor.client.NxtEditorClient.init c
 			= ([],{NxtDOMNode|dom & children = insertAt pos child children})
 
-		onMessage (NxtRemoveChild pos) dom=:{NxtDOMNode|children}
+		onMessage (NxtClientInRemote (NxtRemoveChild pos) oldVersion newVersion) dom=:{NxtDOMNode|children} //TODO: Check structure versions...
 			= ([],{NxtDOMNode|dom & children = removeAt pos children})
 
-		onMessage (NxtUpdateChild pos m) dom=:{NxtDOMNode|children}
-			# (ms,child) = editor.client.NxtEditorClient.onMessage m (children !! pos)
-			= ([NxtUpdateChild pos m \\ m <- ms], {NxtDOMNode|dom & children = updateAt pos child children})
+		onMessage (NxtClientInRemote (NxtUpdateChild pos m) oldVersion newVersion) dom=:{NxtDOMNode|children}
+			# (ms,child) = editor.client.NxtEditorClient.onMessage
+				(NxtClientInRemote m (selectPartialVersion pos oldVersion) (selectPartialVersion pos newVersion)) (children !! pos)
+			= ([(NxtClientOut (NxtUpdateChild pos message) emptyPartialVersion) \\ (NxtClientOut message version) <- ms] //TODO: Determine version
+			  ,{NxtDOMNode|dom & children = updateAt pos child children})
 
 		state dom=:{NxtDOMNode|children}
 			= map editor.client.NxtEditorClient.state children
 
-	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
-	where
-		init p = ((p,[]),[])
-		parameter (p,_) = p
-		value (_,ss) = Just (map editor.server.NxtEditorServer.value ss)
-
-		onRefresh mbrs (p,ss) //A naive linear side by side diff to see what needs updating
-			# (msgs,ss,write) = compare 0 ss mbrs
-			= (msgs, (p,ss), False)//By default we need to do a diff
-		where
-			//Compare first items side by side
-			compare i [s:ss] [Nothing:mbrs]
-				# (msgs, ss, write) = compare (i + 1) ss mbrs
-				= (msgs, [s:ss], write)
-			compare i [s:ss] [Just r:mbrs]
-				# (ms, s, writes) = editor.server.NxtEditorServer.onRefresh r s
-				# (msgs, ss, writess) = compare (i + 1) ss mbrs
-				= (map (NxtUpdateChild i) ms ++ msgs, [s:ss], writes || writess)
-			//New read list has more items
-			compare i [] mbrs
-				# (msgs, ss, ws) = unzip3 [create i` mbr \\ mbr <- mbrs & i` <- [i..]]
-				= (flatten msgs, ss, or ws)
-			where
-				create i mbr
-					# (s,c) = editor.server.NxtEditorServer.init p
-					# (ms, s, write) = maybe ([],s,False) (\r -> editor.server.NxtEditorServer.onRefresh r s) mbr
-					= ([NxtInsertChild i (Just c): map (NxtUpdateChild i) ms], s, write)
-			//New read list has less (remove existing)
-			compare i ss [] = (repeatn (length ss) (NxtRemoveChild i),[],False)
-
-		onMessage (NxtUpdateChild pos m) (p,ss)  //Route to the corresponding child
-			| pos >= length ss || pos < 0 = ([],(p,ss),False) //Out of bounds, (maybe abort instead for the simulation)
-			# (ms,s,write) = editor.server.NxtEditorServer.onMessage m (ss !! pos)
-			= (map (NxtUpdateChild pos) ms, (p, updateAt pos s ss), write)
-
-		onMessage (NxtRemoveChild pos) (p,ss) 
-			| pos >= length ss || pos < 0 = ([],(p,ss),False) //Out of bounds, (maybe abort instead for the simulation)
-			= ([], (p, removeAt pos ss), True)
-
-		onMessage (NxtInsertChild pos Nothing) (p,ss) 
-			| pos > length ss || pos < 0 = ([],(p,ss),False) //Out of bounds, (maybe abort instead for the simulation)
-			# (s,_) = editor.server.NxtEditorServer.init p
-			= ([], (p, insertAt pos s ss), True)
-*/
-
 //Compose by juxtaposition, no need to specify interdependency
-/*
 glue ::
 		(NxtEditor p1 r1 w1 s1 c1 m1)
         (NxtEditor p2 r2 w2 s2 c2 m2)
         ->
-        (NxtEditor (p1,p2) (r1,r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (NxtEditor (p1,p2) (Maybe r1,Maybe r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
 glue e1 e2 = {NxtEditor|server=server,client=client}
 where
   server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
   where
-	init (p1,p2)
-		# (s1,c1) = e1.server.NxtEditorServer.init p1
-		# (s2,c2) = e2.server.NxtEditorServer.init p2
-		= ((s1,s2),(c1,c2))
+	init (p1,p2) mv
+		# (s1,vs1,c1) = e1.server.NxtEditorServer.init p1 mv
+		# (s2,vs2,c2) = e2.server.NxtEditorServer.init p2 mv
+		= ((s1,s2),NVTGlue vs1 vs2, (c1,c2))
 
 	parameter (s1,s2) = (e1.server.NxtEditorServer.parameter s1, e2.server.NxtEditorServer.parameter s2)
 
@@ -444,83 +642,97 @@ where
 		(Nothing,Nothing) = Nothing
 		(mb1,mb2) = Just (mb1,mb2)
 
-    onRefresh (s1n,s2n) (s1o,s2o)
-       # (m1, s1, w1) = e1.server.NxtEditorServer.onRefresh s1n s1o
-       # (m2, s2, w2) = e2.server.NxtEditorServer.onRefresh s2n s2o
-       = (zipMessages m1 m2, (s1,s2), w1 || w2)
+    onRefresh (mbr1,mbr2) rv (s1,s2) (NVTGlue sv1 sv2)
+       # (m1, s1, sv1, w1) = maybe ([],s1,sv1,False) (\r1 -> e1.server.NxtEditorServer.onRefresh r1 rv s1 sv1) mbr1
+       # (m2, s2, sv2, w2) = maybe ([],s2,sv2,False) (\r2 -> e2.server.NxtEditorServer.onRefresh r2 rv s2 sv2) mbr2
+       = (zipMessagesWithVersions m1 m2, (s1,s2), NVTGlue sv1 sv2, w1 || w2)
 
-    onMessage (mb1,mb2) (s1,s2)
-       # (m1, s1, w1) = maybe ([],s1,False) (\m1 -> e1.server.NxtEditorServer.onMessage m1 s1) mb1
-       # (m2, s2, w2) = maybe ([],s2,False) (\m2 -> e2.server.NxtEditorServer.onMessage m2 s2) mb2
-       = (zipMessages m1 m2, (s1,s2), w1 || w2)
+    onMessage (NxtServerInLocal (mb1,mb2) vm) (s1,s2) (NVTGlue sv1 sv2)
+       # (ms1, s1, sv1, w1) = maybe ([],s1,sv1,False) (\m1 -> e1.server.NxtEditorServer.onMessage (NxtServerInLocal m1 vm) s1 sv1) mb1
+       # (ms2, s2, sv2, w2) = maybe ([],s2,sv2,False) (\m2 -> e2.server.NxtEditorServer.onMessage (NxtServerInLocal m2 vm) s2 sv2) mb2
+       = (zipMessagesWithVersions ms1 ms2, (s1,s2), NVTGlue sv1 sv2, w1 || w2)
 
+    onMessage (NxtServerInRemote (mb1,mb2) (NVPVersion _ cvs)) (s1,s2) (NVTGlue sv1 sv2)
+       # (ms1, s1, sv1, w1) = maybe ([],s1,sv1,False) (\m1 -> e1.server.NxtEditorServer.onMessage (NxtServerInRemote m1 (childversion 0 cvs)) s1 sv1) mb1
+       # (ms2, s2, sv2, w2) = maybe ([],s2,sv2,False) (\m2 -> e2.server.NxtEditorServer.onMessage (NxtServerInRemote m2 (childversion 1 cvs)) s2 sv2) mb2
+       = (zipMessagesWithVersions ms1 ms2, (s1,s2), NVTGlue sv1 sv2, w1 || w2)
+	
+  zipMessagesWithVersions [NxtServerOut x ovx nvx:xs] [NxtServerOut y ovy nvy:ys]
+	= [NxtServerOut (Just x, Just y) (NVPVersion Nothing [(0,ovx),(1,ovy)]) (NVPVersion Nothing [(0,nvx),(1,nvy)]):zipMessagesWithVersions xs ys]
+  zipMessagesWithVersions [] ys
+	= [NxtServerOut (Nothing,Just y) (NVPVersion Nothing [(1,ovy)]) (NVPVersion Nothing [(1,nvy)]) \\ (NxtServerOut y ovy nvy) <- ys]
+  zipMessagesWithVersions xs []
+	= [NxtServerOut (Just x,Nothing) (NVPVersion Nothing [(0,ovx)]) (NVPVersion Nothing [(0,nvx)]) \\ (NxtServerOut x ovx nvx) <- xs]
+ 
   client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
   where
     init c
 		# (c1,c2) = maybe (Nothing,Nothing) (\(cx,cy) -> (Just cx,Just cy)) c
-		= {NxtDOMNode|attributes=attributes,children = [e1.client.NxtEditorClient.init c1, e2.client.NxtEditorClient.init c2]}
+		= {NxtDOMNode|attributes=attributes,children = [e1.client.NxtEditorClient.init c1, e2.client.NxtEditorClient.init c2], history = []}
 	attributes = 'DM'.fromList [("type","glue")]
 
     onEvent [0:ref] event dom=:{NxtDOMNode|children=[c1,c2]}
       # (m1,c1) = e1.client.NxtEditorClient.onEvent ref event c1
-	  = ([(Just x,Nothing) \\ x<-m1],{NxtDOMNode|dom & children = [c1,c2]})
+	  = ([NxtClientOut (Just message,Nothing) (NVPVersion Nothing [(0,version)]) \\ (NxtClientOut message version) <-m1],{NxtDOMNode|dom & children = [c1,c2]})
     onEvent [1:ref] event dom=:{NxtDOMNode|children=[c1,c2]}
       # (m2,c2) = e2.client.NxtEditorClient.onEvent ref event c2
-	  = ([(Nothing,Just y) \\ y<-m2],{NxtDOMNode|dom & children = [c1,c2]})
+	  = ([NxtClientOut (Nothing,Just message) (NVPVersion Nothing [(1,version)]) \\ (NxtClientOut message version) <-m2],{NxtDOMNode|dom & children = [c1,c2]})
 	onEvent _ _ dom = ([],dom)
 
-    onMessage (mb1,mb2) dom=:{NxtDOMNode|children=[c1,c2]}
-      # (m1,c1) = maybe ([],c1) (\m1 -> e1.client.NxtEditorClient.onMessage m1 c1) mb1
-      # (m2,c2) = maybe ([],c2) (\m2 -> e2.client.NxtEditorClient.onMessage m2 c2) mb2
-      = (zipMessages m1 m2, {NxtDOMNode|dom & children = [c1,c2]})
+    onMessage (NxtClientInLocal (mb1,mb2)) dom=:{NxtDOMNode|children=[c1,c2]}
+      # (m1,c1) = maybe ([],c1) (\m1 -> e1.client.NxtEditorClient.onMessage (NxtClientInLocal m1) c1) mb1
+      # (m2,c2) = maybe ([],c2) (\m2 -> e2.client.NxtEditorClient.onMessage (NxtClientInLocal m2) c2) mb2
+      = (zipClientOutMessages m1 m2, {NxtDOMNode|dom & children = [c1,c2]})
+
+    onMessage (NxtClientInRemote (mb1,mb2) (NVPVersion _ omvs) (NVPVersion _ nmvs)) dom=:{NxtDOMNode|children=[c1,c2]}
+      # (m1,c1) = maybe ([],c1) (\m1 -> e1.client.NxtEditorClient.onMessage (NxtClientInRemote m1 (childversion 0 omvs) (childversion 0 nmvs)) c1) mb1
+      # (m2,c2) = maybe ([],c2) (\m2 -> e2.client.NxtEditorClient.onMessage (NxtClientInRemote m2 (childversion 1 omvs) (childversion 1 nmvs)) c2) mb2
+      = (zipClientOutMessages m1 m2, {NxtDOMNode|dom & children = [c1,c2]})
 
     state dom=:{NxtDOMNode|children=[c1,c2]}
 	  = (e1.client.NxtEditorClient.state c1, e2.client.NxtEditorClient.state c2)
 
-  zipMessages [x:xs] [y:ys] = [(Just x, Just y):zipMessages xs ys]
-  zipMessages [] ys = [(Nothing,Just y) \\ y <- ys]
-  zipMessages xs [] = [(Just x,Nothing) \\ x <- xs]
-*/
-/*
+  zipClientOutMessages [NxtClientOut x vx:xs] [NxtClientOut y vy:ys]
+	= [NxtClientOut (Just x, Just y) (NVPVersion Nothing [(0,vx),(1,vy)]):zipClientOutMessages xs ys]
+  zipClientOutMessages [] ys
+	= [NxtClientOut (Nothing,Just y) (NVPVersion Nothing [(1,vy)]) \\ (NxtClientOut y vy) <- ys]
+  zipClientOutMessages xs []
+	= [NxtClientOut (Just x,Nothing) (NVPVersion Nothing [(0,vx)]) \\ (NxtClientOut x vx) <- xs]
+ 
 linkm ::
-	([c] -> [c])
-	([s] (ContainerMsg c m) -> ([ContainerMsg c m],[ContainerMsg c m]))
-	([c] (ContainerMsg c m) -> ([ContainerMsg c m],[ContainerMsg c m]))
+	([s] (ContainerMsg c m) -> (Bool, [ContainerMsg c m]))
+	([c] (ContainerMsg c m) -> (Bool, [ContainerMsg c m]))
 	(NxtEditor p [Maybe r] [Maybe w] (p,[s]) [c] (ContainerMsg c m))
 	->
 	(NxtEditor p [Maybe r] [Maybe w] (p,[s]) [c] (ContainerMsg c m))
-
-linkm minit mserver mclient editor = {NxtEditor|server=server,client=client}
+linkm mserver mclient editor = {NxtEditor|server=server,client=client}
 where
 	server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
 	where
-		init p
-			# (s,c) = editor.server.NxtEditorServer.init p
-			= (s,minit c)
-
+		init = editor.server.NxtEditorServer.init
 		parameter = editor.server.NxtEditorServer.parameter
 		value = editor.server.NxtEditorServer.value
 
-    	onRefresh r (p,ss)
-			# (msgs, (p,ss), mbw)  = editor.server.NxtEditorServer.onRefresh r (p,ss)
-			# (msgs, p, ss, mbwm) = foldl modifyMsg ([],p,ss,False) msgs
-			= (msgs, (p,ss), mbw || mbwm)
+    	onRefresh rs rv (p,ss) (NVTMultiple v vs)
+			# (msgs, (p,ss), NVTMultiple v vs, mbw)  = editor.server.NxtEditorServer.onRefresh rs rv (p,ss) (NVTMultiple v vs)
+			# (msgs, p, ss, v, vs, mbwm) = foldl modifyMsg ([],p,ss,v,vs,False) msgs
+			= (msgs, (p,ss), NVTMultiple v vs, mbw || mbwm)
 
-		onMessage m (p,ss)
-			# (msgs,(p,ss), mbw) = editor.server.NxtEditorServer.onMessage m (p,ss)
-			# (msgs,p,ss, mbwm) = foldl modifyMsg ([],p,ss,False) msgs
-			= (msgs,(p,ss), mbw || mbwm)
+		onMessage m (p,ss) (NVTMultiple v vs)
+			# (msgs,(p,ss), NVTMultiple v vs, mbw) = editor.server.NxtEditorServer.onMessage m (p,ss) (NVTMultiple v vs)
+			# (msgs,p,ss,v,vs,mbwm) = foldl modifyMsg ([],p,ss,v,vs,False) msgs
+			= (msgs,(p,ss), NVTMultiple v vs, mbw || mbwm)
 
-		modifyMsg (msgs,p,ss,mbw) msg
+		modifyMsg (msgs,p,ss,v,vs,mbw) msg=:(NxtServerOut message oldVersion newVersion)
 			//Modify the outgoing messages
-			# (passOn,feedBack) = mserver ss msg
+			# (passOn,feedBack) = mserver ss message
 			//Feedback messages
-			# (feedbackOutput,p,ss,mbwm) = foldl feedBackMsg ([],p,ss,False) feedBack
-			= (msgs ++ passOn ++ feedbackOutput, p, ss, mbw || mbwm)
+			# (feedbackOutput,p,ss,v,vs,mbwm) = foldl (feedBackMsg (maxMajorVersion newVersion)) ([],p,ss,v,vs,False) feedBack
+			= (msgs ++ (if passOn [NxtServerOut message oldVersion newVersion] []) ++ feedbackOutput, p, ss, v, vs, mbw || mbwm)
 
-		feedBackMsg (msgs,p,ss,mbw) msg
-			# (emsgs,(p,ss),mbwm) = onMessage msg (p,ss)
-			= (msgs ++ emsgs, p, ss, mbw || mbwm)
+		feedBackMsg vm (msgs,p,ss,v,vs,mbw) msg
+			# (emsgs,(p,ss),NVTMultiple v vs,mbwm) = onMessage (NxtServerInLocal msg vm) (p,ss) (NVTMultiple v vs)
+			= (msgs ++ emsgs,p,ss,v,vs,mbw || mbwm)
 
 	client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
 	where
@@ -537,62 +749,54 @@ where
 			# (msgs,dom) = foldl modifyMsg ([],dom) msgs
 			= (msgs,dom)
 
-		modifyMsg (msgs,dom) msg
+		modifyMsg (msgs,dom) (NxtClientOut message version)
 			# cs = state dom
-			# (passOn,feedBack) = mclient cs msg
+			# (passOn,feedBack) = mclient cs message
 			# (feedbackOutput,dom) = foldl feedBackMsg ([],dom) feedBack
-			= (msgs ++ passOn ++ feedbackOutput, dom)
+			= (msgs ++ (if passOn [NxtClientOut message version] []) ++ feedbackOutput, dom)
 
 		feedBackMsg (msgs,dom) msg
-			# (emsgs,dom) = onMessage msg dom
+			# (emsgs,dom) = onMessage (NxtClientInLocal msg) dom
 			= (msgs ++ emsgs,dom)
-*/
 
-/*
 //Define the dependencies by defining feedback on messages
 //NOTE: Only one the last 'writes' to the data source are be returned, is this ok?
 linkg ::
-        //Rewrite the initial client configuration
-        ((c1,c2) -> (c1,c2))
         //Rewrite from server to client with feedback to server
-        (s1 s2 (Maybe m1, Maybe m2) -> ([(Maybe m1, Maybe m2)],[(Maybe m1, Maybe m2)]))
+        (s1 s2 (Maybe m1, Maybe m2) -> (Bool, [(Maybe m1, Maybe m2)]))
         //Rewrite from client to server with feedback to client
-        (c1 c2 (Either m1 m2) -> ([Either m1 m2],[Either m1 m2]))
-        (NxtEditor p r (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (c1 c2 (Maybe m1, Maybe m2) -> (Bool, [(Maybe m1, Maybe m2)])) //Pass on, feedback message
+        (NxtEditor p (Maybe r1,Maybe r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
         ->
-        (NxtEditor p r (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        (NxtEditor p (Maybe r1,Maybe r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
 
-linkg modClientInit modServerToClient modClientToServer editor = {NxtEditor|server=server,client=client}
+linkg modServerToClient modClientToServer editor = {NxtEditor|server=server,client=client}
 where
 	server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
 	where
-		init p
-			# (s,c) = editor.server.NxtEditorServer.init p
-			= (s,modClientInit c)
-
+		init = editor.server.NxtEditorServer.init
 		parameter = editor.server.NxtEditorServer.parameter
 		value = editor.server.NxtEditorServer.value
 
-    	onRefresh sn so
-			# (msgs,(s1,s2),mbw) = editor.server.NxtEditorServer.onRefresh sn so
-			# (msgs,(s1,s2),mbwm) = foldl modifyMsg ([],(s1,s2),False) msgs
-			= (msgs, (s1,s2),mbw || mbwm)
+    	onRefresh (r1,r2) rv (s1,s2) (NVTGlue v1 v2)
+			# (msgs,(s1,s2),NVTGlue v1 v2,mbw) = editor.server.NxtEditorServer.onRefresh (r1,r2) rv (s1,s2) (NVTGlue v1 v2)
+			# (msgs,(s1,s2),(v1,v2),mbwm) = foldl modifyMsg ([],(s1,s2),(v1,v2),False) msgs
+			= (msgs, (s1,s2),NVTGlue v1 v2, mbw || mbwm)
 
-		onMessage m s
-			# (msgs,(s1,s2), mbw) = editor.server.NxtEditorServer.onMessage m s
-			# (msgs,(s1,s2), mbwm) = foldl modifyMsg ([],(s1,s2),False) msgs
-			= (msgs,(s1,s2), mbw || mbwm)
+		onMessage m (s1,s2) (NVTGlue v1 v2)
+			# (msgs,(s1,s2), NVTGlue v1 v2, mbw) = editor.server.NxtEditorServer.onMessage m (s1,s2) (NVTGlue v1 v2)
+			# (msgs,(s1,s2), (v1,v2), mbwm) = foldl modifyMsg ([],(s1,s2),(v1,v2),False) msgs 
+			= (msgs,(s1,s2), NVTGlue v1 v2,  mbw || mbwm)
 
-		modifyMsg (msgs,(s1,s2),mbw) msg
+		modifyMsg (msgs,(s1,s2),(v1,v2),mbw) msg=:(NxtServerOut message oldVersion newVersion)
 			//Modify the outgoing messages
-			# (passOn,feedBack) = modServerToClient s1 s2 msg
-			//Feedback messages
-			# (feedbackOutput,(s1,s2),mbwm) = foldl feedBackMsg ([],(s1,s2),False) feedBack
-			= (msgs ++ passOn ++ feedbackOutput, (s1,s2), mbw || mbwm)
+			# (passOn,feedBack) = modServerToClient s1 s2 message
+			# (feedbackOutput,(s1,s2),(v1,v2),mbwm) = foldl (feedBackMsg (maxMajorVersion newVersion)) ([], (s1,s2),(v1,v2), False) feedBack
+			= (msgs ++ (if passOn [NxtServerOut message oldVersion newVersion] []) ++ feedbackOutput, (s1,s2), (v1,v2), mbw || mbwm)
 
-		feedBackMsg (msgs,(s1,s2),mbw) msg
-			# (emsgs,(s1,s2),mbwm) = onMessage msg (s1,s2)
-			= (msgs ++ emsgs,(s1,s2),mbw || mbwm)
+		feedBackMsg vm (msgs,(s1,s2),(v1,v2),mbw) msg
+			# (emsgs,(s1,s2),NVTGlue v1 v2,mbwm) = onMessage (NxtServerInLocal msg vm) (s1,s2) (NVTGlue v1 v2)
+			= (msgs ++ emsgs,(s1,s2),(v1,v2), mbw || mbwm)
 
 	client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
 	where
@@ -601,88 +805,24 @@ where
 
     	onEvent ref event dom
 			# (msgs,dom) = editor.client.NxtEditorClient.onEvent ref event dom
-			# (msgs,dom) = foldl modifyMsg ([],dom) (map toEither msgs)
+			# (msgs,dom) = foldl modifyMsg ([],dom) msgs
 			= (msgs,dom)
 
 		onMessage msg dom
 			# (msgs,dom) = editor.client.NxtEditorClient.onMessage msg dom
-			# (msgs,dom) = foldl modifyMsg ([],dom) (map toEither msgs)
+			# (msgs,dom) = foldl modifyMsg ([],dom) msgs
 			= (msgs,dom)
 
-		modifyMsg (msgs,dom) msg
+		modifyMsg (msgs,dom) (NxtClientOut message version)
 			# (c1,c2) = state dom
-			# (passOn,feedBack) = modClientToServer c1 c2 msg
+			# (passOn,feedBack) = modClientToServer c1 c2 message
 			# (feedbackOutput,dom) = foldl feedBackMsg ([],dom) feedBack
-			= (msgs ++ map fromEither passOn ++ feedbackOutput, dom)
+			= (msgs ++ (if passOn [NxtClientOut message version] []) ++ feedbackOutput, dom)
 
 		feedBackMsg (msgs,dom) msg
-			# (emsgs,dom) = onMessage (fromEither msg) dom
+			# (emsgs,dom) = onMessage (NxtClientInLocal msg) dom
 			= (msgs ++ emsgs,dom)
 
-		toEither (Just m1,_) = Left m1
-		toEither (_,Just m2) = Right m2
-		fromEither (Left m1) = (Just m1,Nothing)
-		fromEither (Right m2) = (Nothing,Just m2)
-*/
-/*
-//Get rid of the tupling and combine the parts into a unified state, configuration and values
-mapg ::
-		((p1,p2) -> p, p -> (p1,p2))                                       //Fuse parameter
-		((Maybe w1, Maybe w2) -> w, r -> (r1,r2))                          //Fuse read/write //FIXME
-        ((c1,c2) -> c, c -> (c1,c2))                                       //Fuse client configuration
-        ((s1,s2) -> s, s -> (s1,s2))                                       //Fuse server state
-        ((Maybe m1, Maybe m2) -> (Maybe m), m -> (Maybe m1, Maybe m2))     //Fuse messages
-
-        (NxtEditor (p1,p2) (r1,r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
-        ->
-        (NxtEditor p r w s c m)
-
-mapg (pfrom,pto) (wfrom,rto) (cfrom,cto) (sfrom,sto) (mfrom,mto) editor = {NxtEditor|server=server,client=client}
-where
-    client = {init = init, onEvent = onEvent, onMessage = onMessage, state = state}
-	where
-		init c = editor.client.NxtEditorClient.init (fmap cto c)
-
-		onEvent ref event dom
-			# (msgs,dom) = editor.client.NxtEditorClient.onEvent ref event dom
-			= ([x \\ Just x <- map mfrom msgs],dom)
-
-		onMessage msg dom
-			# (msgs,dom) = editor.client.NxtEditorClient.onMessage (mto msg) dom
-			= ([x \\ Just x <- map mfrom msgs],dom)
-
-		state dom
-			= cfrom (editor.client.NxtEditorClient.state dom)
-
-	server = {init = init, parameter = parameter, value=value, onRefresh = onRefresh, onMessage = onMessage}
-    where
-		init p
-			# (s,c) = editor.server.NxtEditorServer.init (pto p)
-			= (sfrom s, cfrom c)
-
-		parameter s = pfrom (editor.server.NxtEditorServer.parameter (sto s))
-
-		value s = fmap wfrom (editor.server.NxtEditorServer.value (sto s))
-
-		onRefresh r s
-			# (msgs,s,w) = editor.server.NxtEditorServer.onRefresh (rto r) (sto s)
-			= ([x \\ Just x <- map mfrom msgs],sfrom s, w)
-
-		onMessage msg s
-			# (msgs,s,w) = editor.server.NxtEditorServer.onMessage (mto msg) (sto s)
-			= ([x \\ Just x <- map mfrom msgs],sfrom s, w)
-*/
-/*
-gluema ::
-	(NxtEditor p1 r1 w1 s1 c1 m1)
-	(NxtEditor p2 r2 w2 s2 c2 m2)
-	->
-	(NxtEditor (Either p1 p2) [Maybe (Either r1 r2)] [Maybe (Either w1 w2)]
-		(Either p1 p2, [(Either s1 s2)]) [Either c1 c2] (ContainerMsg (Either c1 c2) (Either m1 m2)))
-gluema e1 e2 = multiple (alternative e1 e2)
-*/
-
-/*
 mapp :: (pa -> pb, pb -> pa) (NxtEditor pa r w s c m) -> (NxtEditor pb r w s c m) 
 mapp (t,f) e = {NxtEditor|server = server, client = e.client}
 where
@@ -713,15 +853,18 @@ maps (t,f) e = {NxtEditor|server = server, client = e.client}
 where
 	server = {init = init, parameter = parameter, value = value, onRefresh = onRefresh, onMessage = onMessage}
 	where
-		init p = appFst t (e.server.NxtEditorServer.init p)
+		init p rv
+			# (s,v,c) = e.server.NxtEditorServer.init p rv
+			= (t s,v,c)
+
 		parameter s = e.server.NxtEditorServer.parameter (f s)
 		value s = e.server.NxtEditorServer.value (f s)
-		onRefresh r s 
-			# (ms,s,w) = e.server.NxtEditorServer.onRefresh r (f s)
-			= (ms,t s,w)
-		onMessage m s 
-			# (ms,s,w) = e.server.NxtEditorServer.onMessage m (f s)
-			= (ms,t s,w)
+		onRefresh r rv s v
+			# (ms,s,v, w) = e.server.NxtEditorServer.onRefresh r rv (f s) v
+			= (ms,t s,v, w)
+		onMessage m s v
+			# (ms,s,v,w) = e.server.NxtEditorServer.onMessage m (f s) v
+			= (ms,t s,v,w)
 
 mapc :: (ca -> cb, cb -> ca) (NxtEditor p r w s ca m) -> (NxtEditor p r w s cb m)
 mapc (t,f) e = {NxtEditor|server = server, client = client}
@@ -729,36 +872,58 @@ where
 	server = {init = init, parameter = e.server.NxtEditorServer.parameter, value = e.server.NxtEditorServer.value
 		, onRefresh = e.server.NxtEditorServer.onRefresh, onMessage = e.server.NxtEditorServer.onMessage}
 	where
-		init p = appSnd t (e.server.NxtEditorServer.init p)
+		init p rv
+			# (s,v,c) = e.server.NxtEditorServer.init p rv
+			= (s,v,t c)
 	client = {init = init, onEvent = e.client.NxtEditorClient.onEvent
 		, onMessage = e.client.NxtEditorClient.onMessage, state = state }
 	where
 		init mbc = e.client.NxtEditorClient.init (fmap f mbc)
 		state dom = t (e.client.NxtEditorClient.state dom)
 
+//FIXME: This can't be right, version information should be mapped together with the messages
 mapm :: (ma -> mb, mb -> ma) (NxtEditor p r w s c ma) -> (NxtEditor p r w s c mb)
 mapm (t,f) e = {NxtEditor|server = server, client = client}
 where
 	server = {init = e.server.NxtEditorServer.init, parameter = e.server.NxtEditorServer.parameter, value = e.server.NxtEditorServer.value
 		, onRefresh = onRefresh, onMessage = onMessage}
 	where
-		onRefresh r s
-			# (ms,s,w) = e.server.NxtEditorServer.onRefresh r s
-			= (map t ms,s,w)
-		onMessage m s 
-			# (ms,s,w) = e.server.NxtEditorServer.onMessage (f m) s
-			= (map t ms,s,w)
+		onRefresh r rv s v
+			# (ms,s,v,w) = e.server.NxtEditorServer.onRefresh r rv s v
+			= ([NxtServerOut (t m) oldVersion newVersion \\ NxtServerOut m oldVersion newVersion <- ms], s,v,w)
+
+		onMessage m s v
+			# m = case m of 
+				(NxtServerInRemote mm mv) = NxtServerInRemote (f mm) mv
+				(NxtServerInLocal mm rv) = NxtServerInLocal (f mm) rv
+			# (ms,s,v,w) = e.server.NxtEditorServer.onMessage m s v
+			= ([NxtServerOut (t m) oldVersion newVersion \\ NxtServerOut m oldVersion newVersion <- ms],s,v,w)
 
 	client = {init = e.client.NxtEditorClient.init, onEvent = onEvent
 		, onMessage = onMessage, state = e.client.NxtEditorClient.state }
 	where
 		onEvent ref ev dom
 			# (ms,dom) = e.client.NxtEditorClient.onEvent ref ev dom
-			= (map t ms,dom)
+			= ([NxtClientOut (t m) version \\ NxtClientOut m version <- ms],dom)
 		onMessage m dom
-			# (ms,dom) = e.client.NxtEditorClient.onMessage (f m) dom
-			= (map t ms,dom)
-*/
+			# m = case m of 
+				(NxtClientInRemote mm ov nv) = NxtClientInRemote (f mm) ov nv
+				(NxtClientInLocal mm) = NxtClientInLocal (f mm)
+			# (ms,dom) = e.client.NxtEditorClient.onMessage m dom
+			= ([NxtClientOut (t m) version \\ NxtClientOut m version <- ms],dom)
+mapg ::
+		((p1,p2) -> p, p -> (p1,p2))                                       //Fuse parameter
+		((Maybe w1, Maybe w2) -> w, r -> (r1,r2))                          //Fuse read/write
+        ((c1,c2) -> c, c -> (c1,c2))                                       //Fuse client configuration
+        ((s1,s2) -> s, s -> (s1,s2))                                       //Fuse server state
+        ((Maybe m1, Maybe m2) -> (Maybe m), m -> (Maybe m1, Maybe m2))     //Fuse messages
+
+        (NxtEditor (p1,p2) (r1,r2) (Maybe w1, Maybe w2) (s1,s2) (c1,c2) (Maybe m1, Maybe m2))
+        ->
+        (NxtEditor p r w s c m)
+mapg mp (mw,mr) mc ms (mmt,mmf) editor
+	= mapm (fromJust o mmt, mmf) $ maps ms $ mapc mc $ mapw mw $ mapr mr $ mapp mp $ editor
+
 
 //Simulation
 simulate :: (NxtEditor p r w s c m) p (Maybe r) -> Task () | iTask r & iTask w & iTask s & iTask c & iTask m & EditMessage m
@@ -777,13 +942,19 @@ simulate editor p mbr
 where
 	(initClientState,initServerState,initNetworkState) = initStates
 	where
+		initReadVersion = 0
 		initStates
-			# (s,c) = editor.server.NxtEditorServer.init p
+			# (s,v,c) = editor.server.NxtEditorServer.init p initReadVersion
 			# cs = editor.client.NxtEditorClient.init (Just c)
-			# (s2c,s,(rv,rr),_) = maybe ([],s,(0,0),False) (\r -> editor.server.NxtEditorServer.onRefresh r s (0,0)) mbr
-			= (cs,initVersions s rv rr, (map encodeEditMessage s2c,[]))
+			# (s2c,s,sv,rv) = case mbr of
+				Nothing = ([],s,v,initReadVersion)
+				Just r
+					# rv = initReadVersion + 1
+					# (ms,s,sv,_) = editor.server.NxtEditorServer.onRefresh r rv s v
+					= (ms,s,sv,rv)
+			= (cs,initVersions s rv sv, (map encodeEditMessage s2c,[]))
 
-		initVersions s rv rr = {state = s, readVersion = rv, editVersion = rr}
+		initVersions s rv sv = {state = s, readVersion = rv, stateVersion = sv}
 
 simulateServer editor serverState networkState
    = viewSharedInformation () [ViewAs serverView] serverState
@@ -791,25 +962,28 @@ simulateServer editor serverState networkState
        ,OnAction (Action "Message") (always doServerMessage)
        ]
 where
-  serverView s = (s,editor.server.NxtEditorServer.value s.VersionedServerState.state)
+	serverView s = (s,editor.server.NxtEditorServer.value s.VersionedServerState.state)
 
-  doServerRefresh
-   =  enterInformation "Enter the refresh value" []
-   >>= \v -> upd (setStates v) (serverState >*< networkState)
-   where
-     setStates v ({state,readVersion,editVersion},(s2c,c2s))
-        # (msgs,state,(readVersion,editVersion),mbw) = editor.server.NxtEditorServer.onRefresh v state (nextVersion (readVersion,editVersion))
-        = ({state=state,readVersion = readVersion, editVersion = editVersion}, (s2c ++ map encodeEditMessage msgs, c2s))
+	doServerRefresh
+		=  enterInformation "Enter the refresh value" []
+		>>= \v -> upd (setStates v) (serverState >*< networkState)
+	where
+		setStates r ({state,readVersion,stateVersion},(s2c,c2s))
+			# readVersion = readVersion + 1
+			# (msgs,state,stateVersion,mbw) = editor.server.NxtEditorServer.onRefresh r readVersion state stateVersion 
+			= ({state=state,readVersion = readVersion, stateVersion = stateVersion}, (s2c ++ map encodeEditMessage msgs, c2s))
 
-  doServerMessage
-   = upd setStates (serverState >*< networkState)
-   where
-     setStates (s=:{state,readVersion,editVersion},(s2c,c2s)) = case c2s of
-        [m:ms]
-          # (msgs,state,(rv,rr),mbw) = editor.server.NxtEditorServer.onMessage (decodeEditMessage m) state (readVersion,editVersion)
-          = ({state=state,readVersion=rv,editVersion = rv}, (s2c ++ (map encodeEditMessage msgs),ms))
-        _
-          = (s,(s2c,c2s))
+	doServerMessage
+		= upd setStates (serverState >*< networkState)
+	where
+		setStates (s=:{state,readVersion,stateVersion},(s2c,c2s)) = case c2s of
+			[m:ms]
+				# (msgs,state,stateVersion,mbw) = editor.server.NxtEditorServer.onMessage (fromClientOut (decodeEditMessage m)) state stateVersion
+				= ({s & state=state,stateVersion = stateVersion}, (s2c ++ (map encodeEditMessage msgs),ms))
+			_
+				= (s,(s2c,c2s))
+	  
+		fromClientOut (NxtClientOut m v) = NxtServerInRemote m v
 
 viewNetwork networkState = viewSharedInformation () [] networkState
 
@@ -836,8 +1010,10 @@ where
 	updStates (Just 0) (dom,(s2c,c2s)) = (dom,(s2c,c2s)) //Limit reached
 	updStates _ (dom,([],c2s)) = (dom,([],c2s)) //No more messages 
   	updStates mbLimit (dom,(s2c=:[m:ms],c2s))
-		# (msgs,dom) = editor.client.NxtEditorClient.onMessage (decodeEditMessage m) dom
+		# (msgs,dom) = editor.client.NxtEditorClient.onMessage (fromServerOut (decodeEditMessage m)) dom
         = updStates (maybe Nothing (\i -> Just (i - 1)) mbLimit) (dom,(ms, c2s ++ map encodeEditMessage msgs))
+
+	fromServerOut (NxtServerOut m ov nv) = NxtClientInRemote m ov nv
 
 nxtDOMView = fromSVGEditor {initView = const (), renderImage = render , updModel = const}
 where
@@ -883,16 +1059,16 @@ where
 		white = 'GI'.toSVGColor "white"
 		arial = 'GI'.normalFontDef "Arial"
 
-/*
 //Test editor: Numberfield with a local increment button
-testEditor = mapg mapp (mapw,mapr) mapc maps mapm (linkg id s2c c2s (glue nxtNumberField nxtButton))
+testCounterEditor = linkg s2c c2s (glue nxtNumberField nxtButton)
+//testCounterEditor = mapg mapp (mapw,mapr) mapc maps mapm (linkg id s2c c2s (glue nxtNumberField nxtButton))
 where
 	//No changes on the server side
-	s2c _ _ msg = ([msg],[])
+	s2c _ _ msg = (True,[])
 
-	//Update the value, when the button is clicked
-    c2s c1 c2 (Right True) = let n = fromInt (toInt c1 + 1) in ([Left n],[Right False,Left n])
-    c2s c1 c2 msg = ([msg],[])
+	//Update the value, when the button is clicked (drop message to server and sent local messages instead
+    c2s c1 c2 (_,Just clicked) =  (False, if clicked [ (Nothing,Just False), (Just (fromInt (toInt c1 + 1)), Nothing)] [])
+    c2s c1 c2 msg = (True,[])
 
 	//Only expose the number field
 	mapc = (fst, \x -> (x,("Increment",False)))
@@ -903,10 +1079,7 @@ where
 	mapw = fst
 	mapr x = (x,False)
 
-testRead = Just 42
-
-testParam = ()
-
+/*
 //More complex test editor: A list of numbers where each element has a delete button and there is a global add button
 testListEditor :: 
 	NxtEditor 
@@ -924,24 +1097,26 @@ testListEditor
 	$ maps (\((_,ss),_) -> map fst ss, \ss -> ((((),()),[(s,False)\\ s <- ss]),False))
 	$ mapc (\(cs,(_,a)) -> (map (appSnd snd) cs,a), \(cs,a) ->([(s,("Removed",d))\\ (s,d) <-cs],("Add item",a)))
 	$ listWithAddAndDelete
-
-listWithAddAndDelete = linkg id rserver rclient (glue listWithDelete nxtButton)
-where
-	rserver s1 s2 m = ([m],[])
-	rclient c1 c2 (Right True) = ([Left (NxtInsertChild (length c1) Nothing)],[Left (NxtInsertChild (length c1) Nothing), Right False]) 
-	rclient c1 c2 m = ([m],[])
-
-listWithDelete = linkm id rserver rclient (multiple testListItemEditor)
-where
-	//Ignore messages from the server
-	rserver ss m = ([m],[])
-
-	//Turn a click of the button into the appropriate remove messages: remove locally and remote
-	rclient c (NxtUpdateChild n (mbx,Just True)) = ([NxtRemoveChild n],[NxtRemoveChild n])
-	rclient c m = ([m],[]) //Ignore other messages
-	
-testListItemEditor :: NxtEditor ((),()) (Int,Bool) (Maybe Int,Maybe Bool) (String,Bool) (String,(String,Bool))  (Maybe String, Maybe Bool)
-testListItemEditor = glue nxtNumberField nxtButton
 */
 
-Start world = doTasks (simulate nxtNumberField () (Just 12)) world
+listWithAddAndDelete = linkg rserver rclient (glue listWithDelete nxtButton)
+where
+	rserver s1 s2 m = (True,[])
+	rclient c1 c2 (_,Just True) = (False,[(Just (NxtInsertChild (length c1) Nothing), Just False)]) 
+	rclient c1 c2 m = (True,[])
+
+listWithDelete = linkm rserver rclient (multiple testListItemEditor)
+where
+	//Ignore messages from the server
+	rserver ss m = (True,[])
+
+	//Turn a click of the button into the appropriate remove messages: remove locally and remote
+	rclient c (NxtUpdateChild n (mbx,Just True)) = (False,[NxtRemoveChild n])
+	rclient c m = (True,[]) //Ignore other messages
+	
+testListItemEditor :: NxtEditor ((),()) (Maybe Int,Maybe Bool) (Maybe Int,Maybe Bool) (String,Bool) (String,(String,Bool))  (Maybe String, Maybe Bool)
+testListItemEditor = glue nxtNumberField nxtButton
+
+//Start world = doTasks (simulate nxtNumberField () (Just 42)) world
+//Start world = doTasks (simulate (glue nxtNumberField nxtButton) ((),()) (Just (Just 12, Just False)) ) world
+Start world = doTasks (simulate testCounterEditor ((),()) (Just (Just 12, Just False))) world
