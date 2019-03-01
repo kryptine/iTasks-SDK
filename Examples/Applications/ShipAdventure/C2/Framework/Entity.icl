@@ -4,6 +4,7 @@ import iTasks
 import StdReal, StdOverloaded
 import C2.Framework.GeoRoutines
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 derive class iTask Entity, Position, RelPos, MovingPos, Structure, RectStruct, Behaviour, Angle
 

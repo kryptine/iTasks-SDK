@@ -13,6 +13,7 @@ import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Types
 import C2.Apps.ShipAdventure.Images
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
 

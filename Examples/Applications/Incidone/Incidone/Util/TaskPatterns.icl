@@ -5,6 +5,7 @@ import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either, Data.Maybe
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import StdMisc
 
 //FIXME

@@ -8,6 +8,7 @@ import Incidone.OP.CommunicationManagementTasks
 import Incidone.Util.TaskPatterns
 import Text, Data.Either
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 :: AsteriskEvent :== Map String String // Simple key/value mapping
 

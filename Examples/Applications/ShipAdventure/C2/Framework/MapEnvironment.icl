@@ -9,6 +9,7 @@ import iTasks.Extensions.Admin.TonicAdmin
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 from Data.Map import :: Map, instance Functor (Map k)
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Heap as DH

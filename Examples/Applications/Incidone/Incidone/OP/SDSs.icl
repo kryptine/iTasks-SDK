@@ -2,6 +2,7 @@ implementation module Incidone.OP.SDSs
 
 import iTasks, iTasks.Extensions.SQLDatabase
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.Conversions
 import Incidone.Util.SQLSDS

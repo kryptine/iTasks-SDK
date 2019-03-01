@@ -5,6 +5,7 @@ import iTasks.Extensions.SVG.SVGEditor
 //import Graphics.Scalable
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
 from Data.Func import mapSt

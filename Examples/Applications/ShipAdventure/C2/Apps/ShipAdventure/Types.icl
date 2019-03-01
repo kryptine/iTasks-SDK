@@ -12,6 +12,7 @@ import StdArray
 import Data.Data, Data.Either
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.Set as DS
 import Text.HTML
 
