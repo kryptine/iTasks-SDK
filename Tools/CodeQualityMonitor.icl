@@ -8,6 +8,7 @@ import System.OS
 import Text, Text.HTML
 import Data.List, Data.Func
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 import Testing.TestEvents
 import iTasks

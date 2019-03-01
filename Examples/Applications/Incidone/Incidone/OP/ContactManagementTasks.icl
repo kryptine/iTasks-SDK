@@ -9,6 +9,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.Extensions.CrewLists //For demo
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Text, Text.HTML, Data.Either, Data.Functor
 import iTasks.UI.Editor.Controls
 

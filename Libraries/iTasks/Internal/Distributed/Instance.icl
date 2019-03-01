@@ -3,6 +3,7 @@ implementation module iTasks.Internal.Distributed.Instance
 import iTasks
 from Text import class Text, instance Text String
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Text as T
 import Text.Encodings.Base64
 import iTasks.Extensions.Distributed._Formatter
