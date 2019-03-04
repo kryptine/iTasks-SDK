@@ -6,7 +6,7 @@ definition module iTasks.Internal.TaskEval
 from iTasks.WF.Definition           import :: Task, :: TaskResult, :: TaskException, :: TaskValue, :: TaskAttributes, :: Event, :: TaskId, :: InstanceNo
 from iTasks.WF.Combinators.Core     import :: TaskListItem
 from iTasks.Internal.IWorld		import :: IWorld
-from iTasks.Internal.SDS          import :: SDS, :: Shared, :: ReadOnlyShared
+import iTasks.Internal.SDS
 from iTasks.Internal.Tonic        import :: ExprId
 from iTasks.Internal.TaskState import :: DeferredJSON
 from Text.GenJSON import :: JSONNode
@@ -20,7 +20,7 @@ from Data.CircularStack import :: CircularStack
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=
 	{ noUI              :: Bool
-    , tonicOpts         :: TonicOpts
+	, tonicOpts         :: TonicOpts
 	}
 
 :: TonicOpts =
@@ -73,10 +73,21 @@ processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 */
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 
+/**
+ * Destroys a task instance.
+ *
+ * @param The instance id
+ * @param The IWorld state
+ *
+ * @return The result of the targeted main task or an error
+ * @return The IWorld state
+ */
+destroyTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
+
 //Update the I/O information for task instances
 updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 //Shares providing access to the evaluation information (constants from an evaluation point of view)
-currentInstanceShare        :: ReadOnlyShared InstanceNo
+currentInstanceShare :: SDSSource () InstanceNo ()

@@ -15,7 +15,7 @@ main :: Task ()
 main = multiUserExample @! ()
 
 multiUserExample
-	=				set (map mkUserAccount logins) userAccounts
+	=				allTasks (map (createUser o mkUserAccount) logins)
 	>>|				viewInformation "Login under one of the following names (password = login name)" []
 						(foldl (+++) "" (map (\n -> n +++ ", ") logins))
 					-||-
@@ -24,7 +24,7 @@ multiUserExample
 	>>|				loginAndManageWork "Chat_4_2 Example"
 where
 	mkUserAccount name
-		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
+		= {UserAccount| credentials = {Credentials| username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
 
 
 // -------------------------------------------------------------------------
@@ -58,12 +58,12 @@ createChatSession enter update
    >>= \me ->  		enterMultipleChoiceWithShared ("select chatters") [ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 where
-	startChats :: (Task a) (User a -> Task b) [User] (Shared [b]) -> Task [b] | iTask a & iTask b
+	startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds
 	startChats enter update chatters chatStore
 		= 	allTasks[(user,foldl (+++) "" (map toString chatters)) @: chatWith user enter update chatStore \\ user <- chatters]
 		>>| get chatStore
 
-	chatWith :: User (Task a) (User a -> Task b) (Shared [b]) -> Task () | iTask a & iTask b
+	chatWith :: User (Task a) (User a -> Task b) (Shared sds [b]) -> Task () | iTask a & iTask b & RWShared sds
 	chatWith me enter update chatStore
 		=  	viewSharedInformation ("Chat History:") [] chatStore
 		   	||-

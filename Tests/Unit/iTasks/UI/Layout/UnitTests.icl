@@ -1195,7 +1195,7 @@ updateChildNodes_Tests =
 			,LUIShiftDestination 0
 			]
 		,initLUIMoves)
-		(updateChildNodes_ (LUINo [4]) (\i (LUINode node, mv) -> (LUINode {node & type = UIDebug} ,mv)) (
+		(updateChildNodes_ (LUINo [4]) (\i (LUINode node, mv) -> (LUINode {LUINode|node & type = UIDebug} ,mv)) (
 				[luiNode UIInteract 'DM'.newMap [] noChanges noEffects //Should be updated
 				,luiNode UIStep 'DM'.newMap [] noChanges {noEffects & additional = ESApplied (LUINo [5])} //Should not be updated (node does not exist yet)
 				,luiNode UIParallel 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects //Should be updated
@@ -1235,7 +1235,7 @@ updateSubNode_Tests =
 		,initLUIMoves)
 
 		(updateSubNode_ (LUINo [0]) [2]
-			(\(LUINode node, m) -> (LUINode {node & type = UIInteract} ,m)) 
+			(\(LUINode node, m) -> (LUINode {LUINode|node & type = UIInteract} ,m)) 
 			(luiNode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 				[luiNode UIInteract 'DM'.newMap [] noChanges noEffects
 				,luiNode UIStep 'DM'.newMap [] noChanges noEffects

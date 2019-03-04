@@ -10,6 +10,7 @@ import iTasks.Internal.Util
 import StdFile
 from Data.Map import :: Map
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Data.Error, Data.Functor, Data.Maybe, Text
 import System.Directory, System.File, System.FilePath, System.OS
 
@@ -19,7 +20,7 @@ EXCLUDE_FILE :== "exclude.txt"
 
 //Writes a map of key/value pairs to a directory with one file per key/value
 //It will ignore all files in the directory that don't match the filter
-fileCollection :: FileFilter Bool -> SDS FilePath FileCollection FileCollection
+fileCollection :: FileFilter Bool -> SDSSource FilePath FileCollection FileCollection
 fileCollection isFileInCollection deleteRemovedFiles = worldShare (read isFileInCollection) (write isFileInCollection)
 where
 	read isFileInCollection dir world = case readDirectory dir world of

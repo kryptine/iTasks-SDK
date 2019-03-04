@@ -121,22 +121,22 @@ addTaskForUserAndReport des user sender prio task = addTaskForUser des user prio
   extask user = task user >>= \res -> addTaskForUser ("Result: " +++ des) sender prio (\_ -> viewRes res)
   viewRes res = viewInformation "Result" [] res
 
-makeWatchTask :: String User TaskPrio (RWShared () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r
+makeWatchTask :: String User TaskPrio (sds () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r & RWShared sds & TC w
 makeWatchTask des executer prio store cond task
   = addTaskForUser des executer prio (watchTask store cond task)
   where
-  watchTask :: (RWShared () r w) (r -> Bool) (r -> Task ()) User -> Task () | iTask r
+  watchTask :: (sds () r w) (r -> Bool) (r -> Task ()) User -> Task () | iTask r & RWShared sds & TC w
   watchTask store cond task user = watch store >>* [OnValue (ifValue cond task)] @! ()
 
 makeWorkspaceTab :: String (Workspace -> Task a) Workspace -> Task () | iTask a
 makeWorkspaceTab title t ws = t ws <<@ (Title title) @! ()
 
 //Notifications are stored newest first
-notifications :: Shared [(DateTime,String)]
+notifications :: SimpleSDSLens [(DateTime,String)]
 notifications = sharedStore "notifications" []
 
 //Only show notifications added in the last 5 seconds
-currentNotifications :: ReadOnlyShared [String]
+currentNotifications :: SDSLens () [String] ()
 currentNotifications = mapRead prj (currentDateTime |*| notifications)
   where
   prj :: (DateTime,[(DateTime, String)]) -> [String]
@@ -151,12 +151,12 @@ addNotification msg
 viewNotifications :: Task ()
 viewNotifications = viewSharedInformation () [ViewAs (join ", ")] currentNotifications @! ()
 
-tasksToDo :: ROShared () [(TaskId, WorklistRow)]
+tasksToDo :: SDSLens () [(TaskId, WorklistRow)] ()
 tasksToDo = taskForCurrentUser isToDo
   where
   isToDo {TaskListItem|attributes} = fmap (\x -> toInt x == toInt Immediate) ('DM'.get "priority" attributes) == Just True
 
-incomingTasks :: ROShared () [(TaskId, WorklistRow)]
+incomingTasks :: SDSLens () [(TaskId, WorklistRow)] ()
 incomingTasks = taskForCurrentUser isIncoming
   where
   isIncoming {TaskListItem|attributes} = fmap (\x -> toInt x /= toInt Immediate) ('DM'.get "priority" attributes) == Just True

@@ -11,7 +11,7 @@ emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditor = leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
-	genUI _ mode vst           = (Ok (ui UIEmpty, editModeValue mode),vst)
+	genUI attr _ mode vst      = (Ok (uia UIEmpty attr, editModeValue mode),vst)
 	onEdit _ (_, ()) mbVal vst = (Ok (NoChange, mbVal),vst)   // ignore edit events
 	onRefresh _ val _ vst      = (Ok (NoChange, Just val),vst)   // just use new value
 	valueFromState mbVal       = mbVal
@@ -25,7 +25,7 @@ emptyEditorWithDefaultInEnterMode_ jsonEncode jsonDecode defaultValue = leafEdit
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
-	genUI _ mode vst         = (Ok (ui UIEmpty, fromMaybe defaultValue $ editModeValue mode),vst)
+	genUI attr _ mode vst    = (Ok (uia UIEmpty attr, fromMaybe defaultValue $ editModeValue mode),vst)
 	onEdit _ (_, ()) val vst = (Ok (NoChange, val),vst)   // ignore edit events
 	onRefresh _ val _ vst    = (Ok (NoChange, val),vst)   // just use new value
 	valueFromState val       = Just val
@@ -39,9 +39,9 @@ emptyEditorWithErrorInEnterMode_ jsonEncode jsonDecode error = leafEditorToEdito
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
-	genUI _ mode vst         = case editModeValue mode of
+	genUI attr _ mode vst = case editModeValue mode of
         Nothing  = (Error error, vst)
-		Just val = (Ok (ui UIEmpty, val),vst)
+		Just val = (Ok (uia UIEmpty attr, val),vst)
 	onEdit _ (_, ()) val vst = (Ok (NoChange, val),vst)   // ignore edit events
 	onRefresh _ val _ vst    = (Ok (NoChange, val),vst)   // just use new value
 	valueFromState val       = Just val
@@ -99,21 +99,21 @@ listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (
 listEditor_ jsonenc add remove reorder count itemEditor = compoundEditorToEditor
 	{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
-	genUI dp mode vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
+	genUI attr dp mode vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
 		(Ok (items, childSts),vst)
 			//Add list structure editing buttons
 			# items = if (not viewMode && (remove || reorder)) [listItemUI taskId dp (length val) idx idx dx \\ dx <- items & idx <- [0..]] items
 			//Add the add button
 			# items = if (not viewMode && add =: Just _) (items ++ [addItemControl val]) items
 			//All item UI's have a unique id that is used in the data-paths of that UI
-			= (Ok (uic UIList items, (viewMode, indexList val), childSts), vst)
+			= (Ok (uiac UIList attr items, (viewMode, indexList val), childSts), vst)
 		(Error e,vst)  = (Error e,vst)
 	where
 		viewMode = mode =: View _
         val = fromMaybe [] $ editModeValue mode
 
 		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
-		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI (dp++[i]) (if viewMode View Update $ c) vst of
+		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI emptyAttr (dp++[i]) (if viewMode View Update $ c) vst of
 			(Ok (u,m),vst) = genChildUIs dp (i+1) cs [(u,m):us] vst
 			(Error e,vst)  = (Error e,vst)
 
@@ -172,7 +172,7 @@ where
 			# ni = num 
 			# nid = nextId ids
             // use enter mode if no value for new item is given; otherwise use update mode
-			= case itemEditor.Editor.genUI (dp++[nid]) (maybe Enter Update mbNx) vst of
+			= case itemEditor.Editor.genUI emptyAttr (dp++[nid]) (maybe Enter Update mbNx) vst of
 				(Error e,vst) = (Error e, vst)
 				(Ok (ui,nm),vst)
 					# nChildSts = childSts ++ [nm]
@@ -215,7 +215,7 @@ where
 			= (Ok (NoChange, (viewMode, ids), childSts), vst)
 		//TODO: Determine small UI change
 		| otherwise
-			= case genUI dp (if viewMode View Update $ new) vst of
+			= case genUI emptyAttr dp (if viewMode View Update $ new) vst of
 				(Ok (ui, internalSt, childSts),vst) = (Ok (ReplaceUI ui, internalSt, childSts), vst)
 				(Error e,vst)                       = (Error e, vst)
 

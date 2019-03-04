@@ -2,5 +2,5 @@ implementation module Cadastre.SDS
 
 import Cadastre.UoD
 
-cadastreRealEstate :: Shared [CadastreRealEstate]
+cadastreRealEstate :: SimpleSDSLens [CadastreRealEstate]
 cadastreRealEstate = sharedStore "cadastreRealEstate" []

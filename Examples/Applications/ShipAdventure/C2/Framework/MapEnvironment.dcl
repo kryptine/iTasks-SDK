@@ -80,8 +80,8 @@ instance == Border
                    }
 
 :: UserActorMap   objType actorStatus        :== Map User (Actor objType actorStatus)
-:: UserActorShare objType actorStatus        :== RWShared ()   (UserActorMap objType actorStatus)  (UserActorMap objType actorStatus)
-:: FocusedUserActorShare objType actorStatus :== RWShared User (Maybe (Actor objType actorStatus)) (Actor objType actorStatus)
+:: UserActorShare objType actorStatus        :== SimpleSDSLens (UserActorMap objType actorStatus)
+:: FocusedUserActorShare objType actorStatus :== SDSLens User (Maybe (Actor objType actorStatus)) (Actor objType actorStatus)
 
 :: SectionStatusMap    roomStatus          :== Map Coord3D roomStatus // [Coord3D |-> roomStatus]
 :: SectionInventoryMap objType             :== Map Coord3D (IntMap (Object objType)) // [Coord3D |-> [ObjId |-> Object]]
@@ -90,39 +90,39 @@ instance == Border
 :: SectionHopLockMap                       :== Map Coord3D [Coord3D]
 
 
-:: SectionStatusShare           roomStatus          :== RWShared ()      (SectionStatusMap roomStatus) (SectionStatusMap roomStatus) // [Coord3D |-> roomStatus]
-:: SectionInventoryShare        objType             :== RWShared ()      (SectionInventoryMap objType) (SectionInventoryMap objType) // [Coord3D |-> [ObjId |-> Object]]
-:: SectionUsersShare                                :== RWShared ()      SectionUsersMap               SectionUsersMap
-:: FocusedSectionStatusShare    roomStatus          :== RWShared Coord3D roomStatus                    roomStatus // [Coord3D |-> roomStatus]
-:: FocusedSectionInventoryShare objType             :== RWShared Coord3D (IntMap (Object objType))     (IntMap (Object objType)) // [Coord3D |-> [ObjId |-> Object]]
-:: FocusedSectionUsersShare                         :== RWShared Coord3D [User]                        [User]
+:: SectionStatusShare           roomStatus          :== SimpleSDSLens (SectionStatusMap roomStatus) // [Coord3D |-> roomStatus]
+:: SectionInventoryShare        objType             :== SimpleSDSLens (SectionInventoryMap objType) // [Coord3D |-> [ObjId |-> Object]]
+:: SectionUsersShare                                :== SimpleSDSLens SectionUsersMap
+:: FocusedSectionStatusShare    roomStatus          :== SDSLens Coord3D roomStatus                    roomStatus // [Coord3D |-> roomStatus]
+:: FocusedSectionInventoryShare objType             :== SDSLens Coord3D (IntMap (Object objType))     (IntMap (Object objType)) // [Coord3D |-> [ObjId |-> Object]]
+:: FocusedSectionUsersShare                         :== SDSLens Coord3D [User]                        [User]
 
-:: DrawMapForActor r o a :== User (Shared (SectionStatusMap r)) (UserActorShare o a) (Shared (SectionInventoryMap o)) -> Task ()
+:: DrawMapForActor r o a :== User (SimpleSDSLens (SectionStatusMap r)) (UserActorShare o a) (SimpleSDSLens (SectionInventoryMap o)) -> Task ()
 
 instance == (Actor o a)
 instance == (Object obj) | == obj
 
-maps2DShare :: RWShared () Maps2D Maps2D
+maps2DShare :: SimpleSDSLens Maps2D
 
-sharedGraph :: RWShared () Graph ()
+sharedGraph :: SDSLens () Graph ()
 
 sectionUsersShare :: SectionUsersShare
 
-sectionForUserShare :: User -> RWShared () (Maybe Coord3D) SectionUsersMap
+sectionForUserShare :: User -> SDSLens () (Maybe Coord3D) SectionUsersMap
 
 focusedSectionUsersShare :: FocusedSectionUsersShare
 
-lockedExitsShare :: RWShared () SectionExitLockMap SectionExitLockMap
+lockedExitsShare :: SimpleSDSLens SectionExitLockMap
 
-lockStatusForExit :: RWShared Coord3D [Dir] [Dir]
+lockStatusForExit :: SDSLens Coord3D [Dir] [Dir]
 
-lockedHopsShare :: RWShared () SectionHopLockMap SectionHopLockMap
+lockedHopsShare :: SimpleSDSLens SectionHopLockMap
 
-lockStatusForHop :: RWShared Coord3D [Coord3D] [Coord3D]
+lockStatusForHop :: SDSLens Coord3D [Coord3D] [Coord3D]
 
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 
-actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
+actorsInSectionShare :: (UserActorShare o a) -> SDSLens Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
 
 actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a | iTask o & iTask a
 
@@ -165,8 +165,8 @@ maps2DToGraph :: !Maps2D -> Graph
 
 autoMove :: !Coord3D !Coord3D
             !(Coord3D Coord3D (SectionStatusMap r) SectionExitLockMap SectionHopLockMap Graph -> Maybe ([Coord3D], Distance))
-            !User !(Shared (SectionStatusMap r)) !(UserActorShare o a)
-         -> Task Bool | iTask r & iTask o & iTask a
+            !User !(Shared sds (SectionStatusMap r)) !(UserActorShare o a)
+         -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 pickupObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectionInventoryShare o)
              -> Task () | iTask o & iTask a
 dropObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectionInventoryShare o)

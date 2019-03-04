@@ -8,6 +8,7 @@ import System.OS
 import Text, Text.HTML
 import Data.List, Data.Func
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 import Testing.TestEvents
 import iTasks
@@ -204,14 +205,14 @@ where
 
 	hasExecutable {InspectState|executable} = (executable =: (Just _))
 
-	editSourceCode :: (Shared InspectState) -> Task InspectState
+	editSourceCode :: (Shared sds InspectState) -> Task InspectState | RWShared sds
 	editSourceCode state
 		= updateSharedInformation (Title "Edit code")
 			[UpdateUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
                          aceTextArea] state
 
-	buildExecutable :: FilePath (Shared InspectState) -> Task ()
+	buildExecutable :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
 	buildExecutable temporaryDirectory state = 
               get state @ (\{InspectState|moduleName,lines} -> (moduleName,join OS_NEWLINE lines))
 		  >>- \(moduleName,sourceCode) -> 
@@ -232,7 +233,7 @@ where
 		setExecutable directory moduleName state
             = upd (\s -> {InspectState|s & executable = Just (directory </> addExtension moduleName "exe")}) state
 
-	runProgram :: FilePath (Shared InspectState) -> Task ()
+	runProgram :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
 	runProgram temporaryDirectory state = (
 			    get state @ (\{InspectState|executable} -> executable)
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")

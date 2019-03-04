@@ -8,15 +8,18 @@ import iTasks.Internal.Generic.Defaults
 import StdEnum
 
 from Data.Map as DM import qualified newMap, put, get, del, toList, fromList, delList, alter, union, keys, unions, singleton, member, null
+import Data.Map.GenJSON
 from Data.Set as DS import qualified newSet, insert, delete, toList, fromList, null
 from Data.Set import instance Foldable Set
 from Data.Tuple import appSnd
 from Data.Map import instance Functor (Map k)
+from Data.Foldable import maximum
 
 import Text.GenJSON
 
 from StdFunc import o, const, id, flip
-from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskState import :: TIMeta(..), :: TIType(..), :: TaskTree(..), :: DeferredJSON, :: AsyncAction
+
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
@@ -814,7 +817,7 @@ nodeType_ :: !LUINo !LUI -> UIType
 nodeType_ ruleNo (LUINode {effects = {overwrittenType=ESToBeApplied (appliedAt,type)}}) | appliedAt < ruleNo = type
 nodeType_ ruleNo (LUINode {effects = {overwrittenType=ESApplied (appliedAt,type)}}) | appliedAt < ruleNo = type
 nodeType_ ruleNo (LUINode {effects = {overwrittenType=ESToBeUpdated _ (appliedAt,type)}}) | appliedAt < ruleNo = type
-nodeType_ ruleNo (LUINode node) = node.type
+nodeType_ ruleNo (LUINode node) = node.LUINode.type
 
 nodeAttributes_ :: !LUINo !LUI -> UIAttributes
 nodeAttributes_ ruleNo (LUINode node)
@@ -1229,7 +1232,7 @@ extractUIWithEffects_ (LUINode node =: {effects = {wrapper=ESToBeRemoved _}}, mo
 		_           = abort "extractUIWithEffects_: Wrapped item is missing"
 extractUIWithEffects_ (lui=:LUINode node, moves)
 	//Determin type
-	# type = applyTypeEffect_ node.type node.effects
+	# type = applyTypeEffect_ node.LUINode.type node.effects
 	//Determine attributes and apply attribute effects
 	# attr = applyAttributeEffects_ (applyAttributeChanges_ node.changes node.LUINode.attributes) node.effects
 	//Recursively extract children with effects 

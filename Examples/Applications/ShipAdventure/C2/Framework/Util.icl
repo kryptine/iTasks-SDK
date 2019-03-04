@@ -16,22 +16,22 @@ derive class iTask Location
 
 /* Utility tasks */
 
-editSharedList :: (Shared [a]) -> Task () | iTask a
+editSharedList :: (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedList list
 	= editSharedListWithTask (updateInformation "Item Info" []) list
 
-editSharedListWithTask :: (a -> Task a) (Shared [a]) -> Task () | iTask a
+editSharedListWithTask :: (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedListWithTask tupdate list
 	= editSharedListWithTaskTask  (enterInformation "Enter new item" []) tupdate list
 
-editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared [a])-> Task () | iTask a
+editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared sds [a])-> Task () | iTask a & RWShared sds
 editSharedListWithTaskTask tenter tupdate list
 	= editSharedListGeneric [ESLUpdate ("Edit Item",tupdate)
 							,ESLAdd    ("Add Item",tenter)
 							,ESLDel
 							,ESLClearAll] list
 
-editSharedListGeneric :: [EditSharedListOption a] (Shared [a]) -> Task () | iTask a
+editSharedListGeneric :: [EditSharedListOption a] (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedListGeneric options list
 	= doOrClose (forever (enterChoiceWithShared "Choose an item"
     	[ChooseFromGrid snd]
@@ -64,7 +64,7 @@ where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! (
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
 
-updateItemInSharedList :: a (a -> Bool) (Shared [a]) -> Task [a] | iTask a
+updateItemInSharedList :: a (a -> Bool) (Shared sds [a]) -> Task [a] | iTask a & RWShared sds
 updateItemInSharedList newitem cond share = upd f share
 where f []                 = []
       f [a:as] | cond a    = [newitem : as]
@@ -142,7 +142,7 @@ innersplitscreenview  main left
 
 sidebar ts = allSideBar 0 TopSide 25 ts @! ()
 
-chats ::  Shared [ChatMessage]
+chats ::  SimpleSDSLens [ChatMessage]
 chats = sharedStore "chats" []
 
 derive class iTask ChatMessage
@@ -161,7 +161,7 @@ where
 editChats :: Task ()
 editChats  = editSharedList chats
 
-debugstore :: Shared [String]
+debugstore :: SimpleSDSLens [String]
 debugstore = sharedStore "debugstore" []
 
 addDebug :: String -> Task ()

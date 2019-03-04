@@ -15,7 +15,7 @@ main :: Task ()
 main = multiUserExample @! ()
 
 multiUserExample
-	=				set (map mkUserAccount players) userAccounts
+	=				allTasks (map (createUser o mkUserAccount) players)
 	>>|				viewInformation "Login under one of the following names (password = login name)" []
 						(join ", " players)
 					-||-
@@ -24,7 +24,7 @@ multiUserExample
 	>>|				loginAndManageWork "Meeting_4_3 Example"
 where
 	mkUserAccount name
-		= { credentials = { username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
+		= {UserAccount| credentials = {Credentials| username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
 
 
 // -------------------------------------------------------------------------
@@ -70,7 +70,6 @@ where
 	makeTable
 		= [{users = [], date = date} \\ date <- dates]
 
-	askAll :: (Shared [MeetingOption]) -> Task MeetingOption
 	askAll table
 		= 			allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
 		>>- \_ ->	enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table

@@ -5,6 +5,7 @@ import iTasks.Extensions.SVG.SVGEditor
 //import Graphics.Scalable
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
 from Data.Func import mapSt
@@ -198,8 +199,8 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
     isFailed (MoveFailed _) = True
     isFailed _              = False
 
-  taskToDo :: !(!Coord3D, !SectionStatus) !User !(Shared MySectionStatusMap) !(UserActorShare o a) !(Shared MySectionInventoryMap)
-           -> Task (MoveSt String)
+  taskToDo :: !(!Coord3D, !SectionStatus) !User !(Shared sds1 MySectionStatusMap) !(UserActorShare o a) !(Shared sds2 MySectionInventoryMap)
+           -> Task (MoveSt String) | RWShared sds1 & RWShared sds2
   taskToDo (alarmLoc, status) user shStatusMap shUserActor shInventoryMap
     =   viewSharedInformation ("Handle " <+++ toString status <+++ " in Section: " <+++ alarmLoc) [ViewAs todoTable] (sectionForUserShare user |*| myUserActorMap |*| shStatusMap |*| shInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| sharedGraph)
     >>* [ OnAction (Action "Use Fire Extinguisher") (ifValue (mayUseExtinguisher status) (withUser useExtinquisher))

@@ -10,10 +10,10 @@ import qualified Data.Map as DM
 //This module provides an add-on that keeps track of the deployed crew of a rescue vessel
 
 //Data storage
-crewListsStore :: RWShared ContactNo [ContactNo] [ContactNo]
+crewListsStore :: SDSLens ContactNo [ContactNo] [ContactNo]
 crewListsStore = indexedStore "crewLists" []
 
-crewAliasListsStore :: RWShared ContactNo [(Int,ContactNo)] [(Int,ContactNo)]
+crewAliasListsStore :: SDSLens ContactNo [(Int,ContactNo)] [(Int,ContactNo)]
 crewAliasListsStore = indexedStore "crewAliasLists" []
 
 //Manage the crew information for a specific contact

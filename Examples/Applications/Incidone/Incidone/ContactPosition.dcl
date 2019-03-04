@@ -74,8 +74,8 @@ fromLeafletPerspective      :: LeafletPerspective -> ContactMapPerspective
 selectionFromLeafletMap     :: LeafletMap -> [LeafletObjectID]
 
 //Standard layers available to use in all map views
-standardPerspective         :: Shared ContactMapPerspective
-standardMapLayers           :: Shared [ContactMapLayer]
+standardPerspective         :: SimpleSDSLens ContactMapPerspective
+standardMapLayers           :: SimpleSDSLens [ContactMapLayer]
 
 derive JSONEncode ContactPosition, ContactMapPerspective
 derive JSONDecode ContactPosition, ContactMapPerspective
