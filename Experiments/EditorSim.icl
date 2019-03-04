@@ -3,12 +3,13 @@ module EditorSim
 * Simulation of messages passing between editors to figure out the design details
 */
 import iTasks
-import Data.Maybe, Data.Either, Data.Tuple, Data.Functor, Data.List, Data.Func
+import Data.Maybe, Data.Either, Data.Tuple, Data.Functor, Data.List, Data.Func, Data.Error
 import qualified Data.Map as DM
 import Text, Text.HTML
 from StdFunc import seqList, :: St(..)
 from Data.Foldable import maximumBy
 import StdArray
+import Data.Map.GenJSON
 
 import qualified Graphics.Scalable.Image as GI
 from Graphics.Scalable.Image import :: FillAttr(..), <@<,  :: Image, :: Host(..)
@@ -17,7 +18,6 @@ from Graphics.Scalable.Image import class margin, instance margin (!Span, !Span,
 import iTasks.Extensions.SVG.SVGEditor
 
 //TODOS:
-// - Add a consistency checking / synchronization mechanism for data protection
 // - Model an example with input field validation for mandatory fields etc. such as 'empty','validated', etc
 
 //PROBLEMS:
@@ -85,6 +85,15 @@ import iTasks.Extensions.SVG.SVGEditor
 
 :: NxtServerOutMessage m = NxtServerOut m NxtPartialVersionTree NxtPartialVersionTree
 
+instance Functor NxtServerInMessage
+where
+	fmap f (NxtServerInRemote m v) = NxtServerInRemote (f m) v
+	fmap f (NxtServerInLocal m v) = NxtServerInLocal (f m) v
+
+instance Functor NxtClientInMessage
+where
+	fmap f (NxtClientInRemote m ov nv) = NxtClientInRemote (f m) ov nv
+	fmap f (NxtClientInLocal m) = NxtClientInLocal (f m)
 
 //TODO: this is not minimal enough: We create a partial version info structure, but it actually contains all versions!
 toPartialVersion (NVTBasic v) = NVPVersion (Just v) []
@@ -97,6 +106,10 @@ selectPartialVersion pos (NVPVersion _ items) = case [v \\ (i,v) <- items | i ==
 	_     = emptyPartialVersion
 
 maxMajorVersion (NVPVersion mbv vs) = foldr max (maybe 0 fst mbv) (map (maxMajorVersion o snd) vs)
+
+getVersion:: NxtVersionTree -> NxtVersion
+getVersion (NVTBasic v) = v
+getVersion (NVTMultiple v _) = v
 
 //Simulated DOM/JSWorld
 :: NxtDOMRef :== [Int]
@@ -405,6 +418,14 @@ where
 		  ,oldVersion = getOverlayedVersions "old-version" enc
 		  ,newVersion = getOverlayedVersions "new-version" enc
 		  }
+
+instance EditMessage (Either a b) | EditMessage a & EditMessage b
+where
+  encodeEditMessage (Left value) = NxtChange [] [NxtUpdChild 0 (encodeEditMessage value)]
+  encodeEditMessage (Right value) = NxtChange [] [NxtUpdChild 1 (encodeEditMessage value)]
+
+  decodeEditMessage (NxtChange _ [NxtUpdChild 0 dec:_]) = Left (decodeEditMessage dec)
+  decodeEditMessage (NxtChange _ [NxtUpdChild 1 dec:_]) = Right (decodeEditMessage dec)
 
 instance EditMessage String //If strings are used as edit type, it's just the value attribute
 where
@@ -924,6 +945,53 @@ mapg ::
 mapg mp (mw,mr) mc ms (mmt,mmf) editor
 	= mapm (fromJust o mmt, mmf) $ maps ms $ mapc mc $ mapw mw $ mapr mr $ mapp mp $ editor
 
+validate :: (s -> Bool) (NxtEditor p r w s c m) -> (NxtEditor p r w (s,Bool) (c,Bool) (Either m Bool))
+validate checkfun editor = {client=client,server=server}
+where
+	server = {init=init,parameter=parameter,value=value,onRefresh=onRefresh,onMessage=onMessage}
+	where
+		init p rv
+			# (s,v,c) = editor.server.NxtEditorServer.init p rv
+			# valid = checkfun s
+			= ((s,valid),v,(c,valid))
+
+		parameter s
+			= editor.server.NxtEditorServer.parameter (fst s) 
+		value (s,valid)
+			= if (not valid) Nothing (editor.server.NxtEditorServer.value s)
+
+    	onRefresh rs rv (s,valid) v
+			# (msgs, s, v`, mbw)  = editor.server.NxtEditorServer.onRefresh rs rv s v
+			# valid` = checkfun s
+			# msgs` = [NxtServerOut (Left m) ov nv \\ (NxtServerOut m ov nv) <- msgs]
+					++ if (valid <> valid`) [NxtServerOut (Right valid`) (toPartialVersion v) (toPartialVersion v`)] []
+			= (msgs`, (s,valid`), v`, mbw)
+
+		onMessage (NxtServerInRemote (Left m) mv) (s,valid) v
+			# (msgs, s, v`, mbw)  = editor.server.NxtEditorServer.onMessage (NxtServerInRemote m mv) s v 
+			# valid` = checkfun s
+			# msgs` = [NxtServerOut (Left m) ov nv \\ (NxtServerOut m ov nv) <- msgs]
+					++ if (valid <> valid`) [NxtServerOut (Right valid`) (toPartialVersion v) (toPartialVersion v`)] []
+			= (msgs`, (s,valid`), v`, mbw)
+
+	client = {init=init,onEvent=onEvent,onMessage=onMessage,state=state}
+	where
+		init (Just (c,valid))
+			# dom = editor.client.NxtEditorClient.init (Just c)
+			= {NxtDOMNode|dom & attributes = 'DM'.put "valid" (if valid "true" "false") dom.NxtDOMNode.attributes}
+		init Nothing = editor.client.NxtEditorClient.init Nothing 
+
+		state dom = (editor.client.NxtEditorClient.state dom, False)
+
+    	onEvent ref event dom
+			# (msgs,dom) = editor.client.NxtEditorClient.onEvent ref event dom
+			= ([NxtClientOut (Left m) v \\ (NxtClientOut m v) <- msgs],dom)
+
+		onMessage (NxtClientInRemote (Right valid) ov nv) dom
+			= ([],{NxtDOMNode|dom & attributes = 'DM'.put "valid" (if valid "true" "false") dom.NxtDOMNode.attributes})
+		onMessage (NxtClientInRemote (Left m) ov nv) dom
+			# (msgs,dom) = editor.client.NxtEditorClient.onMessage (NxtClientInRemote m ov nv) dom
+			= ([NxtClientOut (Left m) v \\ (NxtClientOut m v) <- msgs],dom)
 
 //Simulation
 simulate :: (NxtEditor p r w s c m) p (Maybe r) -> Task () | iTask r & iTask w & iTask s & iTask c & iTask m & EditMessage m
@@ -1119,4 +1187,5 @@ testListItemEditor = glue nxtNumberField nxtButton
 
 //Start world = doTasks (simulate nxtNumberField () (Just 42)) world
 //Start world = doTasks (simulate (glue nxtNumberField nxtButton) ((),()) (Just (Just 12, Just False)) ) world
-Start world = doTasks (simulate testCounterEditor ((),()) (Just (Just 12, Just False))) world
+//Start world = doTasks (simulate testCounterEditor ((),()) (Just (Just 12, Just False))) world
+Start world = doTasks (simulate (validate (\x -> toInt x > 42) nxtNumberField) () (Just 12)) world
