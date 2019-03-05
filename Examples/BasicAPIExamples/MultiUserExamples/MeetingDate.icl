@@ -71,8 +71,8 @@ where
 		= [{users = [], date = date} \\ date <- dates]
 
 	askAll table
-		= 			allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
-		>>- \_ ->	enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table
+		=   allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
+		>-| enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table
 		>>=	 		viewInformation "Date chosen:" []
 	where
 		checkOptions user

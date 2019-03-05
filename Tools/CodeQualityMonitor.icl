@@ -217,13 +217,13 @@ where
               get state @ (\{InspectState|moduleName,lines} -> (moduleName,join OS_NEWLINE lines))
 		  >>- \(moduleName,sourceCode) -> 
               prepareBuildFiles temporaryDirectory moduleName sourceCode
-		  >>- \_ -> runBuildTool temporaryDirectory moduleName
-		  >>- \_ -> setExecutable temporaryDirectory moduleName state
+		  >-| runBuildTool temporaryDirectory moduleName
+		  >-| setExecutable temporaryDirectory moduleName state
 		  @!  ()
 	where
 		prepareBuildFiles directory moduleName sourceCode
-			=         exportTextFile (directory </> addExtension moduleName "icl") sourceCode
-			>>- \_ -> exportTextFile (directory </> addExtension moduleName "prj") (projectTemplate moduleName)
+			=   exportTextFile (directory </> addExtension moduleName "icl") sourceCode
+			>-| exportTextFile (directory </> addExtension moduleName "prj") (projectTemplate moduleName)
 		
 		runBuildTool directory moduleName
 			=   get cpmExecutable 
@@ -239,7 +239,7 @@ where
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>>- \_ -> callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
+						>-| callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()

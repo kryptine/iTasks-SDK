@@ -39,7 +39,7 @@ where
 /*
        >>- \now -> let updateTime = nextUpdate now in
            waitForTime updateTime
-       >>- \_ -> let fileName = (contentDir </> updatesFile updateTime) in
+       >-| let fileName = (contentDir </> updatesFile updateTime) in
            importTextFile fileName
        >>- \content ->
            injectAISUpdates fileName (split "\n" content)
