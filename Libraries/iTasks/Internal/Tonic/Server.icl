@@ -205,7 +205,7 @@ where
         =           get tonicServerShare
         >>- \ts  -> get currentDateTime
         >>- \cdt -> upd ('DM'.put cdt ts.ts_recordingBuffer) recordingsShare
-        >>- \_   -> upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
+        >-|         upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
     
     refreshAction :: TaskCont a (Task ())
     refreshAction = OnAction (Action "Refresh") (always startViewer)
