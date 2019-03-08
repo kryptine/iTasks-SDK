@@ -1,19 +1,15 @@
 /*
  SASS-Themable stylesheet for iTasks javascript UI library
- You can customize this to create branded iTask applications.
+
+ DO NOT EDIT THE .css FILE! GENERATE USING SASS
 */
-/* Colors: */
-/* Options: */
-/* Custom colors: */
-/* Include shared styles */
+/* You can customize these options to create branded iTask applications */
 *.itasks-viewport {
   margin: 0;
   overflow: auto;
   font-family: tahoma, arial, verdana, sans-serif;
   text-align: left;
   font-weight: normal;
-  /* Icon definitions */
-  /* Pure-css tooltips */
 }
 *.itasks-viewport .icon-help {
   background-image: url("/css/icons/help.png");
