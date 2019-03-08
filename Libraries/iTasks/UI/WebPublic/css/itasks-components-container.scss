@@ -20,7 +20,7 @@
 		font-weight: bold;
 		font-size: 8px;
 		line-height: 8px;
-		background: $panel-header-base-color + #222;
+		background: lighten($panel-header-base-color, 12.5%);
 		border: 1px solid $panel-header-text-color;
 		border-radius: 2px;
 		padding: 0 4px 2px 4px;
@@ -46,8 +46,7 @@
 	> .#{$prefix}header {
 		color: $panel-header-text-color;
 		background-color: $panel-header-base-color;
-		background: -moz-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
-		background: -webkit-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
+		background: linear-gradient(lighten($panel-header-base-color,12.5%), $panel-header-base-color);
 	}
 }
 .#{$prefix}framed {
@@ -68,8 +67,7 @@
 	position: relative;
 	min-height: 24px;
 
-	background: -moz-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
-	background: -webkit-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
+	background: linear-gradient(lighten($panel-header-base-color,20%), $panel-header-base-color);
 	overflow: hidden;
 }
 .#{$prefix}tabbar:after {
@@ -88,7 +86,7 @@
 	margin: 0;
 	padding: 0 10px;
 	border: 1px solid $tab-border-color;
-	background: $tab-base-color - #131313;
+	background: darken($tab-base-color, 5%);
 	display: inline-block;
 	position: relative;
 	z-index: 0;
@@ -113,13 +111,13 @@
 	left: -6px;
 	border-bottom-right-radius: 5px;
 	border-width: 0 1px 1px 0;
-	box-shadow: 2px 2px 0 ($tab-base-color - #131313);
+	box-shadow: 2px 2px 0 darken($tab-base-color,5%);
 }
 .#{$prefix}tabbar li:after {
 	right: -6px;
 	border-bottom-left-radius: 5px;
 	border-width: 0 0 1px 1px;
-	box-shadow: -2px 2px 0 ($tab-base-color - #131313);
+	box-shadow: -2px 2px 0 darken($tab-base-color,5%);
 }
 .#{$prefix}tabbar li.#{$prefix}selected {
 	background: $tab-base-color;
@@ -199,8 +197,7 @@
 	> .#{$prefix}header {
 		color: $window-header-text-color;
 		background-color: $window-header-base-color;
-		background: -moz-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
-		background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+		background: linear-gradient(lighten($window-header-base-color, 12.5%), $window-header-base-color);
 	}
 }
 .#{$prefix}notification-bubble {
@@ -222,8 +219,7 @@
 	margin: 0;
 	padding: 2px 5px;
 	background: $canvas-base-color;
-	background: -moz-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
-	background: -webkit-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
+	background: linear-gradient(lighten($canvas-base-color,4%), darken($canvas-base-color,5%));
 
 	> .#{$prefix}menu-item > div {
 		background-image: url('#{$icon-path}menu-down.png');
@@ -232,7 +228,7 @@
 	}
 }
 .#{$prefix}buttonbar, .#{$prefix}toolbar {
-	background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
+	background: linear-gradient(lighten($button-base-color,4%), darken($button-base-color,12.5%));
 }
 
 .#{$prefix}list {
@@ -264,31 +260,28 @@
 		width: 100%;
 		height: 5px;
 		display: flex;
-		display: -webkit-flex;
 		flex-direction: row;
 		flex-shrink: 0;
-		border: 1px solid ($button-base-color - #333);
+		border: 1px solid darken($button-base-color,20%);
 		border-width: 0 0 1px 0;
 	}
 
 	div.#{$prefix}menu-label {
 		height: 23px;
-		background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
-		background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+		background: linear-gradient(lighten($button-base-color,10%), $button-base-color);
 		background-repeat: none;
 		background-image: url('#{$icon-path}menu-down.png');
 		background-repeat: no-repeat;
 		background-position: 95% center;
 
 		display: flex;
-		display: -webkit-flex;
 		flex-direction: row;
 		align-items: center;
 		text-decoration: none;
 		color: $button-text-color;
 		flex-shrink: 0;
 
-		border: 1px solid ($button-base-color - #333);
+		border: 1px solid darken($button-base-color,20%);
 		border-radius: 3px;
 		text-decoration: none;
 		float: left;
@@ -313,7 +306,7 @@
 		position: absolute;
 		background: #eee;
 		box-shadow: 0 3px 3px rgba(0,0,0,0.5);
-		border: 1px solid ($button-base-color - #333);
+		border: 1px solid darken($button-base-color,20%);
 		border-radius: 0 3px 3px 3px;
 		min-width: 150px;
 

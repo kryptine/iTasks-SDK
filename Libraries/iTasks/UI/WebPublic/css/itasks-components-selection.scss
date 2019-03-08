@@ -10,35 +10,28 @@
 }
 .#{$prefix}choicegrid {
     display: flex;
-    display: -webkit-flex;
     flex-direction: column;
-    -webkit-flex-direction: column;
 }
 .#{$prefix}choicegrid-header {
     color: $panel-header-text-color;
     background: $panel-header-base-color;
-    background: -moz-linear-gradient(center top, $panel-header-base-color + #0a0a0a, $panel-header-base-color - #0a0907);
-    background: -webkit-linear-gradient(center top, $panel-header-base-color + #0a0a0a, $panel-header-base-color - #0a0907);
+    background: linear-gradient(lighten($panel-header-base-color,20%), darken($panel-header-base-color,10%) );
     display: flex;
-    display: -webkit-flex;
     flex-direction: row;
-    -webkit-flex-direction: row;
     flex: none;
 }
 .#{$prefix}choicegrid-header > div {
-    $up-color: $panel-header-base-color + #111;
-    $down-color: $panel-header-base-color + #222;
+    $up-color: lighten($panel-header-base-color, 5%);
+    $down-color: lighten($panel-header-base-color, 15%);
     border: 1px solid;
     border-color:  $up-color $up-color $down-color $down-color;
     flex: 1;
-    -webkit-flex: 1;
     padding: 3px 5px;
     font-size: 11px;
     height: 20px;
 }
 .#{$prefix}choicegrid-body {
     flex: 1;
-    -webkit-flex: 1;
     background: #fff;
     color: #000;
     overflow: auto;
@@ -46,9 +39,7 @@
 }
 .#{$prefix}choicegrid-body > div {
     display: flex;
-    display: -webkit-flex;
     flex-direction: row;
-    -webkit-flex-direction: row;
     cursor: default;
     border: solid transparent;
     border-width: 1px 0;
@@ -67,16 +58,13 @@
 }
 .#{$prefix}choicegrid-body > div > div {
     flex: 1;
-    -webkit-flex: 1;
     padding: 3px 5px;
 }
 
 .#{$prefix}choicetree {
     overflow: auto;
     min-width: 150px;
-    -webkit-min-width: 150px;
     min-height: 100px;
-    -webkit-min-height: 100px;
 
     background: #fff;
     color: #000;
@@ -158,19 +146,15 @@
     margin: 0;
     border: 1px solid $select-base-color;
     display: flex;
-    display: -webkit-flex;
     overflow: auto;
     flex-direction: column;
-    -webkit-flex-direction: column;
     align-items: stretch;
-    -webkit-align-items: stretch;
 }
 .#{$prefix}choice-list-option {
     border: solid $select-base-color;
     border-width: 0 0 1px 0;
     padding: 5px 10px;
     flex-shrink: 0;
-    -webkit-flex-shrink: 0;
 
     &:last-child {
         border-width: 0;

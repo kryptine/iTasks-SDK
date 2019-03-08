@@ -11,13 +11,7 @@
 
 	div, input, td, th, select {
 		min-height: fit-content;
-
-		@if $touchscreen {
-			font-size: 16pt;
-		}
-		@else {
-			font-size: 9pt;
-	    }
+		font-size: 9pt;
 	}
 }
 div.#{$prefix}loader {
@@ -41,7 +35,6 @@ div.#{$prefix}loader-spinner {
 div.#{$prefix}exception {
 	text-align: center;
 }
-
 .#{$prefix}vcontainer, .#{$prefix}hcontainer {
     display: flex;
     align-items: flex-start;

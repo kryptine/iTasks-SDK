@@ -5,15 +5,11 @@
 }
 [tooltip]:before, [tooltip]:after {
     position: absolute;
-    -webkit-transform: translate3d(0, 0, 0);
-    -moz-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
     visibility: hidden;
     opacity: 0;
     z-index: 1000000;
     pointer-events: none;
-    -webkit-transition: 0.3s ease;
-    -moz-transition: 0.3s ease;
     transition: 0.3s ease;
 }
 [tooltip]:hover:before, [tooltip]:hover:after, [tooltip]:focus:before, [tooltip]:focus:after {
@@ -50,7 +46,5 @@
   bottom: 50%;
 }
 [tooltip]:hover:after, [tooltip]:hover:before, [tooltip]:focus:after, [tooltip]:focus:before {
-  -webkit-transform: translateX(-8px);
-  -moz-transform: translateX(-8px);
   transform: translateX(-8px);
 }
