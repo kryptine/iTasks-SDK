@@ -3,15 +3,8 @@
     height: 16px;
 }
 .#{$prefix}button {
-    @if $touchscreen {
-        font-size: 24px;
-        padding: 10px;
-        font-weight: bold;
-    }
-    @else {
-        font-size: 8pt;
-        padding: 3px;
-    }
+	font-size: 8pt;
+   	padding: 3px;
     background: linear-gradient(lighten($button-base-color,20% ), $button-base-color);
     background-repeat: none;
     border: 1px solid darken($button-base-color,20%);
@@ -30,9 +23,7 @@
 }
 .#{$prefix}button-label {
     margin: 0 4px;
-    @if not $touchscreen {
-        height: 16px;
-    }
+    height: 16px;
 }
 .#{$prefix}button-icon {
     width: 16px;
@@ -48,5 +39,3 @@
 .#{$prefix}button-disabled .#{$prefix}button-icon {
     opacity: 0.5;
 }
-
-

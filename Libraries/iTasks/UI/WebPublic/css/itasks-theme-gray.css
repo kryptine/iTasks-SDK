@@ -658,7 +658,7 @@ div.itasks-exception {
   width: 100%;
   border-radius: 0;
   border-width: 0 0 1px 0;
-  background-image: url("/css/icons//menu-down.png");
+  background-image: url("/css/icons/menu-down.png");
 }
 .itasks-menu .itasks-menu-content .itasks-menu-label:hover {
   background: #333;
@@ -854,7 +854,7 @@ div.itasks-exception {
   margin: -20px 0 0 -44px;
   padding: 20px 0 0 80px;
   height: auto;
-  background: url("/css/icons//toggle-small.png") 42px 0 no-repeat;
+  background: url("/css/icons/toggle-small.png") 42px 0 no-repeat;
 }
 .itasks-choicetree li input:checked + ol > li {
   display: block;
@@ -909,45 +909,4 @@ div.itasks-exception {
 .itasks-choice-list-option.itasks-selected {
   background-color: #333;
   color: #fff;
-}
-
-.itasks-button {
-  font-size: 8pt;
-  padding: 3px;
-  background: linear-gradient(white, #eee);
-  background-repeat: none;
-  border: 1px solid #bbbbbb;
-  border-radius: 3px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  text-decoration: none;
-  color: #000;
-  flex-shrink: 0;
-}
-.itasks-button:hover {
-  border-color: #bbbbbb;
-}
-
-.itasks-button-label {
-  margin: 0 4px;
-  height: 16px;
-}
-
-.itasks-button-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.itasks-button-disabled {
-  color: gray;
-  background: linear-gradient(white, #d5d5d5);
-}
-
-.itasks-button-disabled:hover {
-  border-color: #bbbbbb;
-}
-
-.itasks-button-disabled .itasks-button-icon {
-  opacity: 0.5;
 }

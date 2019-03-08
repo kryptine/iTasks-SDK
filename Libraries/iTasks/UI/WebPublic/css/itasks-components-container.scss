@@ -244,12 +244,6 @@
 	background-color: $list-highlight-color;
 }
 
-@if $touchscreen {
-	.#{$prefix}buttonbar {
-		background: $panel-header-base-color;
-	}
-}
-
 .#{$prefix}menu {
 	display: block;
 	position: relative;
@@ -324,7 +318,7 @@
 			border-radius: 0;
 			border-width: 0 0 1px 0;
 
-			background-image: url('#{$icon-path}/menu-down.png');
+			background-image: url('#{$icon-path}menu-down.png');
 
 			&:hover {
 				background: #{$select-base-color};
