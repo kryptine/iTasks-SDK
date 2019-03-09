@@ -106,43 +106,25 @@ itasks.Component = {
 		var me = this,
 			el = me.domEl,
 			width = me.attributes.width,
-			height = me.attributes.height,
-			direction = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical';
+			height = me.attributes.height;
 
-		//Set width
+		//Set width & height using attributes
 		if(width === 'flex') {
-			if(direction == 'horizontal') {
-				el.style.flex = 1;
-				el.style.webkitFlex = 1;
-			} else {
-				el.style.alignSelf = 'stretch';
-				el.style.webkitAlignSelf = 'stretch';
-			}
+			el.classList.add(me.cssPrefix + 'flex-width');
 		} else if (width === 'wrap') {
-			if(direction == 'horizontal') {
-				el.classList.add(me.cssPrefix + 'wrapping-horizontal');
-            }
-        } else {
+			el.classList.add(me.cssPrefix + 'wrap-width');
+		} else {	
 			el.style.width = width + 'px';
 			el.style.minWidth = width + 'px';
 			me.containerEl.style.overflowX = 'auto';
-        }
-		//Set height
+		}
 		if(height === 'flex') {
-			if(direction == 'vertical') {
-				el.style.flex = 1;
-				el.style.webkitFlex = 1;
-			} else {
-				el.style.alignSelf = 'stretch';
-				el.style.webkitAlignSelf = 'stretch';
-			}
-		} else if (height === 'wrap') {
-			if(direction == 'vertical') {
-				el.classList.add(me.cssPrefix + 'wrapping-vertical');
-			}
-		} else {
-			el.style.height = height + 'px';
-			el.style.minHeight = height + 'px';
+			el.classList.add(me.cssPrefix + 'flex-height');
+		} else if (width === 'wrap') {
+			el.classList.add(me.cssPrefix + 'wrap-height');
+		} else {	
+			el.style.height = width + 'px';
+			el.style.minHeight = width + 'px';
 			me.containerEl.style.overflowY = 'auto';
 		}
     },

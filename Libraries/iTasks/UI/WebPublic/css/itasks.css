@@ -189,25 +189,41 @@ div.itasks-exception {
   flex-direction: column;
 }
 
+.itasks-vcontainer > .itasks-flex-width {
+  align-self: stretch;
+}
+
+.itasks-vcontainer > .itasks-flex-height {
+  flex: 1;
+}
+
+.itasks-vcontainer > .itasks-wrap-height {
+  flex-shrink: 0;
+  min-height: fit-content;
+}
+.itasks-vcontainer > .itasks-wrap-height * {
+  min-height: fit-content;
+}
+
 .itasks-hcontainer {
   flex-direction: row;
   flex-shrink: 0;
 }
 
-.itasks-wrapping-horizontal {
-  flex-shrink: 0;
-  min-width: fit-content;
-}
-.itasks-wrapping-horizontal * {
-  min-width: fit-content;
+.itasks-hcontainer > .itasks-flex-width {
+  flex: 1;
 }
 
-.itasks-wrapping-vertical {
-  flex-shrink: 0;
-  min-height: fit-content;
+.itasks-hcontainer > .itasks-flex-height {
+  align-self: stretch;
 }
-.itasks-wrapping-vertical * {
-  min-height: fit-content;
+
+.itasks-hcontainer > .itasks-wrap-width {
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+.itasks-hcontainer > .itasks-wrap-width * {
+  min-width: fit-content;
 }
 
 /* Styles for unlayouted content */

@@ -42,21 +42,33 @@ div.#{$prefix}exception {
 .#{$prefix}vcontainer {
     flex-direction: column;
 }
-.#{$prefix}hcontainer {
-    flex-direction: row;
-    flex-shrink: 0;
+.#{$prefix}vcontainer > .#{$prefix}flex-width {
+	align-self: stretch;
 }
-.#{$prefix}wrapping-horizontal {
-	flex-shrink: 0;
-	min-width: fit-content;
-	* {
-		min-width: fit-content;
-	}
+.#{$prefix}vcontainer > .#{$prefix}flex-height {
+	flex: 1;
 }
-.#{$prefix}wrapping-vertical {
+.#{$prefix}vcontainer > .#{$prefix}wrap-height {
 	flex-shrink: 0;
 	min-height: fit-content;
 	* {
 		min-height: fit-content;
+	}
+}
+.#{$prefix}hcontainer {
+    flex-direction: row;
+    flex-shrink: 0;
+}
+.#{$prefix}hcontainer > .#{$prefix}flex-width {
+	flex: 1;
+}
+.#{$prefix}hcontainer > .#{$prefix}flex-height {
+	align-self: stretch;
+}
+.#{$prefix}hcontainer > .#{$prefix}wrap-width {
+	flex-shrink: 0;
+	min-width: fit-content;
+	* {
+		min-width: fit-content;
 	}
 }
