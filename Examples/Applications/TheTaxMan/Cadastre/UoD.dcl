@@ -27,23 +27,3 @@ instance == CadastreRealEstate
 		yields True only if @a.address < @b.address.
 */
 instance <  CadastreRealEstate
-
-/** == (Left a) (Left b):
-		yields @a == @b.
-	== (Right a) (Right b):
-		yields @a == @b.
-	== _ _:
-		yields False.
-*/
-instance == (Either a b) | Eq a & Eq b
-
-/** < (Left a) (Left b):
-		yields @a < @b.
-	< (Right a) (right b):
-		yields @a < @b.
-	< (Left _) _:
-		yields True.
-	< _ _:
-		yields False.
-*/
-instance <  (Either a b) | Ord a & Ord b
