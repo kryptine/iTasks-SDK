@@ -16,6 +16,7 @@ from Graphics.Scalable.Image import :: FillAttr(..), <@<,  :: Image, :: Host(..)
 from Graphics.Scalable.Image import class tuneImage, instance tuneImage FillAttr
 from Graphics.Scalable.Image import class margin, instance margin (!Span, !Span, !Span, !Span), instance margin Span
 import iTasks.Extensions.SVG.SVGEditor
+import StdMisc, StdDebug
 
 //TODOS:
 // - Model an example with input field validation for mandatory fields etc. such as 'empty','validated', etc
@@ -593,7 +594,6 @@ where
 			//New read list has less (remove existing)
 			compare i ss _ [] = (repeatn (length ss) (NxtServerOut (NxtRemoveChild i) emptyPartialVersion emptyPartialVersion),[],[],False) //TODO: versions...
 
-
 		onMessage (NxtServerInRemote (NxtUpdateChild pos m) (NVPVersion _ mv)) (p,ss) (NVTMultiple stv vs)//Route to the corresponding child
 			| pos >= length ss || pos < 0 = ([],(p,ss),NVTMultiple stv vs,False) //Out of bounds, (maybe abort instead for the simulation)
 			# (ms,s,v,write) = editor.server.NxtEditorServer.onMessage (NxtServerInRemote m (childversion pos mv)) (ss !! pos) (vs !! pos)
@@ -611,6 +611,9 @@ where
 			| pos > length ss || pos < 0 = ([],(p,ss),NVTMultiple stv vs, False) //Out of bounds, (maybe abort instead for the simulation)
 			# (s,v,_) = editor.server.NxtEditorServer.init p (fst stv) 
 			= ([], (p, insertAt pos s ss), NVTMultiple stv (insertAt pos v vs), True)
+
+		onMessage msg (p,ss) state
+			= abort "OEPS.."
 
     client = {init = init, onEvent = onEvent, onMessage = onMessage, state = state}
 	where
@@ -630,14 +633,24 @@ where
 			# child = editor.client.NxtEditorClient.init c
 			= ([],{NxtDOMNode|dom & children = insertAt pos child children})
 
+		onMessage (NxtClientInLocal (NxtInsertChild pos c)) dom=:{NxtDOMNode|children} //TODO: Revert and versioning
+			# child = editor.client.NxtEditorClient.init c
+			= ([NxtClientOut (NxtInsertChild pos c) emptyPartialVersion],{NxtDOMNode|dom & children = insertAt pos child children})
+
 		onMessage (NxtClientInRemote (NxtRemoveChild pos) oldVersion newVersion) dom=:{NxtDOMNode|children} //TODO: Check structure versions...
 			= ([],{NxtDOMNode|dom & children = removeAt pos children})
+
+		onMessage (NxtClientInLocal (NxtRemoveChild pos)) dom=:{NxtDOMNode|children} //TODO: should be able to revert to older version and send versions...
+			= ([NxtClientOut (NxtRemoveChild pos) emptyPartialVersion],{NxtDOMNode|dom & children = removeAt pos children})
 
 		onMessage (NxtClientInRemote (NxtUpdateChild pos m) oldVersion newVersion) dom=:{NxtDOMNode|children}
 			# (ms,child) = editor.client.NxtEditorClient.onMessage
 				(NxtClientInRemote m (selectPartialVersion pos oldVersion) (selectPartialVersion pos newVersion)) (children !! pos)
 			= ([(NxtClientOut (NxtUpdateChild pos message) emptyPartialVersion) \\ (NxtClientOut message version) <- ms] //TODO: Determine version
 			  ,{NxtDOMNode|dom & children = updateAt pos child children})
+
+		onMessage (NxtClientInLocal m) dom
+			= trace_n "UNIMPLEMENTED" ([],dom)
 
 		state dom=:{NxtDOMNode|children}
 			= map editor.client.NxtEditorClient.state children
@@ -861,13 +874,13 @@ where
 	where
 		onRefresh r s = e.server.NxtEditorServer.onRefresh (t r) s
 
-mapw :: (wa -> wb) (NxtEditor p r wa s c m) -> (NxtEditor p r wb s c m)
+mapw :: (wa -> Maybe wb) (NxtEditor p r wa s c m) -> (NxtEditor p r wb s c m)
 mapw f e = {NxtEditor|server = server, client = e.client}
 where
 	server = {init = e.server.NxtEditorServer.init, parameter = e.server.NxtEditorServer.parameter, value = value
 		, onRefresh = e.server.NxtEditorServer.onRefresh, onMessage = e.server.NxtEditorServer.onMessage}
 	where
-		value s = fmap f (e.server.NxtEditorServer.value s)
+		value s = maybe Nothing f (e.server.NxtEditorServer.value s)
 
 maps :: (sa -> sb, sb -> sa) (NxtEditor p r w sa c m) -> (NxtEditor p r w sb c m)
 maps (t,f) e = {NxtEditor|server = server, client = e.client}
@@ -934,7 +947,7 @@ where
 			= ([NxtClientOut (t m) version \\ NxtClientOut m version <- ms],dom)
 mapg ::
 		((p1,p2) -> p, p -> (p1,p2))                                       //Fuse parameter
-		((Maybe w1, Maybe w2) -> w, r -> (r1,r2))                          //Fuse read/write
+		((Maybe w1, Maybe w2) -> Maybe w, r -> (r1,r2))                          //Fuse read/write
         ((c1,c2) -> c, c -> (c1,c2))                                       //Fuse client configuration
         ((s1,s2) -> s, s -> (s1,s2))                                       //Fuse server state
         ((Maybe m1, Maybe m2) -> (Maybe m), m -> (Maybe m1, Maybe m2))     //Fuse messages
@@ -1147,45 +1160,64 @@ where
 	mapw = fst
 	mapr x = (x,False)
 
-/*
 //More complex test editor: A list of numbers where each element has a delete button and there is a global add button
-testListEditor :: 
-	NxtEditor 
-		() //p
-		[Maybe Int] //r 
-		[Maybe Int] //w
-		[String] //s
-		([(String,Bool)],Bool) //c
-		(Maybe (ContainerMsg (String,(String,Bool)) (Maybe String, Maybe Bool)), Maybe Bool) //m
 
-testListEditor
-	= mapp (const (), const (((),()),()))
-	$ mapr (\rs -> ( map (fmap (\i -> (i,False))) rs, False))
-	$ mapw ((map (fmap (\(Just i,_) -> i))) o fromMaybe [] o fst)
-	$ maps (\((_,ss),_) -> map fst ss, \ss -> ((((),()),[(s,False)\\ s <- ss]),False))
-	$ mapc (\(cs,(_,a)) -> (map (appSnd snd) cs,a), \(cs,a) ->([(s,("Removed",d))\\ (s,d) <-cs],("Add item",a)))
-	$ listWithAddAndDelete
-*/
-
-listWithAddAndDelete = linkg rserver rclient (glue listWithDelete nxtButton)
+testListWithAddAndDelete :: NxtEditor () [Maybe Int] [Maybe Int] [String] [String] (ContainerMsg String String)
+testListWithAddAndDelete
+	= mapp (const (), const ((),()))
+	$ mapr (\x -> (Just x,Nothing))
+	$ mapw (\w -> fst w)
+	$ maps (fst,\x -> (x,False))
+	$ mapc (fst,\x -> (x,("Add",False)))
+	$ mapm (\(Just m,_) -> m, \m -> (Just m,Nothing))
+	$ linkg rserver rclient (glue testListWithDelete nxtButton)
 where
+	//Ignore messages from the server
 	rserver s1 s2 m = (True,[])
+
 	rclient c1 c2 (_,Just True) = (False,[(Just (NxtInsertChild (length c1) Nothing), Just False)]) 
 	rclient c1 c2 m = (True,[])
 
-listWithDelete = linkm rserver rclient (multiple testListItemEditor)
+testListWithDelete :: NxtEditor () [Maybe Int] [Maybe Int] [String] [String] (ContainerMsg String String)
+testListWithDelete
+	= maps (snd,\x -> ((),x))
+	$ mapm (tom,fromm)
+	$ linkm rserver rclient (multiple testListItemEditor)
 where
 	//Ignore messages from the server
 	rserver ss m = (True,[])
 
 	//Turn a click of the button into the appropriate remove messages: remove locally and remote
-	rclient c (NxtUpdateChild n (mbx,Just True)) = (False,[NxtRemoveChild n])
+	rclient c (NxtUpdateChild n (Right True)) = (False,[NxtRemoveChild n])
 	rclient c m = (True,[]) //Ignore other messages
-	
-testListItemEditor :: NxtEditor ((),()) (Maybe Int,Maybe Bool) (Maybe Int,Maybe Bool) (String,Bool) (String,(String,Bool))  (Maybe String, Maybe Bool)
-testListItemEditor = glue nxtNumberField nxtButton
+
+	//Simplify message type (delete clicks are client-side so never occur outside the editor)
+	tom (NxtInsertChild pos c) = NxtInsertChild pos c
+	tom (NxtRemoveChild pos) = NxtRemoveChild pos
+	tom (NxtUpdateChild pos (Left m)) = NxtUpdateChild pos m
+	fromm (NxtInsertChild pos c) = NxtInsertChild pos c
+	fromm (NxtRemoveChild pos) = NxtRemoveChild pos
+	fromm (NxtUpdateChild pos m) = NxtUpdateChild pos (Left m)
+
+testListItemEditor :: NxtEditor () Int Int String String (Either String Bool)
+testListItemEditor 
+	= mapp (const (), const ((),()))
+	$ mapr (\x -> (Just x,Nothing))
+	$ mapw (\w -> fst w)
+	$ maps (fst,\x -> (x,False))
+	$ mapc (fst,\x -> (x,("Delete",False)))
+	$ mapm (toEither,fromEither)
+	$ glue nxtNumberField nxtButton
+where
+	toEither (Just l,_) = Left l
+	toEither (_,Just r) = Right r
+	fromEither (Left l) = (Just l,Nothing)
+	fromEither (Right r) = (Nothing,Just r)
 
 //Start world = doTasks (simulate nxtNumberField () (Just 42)) world
 //Start world = doTasks (simulate (glue nxtNumberField nxtButton) ((),()) (Just (Just 12, Just False)) ) world
 //Start world = doTasks (simulate testCounterEditor ((),()) (Just (Just 12, Just False))) world
-Start world = doTasks (simulate (validate (\x -> toInt x > 42) nxtNumberField) () (Just 12)) world
+//Start world = doTasks (simulate (validate (\x -> toInt x > 42) nxtNumberField) () (Just 12)) world
+//Start world = doTasks (simulate listWithDelete () (Just [Just n \\ n <- [1..4]])) world
+//Start world = doTasks (simulate testListItemEditor () (Just 42)) world
+Start world = doTasks (simulate testListWithAddAndDelete () (Just [Just n \\ n <- [1..3]])) world
