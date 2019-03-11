@@ -1,9 +1,20 @@
 .#{$prefix}prompt {
-	border: #999 solid;
-	border-width: 0 0 1px 0;
 	min-height: fit-content;
+	min-width: fit-content;
+	margin: 5px 5px 10px 5px;
 }
-
+.#{$prefix}form-item {
+	margin: 2px 4px 2px 4px;
+}
+.#{$prefix}form-item .#{$prefix}icon {
+	margin-left: 5px;
+}
+.#{$prefix}frame-compact {
+	margin: 50px 0 20px 0;
+	border-radius: 5px;
+	overflow: hidden;
+	min-width: 600px;
+}
 .#{$prefix}header {
 	font-weight: bold;
 	font-size: 11px;
@@ -57,6 +68,9 @@
 	display: flex;
 	align-items: stretch;
 	flex-direction: column;
+}
+.#{$prefix}tabset * {
+	align-self: stretch;
 }
 .#{$prefix}tabbar {
 	text-align: left;
@@ -217,7 +231,7 @@
 	justify-content: flex-start;
 	align-items: center;
 	margin: 0;
-	padding: 2px 5px;
+	padding: 2px;
 	background: $canvas-base-color;
 	background: linear-gradient(lighten($canvas-base-color,4%), darken($canvas-base-color,5%));
 
@@ -229,6 +243,9 @@
 }
 .#{$prefix}buttonbar, .#{$prefix}toolbar {
 	background: linear-gradient(lighten($button-base-color,4%), darken($button-base-color,12.5%));
+}
+.#{$prefix}buttonbar {
+	padding: 2px 2px 2px 0;
 }
 
 .#{$prefix}list {

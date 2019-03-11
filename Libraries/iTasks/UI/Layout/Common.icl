@@ -17,8 +17,6 @@ import qualified Data.Foldable
 import qualified Text as T
 from Text import class Text, instance Text String
 
-LABEL_WIDTH :== 100
-
 arrangeWithTabs :: Bool -> LayoutRule
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
@@ -172,7 +170,7 @@ arrangeHorizontal = setUIAttributes (directionAttr Horizontal)
 
 frameCompact :: LayoutRule
 frameCompact = sequenceLayouts
-	[setUIAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
+	[setUIAttributes ('DM'.unions [classAttr ["itasks-frame-compact"],sizeAttr WrapSize WrapSize])
 	,wrapUI UIContainer
 	,setUIAttributes (halignAttr AlignCenter)
 	]
@@ -320,7 +318,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 	(sequenceLayouts
 		//Create the 'row' that holds the form item
 		[wrapUI UIContainer
-		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
+		,setUIAttributes ('DM'.unions [classAttr ["itasks-form-item"],directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
 		//If there is a label attribute, create a label 
 		,optAddLabel
 		//If there is hint attribute, create an extra icon 
@@ -331,7 +329,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 where
 	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
 	addLabel = sequenceLayouts
-		[insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
+		[insertChildUI 0 (uia UILabel (widthAttr WrapSize))
 		,sequenceLayouts
 			[copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
 			,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText)
@@ -354,7 +352,7 @@ where
 					)
 
 	addIcon iconIndex = sequenceLayouts
-		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
+		[insertChildUI iconIndex (ui UIIcon)
 		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
 		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
 		]

@@ -1,12 +1,7 @@
 itasks.TextView = {
 	cssCls: 'textview',
 	container: false,
-	attributes: {
-		paddingTop: 5,
-		paddingRight: 5,
-		paddingBottom: 5,
-		paddingLeft: 5
-	},
+	attributes: {},
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.attributes.value || '';
 	},
@@ -21,13 +16,7 @@ itasks.TextView = {
 };
 itasks.HtmlView = {
 	cssCls: 'htmlview',
-	//Default padding
-	attributes: {
-		paddingTop: 5,
-		paddingRight: 5,
-		paddingBottom: 5,
-		paddingLeft: 5
-	},
+	attributes: {},
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.attributes.value || '';
 	},

@@ -226,6 +226,55 @@ div.itasks-exception {
   min-width: fit-content;
 }
 
+/* Transititional classes for alignment */
+.itasks-vcontainer.itasks-halign-left {
+  align-items: start;
+}
+
+.itasks-vcontainer.itasks-halign-center {
+  align-items: center;
+}
+
+.itasks-vcontainer.itasks-halign-right {
+  align-items: end;
+}
+
+.itasks-vcontainer.itasks-valign-top {
+  justify-content: flex-start;
+}
+
+.itasks-vcontainer.itasks-valign-middle {
+  justify-content: center;
+}
+
+.itasks-vcontainer.itasks-valign-bottom {
+  justify-content: flex-end;
+}
+
+.itasks-hcontainer.itasks-halign-left {
+  justify-content: flex-start;
+}
+
+.itasks-hcontainer.itasks-halign-center {
+  justify-content: center;
+}
+
+.itasks-hcontainer.itasks-halign-right {
+  justify-content: flex-end;
+}
+
+.itasks-hcontainer.itasks-valign-top {
+  align-items: start;
+}
+
+.itasks-hcontainer.itasks-valign-middle {
+  align-items: center;
+}
+
+.itasks-hcontainer.itasks-valign-bottom {
+  align-items: end;
+}
+
 /* Styles for unlayouted content */
 .itasks-raw-record,
 .itasks-raw-cons,
@@ -336,9 +385,24 @@ div.itasks-exception {
 }
 
 .itasks-prompt {
-  border: #999 solid;
-  border-width: 0 0 1px 0;
   min-height: fit-content;
+  min-width: fit-content;
+  margin: 5px 5px 10px 5px;
+}
+
+.itasks-form-item {
+  margin: 2px 4px 2px 4px;
+}
+
+.itasks-form-item .itasks-icon {
+  margin-left: 5px;
+}
+
+.itasks-frame-compact {
+  margin: 50px 0 20px 0;
+  border-radius: 5px;
+  overflow: hidden;
+  min-width: 600px;
 }
 
 .itasks-header {
@@ -395,6 +459,10 @@ div.itasks-exception {
   display: flex;
   align-items: stretch;
   flex-direction: column;
+}
+
+.itasks-tabset * {
+  align-self: stretch;
 }
 
 .itasks-tabbar {
@@ -572,7 +640,7 @@ div.itasks-exception {
   justify-content: flex-start;
   align-items: center;
   margin: 0;
-  padding: 2px 5px;
+  padding: 2px;
   background: #eee;
   background: linear-gradient(#f8f8f8, #e1e1e1);
 }
@@ -584,6 +652,10 @@ div.itasks-exception {
 
 .itasks-buttonbar, .itasks-toolbar {
   background: linear-gradient(#f8f8f8, #cecece);
+}
+
+.itasks-buttonbar {
+  padding: 2px 2px 2px 0;
 }
 
 .itasks-list {
@@ -711,6 +783,12 @@ div.itasks-exception {
   height: 16px;
 }
 
+.itasks-label {
+  width: 100px;
+  padding: 5px;
+  text-overflow: elipsis;
+}
+
 .itasks-button {
   font-size: 8pt;
   padding: 3px;
@@ -750,6 +828,10 @@ div.itasks-exception {
 
 .itasks-button-disabled .itasks-button-icon {
   opacity: 0.5;
+}
+
+.itasks-textview, .itasks-htmlview {
+  padding: 5px;
 }
 
 .itasks-checkgroup {
@@ -906,6 +988,10 @@ div.itasks-exception {
   overflow: auto;
   flex-direction: column;
   align-items: stretch;
+}
+
+.itasks-choice-list * {
+  align-self: stretch;
 }
 
 .itasks-choice-list-option {

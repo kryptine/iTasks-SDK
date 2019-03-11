@@ -83,14 +83,16 @@ itasks.Component = {
 			me.domEl.style = me.attributes['style'];
 		}
 		if(me.attributes['class']) {
-			me.domEl.classList.add(me.attributes['class']);
+			var len = me.attributes['class'].length;
+			for(var i = 0; i < len; i++) {
+				me.domEl.classList.add(me.attributes['class'][i]);
+			}
 		}
 		//Custom initialization after the dom element has been rendered
 		me.initDOMEl();
 		//Size the element
 		me.initDOMElSize();
 		//Set margins and alignment
-		me.initDOMElMargins();
 		me.initContainerEl();
 
 		//Add the the child renderings 
@@ -115,8 +117,6 @@ itasks.Component = {
 			el.classList.add(me.cssPrefix + 'wrap-width');
 		} else {	
 			el.style.width = width + 'px';
-			el.style.minWidth = width + 'px';
-			me.containerEl.style.overflowX = 'auto';
 		}
 		if(height === 'flex') {
 			el.classList.add(me.cssPrefix + 'flex-height');
@@ -124,99 +124,32 @@ itasks.Component = {
 			el.classList.add(me.cssPrefix + 'wrap-height');
 		} else {	
 			el.style.height = width + 'px';
-			el.style.minHeight = width + 'px';
-			me.containerEl.style.overflowY = 'auto';
 		}
     },
-	initDOMElMargins: function() {
-		var me = this,
-			el = me.domEl,
-            width = me.attributes.width,
-            height = me.attributes.height;
-
-		if(!me.parentCmp) { //Do not set margins on the root component, let the embedding page handle that
-			return;
-		}
-		var parentDirection = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical',
-            parentVAlign = (me.parentCmp && me.parentCmp.attributes.valign) || 'top',
-            parentHAlign = (me.parentCmp && me.parentCmp.attributes.halign) || 'left',
-			curIdx = me.parentCmp.findChild(me),
-			lastIdx = me.parentCmp.children.length - 1,
-			isFirst = (curIdx == 0),
-			isLast = (curIdx == lastIdx);
-
-        //Set left and right margins as specified
-		if('marginLeft' in me.attributes) { el.style.marginLeft = me.attributes.marginLeft + 'px'; }
-		if('marginRight' in me.attributes) { el.style.marginRight = me.attributes.marginRight + 'px' ; }
-	
-		//Because vertical borders 'collapse' into each other, we never set the
-		//bottom-margin, but set top-margin's that also include the bottom margin of
-		//the previous element
-		if(parentDirection == 'vertical' && !isFirst) {
-			//The first element never sets a top-margin. Its top-margin is added to the parent's padding
-			//and its bottom margin is added to the next elements top-margin 
-			el.style.marginTop = ((me.attributes.marginTop || 0) + (me.parentCmp.children[curIdx - 1].attributes.marginBottom || 0)) + 'px';
-		}
-
-		//Set margins to auto based on alignment of parent
-        if(parentDirection == 'vertical') {
-			if(width !== 'flex') {
-				switch(parentHAlign) {
-					case 'left': el.style.marginRight = 'auto'; break;
-					case 'center': el.style.marginRight = 'auto'; el.style.marginLeft = 'auto'; break;
-					case 'right': el.style.marginLeft = 'auto'; break;
-				}
-			}
-            //If this element is the first, maybe also adjust top margin;
-            if(curIdx === 0 && (parentVAlign == 'middle' || parentVAlign == 'bottom')) {
-				el.style.marginTop = 'auto';
-			}
-			//If this element is the last, maybe also adjust bottom margin;
-			if(curIdx === lastIdx && (parentVAlign == 'middle' || 'top')) {
-				el.style.marginBottom = 'auto';
-			}
-		} else {
-			if(height !== 'flex') {
-				switch(parentVAlign) {
-					case 'top': el.style.marginBottom = 'auto'; break;
-					case 'middle': el.style.marginBottom = 'auto'; el.style.marginTop = 'auto'; break;
-					case 'bottom': el.style.marginTop = 'auto'; break;
-				}
-			}
-			//If this element is the first, maybe also adjust left margin;
-			if(curIdx === 0 && (parentHAlign == 'center' || parentHAlign == 'right')) {
-                el.style.marginLeft = 'auto';
-            }
-            //If this element is the last, maybe also adjust right margin;
-            if(curIdx === lastIdx && (parentHAlign == 'center' || parentHAlign == 'left')) {
-                el.style.marginRight = 'auto';
-			}
-		}
-	},
 	initContainerEl: function() {
 		var me = this,
             el = me.containerEl,
             horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
-			paddingTop, paddingBottom;
+			valign = me.attributes.valign || 'top',
+			halign = me.attributes.halign || 'left';
 	
 		if(me.container === false) {
 			return;
 		}
-
+		//Direction
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
-		//Set padding
-		if(me.attributes.paddingRight) { el.style.paddingRight = me.attributes.paddingRight + 'px' ; }
-		if(me.attributes.paddingLeft) { el.style.paddingLeft = me.attributes.paddingLeft + 'px' ; }
-
-		paddingTop = me.attributes.paddingTop || 0;			
-		paddingBottom = me.attributes.paddingBottom || 0;
-		if(me.children.length > 0) {
-			paddingTop += (me.children[0].attributes.marginBottom || 0);
-			paddingBottom += (me.children[me.children.length - 1].attributes.marginTop || 0);
+		//Alignment
+		switch(valign) {
+			case 'top': el.classList.add(me.cssPrefix + 'valign-top'); break;
+			case 'middle': el.classList.add(me.cssPrefix + 'valign-middle'); break;
+			case 'bottom': el.classList.add(me.cssPrefix + 'valign-middle'); break;
 		}
-		el.style.paddingTop = paddingTop + 'px';
-		el.style.paddingBottom = paddingBottom + 'px';
+		switch(halign) {
+			case 'left': el.classList.add(me.cssPrefix + 'halign-left'); break;
+			case 'center': el.classList.add(me.cssPrefix + 'halign-center'); break;
+			case 'right': el.classList.add(me.cssPrefix + 'halign-right'); break;
+		}
 	},
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this;

@@ -72,3 +72,40 @@ div.#{$prefix}exception {
 		min-width: fit-content;
 	}
 }
+/* Transititional classes for alignment */
+.#{$prefix}vcontainer.#{$prefix}halign-left {
+	align-items: start;
+}
+.#{$prefix}vcontainer.#{$prefix}halign-center {
+	align-items: center;
+}
+.#{$prefix}vcontainer.#{$prefix}halign-right {
+	align-items: end;
+}
+.#{$prefix}vcontainer.#{$prefix}valign-top {
+	justify-content: flex-start;
+}
+.#{$prefix}vcontainer.#{$prefix}valign-middle {
+	justify-content: center;
+}
+.#{$prefix}vcontainer.#{$prefix}valign-bottom {
+	justify-content: flex-end;
+}
+.#{$prefix}hcontainer.#{$prefix}halign-left {
+	justify-content: flex-start;
+}
+.#{$prefix}hcontainer.#{$prefix}halign-center {
+	justify-content: center;
+}
+.#{$prefix}hcontainer.#{$prefix}halign-right {
+	justify-content: flex-end;
+}
+.#{$prefix}hcontainer.#{$prefix}valign-top {
+	align-items: start;
+}
+.#{$prefix}hcontainer.#{$prefix}valign-middle {
+	align-items: center;
+}
+.#{$prefix}hcontainer.#{$prefix}valign-bottom {
+	align-items: end;
+}

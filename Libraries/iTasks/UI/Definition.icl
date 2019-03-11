@@ -195,8 +195,8 @@ labelAttr taskId = 'DM'.fromList [(LABEL_ATTRIBUTE,JSONString taskId)]
 styleAttr :: !String -> UIAttributes
 styleAttr style = 'DM'.fromList [("style",JSONString style)]
 
-classAttr :: !String -> UIAttributes
-classAttr cls = 'DM'.fromList [("class",JSONString cls)]
+classAttr :: ![String] -> UIAttributes
+classAttr cls = 'DM'.fromList [("class",JSONArray (map JSONString cls))]
 
 resizableAttr :: ![UISide] -> UIAttributes
 resizableAttr sides = 'DM'.fromList [("resizable",JSONArray (map encodeUI sides))]

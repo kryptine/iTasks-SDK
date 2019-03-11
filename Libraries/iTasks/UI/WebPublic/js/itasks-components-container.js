@@ -403,8 +403,7 @@ itasks.ToolBar  = {
 		height: 'wrap',
 		width: 'flex',
 		direction: 'horizontal',
-		halign: 'left',
-		padding: '2 2 2 2'
+		halign: 'left'
 	},
 };
 
@@ -414,8 +413,7 @@ itasks.ButtonBar  = {
 		height: 'wrap',
 		width: 'flex',
 		direction: 'horizontal',
-		halign: 'right',
-		padding: '2 2 2 0'
+		halign: 'right'
 	}
 };
 itasks.List = {
