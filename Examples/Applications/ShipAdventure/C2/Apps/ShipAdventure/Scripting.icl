@@ -7,6 +7,7 @@ import C2.Apps.ShipAdventure.PathFinding
 import C2.Apps.ShipAdventure.Util
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 // scripted simulation
 

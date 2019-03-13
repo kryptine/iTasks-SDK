@@ -3,6 +3,7 @@ import iTasks
 import Text
 import Data.Functor, Data.Either, Data.Maybe
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.UI.Layout.Default
 

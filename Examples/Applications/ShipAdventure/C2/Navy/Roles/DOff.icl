@@ -8,6 +8,7 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Apps.ShipAdventure.Editor
+import Data.Map.GenJSON
 
 dOffRegisterEntity  :: [User -> Task Entity]
 dOffRegisterEntity = []

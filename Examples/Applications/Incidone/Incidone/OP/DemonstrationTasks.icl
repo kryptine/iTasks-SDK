@@ -18,10 +18,10 @@ generateTestIncident closed
         get (sdsFocus "Watch officers" contactsWithGroupShort) >>- randomChoice
     >>- \wo ->
         linkContactsToIncident [vesselNo,wo.ContactShort.contactNo] incidentNo
-    >>- \_ ->
+    >-|
         //Create first call
         createFirstCall vesselNo wo incidentNo
-    >>- \_ ->
+    >-|
         if closed (closeIncident incidentNo @! incidentNo) (return incidentNo)
 where
     makeupTroubleVessel :: IncidentType -> Task NewContact
@@ -50,7 +50,7 @@ where
         =   createCommunication RadioCall In (Just caller)
         >>- \communicationNo ->
             upd update (sdsFocus communicationNo communicationDetailsByNo)
-        >>- \_ ->
+        >-|
             logCommunicationResponded communicationNo
         @!  communicationNo
     where

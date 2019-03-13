@@ -11,6 +11,7 @@ import iTasks.Extensions.Document
 import iTasks.Extensions.TextFile
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.List as DL
 
 //* URL

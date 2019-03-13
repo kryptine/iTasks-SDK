@@ -9,6 +9,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.Extensions.CrewLists //For demo
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Text, Text.HTML, Data.Either, Data.Functor
 import iTasks.UI.Editor.Controls
 
@@ -495,19 +496,19 @@ addContactPhoto contactNo original
     =   withTemporaryDirectory
         \tmp ->
         exportDocument (tmp</>"orig.jpg") original
-    >>- \_ ->
+    >-|
         callProcess "Creating thumbnail..." [] CONVERT_BIN
             ["-define","jpeg:size=400x400",(tmp</>"orig.jpg"),"-thumbnail","200x200^","-gravity","center","-extent","200x200",(tmp</>"thumb.png")] Nothing Nothing
-    >>- \_ ->
+    >-|
         importDocument (tmp</>"thumb.png")
     >>- \thumb ->
         callProcess "Creating avatar..." [] CONVERT_BIN
             ["-define","jpeg:size=100x100",(tmp</>"orig.jpg"),"-thumbnail","50x50^","-gravity","center","-extent","50x50",(tmp</>"avatar.png")] Nothing Nothing
-    >>- \_ ->
+    >-|
         importDocument (tmp</>"avatar.png")
     >>- \avatar -> let photo = {ContactPhoto|original = original, thumb = thumb, avatar = avatar} in
         upd (\photos -> 'DM'.put contactNo [photo:fromMaybe [] ('DM'.get contactNo photos)] photos) allContactPhotos
-    >>- \_ ->
+    >-|
         logContactPhotoAdded contactNo photo
     @!  photo
 
@@ -525,7 +526,7 @@ createCommunicationMean contactNo mean=:{NewCommunicationMean|type,phoneNo,callS
         sqlExecute db ["allCommunicationMeans"] (execInsert "INSERT INTO CommunicationMean (type) VALUES (?)" (toSQL type))
     >>- \id ->
         sqlExecute db [] (execInsert "INSERT INTO communicationMeans1_communicationMeans2 (communicationMeans1,communicationMeans2) VALUES (?,?)" (toSQL id ++ toSQL contactNo))
-    >>- \_ -> case type of
+    >-| case type of
         CMPhone = sqlExecute db [] (execInsert "INSERT INTO Telephone (id,phoneNo) VALUES (?,?)" (toSQL id ++ mbToSQL phoneNo))
         CMVHF   = sqlExecute db [] (execInsert "INSERT INTO VHFRadio (id,callSign,mmsi) VALUES (?,?,?)" (toSQL id ++ mbToSQL callSign ++ mbToSQL mmsi))
         CMEmail = sqlExecute db [] (execInsert "INSERT INTO EmailAccount (id,emailAddress) VALUES (?,?)" (toSQL id ++ mbToSQL emailAddress))
@@ -536,7 +537,7 @@ deleteCommunicationMean id
     =   get databaseDef
     >>- \db ->
         sqlExecute db ["allCommunicationMeans"] (execDelete "DELETE FROM communicationMeans1_communicationMeans2 WHERE communicationMeans1 = ? " (toSQL id))
-    >>- \_ ->
+    >-|
         allTasks [sqlExecute db [] (execDelete ("DELETE FROM " +++ table +++" WHERE id = ? ") (toSQL id)) \\ table <-
                     ["CommunicationMean","Telephone","VHFRadio","EmailAccount","P2000Receiver"]]
     @!  ()

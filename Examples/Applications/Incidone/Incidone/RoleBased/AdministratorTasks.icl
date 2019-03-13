@@ -153,7 +153,7 @@ where
     importUsers = doOrClose (
             enterInformation instructions []
         >>= \doc -> catchAll (
-                importContactsFromCSVFile doc >>- \_ -> viewInformation () [] "Succesfully imported contacts" >>| return ()
+                importContactsFromCSVFile doc >-| viewInformation () [] "Succesfully imported contacts" >>| return ()
             ) (\_ -> viewInformation "Failed to import contacts" [] ())
         ) <<@ Title "Import contacts"
 	where
@@ -254,7 +254,7 @@ where
                     importJSONDocument doc
                 >>- \config ->
                     set config webLinksConfig
-                >>- \_ -> viewInformation () [] "Succesfully imported web links" @! ()
+                >-| viewInformation () [] "Succesfully imported web links" @! ()
                 ) (\e -> viewInformation "Failed import of web links" [] e @! ())
             ) <<@ Title "Import web links"
     where

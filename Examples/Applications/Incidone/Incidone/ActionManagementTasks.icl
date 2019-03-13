@@ -806,7 +806,7 @@ where
                     importJSONDocument doc
                 >>- \actions ->
                     set actions userActionCatalog
-                >>- \_ -> viewInformation () [] "Succesfully imported action catalog" @! ()
+                >-| viewInformation () [] "Succesfully imported action catalog" @! ()
                 ) (\e -> viewInformation "Failed import action catalog" [] e @! ())
             ) <<@ Title "Import actions"
     where

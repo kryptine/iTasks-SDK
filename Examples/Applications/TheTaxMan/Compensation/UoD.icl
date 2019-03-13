@@ -3,6 +3,7 @@ implementation module Compensation.UoD
 import Cadastre.UoD
 import iTasks.Extensions.DateTime, Data.Maybe
 from Data.Either import :: Either(..)
+import Data.Either.Ord
 
 decisionsAfter :: SSN (DecisionStatus -> Bool) Date [Decision] -> [Decision]
 decisionsAfter ssn cond date decisions

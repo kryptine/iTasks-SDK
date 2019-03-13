@@ -11,6 +11,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.ActionManagementTasks
 import Data.List, Data.Either
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Text.HTML
 
 openIncidentInWorkspace :: Workspace IncidentNo -> Task ()
