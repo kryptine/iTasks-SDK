@@ -64,7 +64,17 @@ doTasksWithOptions initFun startable world
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
-	startupTasks {distributed, sdsPort} = (if distributed [case onStartup (sdsServiceTask sdsPort) of StartupTask t = t;] []) ++ [t \\ StartupTask t <- toStartable startable]
+	startupTasks {distributed, sdsPort} =
+		//If distributed, start sds service task
+		= (if distributed [startTask (sdsServiceTask sdsPort)] [])
+		[removeOutdatedSessions
+		//Start all startup tasks
+		++ [t \\ StartupTask t <- toStartable startable]
+
+	startTask t
+		# (StartupTask t) = onStartup t
+		= t
+
 	hasWebTasks = not (webTasks =: [])
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)

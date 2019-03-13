@@ -62,10 +62,10 @@ updateClock iworld=:{IWorld|clock,world}
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld=:{IWorld|options}
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld
-    = case mbIndex of
-        Ok (ReadingDone index) = checkAll removeIfOutdated index iworld
-        Error e     			= (Error e, iworld)
+	# (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld
+	= case mbIndex of
+		Ok (ReadingDone index) = checkAll removeIfOutdated index iworld
+		Error e                = (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
