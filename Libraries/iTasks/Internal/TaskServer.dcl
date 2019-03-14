@@ -32,4 +32,7 @@ addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException Back
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
-ioStateString :: !IOStates -> String
+//ioStateString :: !IOStates -> String
+
+//Ticks every time the server loops once
+tick :: SDSSource () () ()

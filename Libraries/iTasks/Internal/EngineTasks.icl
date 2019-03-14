@@ -1,6 +1,7 @@
 implementation module iTasks.Internal.EngineTasks
 
 import StdBool, StdOverloaded, StdList, StdOrdList
+import iTasks.Internal.TaskEval
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import Data.List
@@ -59,20 +60,39 @@ updateClock iworld=:{IWorld|clock,world}
 	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
 	= (() <$ mbe, iworld)
 
+everyTick :: (*IWorld -> *(!MaybeError TaskException (), !*IWorld)) -> Task ()
+everyTick f = Task eval
+where
+	eval event evalOpts tree=:(TCInit taskId ts) iworld
+		# (merr, iworld) = f iworld
+		| isError merr = (ExceptionResult (fromError merr), iworld)
+		# (merr, iworld) = readRegister taskId tick iworld
+		| isError merr = (ExceptionResult (fromError merr), iworld)
+		= (ValueResult
+				NoValue
+				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+				NoChange
+				(TCInit taskId ts)
+			, iworld)
+//:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+//   = ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree   
+		
+	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
-removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-removeOutdatedSessions iworld=:{IWorld|options}
-	# (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld
-	= case mbIndex of
-		Ok (ReadingDone index) = checkAll removeIfOutdated index iworld
-		Error e                = (Error e, iworld)
+//removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+import iTasks.Internal.TaskServer
+removeOutdatedSessions :: Task ()
+removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
+	case read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld of
+		(Ok (ReadingDone index), iworld) = checkAll (removeIfOutdated options) index iworld
+		(Error e, iworld)                = (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
+    removeIfOutdated options (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
 			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up

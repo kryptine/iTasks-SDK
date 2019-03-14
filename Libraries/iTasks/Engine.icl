@@ -64,16 +64,14 @@ doTasksWithOptions initFun startable world
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
-	startupTasks {distributed, sdsPort} =
+	startupTasks {distributed, sdsPort}
 		//If distributed, start sds service task
-		= (if distributed [startTask (sdsServiceTask sdsPort)] [])
-		[removeOutdatedSessions
+		=  (if distributed [startTask (sdsServiceTask sdsPort)] [])
+		++ [startTask removeOutdatedSessions]
 		//Start all startup tasks
 		++ [t \\ StartupTask t <- toStartable startable]
 
-	startTask t
-		# (StartupTask t) = onStartup t
-		= t
+	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
 
 	hasWebTasks = not (webTasks =: [])
 
@@ -92,8 +90,7 @@ where
  		[BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
 			[BackgroundTask stopOnStable]
-			[BackgroundTask removeOutdatedSessions
-		 	,BackgroundTask flushWritesWhenIdle
+			[BackgroundTask flushWritesWhenIdle
 			]
 		]
 
@@ -264,4 +261,3 @@ determineAppVersion appPath world
 	# tm				= (fromOk res).lastModifiedTime
 	# version           = strfTime "%Y%m%d-%H%M%S" tm
 	= (version,world)
-

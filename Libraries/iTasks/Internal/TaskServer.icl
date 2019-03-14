@@ -75,6 +75,9 @@ where
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
+	// Write ticker
+	# (merr, iworld=:{ioTasks,sdsNotifyRequests}) = write () tick EmptyContext iworld
+	| isError merr = abort "Error writing ticker"
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
 	//Check which mainloop tasks have data available
@@ -578,3 +581,11 @@ where
 	cMapString (IOActive mapje) = concat (map ((\s. s +++ " ") o toString o fst) ('DM'.toList mapje))
 	cMapString (IOException str) = "Exception: " +++ str
 	cMapString _ = "Destroyed"
+
+tick :: SDSSource () () ()
+tick = SDSSource
+	{SDSSourceOptions
+	| name  = "_ticker"
+	, read  = \p iw->(Ok (), iw)
+	, write = \p w iw->(Ok \_ _->True, iw)
+	}
