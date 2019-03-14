@@ -59,8 +59,7 @@ doTasksWithOptions initFun startable world
 	| res =:(Error _)            = show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
-	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime)
-	                                [] (timeout options.timeout) iworld
+	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
@@ -220,7 +219,7 @@ defaultEngineOptions world
 		, distributed    = False
 		, maxEvents      = 5
 		, sdsPort        = 9090
-		, timeout        = Just 500
+		, timeout        = Nothing//Just 500
 		, webDirPath     = appDir </> appName +++ "-www"
 		, storeDirPath   = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath    = appDir </> appName +++ "-data" </> "tmp"

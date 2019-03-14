@@ -36,9 +36,6 @@ derive gEq				Task
     , onDisconnect  :: !(       			 l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
     }
 
-//Background computation tasks
-:: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
-
 /**
 * Wraps a set of connection handlers and a shared source as a connection task
 */
