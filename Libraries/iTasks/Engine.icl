@@ -67,7 +67,9 @@ where
 	startupTasks {distributed, sdsPort}
 		//If distributed, start sds service task
 		=  (if distributed [startTask (sdsServiceTask sdsPort)] [])
-		++ [startTask removeOutdatedSessions]
+		//If there are webtasks, we need to clean up sessions
+		++ if hasWebTasks [startTask removeOutdatedSessions] []
+		++ [startTask flushWritesWhenIdle]
 		//Start all startup tasks
 		++ [t \\ StartupTask t <- toStartable startable]
 
@@ -90,8 +92,7 @@ where
  		[BackgroundTask (processEvents MAX_EVENTS)
 		:if (webTasks =: [])
 			[BackgroundTask stopOnStable]
-			[BackgroundTask flushWritesWhenIdle
-			]
+			[]
 		]
 
 	// The iTasks engine consist of a set of HTTP Web services

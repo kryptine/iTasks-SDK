@@ -115,8 +115,8 @@ where
 				= (Error e,iworld)
 
 //When the event queue is empty, write deferred SDS's
-flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-flushWritesWhenIdle iworld = case read taskEvents EmptyContext iworld of
+flushWritesWhenIdle:: Task ()
+flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworld of
 		(Error e,iworld)          = (Error e,iworld)
 		(Ok (ReadingDone (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
 		(Ok _,iworld)             = (Ok (),iworld)

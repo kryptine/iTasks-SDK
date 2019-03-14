@@ -14,6 +14,6 @@ updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 removeOutdatedSessions :: Task ()
 
-flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+flushWritesWhenIdle:: Task ()
 
 stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
