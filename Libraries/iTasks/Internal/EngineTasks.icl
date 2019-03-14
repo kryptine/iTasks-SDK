@@ -1,28 +1,27 @@
 implementation module iTasks.Internal.EngineTasks
 
-import StdBool, StdOverloaded, StdList, StdOrdList
-import iTasks.Internal.TaskEval
-import qualified Data.Map as DM
-import qualified Data.Set as DS
-import Data.List
 import Data.Functor, Data.Func
-import iTasks.Engine
-import iTasks.Internal.IWorld
-import iTasks.WF.Definition
-import iTasks.Internal.Util
-import iTasks.Internal.SDS
-import iTasks.Internal.TaskStore
-import iTasks.SDS.Definition
-import iTasks.SDS.Combinators.Common
-
-from iTasks.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
-from System.Time import time
+import Data.List
+import qualified Data.Map as DM
+import Data.Queue
+import qualified Data.Set as DS
+import StdBool, StdOverloaded, StdList, StdOrdList
+import System.Time
+import Text
 import Text.GenJSON
+import iTasks.Engine
+import iTasks.Extensions.DateTime
+import iTasks.Internal.IWorld
+import iTasks.Internal.SDS
+import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskServer
+import iTasks.Internal.TaskStore
+import iTasks.Internal.Util
+import iTasks.SDS.Combinators.Common
+import iTasks.SDS.Definition
+import iTasks.WF.Definition
 
 from TCPIP import :: Timeout
-
-import Data.Queue
-import Text
 
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout mt iworld = case read taskEvents EmptyContext iworld of
@@ -74,13 +73,8 @@ where
 				NoChange
 				(TCInit taskId ts)
 			, iworld)
-//:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
-//   = ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree   
-		
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
-//removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-import iTasks.Internal.TaskServer
 removeOutdatedSessions :: Task ()
 removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
 	case read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld of
@@ -143,5 +137,3 @@ where
 	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances)
 	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
 	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
-
-

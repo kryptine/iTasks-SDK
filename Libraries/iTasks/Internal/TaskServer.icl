@@ -75,15 +75,15 @@ where
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
-	// Write ticker
-	# (merr, iworld=:{ioTasks,sdsNotifyRequests}) = write () tick EmptyContext iworld
-	| isError merr = abort "Error writing ticker"
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
 	//Check which mainloop tasks have data available
 	# (todo,chList,world) = select mbTimeout todo world
 	# (merr, iworld) = updateClock {iworld & ioTasks = {done=[],todo=todo}, world = world}
 	| merr=:(Error _) = abort "Error updating clock"
+	// Write ticker
+	# (merr, iworld) = write () tick EmptyContext iworld
+	| isError merr = abort "Error writing ticker"
 	//Process the select result
 	# iworld =:{shutdown,ioTasks={done}} = process 0 chList iworld
 	//Move everything from the done list  back to the todo list

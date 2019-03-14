@@ -12,7 +12,6 @@ timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
-//removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions :: Task ()
 
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
