@@ -29,10 +29,11 @@ addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError T
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
 
+
+ioStateString :: !IOStates -> String
+
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
-
-//ioStateString :: !IOStates -> String
 
 //Ticks every time the server loops once
 tick :: SDSSource () () ()

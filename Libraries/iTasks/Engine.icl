@@ -60,25 +60,20 @@ doTasksWithOptions initFun startable world
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime)
-	                                engineTasks (timeout options.timeout) iworld
+	                                [] (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks {distributed, sdsPort}
 		//If distributed, start sds service task
 		=  (if distributed [startTask (sdsServiceTask sdsPort)] [])
-		++ [startTask flushWritesWhenIdle]
-		++ (if hasWebTasks
-			//If there are webtasks, we need to clean up sessions
-			[startTask removeOutdatedSessions]
-			//If there are none, we need to stop when all tasks are stable
-			[startTask stopOnStable]
+		++ [startTask flushWritesWhenIdle
+		//If there no webtasks, stop when stable, otherwise cleanup old sessions
+		   ,startTask if (webTasks =: []) stopOnStable removeOutdatedSessions
 		//Start all startup tasks
-		)++ [t \\ StartupTask t <- toStartable startable]
+		   :[t \\ StartupTask t <- toStartable startable]]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
-
-	hasWebTasks = not (webTasks =: [])
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
@@ -90,8 +85,6 @@ where
 		| webTasks =: [] = []
 		| otherwise
 			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
-
-	engineTasks = [BackgroundTask (processEvents MAX_EVENTS)]
 
 	// The iTasks engine consist of a set of HTTP Web services
 	engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)]
@@ -127,6 +120,8 @@ where
 			"Specify the timeout in ms (default: 500)\nIf not given, use an indefinite timeout."
 		, Option [] ["keepalive"] (ReqArg (\p->fmap \o->{o & keepaliveTime={tv_sec=toInt p,tv_nsec=0}}) "SECONDS")
 			"Specify the keepalive time in seconds (default: 300)"
+		, Option [] ["maxevents"] (ReqArg (\p->fmap \o->{o & maxEvents=toInt p}) "NUM")
+			"Specify the maximum number of events to process per loop (default: 5)"
 		, Option [] ["sessiontime"] (ReqArg (\p->fmap \o->{o & sessionTime={tv_sec=toInt p,tv_nsec=0}}) "SECONDS")
 			"Specify the expiry time for a session in seconds (default: 60)"
 		, Option [] ["autolayout"] (NoArg (fmap \o->{o & autoLayout=True}))
@@ -213,22 +208,23 @@ defaultEngineOptions world
 	# appDir             = takeDirectory appPath
 	# appName            = (dropExtension o dropDirectory) appPath
 	# options =
-		{ appName			= appName
-		, appPath			= appPath
-		, appVersion        = appVersion
-		, serverPort		= IF_POSIX_OR_WINDOWS 8080 80
-        , serverUrl         = "http://localhost/"
-		, keepaliveTime     = {tv_sec=300,tv_nsec=0} // 5 minutes
-		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
-        , persistTasks      = False
-		, autoLayout        = True
-		, distributed       = False
-		, sdsPort			= 9090
-		, timeout			= Just 500
-		, webDirPath 		= appDir </> appName +++ "-www"
-		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
-		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
-		, saplDirPath 	    = appDir </> appName +++ "-sapl"
+		{ appName        = appName
+		, appPath        = appPath
+		, appVersion     = appVersion
+		, serverPort     = IF_POSIX_OR_WINDOWS 8080 80
+		, serverUrl      = "http://localhost/"
+		, keepaliveTime  = {tv_sec=300,tv_nsec=0} // 5 minutes
+		, sessionTime    = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
+		, persistTasks   = False
+		, autoLayout     = True
+		, distributed    = False
+		, maxEvents      = 5
+		, sdsPort        = 9090
+		, timeout        = Just 500
+		, webDirPath     = appDir </> appName +++ "-www"
+		, storeDirPath   = appDir </> appName +++ "-data" </> "stores"
+		, tempDirPath    = appDir </> appName +++ "-data" </> "tmp"
+		, saplDirPath    = appDir </> appName +++ "-sapl"
 		}
 	= (options,world)
 

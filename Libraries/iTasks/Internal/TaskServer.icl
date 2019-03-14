@@ -80,12 +80,15 @@ loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests}
 	//Check which mainloop tasks have data available
 	# (todo,chList,world) = select mbTimeout todo world
 	# (merr, iworld) = updateClock {iworld & ioTasks = {done=[],todo=todo}, world = world}
-	| merr=:(Error _) = abort "Error updating clock"
+	| merr=:(Error _) = abort "Error updating clock\n"
 	// Write ticker
 	# (merr, iworld) = write () tick EmptyContext iworld
-	| isError merr = abort "Error writing ticker"
+	| isError merr = abort "Error writing ticker\n"
 	//Process the select result
-	# iworld =:{shutdown,ioTasks={done}} = process 0 chList iworld
+	# iworld=:{options} = process 0 chList iworld
+	//Process the events it created
+	# (merr, iworld=:{shutdown,ioTasks={done}}) = processEvents options.maxEvents {iworld & options=options}
+	| isError merr = abort "Error processing events\n"
 	//Move everything from the done list  back to the todo list
 	# iworld = {iworld & ioTasks={todo = reverse done,done=[]}}
 	//Everything needs to be re-evaluated
