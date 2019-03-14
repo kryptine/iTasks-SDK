@@ -16,4 +16,4 @@ removeOutdatedSessions :: Task ()
 
 flushWritesWhenIdle:: Task ()
 
-stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+stopOnStable :: Task ()

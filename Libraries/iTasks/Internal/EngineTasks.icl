@@ -123,16 +123,14 @@ flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworl
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
-stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-stopOnStable iworld=:{IWorld|shutdown}
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) EmptyContext iworld
-	= case mbIndex of
-		Ok (ReadingDone index)
+stopOnStable :: Task ()
+stopOnStable = everyTick \iworld=:{IWorld|shutdown}->case read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) EmptyContext iworld of
+		(Ok (ReadingDone index), iworld)
 			# shutdown = case shutdown of
 				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
 				_       = shutdown
 			= (Ok (), {IWorld|iworld & shutdown = shutdown})
-		Error e  = (Error e, iworld)
+		(Error e, iworld)  = (Error e, iworld)
 where
 	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances)
 	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
