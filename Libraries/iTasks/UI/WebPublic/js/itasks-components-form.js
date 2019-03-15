@@ -24,8 +24,8 @@ itasks.TextField = {
 						return;
 					}
 				}
-				if('minlength' in me.attributes){
 
+				if('minlength' in me.attributes){
 					if(rawV.length < me.attributes['minlength']){
 						v = Nothing;
 					}
