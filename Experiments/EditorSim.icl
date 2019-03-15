@@ -129,8 +129,7 @@ getVersion (NVTMultiple v _) = v
 	}
 
 //Untyped clientside configuration
-:: NxtUI :== Map String String
-//:: NxtUI = { attributes  :: Map String String, children :: [NxtUI]}
+:: NxtUI = { attributes  :: Map String String, children :: [NxtUI]}
 
 //Untyped message for transfer and configuration
 :: NxtChange
@@ -144,7 +143,7 @@ getVersion (NVTMultiple v _) = v
   | NxtRemChild Int
   | NxtUpdChild Int NxtChange
 
-derive class iTask NxtDOMNode, VersionedServerState, NxtChange, NxtAttrChange, NxtStructureChange
+derive class iTask NxtDOMNode, VersionedServerState, NxtUI, NxtChange, NxtAttrChange, NxtStructureChange
 derive class iTask NxtWithPartialVersion, NxtWithPartialVersions, NxtVersionTree, NxtPartialVersionTree
 derive class iTask NxtServerInMessage, NxtServerOutMessage, NxtClientInMessage, NxtClientOutMessage
 
@@ -332,45 +331,68 @@ fromVersionAttr s = case split "-" s of
 
 addVersionAttr key (Just version) (NxtNoChange) = NxtChange [NxtSetAttr key (toVersionAttr version)] []
 addVersionAttr key (Just version) (NxtChange attrChanges childChanges) = NxtChange (attrChanges ++ [NxtSetAttr key (toVersionAttr version)]) childChanges
-addVersionAttr key (Just version) (NxtReplace attrs) = NxtReplace ('DM'.put key (toVersionAttr version) attrs)
+addVersionAttr key (Just version) (NxtReplace ui=:{NxtUI|attributes}) = NxtReplace {NxtUI|ui & attributes = 'DM'.put key (toVersionAttr version) attributes}
 addVersionAttr key Nothing message = message
 
 getVersionAttr key (NxtChange attrChanges childChanges)
 	= case [fromVersionAttr v \\ NxtSetAttr k v <- attrChanges | key == k] of
 		[] =  Nothing
 		versions = Just (last versions)
-getVersionAttr key (NxtReplace attrs) 
-	= fmap fromVersionAttr ('DM'.get key attrs)
+getVersionAttr key (NxtReplace {NxtUI|attributes}) 
+	= fmap fromVersionAttr ('DM'.get key attributes)
 getVersionAttr key enc = Nothing
 
-overlayVersions key (NVPVersion Nothing []) (NxtNoChange) = NxtNoChange
-overlayVersions key (NVPVersion mbv cvs) (NxtNoChange) = NxtChange attrChanges childChanges
+class overlayVersions a :: String NxtPartialVersionTree a -> a
+
+instance overlayVersions NxtChange
 where
-	attrChanges = maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
-	childChanges = [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
+	overlayVersions key (NVPVersion Nothing []) (NxtNoChange) = NxtNoChange
+	overlayVersions key (NVPVersion mbv cvs) (NxtNoChange) = NxtChange attrChanges childChanges
+	where
+		attrChanges = maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
+		childChanges = [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
 
-overlayVersions key (NVPVersion mbv cvs) (NxtChange attrChanges childChanges) = NxtChange attrChanges` childChanges`
+	overlayVersions key (NVPVersion mbv cvs) (NxtChange attrChanges childChanges) = NxtChange attrChanges` childChanges`
+	where
+		attrChanges` = attrChanges ++ maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
+		childChanges` = childChanges ++ [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
+
+	overlayVersions key version=:(NVPVersion mbv cvs) (NxtReplace ui) = NxtReplace (overlayVersions key version ui)
+
+instance overlayVersions NxtUI
 where
-	attrChanges` = attrChanges ++ maybe [] (\version -> [NxtSetAttr key (toVersionAttr version)]) mbv
-	childChanges` = childChanges ++ [NxtUpdChild n (overlayVersions key cv NxtNoChange) \\ (n,cv) <- cvs]
+	overlayVersions key (NVPVersion mbv cvs) {NxtUI|attributes,children} = {NxtUI|attributes=attributes`,children=children`}
+	where 
+		attributes` = maybe attributes (\version -> 'DM'.put key (toVersionAttr version) attributes) mbv
+		children` = [maybe c (\v -> overlayVersions key v c) ('DM'.get i cvsMap) \\ c <- children & i <- [0..]]
+		cvsMap = 'DM'.fromList cvs
 
-overlayVersions key (NVPVersion mbv cvs) (NxtReplace attrs) = NxtReplace attrs` //TODO: Cannot handle nested versions yet
-where 
-	attrs` = maybe attrs (\version -> 'DM'.put key (toVersionAttr version) attrs) mbv
+class getOverlayedVersions a :: String a -> NxtPartialVersionTree
 
-getOverlayedVersions key NxtNoChange = NVPVersion Nothing []
-getOverlayedVersions key (NxtReplace attrs)
-	= NVPVersion (fmap fromVersionAttr ('DM'.get key attrs)) []
-getOverlayedVersions key (NxtChange attrChanges childChanges)
-	# version = foldl setVersion Nothing attrChanges
-	# childVersions = [(n, getOverlayedVersions key change) \\ (NxtUpdChild n change) <- childChanges]
-	= NVPVersion version (filter (not o emptyChange o snd) childVersions)
+instance getOverlayedVersions NxtChange 
 where
-	setVersion cur (NxtSetAttr k v) = if (k == key) (Just (fromVersionAttr v)) cur
-	setVersion cur _ = cur
+	getOverlayedVersions key NxtNoChange = NVPVersion Nothing []
+	getOverlayedVersions key (NxtReplace ui) = getOverlayedVersions key ui
+	getOverlayedVersions key (NxtChange attrChanges childChanges)
+		# version = foldl setVersion Nothing attrChanges
+		# childVersions = [(n, getOverlayedVersions key change) \\ (NxtUpdChild n change) <- childChanges]
+		= NVPVersion version (filter (not o emptyChange o snd) childVersions)
+	where
+		setVersion cur (NxtSetAttr k v) = if (k == key) (Just (fromVersionAttr v)) cur
+		setVersion cur _ = cur
 
-	emptyChange (NVPVersion Nothing []) = True
-	emptyChange _ = False
+		emptyChange (NVPVersion Nothing []) = True
+		emptyChange _ = False
+
+instance getOverlayedVersions NxtUI
+where
+	getOverlayedVersions key {NxtUI|attributes,children}
+	 	# mbv = fmap fromVersionAttr ('DM'.get key attributes)
+		# cvs = filter (not o emptyVersion o snd) [(i,getOverlayedVersions key c) \\ c <- children & i <- [0..]]
+		= NVPVersion mbv cvs
+	where
+		emptyVersion (NVPVersion Nothing []) = True	
+		emptyVersion _ = False
 
 instance EditMessage (NxtServerOutMessage m) | EditMessage m
 where
@@ -435,8 +457,8 @@ where
 
 instance EditUI String
 where
-  encodeEditUI v = 'DM'.fromList [("value",v)]
-  decodeEditUI m = fromJust ('DM'.get "value" m)
+  encodeEditUI value = {NxtUI|attributes='DM'.fromList [("value",value)],children=[]}
+  decodeEditUI {NxtUI|attributes} = fromJust ('DM'.get "value" attributes)
 
 instance EditMessage Bool //If strings are used as edit type, it's just the value attribute
 where
@@ -447,8 +469,8 @@ where
 
 instance EditUI Bool
 where
-  encodeEditUI v = 'DM'.fromList [("value",if v "true" "false")]
-  decodeEditUI m = case ('DM'.get "value" m) of (Just "true") = True; _ = False
+  encodeEditUI value = {NxtUI|attributes='DM'.fromList [("value",if value "true" "false")],children=[]}
+  decodeEditUI {NxtUI|attributes} = case ('DM'.get "value" attributes) of (Just "true") = True; _ = False
 
 instance EditMessage (Maybe a,Maybe b) | EditMessage a & EditMessage b
 where
@@ -464,14 +486,15 @@ where
 
 instance EditUI (Maybe a) | EditUI a
 where
-	encodeEditUI Nothing = 'DM'.newMap
-	encodeEditUI (Just x) = encodeEditUI x
+	encodeEditUI Nothing = {NxtUI|attributes='DM'.newMap,children=[]}
+	encodeEditUI (Just x) = {NxtUI|attributes='DM'.newMap,children=[encodeEditUI x]}
 
-	decodeEditUI m = if ('DM'.null m) Nothing (Just (decodeEditUI m))
+	decodeEditUI {NxtUI|children=[]} = Nothing
+	decodeEditUI {NxtUI|children=[m]} = Just (decodeEditUI m)
 
 instance EditUI (a, b) | EditUI a & EditUI b
 where
-  encodeEditUI (a,b) = 'DM'.union (encodeEditUI a) (encodeEditUI b) //FIXME: This can't work with overlapping keys...
+  encodeEditUI (a,b) = {NxtUI|attributes='DM'.newMap,children = [encodeEditUI a,encodeEditUI b]}
   decodeEditUI m = (decodeEditUI m,decodeEditUI m)
 
 instance EditMessage (ContainerMsg c m) | EditUI c & EditMessage m
@@ -1175,7 +1198,7 @@ where
 	//Ignore messages from the server
 	rserver s1 s2 m = (True,[])
 
-	rclient c1 c2 (_,Just True) = (False,[(Just (NxtInsertChild (length c1) Nothing), Just False)]) 
+	rclient c1 c2 (_,Just True) = (False,[(Just (NxtInsertChild (length c1) (Just "42")), Just False)]) 
 	rclient c1 c2 m = (True,[])
 
 testListWithDelete :: NxtEditor () [Maybe Int] [Maybe Int] [String] [String] (ContainerMsg String String)
