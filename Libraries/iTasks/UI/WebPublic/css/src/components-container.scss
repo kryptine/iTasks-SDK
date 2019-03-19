@@ -9,11 +9,19 @@
 .#{$prefix}form-item .#{$prefix}icon {
 	margin-left: 5px;
 }
-.#{$prefix}frame-compact {
+
+.#{$prefix}frame-compact-outer {
+	flex: 1;	
+	align-self: stretch;
+}
+.#{$prefix}container > .#{$prefix}frame-compact-inner {
 	margin: 50px 0 20px 0;
 	border-radius: 5px;
 	overflow: hidden;
-	min-width: 600px;
+	
+	align-self: center;
+	flex: 0; 
+	flex-basis: content;
 }
 .#{$prefix}header {
 	font-weight: bold;
@@ -46,6 +54,12 @@
 	flex: 1;
 }
 
+/* Minimal containers */
+.#{$prefix}container {
+	/* Default flexible sizes */
+	flex: 1;
+	align-self: stretch;
+}
 /* Panels */
 .#{$prefix}panel {
 	color: $canvas-text-color;
@@ -59,7 +73,12 @@
 		background-color: $panel-header-base-color;
 		background: linear-gradient(lighten($panel-header-base-color,12.5%), $panel-header-base-color);
 	}
+
+	/* Default flexible sizes */
+	flex: 1;
+	align-self: stretch;
 }
+
 .#{$prefix}framed {
 	border-radius: 5px;
 }
@@ -379,4 +398,23 @@
 		background-color: #{$select-base-color};
 	}
 }
+.#{$prefix}vcontainer > .#{$prefix}headerbar {
+	flex-basis: 50px;
+	flex-grow: 0;
+	align-self: stretch;
+	align-items: center;
+}
 
+/* Sidebar elements */
+.#{$prefix}vcontainer > .#{$prefix}sidebar {
+	height: 200px;
+	min-height: 200px;
+	flex: 0;
+	align-self: stretch;
+}
+.#{$prefix}hcontainer > .#{$prefix}sidebar {
+	width: 200px;
+	min-width: 200px;
+	flex: 0;
+	align-self: stretch;
+}

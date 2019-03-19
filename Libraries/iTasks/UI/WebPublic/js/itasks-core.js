@@ -17,12 +17,7 @@ itasks.Component = {
 	cssPrefix: 'itasks-',
 	cssCls: 'component',
 
-	attributes: {
-		width: 'flex',
-		height: 'flex',
-		direction: 'vertical'
-	},
-
+	attributes: {},
 	parentCmp: null,
 	children: [],
 
@@ -374,6 +369,9 @@ itasks.Loader = {
 			l = document.createElement('div');
 			l.classList.add(me.cssPrefix + 'loader-spinner');
 		me.domEl.appendChild(l);
+		//Temporary
+		me.domEl.classList.add(me.cssPrefix + 'flex-width');
+		me.domEl.classList.add(me.cssPrefix + 'flex-height');
 		if(me.attributes.taskId){
 			me.doEditEvent(me.attributes.taskId, me.attributes.editorId, true);
 		}
@@ -383,6 +381,10 @@ itasks.ExceptionView = {
 	cssCls: 'exception',
 	container: false,
 	initDOMEl: function() {
+		//Temporary
+		this.domEl.classList.add(me.cssPrefix + 'flex-width');
+		this.domEl.classList.add(me.cssPrefix + 'flex-height');
+
 		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
 	}
 };

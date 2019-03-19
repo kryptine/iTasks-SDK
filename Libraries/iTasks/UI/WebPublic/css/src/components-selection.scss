@@ -11,6 +11,10 @@
 .#{$prefix}choicegrid {
     display: flex;
     flex-direction: column;
+
+	/*Default stretch in both directions*/
+	flex-grow: 1;
+	align-self: stretch;
 }
 .#{$prefix}choicegrid-header {
     color: $panel-header-text-color;
@@ -149,6 +153,10 @@
     overflow: auto;
     flex-direction: column;
     align-items: stretch;
+	
+	/*Default stretch in both directions*/
+	flex-grow: 1;
+	align-self: stretch;
 }
 .#{$prefix}choice-list * {
 	align-self: stretch;

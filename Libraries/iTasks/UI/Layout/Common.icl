@@ -17,6 +17,14 @@ import qualified Data.Foldable
 import qualified Text as T
 from Text import class Text, instance Text String
 
+addCSSClass :: String -> LayoutRule
+addCSSClass className = modifyUIAttributes (SelectKeys ["class"]) add
+where
+	add attr = 'DM'.put "class" (maybe 
+		(JSONArray [JSONString className])
+		(\(JSONArray classNames) -> JSONArray (classNames ++ [JSONString className]))
+		('DM'.get "class" attr)) attr
+
 arrangeWithTabs :: Bool -> LayoutRule
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
@@ -51,31 +59,36 @@ where
 		,removeSubUIs (SelectByPath [0])
 		]
 
-arrangeWithSideBar :: !Int !UISide !Int !Bool -> LayoutRule
-arrangeWithSideBar index side size resize = sequenceLayouts
+arrangeWithHeader :: !Int -> LayoutRule
+arrangeWithHeader index = setAside "itasks-headerbar" index TopSide False
+
+arrangeWithSideBar :: !Int !UISide !Bool -> LayoutRule
+arrangeWithSideBar index side resize = setAside "itasks-sidebar" index side resize
+
+setAside className index side resize = sequenceLayouts
 	[wrapUI UIPanel //Push the current container down a level
-	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
+	,copySubUIAttributes SelectAll [0] [] //Keep the attributes from the original UI
 	,setUIAttributes (directionAttr direction)
 	,moveSubUIs (SelectByPath [0,index]) [] sidePanelIndex
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
 		(if resize
 		[wrapUI UIPanel
-		,setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)
+		,addCSSClass className
 		,setUIAttributes (resizableAttr (resizers side))
 		]
-		[setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)]
-	))
+		[addCSSClass className]
+		)
+	)
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
+	mainPanelIndex = if (side === TopSide || side === LeftSide) 1 0
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	resizers TopSide = [BottomSide]
 	resizers BottomSide = [TopSide]
 	resizers LeftSide = [RightSide]
 	resizers RightSide = [LeftSide]
-
-	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeAsMenu :: [[Int]] -> LayoutRule
 arrangeAsMenu seps = sequenceLayouts
@@ -170,9 +183,9 @@ arrangeHorizontal = setUIAttributes (directionAttr Horizontal)
 
 frameCompact :: LayoutRule
 frameCompact = sequenceLayouts
-	[setUIAttributes ('DM'.unions [classAttr ["itasks-frame-compact"],sizeAttr WrapSize WrapSize])
+	[addCSSClass "itasks-frame-compact-inner"
 	,wrapUI UIContainer
-	,setUIAttributes (halignAttr AlignCenter)
+	,addCSSClass "itasks-frame-compact-outer"
 	]
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
@@ -259,7 +272,11 @@ where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 
 instance tune ArrangeWithSideBar Task 
 where
-    tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
+    tune (ArrangeWithSideBar index side resize) t = tune (ApplyLayout (arrangeWithSideBar index side resize)) t
+
+instance tune ArrangeWithHeader Task
+where
+    tune (ArrangeWithHeader index) t = tune (ApplyLayout (arrangeWithHeader index)) t
 
 instance tune ArrangeAsMenu Task
 where

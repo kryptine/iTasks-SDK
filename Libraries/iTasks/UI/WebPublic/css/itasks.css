@@ -398,11 +398,18 @@ div.itasks-exception {
   margin-left: 5px;
 }
 
-.itasks-frame-compact {
+.itasks-frame-compact-outer {
+  flex: 1;
+  align-self: stretch;
+}
+
+.itasks-container > .itasks-frame-compact-inner {
   margin: 50px 0 20px 0;
   border-radius: 5px;
   overflow: hidden;
-  min-width: 600px;
+  align-self: center;
+  flex: 0;
+  flex-basis: content;
 }
 
 .itasks-header {
@@ -436,6 +443,13 @@ div.itasks-exception {
   flex: 1;
 }
 
+/* Minimal containers */
+.itasks-container {
+  /* Default flexible sizes */
+  flex: 1;
+  align-self: stretch;
+}
+
 /* Panels */
 .itasks-panel {
   color: #000;
@@ -443,6 +457,9 @@ div.itasks-exception {
   border: 1px solid #ccc;
   display: flex;
   flex-direction: column;
+  /* Default flexible sizes */
+  flex: 1;
+  align-self: stretch;
 }
 .itasks-panel > .itasks-header {
   color: #000;
@@ -778,6 +795,28 @@ div.itasks-exception {
   background-color: #333;
 }
 
+.itasks-vcontainer > .itasks-headerbar {
+  flex-basis: 50px;
+  flex-grow: 0;
+  align-self: stretch;
+  align-items: center;
+}
+
+/* Sidebar elements */
+.itasks-vcontainer > .itasks-sidebar {
+  height: 200px;
+  min-height: 200px;
+  flex: 0;
+  align-self: stretch;
+}
+
+.itasks-hcontainer > .itasks-sidebar {
+  width: 200px;
+  min-width: 200px;
+  flex: 0;
+  align-self: stretch;
+}
+
 .itasks-icon {
   width: 16px;
   height: 16px;
@@ -850,6 +889,9 @@ div.itasks-exception {
 .itasks-choicegrid {
   display: flex;
   flex-direction: column;
+  /*Default stretch in both directions*/
+  flex-grow: 1;
+  align-self: stretch;
 }
 
 .itasks-choicegrid-header {
@@ -988,6 +1030,9 @@ div.itasks-exception {
   overflow: auto;
   flex-direction: column;
   align-items: stretch;
+  /*Default stretch in both directions*/
+  flex-grow: 1;
+  align-self: stretch;
 }
 
 .itasks-choice-list * {

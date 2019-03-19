@@ -145,7 +145,7 @@ manageWorkOfCurrentUser
 where
 	layout = sequenceLayouts
 		[unwrapUI //Get rid of the step
-		,arrangeWithSideBar 0 TopSide 50 False
+		,arrangeWithHeader 0
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
 		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
 		//Use maximal screen space
@@ -158,7 +158,7 @@ where
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide 150 True, layoutSubUIs (SelectByPath [1]) unwrapUI]
+	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
 manageSession :: Task ()
 manageSession =
@@ -197,9 +197,9 @@ where
 
 	layoutManageWork = sequenceLayouts
 		//Split the screen space
-		[ arrangeWithSideBar 0 TopSide 200 True
+		[ arrangeWithSideBar 0 TopSide True
 		  //Layout all dynamically added tasks as tabs
-		, layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
+		, layoutSubUIs (SelectByPath [1]) (arrangeWithTabs True)
 		, layoutSubUIs (SelectByPath [1]) $
 			layoutSubUIs (SelectByDepth 1) (setUIAttributes $ 'DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
 		]

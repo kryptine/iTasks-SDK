@@ -11,20 +11,32 @@ from iTasks.WF.Definition import :: Task
 from iTasks.WF.Combinators.Tune import class tune
 
 /**
+* Add a CSS class to customize styling
+*/
+addCSSClass :: String -> LayoutRule
+
+/**
 * Create a tabset with all child items as separate tabs
 * The flag denotes whether close buttons should be lifted to the tabs
 */
 arrangeWithTabs :: Bool -> LayoutRule
 
 /**
+* Extract one child item and put it in a separate 'header' panel on top of the screen
+* 
+* @param Index of the task in the set that will be used as header
+*/
+arrangeWithHeader :: !Int -> LayoutRule
+
+/**
 * Extract one child item and put it in a separate panel at the side of the screen
 *
 * @param Index of the task in the set that should be put in the sidebar
 * @param Location of the sidebar
-* @param Initial size of the sidebar
 * @param Enable resize?
 */
-arrangeWithSideBar :: !Int !UISide !Int !Bool -> LayoutRule
+arrangeWithSideBar :: !Int !UISide !Bool -> LayoutRule
+
 
 /**
  * Lift actions starting with / to the menu
@@ -66,8 +78,11 @@ insertToolBar :: [String] -> LayoutRule
 :: ArrangeWithTabs = ArrangeWithTabs Bool
 instance tune ArrangeWithTabs Task
 
-:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
+:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Bool
 instance tune ArrangeWithSideBar Task
+
+:: ArrangeWithHeader = ArrangeWithHeader !Int
+instance tune ArrangeWithHeader Task
 
 :: ArrangeAsMenu = ArrangeAsMenu [[Int]]
 instance tune ArrangeAsMenu Task

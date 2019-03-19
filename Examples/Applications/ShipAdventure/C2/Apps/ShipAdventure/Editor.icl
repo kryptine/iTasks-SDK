@@ -224,7 +224,7 @@ where
 		, moveSubAt[2] [1,0]
 		, moveSubAt[2] [1,1]
 		, moveSubAt[2] [1,2]
-		, arrangeWithSideBar 1 LeftSide 350 False //Move the 'tool' tasks to the side
+		, arrangeWithSideBar 1 LeftSide False //Move the 'tool' tasks to the side
 		]
 */
 
@@ -292,7 +292,7 @@ editSectionContents
 		,moveSubAt [2] [1,0]
 		,moveSubAt [2] [1,1]
 		,moveSubAt [2] [1,2]
-		,arrangeWithSideBar 1 BottomSide 250 False
+		,arrangeWithSideBar 1 BottomSide False
 		]
 */
 
