@@ -6,7 +6,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdList
-from   StdFunc import id, o
+import StdFunctions
 
 //	shorthand definitions for the used fonts in these examples
 lucida			= normalFontDef "Lucida Console"
