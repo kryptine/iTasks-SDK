@@ -5,21 +5,21 @@ import StdMisc, StdArray
 import iTasks
 import iTasks.UI.JS.Encoding, iTasks.UI.Definition, iTasks.UI.Editor
 import Graphics.Scalable.Internal.Image`
-//import StdEnv
+import StdEnv
 import Data.Either
-//import Data.Func
-//import Data.GenEq
+import Data.Func
+import Data.GenEq
 import Data.List
 import qualified Data.Map
-//import Data.MapCollection
-//import Data.Matrix
-//import qualified Data.Foldable
+import Data.MapCollection
+import Data.Matrix
+import qualified Data.Foldable
+from Data.Set import :: Set, instance == (Set a), instance < (Set a), instance Foldable Set
 import qualified Data.Set
-//from Data.Map import :: Map, instance Functor (Map k)
-//from Data.Set import :: Set, instance == (Set a), instance < (Set a)//, instance Foldable Set
+from Data.Map import :: Map, instance Functor (Map k)
 import Math.Geometry
-//import Text
-//import Text.GenJSON
+import Text
+import Text.GenJSON
 import Text.HTML
 
 import StdDebug
@@ -472,14 +472,14 @@ where
 	  #! (elem,world) = (jsDocument `createElementNS` (svgns, "text")) world
 	  #! (_,   world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
 	  #! (_,   world) = (svg `appendChild` elem) world
-	  #! (res, world) = foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
+	  #! (res, world) = 'Data.Foldable'.foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
 	  = (res,  world)
 	where
 		calcFontSpan :: !(JSVal (JSObject a)) !*(!FontSpans,!*JSWorld) !FontDef -> *(!FontSpans,!*JSWorld)
 		calcFontSpan elem (font_spans,world) fontdef
-		  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
+		  #! world       = 'Data.Foldable'.foldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
 		  #! (fd, world) = calcFontDescent elem (getfontysize fontdef) world
 		  = ('Data.Map'.put fontdef fd font_spans, world)
 		
@@ -509,8 +509,8 @@ where
 	where
 		calcTextLengths :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!TextSpans, !*JSWorld) -> *(!TextSpans,!*JSWorld)
 		calcTextLengths elem fontdef strs (text_spans, world)
-		  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
-		  #! (ws, world) = 'Data.Set'.fold (calcTextLength elem) ('Data.Map'.newMap, world) strs
+		  #! world       = 'Data.Foldable'.foldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
+		  #! (ws, world) = 'Data.Foldable'.fold (calcTextLength elem) ('Data.Map'.newMap, world) strs
 		  = ('Data.Map'.alter (merge ws) fontdef text_spans, world)
 		where
 			merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
@@ -544,7 +544,7 @@ clientRegisterEventhandlers` svglet me taskId es` tags world
 where
 	registerEventhandler` :: !(SVGEditor s v) !(JSVal a) !String !(JSObj svg) !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 	registerEventhandler` svglet me taskId svg uniqId es` world
-		= foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
+		= 'Data.Foldable'.foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
 	where
 		register` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !(ImgNodePath,ImgEventhandler`) !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnClickAttr`,local}) world

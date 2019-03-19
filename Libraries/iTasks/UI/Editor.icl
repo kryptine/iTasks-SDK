@@ -149,20 +149,19 @@ isCompound (CompoundState _ _)        = True
 import StdDebug
 
 withClientSideInit ::
-<<<<<<< HEAD
-	((JSObj ()) *JSWorld -> *JSWorld)
-	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
-	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
-withClientSideInit initUI genUI dp val vst=:{VSt|taskId} = case genUI dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = trace_n ("withClientSideInit genUI succeeded")
-                                                       case editorLinker initUI iworld of
-=======
+//<<<<<<< HEAD
+//	((JSObj ()) *JSWorld -> *JSWorld)
+//	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
+//	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
+//withClientSideInit initUI genUI dp val vst=:{VSt|taskId} = case genUI dp val vst of
+//    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = trace_n ("withClientSideInit genUI succeeded")
+//                                                       case editorLinker initUI iworld of
+//=======
 	!((JSObj ()) *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
     (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
->>>>>>> d18c0bfa4ea5ea3a51da3c271e3ef9926adcbc80
         (Ok (saplDeps, saplInit),iworld)
 			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
                                         ,("editorId",JSONString (editorId dp))
@@ -172,13 +171,5 @@ withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr 
             = trace_n ("withClientSideInit editorLinker succeeded")
               (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
         (Error e,iworld)
-<<<<<<< HEAD
-            = trace_n ("withClientSideInit editorLinker failed with Error " +++ toString e)
-              (Error e, {VSt|vst & iworld = iworld})
-    (Error e,vst) = trace_n ("withClientSideInit genUI failed with Error " +++ toString e)
-                    (Error e,vst)
-
-=======
             = (Error e, {VSt|vst & iworld = iworld})
     (Error e,vst) = (Error e,vst)
->>>>>>> d18c0bfa4ea5ea3a51da3c271e3ef9926adcbc80

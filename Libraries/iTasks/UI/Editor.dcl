@@ -152,14 +152,10 @@ isCompound :: !EditState -> Bool
 
 //Add client-side initialization to the generation of an initial UI
 withClientSideInit ::
-<<<<<<< HEAD
-	((JSObj ()) *JSWorld -> *JSWorld)
-	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
-	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
-=======
+//	((JSObj ()) *JSWorld -> *JSWorld)
+//	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
+//	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
 	!((JSObj ()) *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt ->
 		*(!MaybeErrorString (!UI, !st), !*VSt)
-
->>>>>>> d18c0bfa4ea5ea3a51da3c271e3ef9926adcbc80
