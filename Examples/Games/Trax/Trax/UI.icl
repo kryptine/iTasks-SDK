@@ -7,7 +7,8 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
-derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge, /*Coordinate,*/ Maybe
+derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge
+derive JSDecode TraxSt, User, Trax, TraxTile, TileEdge
 
 :: RenderMode = ViewMode | PlayMode
 
@@ -15,15 +16,13 @@ updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
 updateTraxEditor turn = UpdateUsing id (const id) (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage PlayMode turn
-									, updView     = const id
 									, updModel    = flip const
 									})
 
 viewTraxEditor :: ViewOption TraxSt
-viewTraxEditor = ViewUsing id (fromSVGEditor 
+viewTraxEditor = ViewUsing id (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage ViewMode False
-									, updView     = const id
 									, updModel    = flip const
 									})
 
@@ -69,7 +68,7 @@ freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
 | maybe True (\c -> coord <> c) choice
 								= unselected
-| otherwise						= above (repeat AtMiddleX) [] (Just d) [] 
+| otherwise						= above (repeat AtMiddleX) [] (Just d) []
 								        [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates]
 								        (Host unselected)
 where
@@ -89,7 +88,7 @@ where
 	brick						= Host (tileShape d <@< {stroke = whiteColor} <@< {strokewidth = d /. 20})
 	horizontal_tile				= overlay (repeat (AtMiddleX,AtMiddleY)) [] [bar yline whiteColor, bar xline redColor] brick
 	northwest_tile				= (overlay [] [(d /. 2, d /. 2),(d /. -2, d /. -2)]
-								           [ arc whiteColor, arc redColor ] 
+								           [ arc whiteColor, arc redColor ]
 								           brick
 								  ) <@< { MaskAttr | mask = tileShape d <@< {fill = whiteColor}}
 	bar line c					= line   d <@< {stroke = c} <@< {strokewidth = d /. 5}

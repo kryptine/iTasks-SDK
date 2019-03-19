@@ -8,9 +8,11 @@ import System.OS
 import Text, Text.HTML
 import Data.List, Data.Func
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
+import Testing.TestEvents
 import iTasks
-import iTasks.Internal.Test.Definition
+import iTasks.Util.Testing
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
@@ -24,8 +26,8 @@ import iTasks.Extensions.Document
 import iTasks.Extensions.Process
 import iTasks.Extensions.FileCollection
 
-UNIT_TESTS_PATH :== "../Tests/TestPrograms"
-INTERACTIVE_TESTS_PATH :== "../Tests/TestPrograms/Interactive"
+UNIT_TESTS_PATH :== "../Tests/Unit"
+INTERACTIVE_TESTS_PATH :== "../Tests/Interactive"
 
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
@@ -35,12 +37,19 @@ EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
                     ,"../Examples/GIS/LeafletMapExample.icl"
                     ]
 
+derive class iTask EndEventType, Expression
+
+derive gEditor EndEvent, FailReason, FailedAssertion, CounterExample, Relation
+derive gDefault EndEvent, FailReason, FailedAssertion, CounterExample, Relation
+derive gEq EndEvent, FailReason, FailedAssertion, CounterExample, Relation
+derive gText EndEvent, FailReason, FailedAssertion, CounterExample, Relation
+
 inspectCodeQuality :: Task ()
 inspectCodeQuality
 	= application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     	( allTasks [Title "Unit Tests"           @>> runUnitTests 
 				   ,Title "Interactive Tests"    @>> runInteractiveTests 
-				   ,Title "Example applications" @>> checkExampleApplications
+				 //,Title "Example applications" @>> checkExampleApplications
 				   ,Title "Code"                 @>> exploreCode 
                    ,Title "Experiment"           @>> inspectMainModule "test" "module test\nStart = \"Hello World\""
 				   ] <<@ ArrangeWithTabs False
@@ -51,12 +60,12 @@ where
 
 runInteractiveTests :: Task ()
 runInteractiveTests
-	= (     editSelectionWithShared (Title "Select test") False (SelectInTree collectionToTree selectTest) tests (const []) @? tvHd
+	= (     editSelectionWithShared (Title "Select test") False (SelectInTree fileCollectionToTree selectTest) tests (const []) @? tvHd
 		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
 	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl") False)
 
-	collectionToTree collection = itemsToTree [] collection
+	fileCollectionToTree collection = itemsToTree [] collection
 	where
 		itemsToTree prefix subCollection = map (itemToTree prefix) ('DM'.toList subCollection)
 
@@ -80,40 +89,42 @@ where
 runUnitTests :: Task ()
 runUnitTests = withShared 'DM'.newMap
 	\results ->
-		(
-		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
-		>&> withSelection (viewInformation "Select a test" [] ())
-			(\path -> 
-				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (UNIT_TESTS_PATH </> path) (removeMaybe Nothing fileShare))
-				-&&-
-				viewSharedInformation (Title "Results") [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
+	 ((    ((editSelectionWithShared (Title "Tests") False
+				(SelectInTree toModuleSelectTree selectByIndex)
+				(sdsFocus UNIT_TESTS_PATH moduleList) (const []) @? tvHd)
+			)
+		   >&> withSelection (viewInformation "Select a test" [] ())
+                             (viewTest results)
+          )
+		@! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+where
+	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
+
+	viewTest results (name,_)
+		= (viewSharedInformation (Title "Code") [ViewUsing (join "\n") aceTextArea] (sdsFocus (UNIT_TESTS_PATH,name) moduleImplementation)
+		-&&-
+		  ((viewSharedInformation (Title "Results") [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get name) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
-						(		runTestModule (UNIT_TESTS_PATH </> path) <<@ InWindow
-							>>- \res -> (upd ('DM'.put path res)) results
+						(		runTestModule (UNIT_TESTS_PATH,name) <<@ InWindow
+							>>- \res -> (upd ('DM'.put name res)) results
 						)
 					)]
-			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
-		)		
-where
-	testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
-	where
- 		tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus UNIT_TESTS_PATH directoryListing)
+		) @! ()) <<@ ArrangeWithSideBar 1 RightSide 400 True
 
 	toTestReport results
-		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
+		= DivTag [] [setHtml res \\ res <- results | not (isEmpty results)]
 	where
-		suiteHtml {suiteName,testResults}
-			=  DivTag [] [H2Tag [] [Text suiteName]
-						 ,TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
-						 ]
+		setHtml testResults
+			= TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
 
 		headerRow = TrTag [] [ThTag [] [Text "Test"],ThTag [] [Text "Result"],ThTag [] [Text "Details"]]
 
-		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
-		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
-		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
-		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
+		resultRow {name,event=Passed,message} = TrTag [] [TdTag [] [Text name],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] [Text message]]
+		resultRow {name,event=Skipped,message} = TrTag [] [TdTag [] [Text name],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] [Text message]]
+		resultRow {name,event=Failed Nothing,message} = TrTag [] [TdTag [] [Text name],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [Text message]]
+		resultRow {name,event=Failed (Just details),message} = TrTag [] [TdTag [] [Text name],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text (toString (toJSON details))]]]
 
+/*
 checkExampleApplications = withShared 'DM'.newMap
 	\results ->
 		(
@@ -134,6 +145,7 @@ where
 	examplesWithResults results = mapRead (\(res,examples) -> [(e,'DM'.get e res) \\e <- examples ]) (results |*| examples)
 	where
 		examples = constShare EXAMPLE_MODULES
+*/
 
 exploreCode :: Task ()
 exploreCode 
@@ -160,7 +172,7 @@ where
 			,viewSharedInformation (Title "Implementation") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
 			] <<@ ArrangeWithTabs False
 
-	toCodeTag lines = PreTag [] [CodeTag [] [RawText (join "\n" lines)]]
+	toCodeTag lines = PreTag [] [CodeTag [] [Html (join "\n" lines)]]
 
 //Inspecting individual programs 
 :: InspectState
@@ -193,25 +205,25 @@ where
 
 	hasExecutable {InspectState|executable} = (executable =: (Just _))
 
-	editSourceCode :: (Shared InspectState) -> Task InspectState
+	editSourceCode :: (Shared sds InspectState) -> Task InspectState | RWShared sds
 	editSourceCode state
 		= updateSharedInformation (Title "Edit code")
 			[UpdateUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
                          aceTextArea] state
 
-	buildExecutable :: FilePath (Shared InspectState) -> Task ()
+	buildExecutable :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
 	buildExecutable temporaryDirectory state = 
               get state @ (\{InspectState|moduleName,lines} -> (moduleName,join OS_NEWLINE lines))
 		  >>- \(moduleName,sourceCode) -> 
               prepareBuildFiles temporaryDirectory moduleName sourceCode
-		  >>- \_ -> runBuildTool temporaryDirectory moduleName
-		  >>- \_ -> setExecutable temporaryDirectory moduleName state
+		  >-| runBuildTool temporaryDirectory moduleName
+		  >-| setExecutable temporaryDirectory moduleName state
 		  @!  ()
 	where
 		prepareBuildFiles directory moduleName sourceCode
-			=         exportTextFile (directory </> addExtension moduleName "icl") sourceCode
-			>>- \_ -> exportTextFile (directory </> addExtension moduleName "prj") (projectTemplate moduleName)
+			=   exportTextFile (directory </> addExtension moduleName "icl") sourceCode
+			>-| exportTextFile (directory </> addExtension moduleName "prj") (projectTemplate moduleName)
 		
 		runBuildTool directory moduleName
 			=   get cpmExecutable 
@@ -221,13 +233,13 @@ where
 		setExecutable directory moduleName state
             = upd (\s -> {InspectState|s & executable = Just (directory </> addExtension moduleName "exe")}) state
 
-	runProgram :: FilePath (Shared InspectState) -> Task ()
+	runProgram :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
 	runProgram temporaryDirectory state = (
 			    get state @ (\{InspectState|executable} -> executable)
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>>- \_ -> callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
+						>-| callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()
@@ -286,15 +298,14 @@ where
                    ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
                    ]
 
-Start world = startEngine inspectCodeQuality world
-//Start world = startEngineWithOptions (\cli options -> (Just {options & autoLayout = False},[])) inspectCodeQuality world
+Start world = doTasks inspectCodeQuality world
 
 //CREATE THIS WITH CPM LIBRARY
 projectTemplate moduleName = join OS_NEWLINE
 	["Version: 1.4"
 	,"Global"
 	,"\tProjectRoot: ."
-	,"\tTarget: iTasks git"
+	,"\tTarget: iTasks"
 	,"\tExec: {Project}/" +++ addExtension moduleName "exe"
 	,"\tCodeGen"
 	,"\t\tCheckStacks: False"

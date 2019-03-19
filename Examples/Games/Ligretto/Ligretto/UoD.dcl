@@ -37,7 +37,7 @@ derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 		provided that length @players <= length @random_numbers, @game has a middle
 		of empty piles of cards, and each player has a proper hand and row, using
 		@random_numbers.
-		
+
 		If length @players > length @random_numbers, then only the first
 		(length @random_numbers) of @players have been set up.
 */
@@ -90,7 +90,7 @@ no_of_cards_in_row   :: !NoOfPlayers -> Int
 initial_player       :: !NoOfPlayers !Color !String !Int -> Player
 
 /** and_the_winner_is game = maybe_player:
-		if there is a player with an empty Ligretto pile, then @maybe_player = Just player; 
+		if there is a player with an empty Ligretto pile, then @maybe_player = Just player;
 		otherwise @maybe_player = Nothing.
 */
 and_the_winner_is    :: !GameSt -> Maybe Player

@@ -1,7 +1,7 @@
 implementation module C2.Apps.ShipAdventure.Types
- 
+
 //import iTasks
- 
+
 import iTasks.Internal.Tonic
 import iTasks.Extensions.Admin.TonicAdmin
 import iTasks.Extensions.SVG.SVGEditor
@@ -12,6 +12,7 @@ import StdArray
 import Data.Data, Data.Either
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.Set as DS
 import Text.HTML
 
@@ -23,11 +24,21 @@ import C2.Apps.ShipAdventure.Editor
 
 derive gLexOrd CableType, Capability
 derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
-derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
+derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Capability, CapabilityExpr
 
-derive JSEncode Map2D, Coord2D, Map, IntMap, Dir, User, Maybe, Section, Borders, Border, MapAction, Object, Actor
+derive gEditor Set
+derive gDefault Set
+derive gText Set
+derive JSONEncode Set
+derive JSONDecode Set
+
+derive JSEncode Map2D, Coord2D, Map, IntMap, Dir, User, Section, Borders, Border, MapAction, Object, Actor
 derive JSEncode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
 derive JSEncode Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
+derive JSDecode Map2D, Coord2D, Map, IntMap, Dir, User, Section, Borders, Border, MapAction, Object, Actor
+derive JSDecode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
+derive JSDecode Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
+
 
 // std overloading instances
 
@@ -82,17 +93,17 @@ instance == Capability where
 myUserActorMap :: UserActorShare ObjectType ActorStatus
 myUserActorMap = sharedStore "myUserActorMap" 'DM'.newMap
 
-myStatusMap :: RWShared () MySectionStatusMap MySectionStatusMap
+myStatusMap :: SimpleSDSLens MySectionStatusMap
 myStatusMap = sharedStore "myStatusMap" 'DM'.newMap
 
-statusInSectionShare :: RWShared Coord3D SectionStatus SectionStatus
+statusInSectionShare :: SDSLens Coord3D SectionStatus SectionStatus
 statusInSectionShare = mapLens "statusInSectionShare" myStatusMap (Just NormalStatus)
 
-deviceKindsForCapability :: RWShared Capability CapabilityExpr CapabilityExpr
+deviceKindsForCapability :: SDSLens Capability CapabilityExpr CapabilityExpr
 deviceKindsForCapability
   = mapLens "deviceKindsForCapability" capabilityMap Nothing
 
-myInventoryMap :: RWShared () MySectionInventoryMap MySectionInventoryMap
+myInventoryMap :: SimpleSDSLens MySectionInventoryMap
 myInventoryMap = sharedStore "myInventoryMap" 'DM'.newMap
 
 viewDisabledDevices :: Task ()
@@ -273,11 +284,11 @@ mkAllSensors sd hs ws
 
 // my physical mapping of the devices in a network
 
-deviceWithIdShare :: RWShared DeviceId Device Device
+deviceWithIdShare :: SDSLens DeviceId Device Device
 deviceWithIdShare = intMapLens "deviceWithIdShare" myDevices Nothing
 
-deviceIdInNetworkSectionShare :: RWShared Coord3D [DeviceId] [DeviceId]
-deviceIdInNetworkSectionShare = sdsLens "deviceIdInNetworkSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) myNetwork
+deviceIdInNetworkSectionShare :: SDSLens Coord3D [DeviceId] [DeviceId]
+deviceIdInNetworkSectionShare = sdsLens "deviceIdInNetworkSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing myNetwork
   where
   read :: !Coord3D !Network -> MaybeError TaskException [DeviceId]
   read c3d network = Ok (fromMaybe [] ('DM'.get c3d network.devices))
@@ -286,9 +297,9 @@ deviceIdInNetworkSectionShare = sdsLens "deviceIdInNetworkSectionShare" (const (
   write c3d network devIds = Ok (Just ({network & devices = 'DM'.put c3d devIds network.devices}))
 
   notify :: !Coord3D !Network ![DeviceId] -> SDSNotifyPred Coord3D
-  notify c3d network devIds = \idx` -> c3d == idx`
+  notify c3d network devIds = \_ idx` -> c3d == idx`
 
-devicesInSectionShare :: RWShared Coord3D [Device] [Device]
+devicesInSectionShare :: SDSSequence Coord3D [Device] [Device]
 devicesInSectionShare
   = sdsSequence "devicesInSectionShare" id mkP2 (\_ _ -> Right mkR) (SDSWrite write1) (SDSWrite write2) deviceIdInNetworkSectionShare myDevices
   where
@@ -301,7 +312,7 @@ devicesInSectionShare
   write2 :: Coord3D !(IntMap Device) ![Device] -> MaybeError TaskException (Maybe (IntMap Device))
   write2 _ deviceMap devices = Ok (Just (foldr (\device deviceMap -> 'DIS'.put device.Device.deviceId device deviceMap) deviceMap devices))
 
-myDevices :: RWShared () (IntMap Device) (IntMap Device)
+myDevices :: SimpleSDSLens (IntMap Device)
 myDevices = sharedStore "myDevices" devices
   where
   devices = 'DIS'.fromList [  f dt
@@ -310,10 +321,10 @@ myDevices = sharedStore "myDevices" devices
   f :: !Device -> (!DeviceId, !Device)
   f dev = (dev.Device.deviceId, dev)
 
-commandAims :: RWShared () [CommandAim] [CommandAim]
+commandAims :: SimpleSDSLens [CommandAim]
 commandAims = sharedStore "commandAims" []
 
-capabilityMap :: RWShared () CapabilityToDeviceKindMap CapabilityToDeviceKindMap
+capabilityMap :: SimpleSDSLens CapabilityToDeviceKindMap
 capabilityMap = sharedStore "capabilityMap" ('DM'.fromList defaultList)
   where
   defaultList
@@ -333,7 +344,7 @@ instance * CapabilityExpr where
 cap :: DeviceKind -> CapabilityExpr
 cap k = DeviceExpr k
 
-myNetwork :: RWShared () Network Network
+myNetwork :: SimpleSDSLens Network
 myNetwork = sharedStore "myNetwork"
   { Network
   | devices      = 'DM'.newMap
@@ -341,16 +352,16 @@ myNetwork = sharedStore "myNetwork"
   , cableMapping = 'DIS'.newMap
   }
 
-myCables :: RWShared () (IntMap Cable) (IntMap Cable)
-myCables = sdsProject (SDSLensRead read) (SDSLensWrite write) myNetwork
+myCables :: SimpleSDSLens (IntMap Cable)
+myCables = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing myNetwork
   where
   read :: !Network -> MaybeError TaskException (IntMap Cable)
   read { Network | cables } = Ok cables
   write :: !Network !(IntMap Cable) -> MaybeError TaskException (Maybe Network)
   write network cables      = Ok (Just {network & cables = cables})
 
-cablesInSectionShare :: RWShared Coord3D [Cable] [Cable]
-cablesInSectionShare = sdsLens "cablesInSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) myNetwork
+cablesInSectionShare :: SDSLens Coord3D [Cable] [Cable]
+cablesInSectionShare = sdsLens "cablesInSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing myNetwork
   where
   read :: !Coord3D !Network -> MaybeError TaskException [Cable]
   read c3d network = Ok (cablesForSection c3d network)
@@ -360,8 +371,8 @@ cablesInSectionShare = sdsLens "cablesInSectionShare" (const ()) (SDSRead read) 
                                                                 in  if inList network
                                                                       {network & cableMapping = 'DIS'.put cable.cableId [(True, c3d) : coords] network.cableMapping}
                                                                 ) network cables))
-  notify :: !Coord3D !Network ![Cable] -> (Coord3D -> Bool)
-  notify c3d oldNetwork newCables = \c3d` -> c3d === c3d`
+  notify :: !Coord3D !Network ![Cable] -> SDSNotifyPred Coord3D
+  notify c3d oldNetwork newCables = \_ c3d` -> c3d === c3d`
 
 cablesForSection :: !Coord3D !Network -> [Cable]
 cablesForSection c3d { Network | cables, cableMapping }
@@ -369,7 +380,7 @@ cablesForSection c3d { Network | cables, cableMapping }
       [] -> []
       xs -> [cable \\ Just cable <- (map (\cid -> 'DIS'.get cid cables) xs)]
 
-cableWithIdShare :: RWShared CableId Cable Cable
+cableWithIdShare :: SDSLens CableId Cable Cable
 cableWithIdShare = intMapLens "cableWithIdShare" myCables Nothing
 
 cutCable :: !Coord3D !CableId !Network -> Network
@@ -381,9 +392,9 @@ patchCable roomNo cableId network = { network & cableMapping = 'DIS'.alter (fmap
 inventoryInSectionShare :: FocusedSectionInventoryShare ObjectType
 inventoryInSectionShare = mapLens "inventoryInSectionShare" myInventoryMap (Just 'DIS'.newMap)
 
-allAvailableActors :: ReadOnlyShared [(!Coord3D, !MyActor)]
+allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
 allAvailableActors
-  = /*toReadOnly */ (sdsProject (SDSLensRead readActors) SDSNoWrite (sectionUsersShare |*| myUserActorMap))
+  = /*toReadOnly */ (sdsProject (SDSLensRead readActors) (SDSBlindWrite \_. Ok Nothing) Nothing (sectionUsersShare |*| myUserActorMap))
   where
   readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(!Coord3D, !MyActor)]
   readActors (sectionUsersMap, userActorMap)
@@ -392,9 +403,9 @@ allAvailableActors
                     , Just (c3d, a) <- [findUser u sectionUsersMap userActorMap]
                     | a.actorStatus.occupied === Available]
 
-allActiveAlarms :: ReadOnlyShared [(!Coord3D, !SectionStatus)]
+allActiveAlarms :: SDSLens () [(!Coord3D, !SectionStatus)] ()
 allActiveAlarms
-  = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) SDSNoWrite myStatusMap)
+  = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) (SDSBlindWrite \_. Ok Nothing) Nothing myStatusMap)
   where
   readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(!Coord3D, !SectionStatus)]
   readAlarms statusMap = Ok [ (number, status) \\ (number, status) <- 'DM'.toList statusMap
@@ -425,13 +436,12 @@ updateMapStatus mode
 where
 	editor = fromSVGEditor
 		{ initView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) -> (ms2d, cl)
-		, renderImage = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl) (ms2d`, cl`) 
+		, renderImage = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> maps2DImage disSects cl mode ms2d` exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network
-		, updView = \((((((((((_, ms2d), _), _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
 		, updModel = \((((((((((disSects, _), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), _)  (ms2d`, cl`) -> ((((((((((disSects, ms2d`), exitLocks), hopLocks), inventoryMap), statusMap), sectionUsersMap), userActorMap), network), allDevices), cl`)
 		}
 
-disabledSections :: RWShared () (Set Coord3D) (Set Coord3D)
+disabledSections :: SimpleSDSLens (Set Coord3D)
 disabledSections = sharedStore "disabledSections" 'DS'.newSet
 
 updateSectionStatus :: !Coord3D -> Task (MapAction SectionStatus)
@@ -445,17 +455,16 @@ where
 		{ initView    = \((((((((ms2d, _), _), _), _), _), _), _), cl) -> (ms2d, cl)
 		, renderImage = \((((((((ms2d, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl) (ms2d`, cl`)
 			-> roomImage c3d exitLocks hopLocks inventoryMap statusMap actorMap allDevices network True (fromJust (getSectionFromMap c3d ms2d`)) (ms2d !! floorIdx) cl`
-		, updView     = \((((((((ms2d, _), _), _), _), _), _), _), cl) _ -> (ms2d, cl)
-		, updModel    = \((((((((_,    exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), _)  (ms2d`, cl`) 
+		, updModel    = \((((((((_,    exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), _)  (ms2d`, cl`)
 			-> ((((((((ms2d`, exitLocks), hopLocks), inventoryMap), statusMap), actorMap), network), allDevices), cl`)
 		}
 
-setAlarm :: !User !(!Coord3D, !SectionStatus) !(Shared MySectionStatusMap) -> Task ()
+setAlarm :: !User !(!Coord3D, !SectionStatus) !(Shared sds MySectionStatusMap) -> Task () | RWShared sds
 setAlarm user (alarmLoc, status) shStatusMap
   =   setSectionStatus alarmLoc status shStatusMap
   >>| addLog user ""  ("Resets " <+++ status <+++ " in Section " <+++ alarmLoc <+++ " to False.")
 
-setSectionStatus :: !Coord3D !SectionStatus !(Shared (SectionStatusMap SectionStatus)) -> Task ()
+setSectionStatus :: !Coord3D !SectionStatus !(Shared sds (SectionStatusMap SectionStatus)) -> Task () | RWShared sds
 setSectionStatus roomNumber status statusMap
   = upd ('DM'.put roomNumber status) statusMap @! ()
 

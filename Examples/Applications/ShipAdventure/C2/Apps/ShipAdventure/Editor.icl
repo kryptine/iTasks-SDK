@@ -13,13 +13,19 @@ import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Types
 import C2.Apps.ShipAdventure.Images
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
-from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
-from Graphics.Scalable import :: ImageOffset, :: Host(..)
 
-derive JSEncode Map2D, Section, Maybe, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
+import Graphics.Scalable.Image => qualified grid
+import Graphics.Scalable.Types
+//from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
+//from Graphics.Scalable import :: ImageOffset, :: Host(..)
+
+derive JSEncode Map2D, Section, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
 derive JSEncode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
+derive JSDecode Map2D, Section, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
+derive JSDecode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
 
 shipEditorTabs		:: Task ()
 shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
@@ -50,7 +56,7 @@ importShip
   doImport :: !String -> Task ()
   doImport mapName
     =            getMap mapName
-    >>- \data -> set data (myInventoryMap >+< myNetwork >+< myCables >+< myDevices >+< maps2DShare)
+    >>- \data -> set data (myInventoryMap >*< myNetwork >*< myCables >*< myDevices >*< maps2DShare)
     >>|          viewInformation "Ship imported" [] "Ship imported"
     >>|          importShip @! ()
 
@@ -98,11 +104,11 @@ mapTitleFontSize    =: 10.0
 ********************************************************************************************************************/
 viewLayout = updateMapStatus EditMode @! ()
 
-sharedMapAction :: RWShared () (MapAction SectionStatus) (MapAction SectionStatus)
+sharedMapAction :: SimpleSDSLens (MapAction SectionStatus)
 sharedMapAction = sharedStore "sharedMapAction" (FocusOnMap 0)	// start at the top-level (all maps)
 
-sharedEditShip :: RWShared () (Maps2D,MapAction SectionStatus) (Maps2D,MapAction SectionStatus)
-sharedEditShip = maps2DShare >+< sharedMapAction
+sharedEditShip :: SimpleSDSParallel (Maps2D,MapAction SectionStatus)
+sharedEditShip = maps2DShare >*< sharedMapAction
 
 manageDevices :: Task ()
 manageDevices
@@ -167,7 +173,7 @@ derive class iTask EditDeviceType, EditDevice
 manageCables :: Task ()
 manageCables = intMapCrudWith "Cables" [ChooseFromGrid id] [] [] [] (\cable -> cable.Cable.cableId) myCables @! ()
 
-intMapCrud :: !String !(r -> Int) !(RWShared () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrud :: !String !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
 intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
@@ -175,7 +181,7 @@ intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkI
   delItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   delItem mkId item allItems = 'DIS'.del (mkId item) allItems
 
-intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(RWShared () (IntMap r) (IntMap r)) -> Task r | iTask r
+intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
 intMapCrudWith descr cos eos vos uos mkId share = crudWith descr cos eos vos uos 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
@@ -192,9 +198,9 @@ graphicalMapEditor
 where
 	imageEditor = fromSVGEditor
 		{ initView       = fst
-		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ -> 
-			above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
-		, updView        = \m v -> fst m
+		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ ->
+		//TODO	above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
+			above [] [] Nothing [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 		, updModel       = \(_,data) newClSt -> (newClSt,data)
 		}
 
@@ -209,10 +215,10 @@ editLayout
                    , OnAction (Action "Remove outer borders" ) (hasValue (uncurry (editOuterBorders Open)))
                    ]
                ) @! ()
-             ] <<@ ApplyLayout layout @! ()
+             ] @! ()//TODO <<@ ApplyLayout layout @! ()
+/*
 where
 	layout = idLayout
-/*
 	layout = sequenceLayouts
 		[ insertSubAt [1] (ui UIContainer) // Group the 'tool' tasks
 		, moveSubAt[2] [1,0]
@@ -237,10 +243,10 @@ editOuterBorders border ship mapID = case getMap2DIndex mapID ship of
       #! m2d = foldr (\rowIdx -> updSection {row = rowIdx,     col = lastColIdx} (editBorder E border)) m2d [0..lastRowIdx]
       = m2d
     editBorders _ m2d = m2d
-    
+
     editBorder :: !Dir !Border !Section -> Section
     editBorder dir border s = {Section | s & borders = edit dir border s.Section.borders}
-    
+
     edit :: !Dir !Border !Borders -> Borders
     edit N border b = {Borders | b & n = border}
     edit E border b = {Borders | b & e = border}
@@ -257,17 +263,17 @@ editSectionContents
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) devicesInSectionShare
                              in  updateSectionEditor (mkDesc mid c2d "Devices")
                                    [ChooseFromCheckGroup (\d -> d.Device.description)]
-                                   (mapRead mrf (myDevices |+< focusedShare)) focusedShare
+                                   (mapRead mrf (myDevices |*< focusedShare)) focusedShare
                )
              , withSelectedSection (
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) cablesInSectionShare
                              in  updateSectionEditor (mkDesc mid c2d "Cables")
                                    [ChooseFromCheckGroup (\d -> d.Cable.description)]
-                                   (mapRead ('DIS'.elems o fst) (myCables |+< focusedShare)) focusedShare
+                                   (mapRead ('DIS'.elems o fst) (myCables |*< focusedShare)) focusedShare
                )
-             ] <<@ ApplyLayout layout @! ()
+             ] @! () //TODO <<@ ApplyLayout layout @! ()
   where
-  updateSectionEditor :: !String ![ChoiceOption a] (Shared [a]) (Shared [a]) -> Task [a] | iTask a
+  updateSectionEditor :: !String ![ChoiceOption a] (Shared sds1 [a]) (Shared sds2 [a]) -> Task [a] | iTask a & RWShared sds1 & RWShared sds2
   updateSectionEditor d updOpts listShare focusedShare
 	= editSharedMultipleChoiceWithShared (Title d) updOpts listShare focusedShare
 
@@ -279,8 +285,8 @@ editSectionContents
            _                         = viewInformation (Title "Please select section") [] "Please select section" @! ()
         )
 
-  layout = idLayout
 /*
+  layout = idLayout
   layout = sequenceLayouts
 		[insertSubAt [1] (uia UIContainer (directionAttr Horizontal))
 		,moveSubAt [2] [1,0]
@@ -372,7 +378,7 @@ where
 	where
 		curNoOfRows		= length sections
 		curNoOfColumns	= length (hd sections)
-		
+
 	    heighten :: ![[Section]] -> [[Section]]
 		heighten sects	= if (newNoOfRows < curNoOfRows) (take newNoOfRows sects)
 						 (if (newNoOfRows > curNoOfRows) (sects ++ [  [  initSection
@@ -389,7 +395,7 @@ where
 						                                       \\ row <- sects & row_no <- [0..]
 						                                       ]
 						                                       sects)
-	
+
 	updateNoOfMaps :: !Int !Maps2D -> Maps2D
 	updateNoOfMaps newNoOfMaps maps
 	| newNoOfMaps <= 0	= maps
@@ -404,7 +410,7 @@ where
 		(dim,mapsize,doorsize)
 						= if (isEmpty maps) ((1,1),initMap2DSize,initDoors2DSize)
 						     (let map = hd maps in (dimension map,map.Map2D.size2D,map.Map2D.doors2D))
-		
+
 		noUpStairs :: !Section -> Section
 		noUpStairs s=:{Section | hops}
 						= {Section | s & hops = filter (\(idx,_) -> idx <= topfloor) hops}
@@ -456,7 +462,7 @@ fromMapActionForm (maps,edit) sectionE=:{EditForm | map2DIndex = idx,section=c,n
   = (updMap2D idx ((updateMapID newMapId) o (updSection c (updateSection (idx,c) sectionE))) (updHops (idx,c) up down maps),updateSelection (idx,c) edit)
 where
 	new_hops	= if up [(idx-1,c)] [] ++ if down [(idx+1,c)] []
-	
+
 	updHops :: !Coord3D !Bool !Bool !Maps2D -> Maps2D
 	updHops source=:(idx,c) up down maps
 	  = case getMap2D idx maps of
@@ -470,14 +476,14 @@ where
 	where
 		removeHop c maps (idx,c`) = updMap2D idx (updSection c` (\s=:{Section | hops} -> {Section | s & hops = removeMember c hops})) maps
 		addHop c maps (idx,c`) = updMap2D idx (updSection c` (\s=:{Section | hops} -> {Section | s & hops = [c:hops]})) maps
-	
+
 	updateMapID :: !MapID !Map2D -> Map2D
 	updateMapID newId map = {Map2D | map & mapId = newId}
-	
+
 	updateSection :: !Coord3D !EditForm !Section -> Section
 	updateSection (idx,c) {EditForm | sectionName,up,down} s
 		= {Section | s & sectionName=fromMaybe "" sectionName,hops = new_hops}
-	
+
 	updateSelection :: !Coord3D !(MapAction s) -> MapAction s
 	updateSelection c3d (FocusOnMap     _)	= FocusOnSection c3d
 	updateSelection c3d (FocusOnSection _)	= FocusOnSection c3d
@@ -497,7 +503,7 @@ initSection    		= {Section | sectionName = ""
 					           , borders     = initBorders
 					           , hops        = []
 					   }
-initBorders			= {n=Open,e=Open,s=Open,w=Open}
+initBorders			= {Borders|n=Open,e=Open,s=Open,w=Open}
 frigate_outline		=: [(0.0,0.5)] ++ port ++ [(1.0,0.5)] ++ starboard
 where
 	port			= [(0.006,0.048),(0.107,0.01),(0.179,0.0),(0.684,0.0),(0.719,0.01),(0.752,0.029),(0.787,0.067),(0.829,0.106),(0.852,0.135),(0.898,0.212),(0.926,0.279),(0.999,0.462)]

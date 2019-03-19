@@ -10,21 +10,24 @@ import C2.Framework.Logging
 import C2.Apps.ShipAdventure.Core, C2.Apps.ShipAdventure.Types, C2.Apps.ShipAdventure.Editor, C2.Apps.ShipAdventure.Scripting
 
 Start :: *World -> *World
-Start world = startEngine [ publish "/"             (\_ -> importDemoUsers >>| ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
-                          , publish "/tonic"        (\_ -> tonicDashboard [])
-                          , publish "/debug"        (\_ -> showDebug)
-                          , publish "/adventure"    (\_ -> importDemoUsersFlow >>| loginAndManageWorkList "Adventure" myTasks)
-                          , publish "/tonic"        (\_ -> tonicDashboard [])
-                          , publish "/alarm"        (\_ -> setSectionDetectors)
-                          , publish "/log"          (\_ -> showLog)
-                          //, publish "/devices"      (\_ -> manageDevices True)
-                          , publish "/editor"       (\_ -> shipEditorTabs)
-                          , publish "/changeFire"   (\_ -> changeFireScript)
-                          , publish "/changeFlood"  (\_ -> changeFloodScript)
-                          , publish "/changeSmoke"  (\_ -> changeSmokeScript)
-                          , publish "/doffMap"      (\_ -> dOffMap)
-                          , publish "/test"         (\_ -> editMaps2D)
-                          ] world
+Start world = doTasks
+	[onStartup importDemoUsers
+	,onStartup importDemoUsersFlow
+	,onStartup (installWorkflows myTasks)
+	,onRequest "/" (ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
+	,onRequest "/tonic" (tonicDashboard [])
+	,onRequest "/debug" showDebug
+	,onRequest "/adventure" (loginAndManageWork "Adventure")
+	,onRequest "/alarm" (setSectionDetectors)
+	,onRequest "/log" showLog
+	//,onRequest "/devices" (manageDevices True)
+	,onRequest "/editor" shipEditorTabs
+	,onRequest "/changeFire" changeFireScript
+	,onRequest "/changeFlood" changeFloodScript
+	,onRequest "/changeSmoke" changeSmokeScript
+	,onRequest "/doffMap" dOffMap
+	,onRequest "/test" editMaps2D
+	] world
 
 editMaps2D :: Task Maps2D
 editMaps2D = updateSharedInformation "Edit map" [] maps2DShare
@@ -34,7 +37,7 @@ importDemoUsers = allTasks (map mkDemoUser namesRoles)
   where
   mkDemoUser t
     # u = demoUser t
-    = catchAll (createUser u) (\_ -> return u)
+    = catchAll (createUser u @ const u) (\_ -> return u)
   demoUser (ppname, username, role)
     = { UserAccount
       | credentials = { Credentials

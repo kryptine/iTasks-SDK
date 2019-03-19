@@ -5,6 +5,7 @@ import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either, Data.Maybe
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import StdMisc
 
 //FIXME
@@ -23,19 +24,19 @@ createNewIncident :: Task (Maybe IncidentNo)
 createNewIncident
 	=	enterInformation ("Create new incident", "Fill in the following basic information to create a new incident") []
 	>>? createIncident
-	
+
 createNewContact :: Task (Maybe ContactNo)
 createNewContact
 	=	enterInformation ("New contact","Enter the basic information of the new contact") []
 	>>? createContact
 
-indexedStore :: String v -> RWShared k v v | Eq k & Ord k & iTask k & iTask v
-indexedStore name def = sdsSplit "indexedStore" (\p -> ((),p)) read write (sharedStore name 'DM'.newMap)
+indexedStore :: String v -> SDSLens k v v | Eq k & Ord k & iTask k & iTask v
+indexedStore name def = sdsSplit "indexedStore" (\p -> ((),p)) read write (Just \p mapping. Ok (fromMaybe def ('DM'.get p mapping))) (sharedStore name 'DM'.newMap)
 where
     read p mapping = fromMaybe def ('DM'.get p mapping)
     write p mapping v = ('DM'.put p v mapping,const ((==) p))
 
-sdsDeref :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a]) | iTask p & TC a & TC b & TC c & TC x
+sdsDeref :: (sds1 p [a] [a]) (a -> Int) (sds2 [Int] [b] x) ([a] [b] -> [c]) -> (SDSSequence p [c] [a]) | iTask p & TC a & TC b & TC c & TC x & RWShared sds1 & RWShared sds2
 sdsDeref sds1 toRef sds2 merge = sdsSequence "sdsDeref" paraml paramr (\_ _ -> Right read) writel writer sds1 sds2
 where
 	paraml p = p
@@ -46,23 +47,26 @@ where
     writel = SDSWriteConst (\_ w -> Ok (Just w))
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c
+viewDetails	:: !d (sds1 () (Maybe i) ()) (sds2 i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c & RWShared sds1 & RWShared sds2
 viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) (targetShare sel target))
 where
-	targetShare :: (RWShared () (Maybe i) ()) (RWShared i c c) -> RWShared () (Maybe c) () | iTask i & iTask c
+	targetShare :: (sds1 () (Maybe i) ()) (sds2 i c c) -> SDSSequence () (Maybe c) () | iTask i & iTask c & RWShared sds1 & RWShared sds2
     targetShare sel target = sdsSequence "viewDetailsSeq" id (\_ i -> i) (\_ _ -> Right snd) writel writer sel (valueShare target)
     where
         writel = SDSWriteConst (\_ _ -> Ok Nothing)
         writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-    valueShare :: (RWShared i c c) -> RWShared (Maybe i) (Maybe c) () | iTask i & iTask c
-    valueShare target = sdsSelect "viewDetailsValue" param (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False))
-		(constShare Nothing) (mapRead Just (toReadOnly target))
+    valueShare :: (sds1 i c c) -> SDSSelect (Maybe i) (Maybe c) () | iTask i & iTask c & RWShared sds1
+    valueShare target = sdsSelect "viewDetailsValue" param 
+        (SDSNotifyConst (\_ _ _ _-> False)) 
+        (SDSNotifyConst (\_ _ _ _-> False))
+		(constShare Nothing) 
+        (mapRead Just (toReadOnly target))
 	where
     	param Nothing = Left ()
     	param (Just i) = Right i
 
-optionalNewOrOpen :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyShared (Maybe i)) -> Task () | iTask i
+optionalNewOrOpen   :: (String,Task ()) (String,i -> Task ()) Workspace (sds () (Maybe i) ()) -> Task () | iTask i & RWShared sds
 optionalNewOrOpen (newLabel,newTask) (openLabel,openTask) ws selection
 	= forever (
 		watch selection >>*
@@ -71,7 +75,7 @@ optionalNewOrOpen (newLabel,newTask) (openLabel,openTask) ws selection
 			]
 	)
 
-doAddRemoveOpen :: (Task a) (r -> Task b) (r -> Task c) Workspace (ReadWriteShared (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r
+doAddRemoveOpen     :: (Task a) (r -> Task b) (r -> Task c) Workspace (sds () (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r & RWShared sds & TC w
 doAddRemoveOpen  add remove open ws selection = forever
 	(watch selection >>*
 		[OnAction (Action "/Add")	  (always (addToWorkspace add ws))
@@ -86,7 +90,7 @@ viewAndEdit view edit
     = forever (view >>* [OnAction (Action "Edit") (always edit)])
 
 //Move to common tasks
-viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
+viewOrEdit :: d (Shared sds a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
 viewOrEdit prompt s log
 	= forever (view >>* [OnAction (Action "/Edit") (hasValue edit)]) @! ()
 where
@@ -163,11 +167,11 @@ where
     more list =   viewInformation () [] ()
               >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
 
-manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Task ()
+manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
     =   get refsList
     >>- \initList ->
-        parallel ([(Embedded, removeWhenStable (detailsTask i)) \\ i <- initList] ++ [(Embedded,add)]) [] 
+        parallel ([(Embedded, removeWhenStable (detailsTask i)) \\ i <- initList] ++ [(Embedded,add)]) []
     @! ()
 where
     add list
@@ -206,11 +210,11 @@ where
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
-syncNetworkChannel :: String Int String (String -> m) (m -> String) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
+syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
     = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect} @! ()
 where
-    onConnect _ (received,receiveStopped,send,sendStopped) 
+    onConnect _ _ (received,receiveStopped,send,sendStopped)
         = (Ok "",if (not (isEmpty send)) (Just (received,False,[],sendStopped)) Nothing, map encodeFun send,False)
 
 	onData newData acc (received,receiveStopped,send,sendStopped)
@@ -223,10 +227,10 @@ where
 	onShareChange acc (received,receiveStopped,send,sendStopped)
 		= (Ok acc,Nothing,[],False)
 
-    onDisconnect l (received,receiveStopped,send,sendStopped) 
+    onDisconnect l (received,receiveStopped,send,sendStopped)
 		= (Ok l,Just (received,True,send,sendStopped))
 
-consumeNetworkStream :: ([m] -> Task ()) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m
+consumeNetworkStream    :: ([m] -> Task ()) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 consumeNetworkStream processTask channel
     = ((watch channel >>* [OnValue (ifValue ifProcess process)]) <! id) @! ()
 where

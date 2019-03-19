@@ -120,7 +120,7 @@ realEstatesOfCitizen	:: Citizen [CadastreRealEstate] -> [OwnedRealEstate]
 clientReminderDate :: Date -> Date
 
 /** clientDeadlineDate date:
-		returns the deadline of filling in documents for clients. 
+		returns the deadline of filling in documents for clients.
 */
 clientDeadlineDate :: Date -> Date
 
@@ -141,19 +141,19 @@ shiftDate :: TimePeriod Date -> Date
 
 derive class iTask 	DecisionStatus,
 					Decision,
-					TaxSolarPanelDossier, 
+					TaxSolarPanelDossier,
 					Collection,
 					RealEstateOwner,
 					CompanyDeclaration,
-					TaxCompensationCitizenRequest, 
+					TaxCompensationCitizenRequest,
 					TaxCompensationDocuments,
 					OwnedRealEstate
 instance ==		 	DecisionStatus,
 					Decision,
-					TaxSolarPanelDossier, 
+					TaxSolarPanelDossier,
 					Collection,
 					RealEstateOwner
 instance <		 	TaxSolarPanelDossier,
-					Decision, 
+					Decision,
 					Collection,
 					RealEstateOwner

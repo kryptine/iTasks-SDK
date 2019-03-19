@@ -8,6 +8,7 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Apps.ShipAdventure.Editor
+import Data.Map.GenJSON
 
 dOffRegisterEntity  :: [User -> Task Entity]
 dOffRegisterEntity = []
@@ -53,7 +54,11 @@ damagePrediction
   resetSections = set 'DS'.newSet disabledSections >>| damagePrediction
   isDisabled c3d disSects = 'DS'.member c3d disSects
 
-derive class iTask Set
+derive gEditor Set
+derive gDefault Set
+derive gText Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 showCommandAims :: Task ()
 showCommandAims = viewSharedInformation "Current Command Aims" [] commandAims @! ()

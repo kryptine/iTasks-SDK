@@ -10,7 +10,7 @@ import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
 
 import qualified Data.Map as DM
-import  Data.Tuple, Data.Functor, Data.List, Data.Either, Text, Text.HTML
+import  Data.Tuple, Data.Functor, Data.List, Data.Either, Text, Text.HTML, Data.Func
 
 //Extensions
 import Incidone.Extensions.CrewLists
@@ -25,36 +25,36 @@ import Incidone.Extensions.CrewLists
 derive class iTask CommunicationAttempt
 derive class iTask ActionPlan
 
-actionStatuses :: ROShared () [(InstanceNo,InstanceNo,ActionStatus)]
+actionStatuses :: SDSLens () [(InstanceNo,InstanceNo,ActionStatus)] ()
 actionStatuses = mapRead (map toActionStatus) detachedTaskInstances
 
-actionStatusesByIncident :: ROShared IncidentNo [(InstanceNo,InstanceNo,ActionStatus)]
-actionStatusesByIncident = sdsSplit "actionStatusesByIncident" (\p -> ((),p)) read write actionStatuses
+actionStatusesByIncident :: SDSLens IncidentNo [(InstanceNo,InstanceNo,ActionStatus)] ()
+actionStatusesByIncident = sdsSplit "actionStatusesByIncident" (\p -> ((),p)) read write (Just \p w. Ok w) actionStatuses
 where
     read instanceNo is = filter (filterFun instanceNo) is
     write _ _ _ = ((),const (const False))
     filterFun instanceNo (_,_,{ActionStatus|incidents}) = isMember instanceNo incidents
 
-actionStatusesByContact :: ROShared ContactNo [(InstanceNo,InstanceNo,ActionStatus)]
-actionStatusesByContact = sdsSplit "actionStatusesByContact" (\p -> ((),p)) read write actionStatuses
+actionStatusesByContact :: SDSLens ContactNo [(InstanceNo,InstanceNo,ActionStatus)] ()
+actionStatusesByContact = sdsSplit "actionStatusesByContact" (\p -> ((),p)) read write (Just \p w. Ok w) actionStatuses
 where
     read contactNo is   = filter (filterFun contactNo) is
     write _ _ _         = ((),const (const False))
     filterFun contactNo (_,_,{ActionStatus|contacts}) = isMember contactNo contacts
 
-actionStatusesOfCurrentContact :: ROShared () [(InstanceNo,InstanceNo,ActionStatus)]
+actionStatusesOfCurrentContact :: SDSSequence () [(InstanceNo,InstanceNo,ActionStatus)] ()
 actionStatusesOfCurrentContact = sdsSequence "actionStatusesOfCurrentContact" id (\_ r -> r) (\_ _ -> Right snd) writel writer currentUserContactNo actionStatusesByContact
 where
     writel = SDSWriteConst (\_ _ -> Ok Nothing)
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-actionStatusByNo :: RWShared InstanceNo ActionStatus ActionStatus
-actionStatusByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) taskInstanceByNo
+actionStatusByNo :: SDSLens InstanceNo ActionStatus ActionStatus
+actionStatusByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing taskInstanceByNo
 where
     read item = Ok (thd3 (toActionStatus item))
     write {TaskInstance|attributes} status = Ok (Just (fromActionStatus status attributes))
 
-numActionsByContact :: ROShared ContactNo Int
+numActionsByContact :: SDSLens ContactNo Int ()
 numActionsByContact = mapRead length actionStatusesByContact
 
 toActionStatuses :: [TaskInstance] -> [(InstanceNo,InstanceNo,ActionStatus)]
@@ -100,8 +100,8 @@ fromSelfActionStatus status (_,items) = case [i \\ i=:{TaskListItem|taskId,self}
     [{TaskListItem|taskId,attributes}:_] = Ok (Just [(taskId,fromActionStatus status attributes)])
     _                                    = Error (exception "Task id not found in self management share")
 
-selfActionStatus :: (SharedTaskList a) -> Shared ActionStatus | iTask a
-selfActionStatus list = sdsFocus taskListFilter (mapReadWriteError (toSelfActionStatus,fromSelfActionStatus) list)
+selfActionStatus :: (SharedTaskList a) -> SimpleSDSLens ActionStatus | iTask a
+selfActionStatus list = sdsFocus taskListFilter (mapReadWriteError (toSelfActionStatus,fromSelfActionStatus) Nothing list)
 where
     taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
                      ,includeValue=False,includeAttributes=True,includeProgress=False}
@@ -166,35 +166,35 @@ contactOptions (Just group) = sdsFocus group contactsWithGroupShort
 forIncident :: IncidentNo (ActionDefinition (ContactNo,IncidentNo)) -> ActionDefinition ContactNo
 forIncident incidentNo item=:{ActionDefinition|task} = {ActionDefinition|item & task = task`}
 where
-    task` contactNo status = task (contactNo,incidentNo) status 
+    task` contactNo status = task (contactNo,incidentNo) status
 
 addDefaultStatus :: (Task c) -> ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) | iTask c
 addDefaultStatus task = \initContacts initIncidents -> task @ \c -> (c,{ActionStatus|defaultValue & contacts = initContacts, incidents = initIncidents})
 
-predefinedInstantItem :: String ItemMeta ActionProgress ((Shared ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedInstantItem :: String ItemMeta ActionProgress ((SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction
 predefinedInstantItem identity meta=:{ItemMeta|title,description} progress task
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer itemtask}
 where
     configer initContacts initIncidents = return ((),{ActionStatus|title=title,description=description,progress=progress,contacts=initContacts,incidents=initIncidents})
     itemtask _ status = task status @? const NoValue
 
-predefinedConfigurableItem :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
+predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
 predefinedConfigurableItem identity meta configer task
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer (\c s -> task c s @? const NoValue)}
 
-predefinedIncidentItem :: String ItemMeta (IncidentNo (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedIncidentItem      :: String ItemMeta (IncidentNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 predefinedIncidentItem identity meta incidentTask
     = toIncidentAction {ActionDefinition|identity=identity,meta=meta,task=task}
 where
     task status incidentNo = incidentTask status incidentNo @? const NoValue
 
-predefinedContactItem :: String ItemMeta (Maybe String) (ContactNo (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 predefinedContactItem identity meta mbGroup contactTask
     = toContactAction mbGroup {ActionDefinition|identity=identity,meta=meta,task=task}
 where
     task status contactNo = contactTask status contactNo @? const NoValue
 
-updateSharedActionStatus :: (Shared ActionStatus) -> Task ActionStatus
+updateSharedActionStatus :: (Shared sds ActionStatus) -> Task ActionStatus | RWShared sds
 updateSharedActionStatus status
     = watch status
         >^* [OnAction (Action "Mark active") (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
@@ -228,7 +228,7 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = emptyEditor 
+gEditor{|ActionTasks|} = emptyEditorWithDefaultInEnterMode $ ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 
 instance toString ActionProgress
 where
@@ -248,10 +248,10 @@ where
         UAInformAction def  = userInformItem identity meta def
         UAActionList def    = userListItem identity meta def
 
-actionCatalog :: ReadOnlyShared [CatalogAction]
-actionCatalog = mapRead (\(b,u) -> b ++ map toCatalogAction u) (builtinActionCatalog |+| userActionCatalog)
+actionCatalog :: SDSLens () [CatalogAction] ()
+actionCatalog = mapRead (\(b,u) -> b ++ map toCatalogAction u) (builtinActionCatalog |*| userActionCatalog)
 
-builtinActionCatalog :: ReadOnlyShared [CatalogAction]
+builtinActionCatalog :: SDSSource () [CatalogAction] ()
 builtinActionCatalog = constShare
     [blankTodoItem
     ,blankAlertItem
@@ -261,11 +261,11 @@ builtinActionCatalog = constShare
     :crewListActions
     ]
 
-userActionCatalog :: Shared [UserCatalogAction]
+userActionCatalog :: SimpleSDSLens [UserCatalogAction]
 userActionCatalog = sharedStore "UserActionCatalog" []
 
 //Todo items
-todoItemTask :: () (Shared ActionStatus) -> Task ()
+todoItemTask :: () (Shared sds ActionStatus) -> Task () | RWShared sds
 todoItemTask _ status
     = viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status @! ()
 
@@ -280,27 +280,27 @@ predefinedTodoItem :: String ItemMeta -> CatalogAction
 predefinedTodoItem identity meta=:{ItemMeta|title,description}
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer todoItemTask}
 where
-    configer initContacts initIncidents 
+    configer initContacts initIncidents
         = return ((),{ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents})
 
 userTodoItem :: String ItemMeta -> CatalogAction
 userTodoItem identity meta = predefinedTodoItem identity meta
 
 //Alert item
-alertItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
+alertItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
 alertItemTask contactNo status = communicationItemTask contactNo status
 
 configureAlertItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo, Maybe P2000Message),ActionStatus)
 configureAlertItemTask initContacts initIncidents = configureCommunicationItemTask "Alert" initContacts initIncidents
 
-configureUserAlertItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
+configureUserAlertItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
 configureUserAlertItemTask meta def initContacts initIncidents = configureUserCommunicationItemTask "Alert" meta def initContacts initIncidents
 
 blankAlertItem :: CatalogAction
 blankAlertItem = {CatalogAction|identity="blank-alert",meta={ItemMeta|title="Alert item",description=Nothing},tasks=ActionTasks configureAlertItemTask alertItemTask}
 
-predefinedAlertItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction 
-predefinedAlertItem identity meta=:{ItemMeta|title,description} config 
+predefinedAlertItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction
+predefinedAlertItem identity meta=:{ItemMeta|title,description} config
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer alertItemTask}
 where
     configer initContacts initIncidents
@@ -311,20 +311,20 @@ userAlertItem identity meta def
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks (configureUserAlertItemTask meta def) alertItemTask}
 
 //Inform items
-informItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
-informItemTask contactNo status = communicationItemTask contactNo status 
+informItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
+informItemTask contactNo status = communicationItemTask contactNo status
 
 configureInformItemTask :: [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
-configureInformItemTask initContacts initIncidents = configureCommunicationItemTask "Inform" initContacts initIncidents 
+configureInformItemTask initContacts initIncidents = configureCommunicationItemTask "Inform" initContacts initIncidents
 
-configureUserInformItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
+configureUserInformItemTask :: ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
 configureUserInformItemTask meta def initContacts initIncidents = configureUserCommunicationItemTask "Inform" meta def initContacts initIncidents
 
 blankInformItem :: CatalogAction
 blankInformItem = {CatalogAction|identity="blank-inform",meta={ItemMeta|title="Inform item",description=Nothing}
                   ,tasks=ActionTasks configureInformItemTask informItemTask}
 
-predefinedInformItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction 
+predefinedInformItem :: String ItemMeta (ContactNo,Maybe P2000Message) -> CatalogAction
 predefinedInformItem identity meta=:{ItemMeta|title,description} config
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer informItemTask}
 where
@@ -335,8 +335,8 @@ userInformItem :: String ItemMeta CommunicationActionDefinition -> CatalogAction
 userInformItem identity meta def
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks (configureUserInformItemTask meta def) informItemTask}
 
-//List items 
-listItemTask :: (String,ActionPlan) (Shared ActionStatus) -> Task ()
+//List items
+listItemTask :: (String,ActionPlan) (Shared sds ActionStatus) -> Task () | RWShared sds
 listItemTask (title,plan) status
     =   upd (\s -> {ActionStatus|s & title = title}) status
     >>- \{ActionStatus|contacts,incidents} ->
@@ -351,7 +351,7 @@ where
     where
         configureDelayed configer task list
             =   configer initContacts initIncidents
-            >>= \(config,status) -> 
+            >>= \(config,status) ->
                 set status (selfActionStatus list)
             >>| task config (selfActionStatus list)
         initStatus {ItemMeta|title,description}
@@ -361,11 +361,11 @@ where
 /*
         = [(Detached (initAttributes identity (initStatus [] [])) True, \list -> task (selfActionStatus list)) //TODO: Maybe inherit contact+incident from parent
           \\ item=:{CatalogAction|identity,task=ConfigurableAction configer task} <- init]
- */   
-    
+ */
+
 configureListItemTask :: [ContactNo] [IncidentNo] -> Task ((String,ActionPlan),ActionStatus)
 configureListItemTask initContacts initIncidents
-    = enterActionStatus initContacts initIncidents 
+    = enterActionStatus initContacts initIncidents
     @ \s -> ((s.ActionStatus.title, {ActionPlan|immediateActions=return [],suggestedActions=return []}),s)
 
 blankListItem :: CatalogAction
@@ -375,7 +375,7 @@ predefinedListItem :: String ItemMeta ActionPlan -> CatalogAction
 predefinedListItem identity meta=:{ItemMeta|title,description} plan
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer listItemTask}
 where
-    configer initContacts initIncidents 
+    configer initContacts initIncidents
         = updateInitialActionStatus meta initContacts initIncidents
         @ \s -> ((s.ActionStatus.title, plan),s)
 
@@ -386,7 +386,7 @@ where
     task c status = listItemTask (title,plan c) status
 
 //TODO: Filter actions by their rules and watch data changes
-userListItem :: String ItemMeta UserActionListDefinition -> CatalogAction 
+userListItem :: String ItemMeta UserActionListDefinition -> CatalogAction
 userListItem identity meta=:{ItemMeta|title,description} {immediateActions,additionalActions}
     = {CatalogAction|identity=identity,meta=meta,tasks=ActionTasks configer listItemTask}
 where
@@ -406,7 +406,7 @@ where
 
 //These tasks are used both by alert and inform actions
 configureCommunicationItemTask :: String [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
-configureCommunicationItemTask type initContacts initIncidents 
+configureCommunicationItemTask type initContacts initIncidents
     =  (enterChoiceWithShared ("Select the contact to "+++ toLowerCase type) [] allContactsShort
         -&&-
         enterChoiceWithShared ("Select the incident to "+++toLowerCase type +++" about") [] openIncidentsShort
@@ -416,28 +416,28 @@ configureCommunicationItemTask type initContacts initIncidents
                                             ,contacts=removeDup [contactIdentity c:initContacts]
                                             ,incidents=removeDup [incidentIdentity i:initIncidents]})
 
-configureUserCommunicationItemTask :: String ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus) 
-configureUserCommunicationItemTask type meta {CommunicationActionDefinition|contactReference=Just ref,p2000Template} initContacts initIncidents 
-    =   findReferencedContacts ref 
-    >>- \contacts -> 
+configureUserCommunicationItemTask :: String ItemMeta CommunicationActionDefinition [ContactNo] [IncidentNo] -> Task ((ContactNo,Maybe P2000Message),ActionStatus)
+configureUserCommunicationItemTask type meta {CommunicationActionDefinition|contactReference=Just ref,p2000Template} initContacts initIncidents
+    =   findReferencedContacts ref
+    >>- \contacts ->
         (enterChoiceAs ("Select the contact to " +++ toLowerCase type) [] contacts contactIdentity @ (\c -> (c,p2000Template)))
         -&&-
         updateInitialActionStatus meta initContacts initIncidents
 
-configureUserCommunicationItemTask type _ _ initContacts initIncidents 
+configureUserCommunicationItemTask type _ _ initContacts initIncidents
     = configureCommunicationItemTask type initContacts initIncidents
 
-communicationItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
+communicationItemTask :: (ContactNo,Maybe P2000Message) (Shared sds ActionStatus) -> Task () | RWShared sds
 communicationItemTask (contactNo,mbP2000Template) status
     //View action description
-    =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status 
+    =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status
     -&&- ((
     //View contact communication means
         (viewContactCommunicationMeans contactNo
         >^* [OnAction ActionEdit (always (doOrClose (manageContactCommunicationMeans True contactNo) <<@ InWindow))]
         )
         //Manage list of communication attempts and initiate communications
-        -&&- attemptCommunication contactNo 
+        -&&- attemptCommunication contactNo
         ) <<@ ArrangeWithSideBar 0 LeftSide 200 True) <<@ ArrangeWithSideBar 0 TopSide 50 True
     @! ()
 where
@@ -459,18 +459,18 @@ where
             Nothing
                 = return ()
             Just communicationNo
-                = upd (updateState (Just communicationNo)) (attempts >+< status) @! ()
+                = upd (updateState (Just communicationNo)) (attempts >*< status) @! ()
 
     addP2000Message status attempts
         =   createCommunication P2000Message Out (Just contactNo)
         >>- \communicationNo ->
-            maybe (return ()) (initMessageFromTemplate communicationNo contactNo) mbP2000Template 
+            maybe (return ()) (initMessageFromTemplate communicationNo contactNo) mbP2000Template
         >>| doOrClose (composeP2000Message communicationNo) <<@ InWindow
         >>- \mbCommunication -> case mbCommunication of
             Nothing
                 = return ()
             Just communicationNo
-                = upd (updateState (Just communicationNo)) (attempts >+< status) @! ()
+                = upd (updateState (Just communicationNo)) (attempts >*< status) @! ()
 
     viewAttempt communicationNo
         = {CommunicationAttempt|method="Phone",details= "-",success = isJust communicationNo}
@@ -491,9 +491,9 @@ findReferencedContacts :: ContactReference -> Task [ContactShort]
 findReferencedContacts (ContactByName ref) = get (sdsFocus {ContactFilter|filterByName=Just ref} filteredContactsShort)
 findReferencedContacts (ContactInGroup ref) = get (sdsFocus ref contactsWithGroupShort)
 
-chooseActionItem :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)]) -> Task InstanceNo | toPrompt d
+chooseActionItem :: d Bool Bool (sds () [(InstanceNo,InstanceNo,ActionStatus)] ()) -> Task InstanceNo | toPrompt d & RWShared sds
 chooseActionItem d groupByIncident useMyActionsFolder list
-    = whileUnchanged (currentUserContactNo |+| openIncidentsShort)//Done this way, because I don't know how to combine the shares in a tree
+    = whileUnchanged (currentUserContactNo |*| openIncidentsShort)//Done this way, because I don't know how to combine the shares in a tree
         \(me,incidents) ->
 			enterInformation "FIXME" []
             //editChoiceWithSharedAs d
@@ -541,7 +541,7 @@ where
 
     addActionToFolders a folders = [(match,if (match a) (add a folder) folder) \\ (match,folder) <- folders]
     where
-        add item=:(i,(iNo,pNo,action)) folder 
+        add item=:(i,(iNo,pNo,action)) folder
             # (added,nodes) = inject item (choiceTreeChildren folder)
             # nodes = if added nodes (nodes ++ [node i iNo action])
             # type = case folder.ChoiceTree.type of
@@ -571,7 +571,7 @@ workOnActionItem instanceNo
 where
     workOnTask taskId
         =   workOn taskId
-        >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this action" @! ()))
+        >>* [OnValue    (ifValue (\v. case v of ASExcepted _ = True; _ =False;) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this action" @! ()))
             ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> restartIncompatibleTask taskId))
             ]
 
@@ -588,7 +588,7 @@ where
 
     //Look in action the catalog for an entry that has the identity
     findReplacement taskId
-        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |+| actionCatalog)
+        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |*| actionCatalog)
         @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "actionitem-identity" taskListEntry.TaskListItem.attributes)
     where
         lookup [] match = Nothing
@@ -631,7 +631,7 @@ where
         >>- \updated ->
             logActionUpdated updated @! (Just updated)
 
-edit :: (a -> Task a) (Shared a) -> Task (Maybe a) | iTask a //TODO: Move to util
+edit :: (a -> Task a) (Shared sds a) -> Task (Maybe a) | iTask a & RWShared sds //TODO: Move to util
 edit task sds
     =   get sds
     >>- \current ->
@@ -673,30 +673,30 @@ where
         fromPrj status {ItemMeta|title,description} = {ActionStatus|status & title=title,description=description}
 
     contacts status
-        = mapReadWrite (\{ActionStatus|contacts}-> contacts, \contacts status -> Just {ActionStatus|status & contacts=contacts}) status
+        = mapReadWrite (\{ActionStatus|contacts}-> contacts, \contacts status -> Just {ActionStatus|status & contacts=contacts}) Nothing status
     incidents status
-        = mapReadWrite (\{ActionStatus|incidents}-> incidents, \incidents status -> Just {ActionStatus|status & incidents=incidents}) status
+        = mapReadWrite (\{ActionStatus|incidents}-> incidents, \incidents status -> Just {ActionStatus|status & incidents=incidents}) Nothing status
 
-manageSubActions :: ActionPlan (Shared ActionStatus) (SharedTaskList ()) -> Task ()
+manageSubActions :: ActionPlan (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 manageSubActions plan status list
     =  (manageCurrentSubActionItems status list) -||- (addSuggestedSubActionItems plan status list) <<@ ArrangeHorizontal
     @? const NoValue
 
-manageCurrentSubActionItems :: (Shared ActionStatus) (SharedTaskList ()) -> Task ()
+manageCurrentSubActionItems :: (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 manageCurrentSubActionItems status list
     =   enterChoiceWithShared (Title "Current Actions") [ChooseFromGrid (format o thd3)] (subTaskItems list)
     >^* [OnAction (Action "Add action") (always (get status >>- \{ActionStatus|contacts,incidents} -> addSubAction contacts incidents list))]
     @!  ()
 where
     //Filter the list for detached items
-    subTaskItems list = mapRead toActionStatusesTL (taskListMeta list) 
+    subTaskItems list = mapRead toActionStatusesTL (taskListMeta list)
 
     format {ActionStatus|title,progress}
         = {ActionStatusShort|progress=formatProgress progress,title=title}
     formatProgress p
         = "<div style=\"display:inline-block; width:16px; height:16px; margin-right:10px;\" class=\"icon-action-" +++ toString p +++ "\"></div>"
 
-addSuggestedSubActionItems :: ActionPlan (Shared ActionStatus) (SharedTaskList ()) -> Task ()
+addSuggestedSubActionItems :: ActionPlan (Shared sds ActionStatus) (SharedTaskList ()) -> Task () | RWShared sds
 addSuggestedSubActionItems plan status list
     =   plan.suggestedActions
     >&> \suggestions ->
@@ -740,7 +740,7 @@ where
             = configer initContacts initIncidents <<@ Title "Configure" /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
             >>? \(config,initStatus) -> addAction identity initStatus list (\l -> task config l)
 
-addAction :: String ActionStatus (SharedTaskList a) ((Shared ActionStatus) -> Task ()) -> Task TaskId | iTask a
+addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
     >>| appendTask (Detached attributes True) (\l -> (task (selfActionStatus l) @? const NoValue)) list
@@ -785,7 +785,7 @@ where
 
     removeCatalogItem item
         =   viewInformation (Title "Remove") [] ("Remove " <+++ item.UserCatalogAction.identity <+++ "?")
-        >>? \nx -> 
+        >>? \nx ->
 	    upd (\xs -> [x \\ x <- xs | x.UserCatalogAction.identity <> item.UserCatalogAction.identity]) userActionCatalog @! ()
 
     exportCatalog
@@ -806,11 +806,11 @@ where
                     importJSONDocument doc
                 >>- \actions ->
                     set actions userActionCatalog
-                >>- \_ -> viewInformation () [] "Succesfully imported action catalog" @! ()
+                >-| viewInformation () [] "Succesfully imported action catalog" @! ()
                 ) (\e -> viewInformation "Failed import action catalog" [] e @! ())
             ) <<@ Title "Import actions"
     where
-        instructions = toString 
+        instructions = toString
             (PTag [] [Text "Please select a JSON export file to upload.",BrTag []
                      ,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/actioncatalog.json",TargetAttr "_blank"] [Text "actioncatalog.json"]
                      ])

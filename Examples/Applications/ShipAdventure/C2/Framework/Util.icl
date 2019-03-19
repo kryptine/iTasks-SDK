@@ -16,25 +16,25 @@ derive class iTask Location
 
 /* Utility tasks */
 
-editSharedList :: (Shared [a]) -> Task () | iTask a
+editSharedList :: (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedList list
 	= editSharedListWithTask (updateInformation "Item Info" []) list
-                             
-editSharedListWithTask :: (a -> Task a) (Shared [a]) -> Task () | iTask a
+
+editSharedListWithTask :: (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedListWithTask tupdate list
 	= editSharedListWithTaskTask  (enterInformation "Enter new item" []) tupdate list
 
-editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared [a])-> Task () | iTask a
+editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared sds [a])-> Task () | iTask a & RWShared sds
 editSharedListWithTaskTask tenter tupdate list
 	= editSharedListGeneric [ESLUpdate ("Edit Item",tupdate)
 							,ESLAdd    ("Add Item",tenter)
 							,ESLDel
 							,ESLClearAll] list
 
-editSharedListGeneric :: [EditSharedListOption a] (Shared [a]) -> Task () | iTask a
-editSharedListGeneric options list 
-	= doOrClose (forever (enterChoiceWithShared "Choose an item" 
-    	[ChooseFromGrid snd] 
+editSharedListGeneric :: [EditSharedListOption a] (Shared sds [a]) -> Task () | iTask a & RWShared sds
+editSharedListGeneric options list
+	= doOrClose (forever (enterChoiceWithShared "Choose an item"
+    	[ChooseFromGrid snd]
         (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) list)
   	>>* [OnAction (Action desc) 				(always (addItem t))
   		\\ (ESLAdd (desc,t)) <- options] 	++
@@ -46,16 +46,16 @@ editSharedListGeneric options list
       	\\ ESLDel <- options]          		++
       	[OnAction (Action "Clear All")  		(always clearAll)
       	\\ ESLClearAll <- options] )) @! ()
-                  
+
 where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! ()
       deleteItem (k,u) = upd (\us -> removeAt k us) list  @! ()
       editItem t (k,u) =   t u
                        >>= \item -> upd (\us -> updateAt k item us) list
-                       @!  ()  
+                       @!  ()
       viewItem t (k,u) = t u @! ()
       clearAll         = viewInformation "Clear All" []
       									 "Are you sure you want to delete all items?"
-                         >>* [OnAction ActionOk   
+                         >>* [OnAction ActionOk
                          		(always (upd (\us -> []) list @! ()))
                              ,OnAction ActionCancel
                                 (always (return ()))
@@ -64,7 +64,7 @@ where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! (
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
 
-updateItemInSharedList :: a (a -> Bool) (Shared [a]) -> Task [a] | iTask a
+updateItemInSharedList :: a (a -> Bool) (Shared sds [a]) -> Task [a] | iTask a & RWShared sds
 updateItemInSharedList newitem cond share = upd f share
 where f []                 = []
       f [a:as] | cond a    = [newitem : as]
@@ -83,10 +83,10 @@ doTaskPeriodicallyUntilPause period task
                 //>>*  [OnAction ActionOk     (hasValue checkloginandstart)
                      //,OnAction ActionCancel (always (doLoggedIn t))
                       //]
-//where checkloginandstart user = checkUser user 
+//where checkloginandstart user = checkUser user
 							//>>= \ok -> if ok (setLoggedIn user
 							//>>| t user) loginfailed
-      //checkUser user          = get users 
+      //checkUser user          = get users
                                //@ \us -> [u\\ u <- us| u.User.name  == user.User.name
                                           //&&  u.User.password  == user.User.password]
                                          //<>
@@ -109,10 +109,10 @@ lastElems n xs = drop (length xs - n) xs
 showInfo :: String -> Task String
 showInfo msg = viewInformation ("Information","") [] msg
 
-							
+
 doTasksSequentially :: [Task a] -> Task () | iTask a
 doTasksSequentially []     = return ()
-doTasksSequentially [t:ts] = t >>| doTasksSequentially ts 
+doTasksSequentially [t:ts] = t >>| doTasksSequentially ts
 
 allTabs :: [Task a] -> (Task [a]) | iTask a
 allTabs ts = allTasks ts  	<<@ ArrangeWithTabs True
@@ -142,7 +142,7 @@ innersplitscreenview  main left
 
 sidebar ts = allSideBar 0 TopSide 25 ts @! ()
 
-chats ::  Shared [ChatMessage]
+chats ::  SimpleSDSLens [ChatMessage]
 chats = sharedStore "chats" []
 
 derive class iTask ChatMessage
@@ -151,17 +151,17 @@ viewChats :: Int -> Task ()
 viewChats n = viewSharedInformation "Chats" [] (mapRead (lastElems n) chats) @! ()
 
 chatDialog :: User [Entity] -> Task ()
-chatDialog me _ = doOrClose (forever (enterInformation "Type a message" [] 
-                     >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()               
-where 
- doUpate m =               get currentDateTime 
-               >>=  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats 
+chatDialog me _ = doOrClose (forever (enterInformation "Type a message" []
+                     >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()
+where
+ doUpate m =               get currentDateTime
+               >>=  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats
                @! ()
-  
+
 editChats :: Task ()
 editChats  = editSharedList chats
 
-debugstore :: Shared [String]
+debugstore :: SimpleSDSLens [String]
 debugstore = sharedStore "debugstore" []
 
 addDebug :: String -> Task ()

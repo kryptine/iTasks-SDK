@@ -118,7 +118,7 @@ where
             @! ()
 
     createIncidoneTables db
-        =   (sequence "Creating Incidone tables" [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
+        =   (sequence [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
         >>- viewInformation "Incidone schema created" []) <<@ Title "Creating Incidone tables..."
         >>* [OnAction ActionOk (always (return ()))]
 
@@ -127,7 +127,7 @@ where
         >>? \_ ->
             get (sdsFocus db sqlTables)
         >>- \tables ->
-            sequence "Deleting all tables" [sqlExecuteDropTable db table \\ table <- tables]
+            sequence [sqlExecuteDropTable db table \\ table <- tables]
         >>- viewInformation ("Empty database","All data deleted") []
         >>* [OnAction ActionOk (always (return ()))]
 
@@ -141,7 +141,7 @@ manageUsers = forever (catchAll (
       ) (\e -> viewInformation "Error" [] e >>| return ()))
 where
     manageExistingUsers
-        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity 
+        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
@@ -153,7 +153,7 @@ where
     importUsers = doOrClose (
             enterInformation instructions []
         >>= \doc -> catchAll (
-                importContactsFromCSVFile doc >>- \_ -> viewInformation () [] "Succesfully imported contacts" >>| return ()
+                importContactsFromCSVFile doc >-| viewInformation () [] "Succesfully imported contacts" >>| return ()
             ) (\_ -> viewInformation "Failed to import contacts" [] ())
         ) <<@ Title "Import contacts"
 	where
@@ -191,7 +191,7 @@ where
             -&&-
             enterInformation "Immediate close the incidents?" []
         >>= \(num,closed) ->
-            sequence "Generating test incidents" (repeatn num (generateTestIncident closed))
+            sequence (repeatn num (generateTestIncident closed))
         @! ()
 
 configureIntegration :: Task ()
@@ -222,7 +222,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst 
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
@@ -238,7 +238,7 @@ configureWebLinks
 where
     exportConfig
         =   doOrClose (
-                get (webLinksConfig |+| currentDateTime)
+                get (webLinksConfig |*| currentDateTime)
             >>- \(config,now) -> createJSONFile ("Incidone-weblinks-" +++ paddedDateTimeString now +++ ".json") config
             >>- viewInformation "An export file has been created" []
             @!  ()
@@ -254,11 +254,11 @@ where
                     importJSONDocument doc
                 >>- \config ->
                     set config webLinksConfig
-                >>- \_ -> viewInformation () [] "Succesfully imported web links" @! ()
+                >-| viewInformation () [] "Succesfully imported web links" @! ()
                 ) (\e -> viewInformation "Failed import of web links" [] e @! ())
             ) <<@ Title "Import web links"
     where
-        instructions = toString 
+        instructions = toString
             (PTag [] [Text "Please select a JSON export file to upload.",BrTag []
                      ,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/weblinks.json",TargetAttr "_blank"] [Text "weblinks.json"]
                      ])

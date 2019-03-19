@@ -18,8 +18,9 @@ import Incidone.OP.Concepts
 :: ActionDefinition c
     = { identity    :: String
       , meta        :: ItemMeta
-      , task        :: c (Shared ActionStatus) -> Task ()
+      , task        :: c (SimpleSDSLens ActionStatus) -> Task ()
       }
+
 //Wrapped action for storage in the action catalog
 :: CatalogAction =
       { identity    :: String       //Identifying string, such that you can track which actions have been done
@@ -33,9 +34,9 @@ import Incidone.OP.Concepts
       }
 
 :: ActionTasks
-    = E.c: ActionTasks 
+    = E.c sds: ActionTasks
         ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) //Configuration task
-        (c (Shared ActionStatus) -> Task ()) & iTask c  //An action item that needs to be configured before it can be deployed
+        (c (SimpleSDSLens ActionStatus) -> Task ()) & iTask c   //An action item that needs to be configured before it can be deployed
 
 :: ActionProgress
     = ActionPlanned
@@ -97,7 +98,7 @@ import Incidone.OP.Concepts
 :: CommunicationMeanSuggestion
     = CommunicateUsingPhone
     | CommunicateUsingVHF
-    | CommunicateUsingP2000 
+    | CommunicateUsingP2000
     | CommunicateUsingEmail
 
 :: UserActionListDefinition =
@@ -144,7 +145,7 @@ derive gDefault         CatalogAction
 derive gText            CatalogAction
 derive gEditor          CatalogAction
 
-toInstantAction             :: c ActionProgress [ContactNo] [IncidentNo] (ActionDefinition c) -> CatalogAction | iTask c
+toInstantAction :: c ActionProgress [ContactNo] [IncidentNo] (ActionDefinition c) -> CatalogAction | iTask c
 toConfigurableAction        :: ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (ActionDefinition c) -> CatalogAction | iTask c
 toContactAction             :: (Maybe String) (ActionDefinition ContactNo) -> CatalogAction
 toIncidentAction            :: (ActionDefinition IncidentNo) -> CatalogAction
@@ -155,34 +156,34 @@ forIncident                 :: IncidentNo (ActionDefinition (ContactNo,IncidentN
 addDefaultStatus            :: (Task c) -> ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) | iTask c
 
 //Shared catalog of predefined action items
-actionCatalog           :: ReadOnlyShared [CatalogAction]
-builtinActionCatalog    :: ReadOnlyShared [CatalogAction]
-userActionCatalog       :: Shared [UserCatalogAction]
+actionCatalog           :: SDSLens () [CatalogAction] ()
+builtinActionCatalog    :: SDSSource () [CatalogAction] ()
+userActionCatalog       :: SimpleSDSLens [UserCatalogAction]
 
 //Shares providing filtered views on iTasks task instances.
 //They select only those detached tasks that are tagged to be action items
-actionStatuses                  :: ROShared ()          [(InstanceNo,InstanceNo,ActionStatus)] //(Instance no, parent instance no, status)
-actionStatusesByIncident        :: ROShared IncidentNo  [(InstanceNo,InstanceNo,ActionStatus)]
-actionStatusesByContact         :: ROShared ContactNo   [(InstanceNo,InstanceNo,ActionStatus)]
-actionStatusesOfCurrentContact  :: ROShared ()          [(InstanceNo,InstanceNo,ActionStatus)]
+actionStatuses                  :: SDSLens ()          [(InstanceNo,InstanceNo,ActionStatus)] () //(Instance no, parent instance no, status)
+actionStatusesByIncident        :: SDSLens IncidentNo  [(InstanceNo,InstanceNo,ActionStatus)] ()
+actionStatusesByContact         :: SDSLens ContactNo   [(InstanceNo,InstanceNo,ActionStatus)] ()
+actionStatusesOfCurrentContact  :: SDSSequence ()      [(InstanceNo,InstanceNo,ActionStatus)] ()
 
-actionStatusByNo                :: RWShared InstanceNo  ActionStatus ActionStatus
+actionStatusByNo                :: SDSLens InstanceNo   ActionStatus ActionStatus
 
-numActionsByContact             :: ROShared ContactNo   Int
+numActionsByContact             :: SDSLens ContactNo Int ()
 
 //Todo items
-todoItemTask                :: () (Shared ActionStatus) -> Task ()
+todoItemTask                :: () (Shared sds ActionStatus) -> Task () | RWShared sds
 blankTodoItem               ::                                                   CatalogAction
 predefinedTodoItem          :: String ItemMeta                                -> CatalogAction
-predefinedInstantItem       :: String ItemMeta ActionProgress ((Shared ActionStatus) -> Task a) -> CatalogAction| iTask a
-predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
+predefinedInstantItem       :: String ItemMeta ActionProgress ((SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction
+predefinedConfigurableItem  :: String ItemMeta ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (c (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a & iTask c
 
 //Contact or incident
-predefinedIncidentItem      :: String ItemMeta (IncidentNo (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a
-predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (Shared ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedIncidentItem      :: String ItemMeta (IncidentNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
+predefinedContactItem       :: String ItemMeta (Maybe String) (ContactNo (SimpleSDSLens ActionStatus) -> Task a) -> CatalogAction | iTask a
 
 //Action lists items
-listItemTask                :: (String,ActionPlan) (Shared ActionStatus)         -> Task ()
+listItemTask                :: (String,ActionPlan) (Shared sds ActionStatus) -> Task () | RWShared sds
 blankListItem               ::                                                   CatalogAction
 predefinedListItem          :: String ItemMeta ActionPlan                        -> CatalogAction
 configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)        -> CatalogAction | iTask c
@@ -192,7 +193,7 @@ configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)       
 * @param Group by incidents
 * @param Use 'my actions' group for current user
 */
-chooseActionItem         :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)])  -> Task InstanceNo | toPrompt d
+chooseActionItem         :: d Bool Bool (sds () [(InstanceNo,InstanceNo,ActionStatus)] ())  -> Task InstanceNo | toPrompt d & RWShared sds
 workOnActionItem         :: InstanceNo                                              -> Task ()
 editActionItem           :: InstanceNo                                              -> Task (Maybe ActionStatus)
 deleteActionItem         :: InstanceNo                                              -> Task (Maybe ActionStatus)

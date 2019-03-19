@@ -9,12 +9,12 @@ from   StdFunc import const, id
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Mask" [ViewUsing id (fromSVGEditor
-				                                                                { initView    = id
-				                                                                , renderImage = const image
-				                                                                , updView     = \m _ = m
-				                                                                , updModel    = \_ v = v
-				                                                                })] 0))] world
+	= doTasks (viewInformation "Mask"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const image
+			, updModel    = \_ v = v
+			})] 0) world
 
 /**	image model tags = image:
 	@image displays a triangle that is masked with a circle.

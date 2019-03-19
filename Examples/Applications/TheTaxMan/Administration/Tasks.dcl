@@ -10,7 +10,7 @@ currentCitizen :: Task Citizen
 
 /**	batchProcessing:
 		this task gathers all registered collections that have not yet been paid and pays them.
-		As a result, these payed collections are removed from collectionPayments and added to 
+		As a result, these payed collections are removed from collectionPayments and added to
 		collectionsProcessed.
 */
 batchProcessing :: Task ()

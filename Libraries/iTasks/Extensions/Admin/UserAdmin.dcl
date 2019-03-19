@@ -4,6 +4,7 @@ definition module iTasks.Extensions.Admin.UserAdmin
 */
 import iTasks
 import iTasks.Extensions.User
+from iTasks.Extensions.Document import :: Document
 
 :: UserAccount			=
 	{ credentials	:: !Credentials
@@ -11,17 +12,34 @@ import iTasks.Extensions.User
 	, roles			:: ![Role]
 	}
 
-derive class iTask UserAccount
+/**
+ * A user account which can safely be stored, as it does not contains the password in cleartext.
+ */
+:: StoredUserAccount =
+	{ credentials :: !StoredCredentials
+	, title       :: !Maybe UserTitle
+	, roles       :: ![Role]
+	}
+
+/**
+ * Stored user credentials not containing the password in cleartext.
+ */
+:: StoredCredentials = { username           :: !Username //* The username.
+                       , saltedPasswordHash :: !String   //* The salted SHA1 password hash.
+                       , salt               :: !String   //* The 32-byte random salt.
+                       }
+
+derive class iTask UserAccount, StoredUserAccount, StoredCredentials
 
 // Shares
 
 //* All user accounts
-userAccounts			::				Shared [UserAccount]
+userAccounts			::				SDSLens () [StoredUserAccount] [StoredUserAccount]
 
 //* All users
-users					:: 				ReadOnlyShared [User]
+users					:: 				SDSLens () [User] ()
 //* Users with a specific role
-usersWithRole			:: !Role ->		ReadOnlyShared [User]
+usersWithRole			:: !Role ->		SDSLens () [User] ()
 
 /**
 * Authenticates a user by username and password
@@ -56,7 +74,7 @@ doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | 
 * 
 * @gin-icon user_add
 */
-createUser			:: !UserAccount -> Task UserAccount
+createUser			:: !UserAccount -> Task StoredUserAccount
 /**
 * Delete an existing user
 *
@@ -71,12 +89,15 @@ deleteUser			:: !UserId -> Task ()
 * Browse and manage the existing users
 */
 manageUsers			:: Task ()
+
+createUserFlow :: Task ()
+updateUserFlow :: UserId -> Task StoredUserAccount
+changePasswordFlow :: !UserId -> Task StoredUserAccount
+deleteUserFlow :: UserId -> Task StoredUserAccount
+importUserFileFlow :: Task ()
+exportUserFileFlow :: Task Document
+
 /**
 * Create set of user names handy for giving demo's: alice, bob, carol, ...
 */
 importDemoUsersFlow :: Task [UserAccount]
-
-
-
-
-

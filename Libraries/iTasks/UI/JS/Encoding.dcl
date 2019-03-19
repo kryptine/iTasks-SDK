@@ -8,6 +8,9 @@ import iTasks.UI.JS.Interface
 import StdGeneric
 from Text.GenJSON import :: JSONNode (..)
 from StdList import !!
+from StdMaybe import :: Maybe
+from StdInt import bitand, <<
+from StdClass import class IncDec(inc)
 
 //Sending values server -> client
 encodeOnServer :: !a -> JSONNode | JSEncode{|*|} a //Don't specialize JSEncode, it will break decoding
@@ -15,17 +18,28 @@ decodeOnClient :: !(JSVal a) !*JSWorld -> *(!a, !*JSWorld)
 
 //Sending values client -> server
 encodeOnClient :: !a *JSWorld -> (!JSVal a, !*JSWorld)
-decodeOnServer :: !JSONNode -> (Maybe a) | JSDecode{|*|} a //Don't sepcialize JSDecode, it will break on the fixed encoding 
+decodeOnServer :: !JSONNode -> (Maybe a) | JSDecode{|*|} a //Don't specialize JSDecode, it will break on the fixed encoding
 
 generic JSEncode t :: !t -> [JSONNode]
 derive  JSEncode Int, Real, Char, Bool, String, UNIT, [],
-	(,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!}, (->),
-    EITHER, OBJECT
+	(), (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!}, (->),
+    EITHER, OBJECT, Maybe, JSONNode
 
-JSEncode{|CONS of {gcd_name,gcd_index}|} fx (CONS x) = [JSONArray [JSONInt gcd_index, JSONString gcd_name : fx x]]
+JSEncode{|CONS of {gcd_name,gcd_index,gcd_strict_arguments}|} fx (CONS x)
+	= [JSONArray [JSONInt gcd_index, JSONString gcd_name :
+		[if (gcd_strict_arguments bitand (1 << i) == 0)
+			arg
+			(case arg of JSONArray [arr] -> arr; arr -> arr)
+		\\ arg <- fx x & i <- [0..]]]]
+
 JSEncode{|RECORD of {grd_name}|} fx (RECORD x) = [JSONArray [JSONInt 0, JSONString ("_" +++ grd_name) : fx x]]
 
-JSEncode{|FIELD|} fx (FIELD x) = fx x
+JSEncode{|FIELD of {gfd_cons,gfd_index}|} fx (FIELD x)
+| gfd_cons.grd_strict_fields bitand (1 << gfd_index) == 0
+	= fx x
+	= case fx x of
+		[JSONArray [arr]] -> [arr]
+		arr -> arr
 
 JSEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
 where
@@ -34,7 +48,7 @@ where
     (++) nil        list    = list
 
 generic JSDecode t :: ![JSONNode] -> (!Maybe t,![JSONNode])
-derive  JSDecode Int, Real, Char, Bool, String, UNIT, EITHER, CONS of {gcd_name}, OBJECT, [], (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!} 
+derive  JSDecode Int, Real, Char, Bool, String, UNIT, EITHER, CONS of {gcd_name}, OBJECT, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!}, Maybe, JSONNode
 
 JSDecode{|PAIR|} fx fy l = d1 fy (fx l) l
   where

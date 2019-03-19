@@ -3,16 +3,50 @@ definition module iTasks.UI.Editor.Common
 * This module provides some convenient editors
 */
 from iTasks.UI.Editor import :: Editor
-from iTasks.UI.Definition import :: UI, :: UIChildChange
+from iTasks.UI.Definition import :: UI, :: UIChildChange, :: UIChange
 from Data.Maybe import :: Maybe
-from Text.GenJSON import generic JSONEncode, :: JSONNode
+from Text.GenJSON import generic JSONEncode, :: JSONNode, generic JSONDecode
 import iTasks.Internal.Generic.Defaults
 from Data.GenEq import generic gEq
 
 /**
-* Editor that does nothing
+* Editor that does nothing.
+*
+* @result the empty editor
 */
-emptyEditor :: Editor a
+emptyEditor :: Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+
+/**
+* Editor that does nothing and gives a default value in enter mode.
+*
+* @param default value used when editor is generated in edit mode
+* @result the empty editor
+*/
+emptyEditorWithDefaultInEnterMode :: !a -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+
+//Version without overloading, for use in generic case
+//The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
+emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !a -> Editor a
+
+/**
+* Editor that does nothing and gives an error in enter mode.
+*
+* @param the error messsage used when the editor is used in enter mode
+* @result the empty editor
+*/
+emptyEditorWithErrorInEnterMode :: !String -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+
+//Version without overloading, for use in generic case
+//The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
+emptyEditorWithErrorInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe a, ![JSONNode])) !String
+                                 -> Editor a
+
+/**
+ * Indicates if and how a UI child can be updated to another one.
+ */
+:: ChildUpdate = ChildUpdateImpossible //* the child a cannot be update
+               | NoChildUpdateRequired //* no update is required, i.e. the child already equals the existing one
+               | ChildUpdate !UIChange //* the child has to be changed
 
 /**
 * Determines the diff between an old and a new list of children,
@@ -22,12 +56,13 @@ emptyEditor :: Editor a
 * and m the length of the new children list). The complexity however decreases with
 * more similar old and new lists and is O(n) for equal lists.
 *
-* @param: Old:   The previous child list.
-* @param: New:   The new child list.
-* @param: To UI: A function to map children to UIs.
-* @return        A list of index/change pairs as expected by 'iTasks.UI.Definition.ChangeUI'.
+* @param: Old:                The previous child list.
+* @param: New:                The new child list.
+* @param  UpdateFromOldToNew: If and how an old value can be updated to a new one.
+* @param: To UI:              A function to map children to UIs.
+* @return                     A list of index/change pairs as expected by 'iTasks.UI.Definition.ChangeUI'.
 */
-diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
+diffChildren :: ![a] ![a] !(a a -> ChildUpdate) !(a -> UI) -> [(!Int, !UIChildChange)]
 
 /**
 * Simple dropdown that edits an index by choosing from a list of labels
@@ -49,9 +84,10 @@ chooseWithDropdown :: [String] -> Editor Int
 *
 * @return					The list editor
 */
-listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|}, gDefault{|*|} a
+listEditor :: (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a) -> Editor [a]
+            | JSONEncode{|*|} a
 
 //Version without overloading, for use in generic case
-//The first two argument should be JSONEncode{|*|} and gDefault{|*|} which cannot be used by overloading within generic functions
-listEditor_ :: (Bool a -> [JSONNode]) a (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-
+//The first argument should be JSONEncode{|*|} which cannot be used by overloading within generic functions
+listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a)
+            -> Editor [a]

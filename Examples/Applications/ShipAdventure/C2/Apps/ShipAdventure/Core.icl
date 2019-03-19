@@ -5,6 +5,7 @@ import iTasks.Extensions.SVG.SVGEditor
 //import Graphics.Scalable
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
 from Data.Func import mapSt
@@ -23,7 +24,14 @@ derive JSEncode Map2D, Network, Coord2D, Cable, CableType, Section, Borders, Bor
 derive JSEncode Device, SectionStatus, DeviceType, DeviceKind, User, Dir, Availability
 derive JSEncode Actor, ActorStatus, ActorEnergy, ActorHealth, Object, ObjectType
 derive JSEncode MapAction
-derive JSEncode Maybe, Map, IntMap
+derive JSEncode Map, IntMap
+
+derive JSDecode Map2D, Network, Coord2D, Cable, CableType, Section, Borders, Border
+derive JSDecode Device, SectionStatus, DeviceType, DeviceKind, User, Dir, Availability
+derive JSDecode Actor, ActorStatus, ActorEnergy, ActorHealth, Object, ObjectType
+derive JSDecode MapAction
+derive JSDecode Map, IntMap
+
 
 // the next function should be placed in the library somewhere
 mkTable :: [String] ![a] -> (ChoiceGrid,[Int]) | gText{|*|} a
@@ -76,7 +84,6 @@ actorWithInstructions user
   editor = fromSVGEditor
 		{ initView    = \((ms2d, _), cl) -> (ms2d, cl)
 		, renderImage = \((_, network), _) (ms2d`, cl`) -> maps2DImage 'DS'.newSet cl` PickRoomMode ms2d` 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DM'.newMap 'DIS'.newMap {network & devices = 'DM'.newMap}
-		, updView     = \((ms2d, _), cl) _ -> (ms2d, cl)
 		, updModel    = \((_, network), _) (ms2d`, cl`) -> ((ms2d`, network), cl`)
 		}
 
@@ -192,8 +199,8 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
     isFailed (MoveFailed _) = True
     isFailed _              = False
 
-  taskToDo :: !(!Coord3D, !SectionStatus) !User !(Shared MySectionStatusMap) !(UserActorShare o a) !(Shared MySectionInventoryMap)
-           -> Task (MoveSt String)
+  taskToDo :: !(!Coord3D, !SectionStatus) !User !(Shared sds1 MySectionStatusMap) !(UserActorShare o a) !(Shared sds2 MySectionInventoryMap)
+           -> Task (MoveSt String) | RWShared sds1 & RWShared sds2
   taskToDo (alarmLoc, status) user shStatusMap shUserActor shInventoryMap
     =   viewSharedInformation ("Handle " <+++ toString status <+++ " in Section: " <+++ alarmLoc) [ViewAs todoTable] (sectionForUserShare user |*| myUserActorMap |*| shStatusMap |*| shInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| sharedGraph)
     >>* [ OnAction (Action "Use Fire Extinguisher") (ifValue (mayUseExtinguisher status) (withUser useExtinquisher))
@@ -404,6 +411,5 @@ mkSection
   editor = fromSVGEditor
 	{ initView    = const ([], NoAction)
 	, renderImage = \(((((((((mc3d, network), allDevices), statusMap), sectionUsersMap), userActorMap), invMap), exitLocks), hopLocks), ms2d) _ _ -> map2DImage 'DS'.newSet NoAction WalkAroundMode exitLocks hopLocks invMap statusMap sectionUsersMap userActorMap allDevices network (getFloorIdx mc3d, ms2d !! getFloorIdx mc3d)
-	, updView  = \m v -> v
 	, updModel = \m v -> m
 	}

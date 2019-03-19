@@ -11,6 +11,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.ActionManagementTasks
 import Data.List, Data.Either
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Text.HTML
 
 openIncidentInWorkspace :: Workspace IncidentNo -> Task ()
@@ -27,7 +28,7 @@ manageIncidentInformation ws incidentNo
 		    ,(Embedded, \_ -> manageIncidentContacts ws incidentNo)
 		    ,(Embedded, \_ -> manageIncidentActions incidentNo)
 		    ,(Embedded, \_ -> manageIncidentWeather incidentNo)
-		    ,(Embedded, \_ -> manageIncidentLog incidentNo)			
+		    ,(Embedded, \_ -> manageIncidentLog incidentNo)
 		    ] [] <<@ ArrangeWithTabs False)
     @! ()
 
@@ -39,7 +40,7 @@ manageIncidentSituationInfo incidentNo
         ,OnAction (Action "/Close incident") (always (confirmCloseIncident incidentNo <<@ InWindow))
         ]
 where
-    situation = mapReadWrite (toPrj,fromPrj) (sdsFocus incidentNo incidentByNo)
+    situation = mapReadWrite (toPrj,fromPrj) (Just \_ w. Ok (toPrj w)) (sdsFocus incidentNo incidentByNo)
     where
         toPrj {Incident|title,summary,type,phase}
 	        = {IncidentBasic|title,summary,type,phase}
@@ -101,7 +102,7 @@ manageIncidentActions incidentNo
 	@!  ()
 where
     selectAndWorkOnPlannedActions
-        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */) 
+        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */)
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
@@ -120,7 +121,7 @@ manageIncidentWeather incidentNo
 where
     weather = sdsFocus incidentNo incidentWeather
     log     = logIncidentWeatherUpdated incidentNo
-    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (RawText widgets)
+    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (Html widgets)
 
 manageIncidentLog :: IncidentNo -> Task ()
 manageIncidentLog incidentNo
@@ -152,7 +153,7 @@ where
         (   enterInformation () [] @ string
         >>* [OnAction (Action "Add log message") (hasValue (\msg -> addLogMessage msg incidentNo))]
         )
-	
+
 	string :: String -> String
 	string x = x
 
@@ -164,7 +165,7 @@ viewIncidentDetails incidentNo
 where
     incident = sdsFocus incidentNo incidentByNo
 
-updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | toPrompt d
+updateSharedIncidentRefList     :: d Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | toPrompt d & RWShared sds
 updateSharedIncidentRefList d compact refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
@@ -350,7 +351,7 @@ createIncident incident
 		logIncidentCreated incidentNo incident
 	@! 	incidentNo
 where
-	create :: NewIncident -> Task IncidentNo 
+	create :: NewIncident -> Task IncidentNo
 	create {NewIncident|type,title,summary}
 		=	get databaseDef
 		>>- \db -> sqlExecute db ["allIncidents"] (execInsert "INSERT INTO Incident (type,title,summary) VALUES (?,?,?)"

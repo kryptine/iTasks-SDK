@@ -14,7 +14,7 @@ derive class iTask GameSt, Player, Color, Hand, Card, SideUp
 init_gameSt :: ![(Color,User)] [Int] -> GameSt
 init_gameSt us rs
 	= { middle  = repeatn (4*length us) []
-      , players = [  initial_player (length us) c (toString u) (abs r) 
+      , players = [  initial_player (length us) c (toString u) (abs r)
                   \\ (c,u) <- us
                    & r     <- rs
                   ]
