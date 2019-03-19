@@ -149,14 +149,6 @@ isCompound (CompoundState _ _)        = True
 import StdDebug
 
 withClientSideInit ::
-/*<<<<<<< HEAD
-	((JSObj ()) *JSWorld -> *JSWorld)
-	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
-	!DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
-withClientSideInit initUI genUI dp val vst=:{VSt|taskId} = case genUI dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = trace_n ("withClientSideInit genUI succeeded")
-                                                       case editorLinker initUI iworld of
-=======*/
 	!((JSObj ()) *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
