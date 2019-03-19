@@ -3,7 +3,8 @@ definition module iTasks.WF.Combinators.Core
 * This module provides the core builtin combinators for composing tasks into workflows
 */
 import iTasks.WF.Definition
-from iTasks.SDS.Definition import :: SDS
+import iTasks.SDS.Definition
+from Data.Error import :: MaybeError(Ok)
 from Data.Maybe import :: Maybe
 
 //* Next task actions
@@ -30,8 +31,8 @@ ActionEdit		:== Action "Edit"
 ActionDelete	:== Action "Delete"
 ActionRefresh	:== Action "Refresh"
 ActionClose		:==	Action "Close"
-	
-:: ParallelTaskType	
+
+:: ParallelTaskType
 	= Embedded                                    //Simplest embedded
     | NamedEmbedded !String                       //Embedded with name
 	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
@@ -41,7 +42,7 @@ ActionClose		:==	Action "Close"
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:==	SDS TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -68,26 +69,39 @@ ActionClose		:==	Action "Close"
 * State of another task instance.
 */
 :: AttachmentStatus
-    = ASAttached Stability  //* the task instance is currently attached to this task
-    | ASInUse TaskId 		//* the task instance is already attached to another task 
-    | ASExcepted            //* the task instance had an uncaught exception
+    = ASAttached !Stability //* the task instance is currently attached to this task
+    | ASInUse !TaskId 		//* the task instance is already attached to another task
+    | ASExcepted String     //* the task instance had an uncaught exception
     | ASDeleted             //* the task instance does not exist anymore
     | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
-:: AttachException		= InstanceNotFound | InstanceEvalError 
+:: AttachException		= InstanceNotFound | InstanceEvalError
 
 derive class iTask AttachException
 instance toString AttachException
+
 /**
 * Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.
 *
-* @param Function: The transformation function. It works on maybe's to also map over instable tasks.
+* @param Function: The transformation function.
 * @param Task: The task to which the transformation function is added
 *
 * @return The transformed task
 */
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
+transformError :: ((TaskValue a) -> MaybeError TaskException (TaskValue b)) !(Task a) -> Task b
+
+/**
+* Adds a result transformation function to a task.
+* The resulting task is still considered a single step in the workflow.
+*
+* @param Function: The transformation function.
+* @param Task: The task to which the transformation function is added
+*
+* @return The transformed task
+* @type ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
+*/
+transform f :== transformError (\tv->Ok (f tv))
 
 /**
 * The generic sequential combinator.
@@ -159,3 +173,13 @@ focusTask   :: !TaskId                              !(SharedTaskList a) -> Task 
 * @return The state of the task to work on
 */
 attach :: !InstanceNo !Bool -> Task AttachmentStatus
+
+/**
+ * Adds a cleaup hook to a task that is executed on destruction of the task.
+ * The cleanup task is evaluated at some point in time after the task is destroyed.
+ * (This may also happen after the `withCleanupHook` task itself becomes stable.)
+ *
+ * @param The cleanup hook
+ * @param The task to hook in to
+ */
+withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b

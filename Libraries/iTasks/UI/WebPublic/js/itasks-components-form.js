@@ -2,6 +2,7 @@ itasks.TextField = {
 	domTag: 'input',
 	attributes: {
 		eventTimeout: 500,
+		height: 'wrap'
 	},
 	initDOMEl: function() {
 		var me = this,
@@ -12,18 +13,21 @@ itasks.TextField = {
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
-			el.addEventListener('keyup',function(e) {
-				var v = e.target.value;
+			el.addEventListener('input',function(e) {
+				const rawV = e.target.value;
+				var v = Just(rawV);
 				if('maxlength' in me.attributes){
-					if(v.length > me.attributes['maxlength']){
-						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+					if(rawV.length > me.attributes['maxlength']){
+						const shortenedV = rawV.substr(0, me.attributes['maxlength']);
+						el.value = shortenedV;
+                                                v = Just(shortenedV);
 						return;
 					}
 				}
 
 				if('minlength' in me.attributes){
-					if(v.length < me.attributes['minlength']){
-						v = null;
+					if(rawV.length < me.attributes['minlength']){
+						v = Nothing;
 					}
 				}
 
@@ -56,22 +60,25 @@ itasks.TextArea = {
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
-        	el.addEventListener('keyup',function(e) {
-				var v = e.target.value;
+        	el.addEventListener('input',function(e) {
+				const rawV = e.target.value;
+				var v = Just(rawV);
 				if('maxlength' in me.attributes){
-					if(v.length > me.attributes['maxlength']){
-						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+					if(rawV.length > me.attributes['maxlength']){
+						const shortenedVal = rawV.substr(0, me.attributes['maxlength']);
+						el.value = shortenedVal;
+						v = Just(shortenedVal);
 						return;
 					}
 				}
 
 				if('minlength' in me.attributes){
-					if(v.length < me.attributes['minlength']){
-						v = null;
+					if(rawV.length < me.attributes['minlength']){
+						v = Nothing;
 					}
 				}
 
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
         	});
 		}
     },
@@ -86,6 +93,10 @@ itasks.TextArea = {
 };
 itasks.PasswordField = {
 	domTag: 'input',
+	attributes: {
+		eventTimeout: 500,
+		height: 'wrap'
+	},
 	initDOMEl: function() {
 		var me = this,
 			el = this.domEl;
@@ -94,18 +105,21 @@ itasks.PasswordField = {
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
-			el.addEventListener('keyup',function(e) {
-				var v = e.target.value;
+			el.addEventListener('input',function(e) {
+				const rawV = e.target.value;
+				var v = Just(e.target.value);
 				if('maxlength' in me.attributes){
-					if(v.length > me.attributes['maxlength']){
-						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+					if(rawV.length > me.attributes['maxlength']){
+						const shortenedVal = rawV.substr(0, me.attributes['maxlength']);
+						el.value = shortenedVal;
+						v = Just(shortenedVal);
 						return;
 					}
 				}
 
 				if('minlength' in me.attributes){
-					if(v.length < me.attributes['minlength']){
-						v = null;
+					if(rawV.length < me.attributes['minlength']){
+						v = Nothing;
 					}
 				}
 
@@ -126,7 +140,8 @@ itasks.NumberField = {
 	domTag: 'input',
     allowDecimal: false,
 	attributes: {
-		width: 150
+		width: 150,
+		height: 'wrap'
 	},
     initDOMEl: function() {
         var me = this,
@@ -137,11 +152,10 @@ itasks.NumberField = {
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
-        	el.addEventListener('keyup',function(e) {
+        	el.addEventListener('input',function(e) {
 				var value = e.target.value == "" ? NaN : Number(e.target.value);
-				value = value === NaN ? null : value;
 				const isFloat = value % 1 !== 0;
-				value = !me.allowDecimal && isFloat ? null : value;
+				value = (isNaN(value) || (!me.allowDecimal && isFloat)) ? Nothing : Just(value);
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
         	});
 		}
@@ -163,7 +177,7 @@ itasks.DecimalField = Object.assign(Object.assign({}, itasks.NumberField),{
 });
 itasks.DocumentField = {
 	cssCls: 'edit-document',
-    initDOMEl: function() {
+        initDOMEl: function() {
 
         var me = this,
             el = this.domEl;
@@ -177,11 +191,15 @@ itasks.DocumentField = {
 
         me.labelEl = document.createElement('span');
         el.appendChild(me.labelEl);
-
         me.actionEl = document.createElement('a');
-        me.actionEl.href = "#";
-        me.actionEl.addEventListener('click',me.onAction.bind(me));
-        el.appendChild(me.actionEl);
+
+	// only enable clear link if control is not disabled
+	if (!(me.attributes.enabled === false)) {
+		me.actionEl.href = "#";
+		me.actionEl.addEventListener('click',me.onAction.bind(me));
+	}
+
+	el.appendChild(me.actionEl);
 
         me.xhr = null;
         me.value = me.attributes.value || null;
@@ -212,7 +230,7 @@ itasks.DocumentField = {
             return;
         }
         if(me.attributes.value != null) { //Clear;
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,null);
+            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,Nothing);
             me.attributes.value = null;
             me.showValue();
         } else { //Select
@@ -245,7 +263,7 @@ itasks.DocumentField = {
 			value = [doc.documentId,doc.contentUrl,doc.name,doc.mime,doc.size];
 
             //Switch to value state
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,Just(value));
             me.xhr = null;
 			
             me.attributes.value = value;
@@ -284,8 +302,8 @@ itasks.Checkbox = {
 			el.disabled = true;
 		} else {
 	        el.addEventListener('click',function(e) {
-				var value = e.target.checked;
-   					me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+			var value = e.target.checked;
+			me.doEditEvent(me.attributes.taskId,me.attributes.editorId,Just(value));
 	        });
 		}
     },
@@ -302,15 +320,15 @@ itasks.Slider = {
         var me = this,
             el = this.domEl;
         el.type = 'range';
-        el.min = me.attributes.min;
-        el.max = me.attributes.max;
+        if ('min' in me.attributes) el.min = me.attributes.min;
+        if ('max' in me.attributes) el.max = me.attributes.max;
         el.value = me.attributes.value;
 
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
         	el.addEventListener('change',function(e) {
-        	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId, (e.target.value | 0),true);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId, Just(Number(e.target.value)));
         	});
 		}
     },
@@ -350,17 +368,23 @@ itasks.Button = {
 			el.appendChild(me.label);
 		}
 
-        el.addEventListener('click',function(e) {
+		el.addEventListener('click',function(e) {
 			if(typeof(me.attributes.value) == 'boolean') { //Toggle edit buttons
 				me.attributes.value = !me.attributes.value;
 			}
-            if(me.attributes.enabled) {
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
-            }
+
+			if(me.attributes.enabled) {
+				const val      = me.attributes.value;
+				const eventVal = typeof(me.attributes.value) == 'string' ?
+				                 val :              // action event
+				                 Just(val == true); // editor event
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,eventVal);
+			}
 			e.preventDefault();
 			return false;
 		});
-    },
+	},
+
 	initContainerEl: function() { //Make sure no padding is set on buttons
 	},
 	onAttributeChange: function(name,value) {

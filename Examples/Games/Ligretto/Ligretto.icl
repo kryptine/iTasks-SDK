@@ -4,7 +4,7 @@ module Ligretto
 	When creating a project, include the following paths:
 	(i)  {Application}\Examples\iTasks\Games\
 	(ii) {Application}\Examples\iTasks\Graphics\
-	
+
 	To run the example playing as two persons, do the following:
 	(a) first log in as root / root
 	(b) select the 'Manage users' task
@@ -23,4 +23,4 @@ import MultiUser.Tasks
 
 Start :: *World -> *World
 Start world
-	= StartMultiUserTasks [ workflow "Ligretto" "Play Ligretto" play_Ligretto ] [] world
+	= startMultiUserTasks [ workflow "Ligretto" "Play Ligretto" play_Ligretto ] [] world

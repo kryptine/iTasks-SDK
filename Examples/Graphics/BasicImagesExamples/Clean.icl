@@ -5,7 +5,7 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import ScalableExts.Scalable
+import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList
 from   StdFunc import id, o
@@ -19,13 +19,12 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "100% Clean!" [ViewUsing id (fromSVGEditor
-			                                                                          { initView    = id
-			                                                                          , renderImage = const clean
-			                                                                          , updView     = \m _ = m
-			                                                                          , updModel    = \_ v = v
-			                                                                          })] 0))] world
-
+	= doTasks (viewInformation "100% Clean!"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const clean
+			, updModel    = \_ v = v
+			})] 0) world
 
 /** clean model tags = image:
 	@image is inspired by an image that was displayed by Marc Schoolderman during the lab session of friday afternoon, may 22 2015.
@@ -51,7 +50,7 @@ where
 */
 star :: Int (Real,Real) -> Image m
 star n (r_in,r_out)
-	= polygon (flatten 
+	= polygon (flatten
 	     [  [(px r_out *. (cos (angle * (toReal outer_corner))), px r_out *. (sin (angle * (toReal outer_corner))))
 	        ,(px r_in  *. (cos (angle * (toReal inner_corner))), px r_in  *. (sin (angle * (toReal inner_corner))))
 	        ]

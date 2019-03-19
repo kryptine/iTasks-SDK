@@ -14,7 +14,6 @@ import Text
 lookup1 x = fromJust o (lookup x)
 
 derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
-derive bimap []
 derive gMap Maybe
 
 :: TraxTile                             // a tile connects two edges:
@@ -251,14 +250,14 @@ free_coordinates trax
 
 linecolors_match :: !LineColors !LineColors -> Bool
 linecolors_match lc1 lc2
-	= and [match c1 c2 \\ (_,c1) <- sortBy fst_smaller lc1 
+	= and [match c1 c2 \\ (_,c1) <- sortBy fst_smaller lc1
 	                    & (_,c2) <- sortBy fst_smaller lc2
 	      ]
 where
 	match :: !(Maybe a) !(Maybe a) -> Bool | Eq a
 	match (Just c1) (Just c2) = c1 == c2
 	match _         _         = True
-	
+
 fst_smaller :: !(!a,c) !(!a,d) -> Bool | Ord a
 fst_smaller (a,_) (b,_)   = a < b
 
@@ -267,7 +266,7 @@ fst_smaller (a,_) (b,_)   = a < b
        tile_at @trax @coordinate should be Nothing.
 */
 linecolors :: !Trax !Coordinate -> LineColors
-linecolors trax coordinate 
+linecolors trax coordinate
 	= [ (edge,gMap{|*->*|} (color_at_tile (~edge)) (tile_at trax (go edge coordinate)))
 	  \\ edge <- gFDomain{|*|}
 	  ]
@@ -335,8 +334,8 @@ cut_loop [c:cs] = [c : takeWhile ((<>) c) cs]
 */
 loops :: !Trax -> [(LineColor,Line)]
 loops trax
-	= [(RedLine,  loop) \\ loop <- color_loops trax.tiles RedLine] 
-	      ++ 
+	= [(RedLine,  loop) \\ loop <- color_loops trax.tiles RedLine]
+	      ++
 	  [(WhiteLine,loop) \\ loop <- color_loops trax.tiles WhiteLine]
 where
 	color_loops :: ![(Coordinate,TraxTile)] !LineColor -> [Line]

@@ -7,12 +7,13 @@ import Task.Extensions
 import iTasks.UI.Definition, iTasks.Extensions.Admin.UserAdmin
 
 Start :: *World -> *World
-Start world = startEngine
-	[ publish "/"       (\_ -> loginAndManageWorkList "Welcome at the taxman" workflows <<@ ApplyLayout (setUIAttributes (titleAttr "The Taxman")))
+Start world = doTasks
+	[onStartup (installWorkflows workflows)
+	,onRequest "/" (loginAndManageWork "The Taxman")
 	] world
 
 workflows :: [Workflow]
-workflows 
+workflows
 	=	citizenProcedures
 	++	adminEditors
 
@@ -24,7 +25,7 @@ citizenProcedures
 		]
 
 startRequestCompensation :: Task ()
-startRequestCompensation 
+startRequestCompensation
 	=	startTopLevelOnce
 			(viewInformation ("Start tax compensation") [] "Here you can enter a subsidy request...")
 			(Action "Start Request")
@@ -37,7 +38,7 @@ startRequestCompensation
 
 adminEditors :: [Workflow]
 adminEditors
-	=	[	
+	=	[
 			restrictedTransientWorkflow "Overview"                          "Give overview of selected citizen..."  ["admin","officer"] viewSelectedCitizen
 		]
 	++	[	restrictedTransientWorkflow "edit/Citizens"                     "Edit list of citizens"                 ["admin"] editCitizens

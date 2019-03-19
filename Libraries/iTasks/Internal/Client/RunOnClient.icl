@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.Client.RunOnClient
 
-import StdMisc
+import StdMisc, Data.Func
 import iTasks
 import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
@@ -16,29 +16,29 @@ import iTasks.Extensions.DateTime
 import System.Time, Math.Random
 import Text.GenJSON
 
-:: TaskState a = 
+:: TaskState a =
 			{ instanceNo :: !InstanceNo
 			, sessionId  :: !String
 			, taskId     :: !Maybe TaskId
-			, task		 :: !Task a			
-			, value		 :: !Maybe (TaskValue JSONNode)
+			, task		 :: !Task a
+			, value		 :: !Maybe (TaskValue DeferredJSON)
 			}
 
 runOnClient :: !(Task m) -> Task m | iTask m
 runOnClient task = task
 /*
 	# roc_tasklet =
-		{ Tasklet 
+		{ Tasklet
 		| genUI				= roc_generator task
 		, resultFunc		= gen_res
 		, tweakUI			= id
 		}
- 
+
 	= mkTask roc_tasklet
 */
 gen_res {TaskState|value=Nothing} = NoValue
 gen_res {TaskState|value=Just NoValue} = NoValue
-gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
+gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromDeferredJSON json)) stability
 
 /*
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
@@ -60,7 +60,7 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
         Ok taskId
 	      # (mbResult,iworld)  = evalTaskInstance instanceNo ResetEvent iworld
 	      = case mbResult of
-	      	Ok _ 
+	      	Ok _
 	      				= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 	      	_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
         _ = (Nothing, st, iworld)
@@ -97,16 +97,16 @@ controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name
 		Error msg	= abort ("controllerFunc: " +++ msg)
 
 newWorld :: *World
-newWorld = undef
+newWorld = abort "newWorld"
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read taskOutput iworld of
-		(Ok output,iworld)
+	= case 'SDS'.read taskOutput EmptyContext iworld of
+		(Ok (ReadingDone output),iworld)
 			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
 				output
-					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap taskOutput iworld
+					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap taskOutput 'SDS'.EmptyContext iworld
 					= (Just (map getUpdates output), iworld)
 		(_,iworld)
 			= (Nothing, iworld)
@@ -131,10 +131,12 @@ createClientIWorld serverURL currentInstance
                         , persistTasks = False
 						, autoLayout = True
 						, timeout = Just 100
+						, distributed = False
+						, sdsPort = 9090
 	                    , webDirPath  = locundef "webDirectory"
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"
-	                    , saplDirPath = locundef "saplDirectory"}				
+	                    , saplDirPath = locundef "saplDirectory"}
           ,clock = timestamp
           ,current =
             {taskTime			= 0
@@ -143,11 +145,12 @@ createClientIWorld serverURL currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
           }
-          ,sdsNotifyRequests    = []
+          ,sdsNotifyRequests    = 'Data.Map'.newMap
+          ,sdsNotifyReqsByTask  = 'Data.Map'.newMap
           ,memoryShares         = 'Data.Map'.newMap
           ,readCache            = 'Data.Map'.newMap
           ,writeCache           = 'Data.Map'.newMap
-		  ,exposedShares		= 'Data.Map'.newMap
+          ,sdsEvalStates		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,shutdown				= Nothing
           ,random               = genRandInt seed

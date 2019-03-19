@@ -12,13 +12,12 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Polyline" [ViewUsing id (fromSVGEditor
-		                                                                          { initView    = id
-		                                                                          , renderImage = const polyline_in_host
-		                                                                          , updView     = \m _ = m
-		                                                                          , updModel    = \_ v = v
-		                                                                          })] 0))] world
-
+	= doTasks (viewInformation "Polyline"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const polyline_in_host
+			, updModel    = \_ v = v
+			})] 0) world
 
 /** polyline_in_host model tags = image:
 	@image shows a polyline within a host.

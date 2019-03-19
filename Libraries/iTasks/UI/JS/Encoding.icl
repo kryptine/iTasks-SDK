@@ -46,14 +46,29 @@ where
 JSEncode{|EITHER|} fx fy (LEFT x) = fx x
 JSEncode{|EITHER|} fx fy (RIGHT y) = fy y
 JSEncode{|OBJECT|} fx (OBJECT x) = fx x
-JSEncode{|CONS of {gcd_name,gcd_index}|} fx (CONS x) = [JSONArray [JSONInt gcd_index, JSONString gcd_name : fx x]]
+
+JSEncode{|CONS of {gcd_name,gcd_index,gcd_strict_arguments}|} fx (CONS x)
+	= [JSONArray [JSONInt gcd_index, JSONString gcd_name :
+		[if (gcd_strict_arguments bitand (1 << i) == 0)
+			arg
+			(case arg of JSONArray [arr] -> arr; arr -> arr)
+		\\ arg <- fx x & i <- [0..]]]]
+
 JSEncode{|RECORD of {grd_name}|} fx (RECORD x) = [JSONArray [JSONInt 0, JSONString ("_" +++ grd_name) : fx x]]
-JSEncode{|FIELD|} fx (FIELD x) = fx x
+
+JSEncode{|FIELD of {gfd_cons,gfd_index}|} fx (FIELD x)
+| gfd_cons.grd_strict_fields bitand (1 << gfd_index) == 0
+	= fx x
+	= case fx x of
+		[JSONArray [arr]] -> [arr]
+		arr -> arr
+
 JSEncode{|{}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
 JSEncode{|{!}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
 JSEncode{|(->)|} fx fy x = [JSONString "error"]
+JSEncode{|JSONNode|} node = [node]
 
-derive JSEncode [],(,),(,,),(,,,),(,,,,),(,,,,,),(,,,,,,),(,,,,,,,)
+derive JSEncode [],(),(,),(,,),(,,,),(,,,,),(,,,,,),(,,,,,,),(,,,,,,,), Maybe
 
 encodeOnClient :: !a *JSWorld -> (!JSVal a, !*JSWorld)
 encodeOnClient val world = undef //Implemented in iTasks/Sapl FFI
@@ -258,6 +273,11 @@ JSDecode{|{!}|} fx l =:[JSONArray items:xs]
 		(Just x)		= (Just {e \\ e <- x}, xs)
 		_				= (Nothing, l)
 JSDecode{|{!}|} fx l = (Nothing, l)
+
+JSDecode{|JSONNode|} [node:xs] = (Just node, xs)
+JSDecode{|JSONNode|} l         = (Nothing, l)
+
+derive JSDecode Maybe, ()
 
 decodeItems :: !([JSONNode] -> (!Maybe a, ![JSONNode])) ![JSONNode] -> Maybe [a]
 decodeItems fx [] 		= Just []

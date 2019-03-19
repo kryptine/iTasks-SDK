@@ -2,16 +2,13 @@ implementation module iTasks.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable.Internal.Image`
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
-import StdArray, StdBool, StdEnum, StdInt, StdMisc, StdReal, StdTuple
-from StdFunc import o, id
-from Data.GenEq import generic gEq
-from Data.Either import :: Either (..)
-import Data.List
-import Data.Maybe
+import StdEnv
+import Data.List, Data.GenEq, Data.Func
 import Data.Error
 import Data.MapCollection
+import qualified Data.Foldable as DF
 from Data.Map import :: Map, instance Functor (Map k)
-from Data.Set import :: Set, instance == (Set a), instance < (Set a)
+from Data.Set import :: Set, instance == (Set a), instance < (Set a), instance Foldable Set
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import Text
@@ -161,8 +158,6 @@ setTextsCache :: !TextSpans !EditMask -> EditMask
 setTextsCache texts (CompoundMask entries)
 	= CompoundMask (updateAt FM_TEXTS (FieldMask (mkFieldMask texts)) entries)
 
-
-
 imgTagSource :: !String -> *TagSource
 imgTagSource taskId
   = [(ImageTagUser no taskId, ImageTagUser no taskId) \\ no <- [0..]]
@@ -209,7 +204,7 @@ svgFontDefAttrs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,f
 
 
 //	transform the functions of an SVGEditor into an Editor:
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|}, JSEncode{|*|}, JSDecode{|*|} s
 fromSVGEditor svglet
   = { Editor
     | genUI     = withClientSideInit (initClientSideUI svglet) initServerSideUI

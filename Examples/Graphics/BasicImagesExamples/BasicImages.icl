@@ -19,12 +19,12 @@ none			= toSVGColor "none"
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "Basic Images" [ViewUsing id (fromSVGEditor
-			                                                                          { initView    = id
-			                                                                          , renderImage = const basic_images
-			                                                                          , updView     = \m _ = m
-			                                                                          , updModel    = \_ v = v
-			                                                                          })] 0))] world
+	= doTasks (viewInformation "Basic Images"
+		[ViewUsing id (fromSVGEditor
+			{ initView    = id
+			, renderImage = const basic_images
+			, updModel    = \_ v = v
+			})] 0) world
 
 /**	basic_images model tags = image:
 	@image displays the basic Image shapes.

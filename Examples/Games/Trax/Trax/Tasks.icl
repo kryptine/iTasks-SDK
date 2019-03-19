@@ -13,7 +13,7 @@ play_trax
 play_game :: User User TraxSt -> Task User
 play_game me you traxSt
 	= withShared traxSt
-	  (\share -> 
+	  (\share ->
 	  	(me @: (  updateSharedInformation (toString me  +++ " plays with red") [updateTraxEditor True] share
                 >>* [OnValue (ifValue game_over game_winner)])
         )
@@ -26,7 +26,7 @@ play_game me you traxSt
 game_winner :: TraxSt -> Task User
 game_winner st=:{trax,turn,names=[me,you]}
   = viewInformation "The winner is:" [] (toString winner)
-      -&&- 
+      -&&-
     viewInformation "Final board:" [viewTraxEditor] st @ (const winner)
 where
   winners			= loops trax ++ winning_lines trax

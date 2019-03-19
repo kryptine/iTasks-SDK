@@ -1,6 +1,6 @@
-##### Layouting Task Compositions
+# Laying out Task Compositions #
 
-## Introduction
+## Introduction ##
 In this guide we introduce you to the different task layout modifiers.
 We assume you are already familiar with writing programs with iTasks.
 
@@ -21,7 +21,7 @@ In those cases you can use the layout directly with the `ApplyLayout` type as fo
 task1 <<@ ApplyLayout somelayout
 ```
 
-## Menu bars
+## Menu bars ##
 The function signature for the menubar decorator is as follows:
 ```clean
 arrangeAsMenu :: [[Int]] -> Layout
@@ -48,7 +48,7 @@ task = (programTask
 	) <<@ ArrangeAsMenu [[0,2]]
 ```
 
-## Sidebar
+## Sidebar ##
 The function signature for the sidebar decorator is as follows:
 ```clean
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
@@ -72,7 +72,7 @@ where
 	choices = ["string" +++ toString i\\i<-[0..20]]
 ```
 
-## Panels
+## Panels ##
 In some cases, such as when you apply a title, the user interface is automatically lifted to a panel.
 However, this can also be done manually with the option of making the panel fullscreenable.
 
@@ -84,7 +84,7 @@ toPanel :: Bool -> Layout
 If the boolean flag is set to true, the panel includes a small icon (![](Libraries/iTasks/UI/WebPublic/css/icons/fullscreen.png)) on the bottom right that, when clicked, makes the panel full screen.
 If the small icon is clicked again, the panel shrinks back to the original size again.
 
-## Conclusion
+## Conclusion ##
 
 In this guide we have shown how you how to decorate tasks with layout combinators so that you can change the way they appear in the client.
 Not all combinators are covered, but they can be found in `iTasks.UI.Layout.Common`.

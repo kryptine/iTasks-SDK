@@ -1,13 +1,13 @@
-##### Creating Custom Editors
+# Creating Custom Editors #
 
-## Introduction
+## Introduction ##
 In this guide we assume you are already familiar with writing programs with iTasks and have used the common task definitions for user interaction such as `updateInformation` and `viewInformation`, but find that the automagically generated GUI's are not working for your application.
 
 In this guide we'll walk you through the process of creating an `Editor`. This is the construct that is used by tasks like `updateInformation` to render the GUI and handle user events. Editors are typed GUI building blocks that can be composed to create any GUI you like. Editors abstract away all UI concerns into a single opaque value. These building blocks define how the GUI is rendered, how events are handled and how the GUI is synchronized with the (task) value it represents.
 
 The remainder of this document is structured as follows: First we'll look at how a custom editor can be applied in an interaction task. We'll then look at how we can configure the builtin editors of the iTask framework for basic types. We end by looking at how we can use editor combinators to build editors for more complex data structures such as records and Algebraic data types.
 
-## Using custom editors in tasks
+## Using custom editors in tasks ##
 
 The first thing you need to know to work with custom editors is how you can use them in a task. Let's look at a very simple task we'll use as example:
 
@@ -40,19 +40,19 @@ The GUI will now be rendered as a nice slider. Let's look a little closer at wha
 
 So to use a custom task UI we need to do two things: We need to specify an editor of the right type, and then pass it in the option list of the interaction task we are using. In the next section we'll look at the builtin editors and how we can use them to replace the generic editor function.
 
-## Using the builtin editors
+## Using the builtin editors ##
 
 The iTask framework provides a number of builtin UI components that it can render in a browser. These are the lowest level building blocks with which all iTasks GUI's are constructed.
 
 In the example of the previous section we have seen the `slider` editor. This editor is one of the builtin componentens in the `iTasks.UI.Editor.Controls` module. All builtin editors have no arguments, but can dynamically be configured by setting attributes. For example if we wanted to set the maximum value of the slider, we would write `slider <<@ maxAttr 42`. The tuning combinators `<<@` or `@>>` are used to set attributes on editors. This pattern is used to make it easy to create editors without the need to specify all attributes in advance. In many cases, it is not necessary to deviate from the default values of the configurable attributes. Forcing a programmer to specify them all makes our GUI code too verbose. The price we pay for this convenience is that we lose some type safety. We dynamically set arbitrary attributes on editors, whether the UI rendering code uses them or not. 
 
-## Composing editors
+## Composing editors ##
 
 Creating editors for basic values is useful, but more often we want to construct editors for composite datastructures such as records. Let's expand the slider example to show how you can compose editors.
 
 ```Clean
-myTask4 :: Task Int
-myTask4 = updateInformation "Change the magic number"
+myTask :: Task Int
+myTask = updateInformation "Change the magic number"
     [UpdateUsing (\x -> ("Mylabel",x)) (\_ (_,x) -> x) editor] 42
 where
     editor :: Editor (String,Int)
@@ -64,8 +64,8 @@ When you run this example, you'll see the same slider as before, but this time w
 If we want to create more complex editors, it will quickly become very messy if we pass all labels and other static elements in the mapping of `UpdateUsing`. Luckily, there is a way we can embed this mapping in the editor itself. Let's take a look:
 
 ```Clean
-myTask5 :: Task Int
-myTask5 = updateInformation "Change the magic number"
+myTask :: Task Int
+myTask = updateInformation "Change the magic number"
     [UpdateUsing (\x -> x) (\_ x -> x) editor] 42
 where
     editor :: Editor Int
@@ -86,8 +86,8 @@ In the next example, we'll take it one step further and create a nice little for
     }
 derive class iTask MyRecord
 
-myTask6 :: Task MyRecord
-myTask6 = enterInformation "Enter your data" [EnterUsing id editor]
+myTask :: Task MyRecord
+myTask = enterInformation "Enter your data" [EnterUsing id editor]
 where
     editor = bijectEditorValue (\{foo,bar} -> (foo,bar)) (\(foo,bar) -> {foo=foo,bar=bar})
                 (panel2
@@ -95,27 +95,27 @@ where
                     (row "Barmagic:" slider)
                 ) <<@ heightAttr WrapSize
     row l e = bijectEditorValue (\x -> (l,x)) snd
-                ((container2 label e) <<@ directionAttr Horizontal)
+                ((container2 (viewConstantValue l label) e) <<@ directionAttr Horizontal)
 ```
 
 This example is a little more complex, but uses only things we have already seen. By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
 
-## Creating dynamic editors
+## Creating dynamic editors ##
 
 One of the nice features of the generic editors is that they work for any type of data structure. You can easily create editors for recursive data types that have values of arbitrary size, not just static forms.
 
 When you choose between different constructors of an ADT, the editor for the fields of the ADT depends on the selected constructor. You can create similar behaviour in your custom editors with the `containerc`/`panelc`/… combinators. The following example shows how this is done for a custom list type `MyList a`.
 
 ```
-::: MyList a = MyNil | MyCons a (MyList a)
+:: MyList a = MyNil | MyCons a (MyList a)
 derive class iTask MyList
 
-myTask7 :: Task (MyList String)
-myTask7 = enterInformation "Enter the list" [EnterUsing id editor]
+myTask :: Task (MyList String)
+myTask = enterInformation "Enter the list" [EnterUsing id editor]
 where
     editor = injectEditorValue (\x -> (0,x)) (Ok o snd)
         (containerc (chooseWithDropdown ["Nil","Cons"])
-            [(const MyNil, emptyEditor)
+            [(const MyNil, emptyEditor MyNil)
             ,(const (MyCons gDefault{|*|} MyNil), consEditor)
             ] <<@ heightAttr WrapSize)
 
@@ -129,7 +129,7 @@ The type of the list of possible editors is not `[Editor a]` but `[(a -> a, Edit
 
 This example shows that with these combinators you can also make dynamic editors for recursive types. You can even plug in in the generic editors to create editors for higher order-types.
 
-## Conclusion
+## Conclusion ##
 
 In this guide we have shown how you can fully customize the GUI of your iTask tasks by creating editors. We have not covered all builtin editors and combinators, but just enough to get you started. You can look at the  documentation of `iTasks.UI.Editor.Controls`, `iTasks.UI.Editor.Containers` and `iTasks.UI.Editor.Modifiers` to find out all possibilities.
 

@@ -1,7 +1,7 @@
 definition module C2.Apps.ShipAdventure.Scripting
- 
+
 import iTasks
- 
+
 import C2.Apps.ShipAdventure.Types
 
 
@@ -15,7 +15,7 @@ import C2.Apps.ShipAdventure.Types
 				|	Take ObjectType
 				|	Drop ObjectType
 				|	Use ObjectType
-				|	ReSetTargetDetector 
+				|	ReSetTargetDetector
 				|	If Condition [Script] [Script]
 :: Condition	=	ObjectInCurrentSection ObjectType
 				|	CarriesObject ObjectType
@@ -25,9 +25,9 @@ import C2.Apps.ShipAdventure.Types
 
 derive class iTask Target, Script, Condition
 
-handleFireScript 	:: Shared [Script]
-handleFloodScript 	:: Shared [Script]
-handleSmokeScript 	:: Shared [Script]
+handleFireScript 	:: SimpleSDSLens [Script]
+handleFloodScript 	:: SimpleSDSLens [Script]
+handleSmokeScript 	:: SimpleSDSLens [Script]
 
 changeFireScript	:: Task ()
 changeFloodScript 	:: Task ()

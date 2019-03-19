@@ -1,6 +1,8 @@
 definition module iTasks.Extensions.Admin.WorkflowAdmin
 /**
-* This extension provides workflows for managing the users of an iTask system.
+* This extension provides a framework for managing a collection of tasks
+* in 'workflow management' style with multiple users, persistent re-assignable tasks
+* and a dedicated work list for each user
 */
 import iTasks
 
@@ -28,6 +30,14 @@ import iTasks
 	, parentTask :: Maybe String
 	}
 
+// Make the management framework startable 
+:: WorkflowCollection = 
+	{ name :: !String
+	, workflows :: ![Workflow]
+	}
+
+instance Startable WorkflowCollection
+
 derive class iTask Workflow, WorklistRow
 		
 derive gText	        WorkflowTaskContainer
@@ -40,10 +50,8 @@ derive gEq				WorkflowTaskContainer
 // Available workflows
 :: WorkflowFolderLabel :== String
 
-workflows				:: Shared [Workflow]
-allowedWorkflows		:: ReadOnlyShared [Workflow]
-workflowByPath			:: !String -> Shared Workflow
-
+workflows :: SDSLens () [Workflow] [Workflow]
+workflowByPath :: !String -> SDSLens () Workflow Workflow
 /**
 * Wraps any task as a workflow with no access restrictions
 *
@@ -81,16 +89,13 @@ instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 :: ParamWorkflowContainer a b	= ParamWorkflow	TaskAttributes (a -> Task b)
 
 /**
-* Default workflow management task.
-* This task allows users to manage a catalogue of task definitions
+* Default workflow management tasks.
+* These task allows users to manage a catalogue of task definitions
 * and let's them create instances of these tasks and work on instances.
 */
-manageWorkflows :: ![Workflow] ->  Task ()
-
-manageWorklist :: ![Workflow] -> Task ()
-
-loginAndManageWorkList :: !String ![Workflow] -> Task ()
-
+installWorkflows :: ![Workflow] -> Task ()
+loginAndManageWork :: !String -> Task ()
+manageWorkOfCurrentUser :: Task ()
 
 /**
 * Dynamically adds a workflow to the system.

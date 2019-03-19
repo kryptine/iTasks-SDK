@@ -9,6 +9,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.Extensions.CrewLists //For demo
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 import Text, Text.HTML, Data.Either, Data.Functor
 import iTasks.UI.Editor.Controls
 
@@ -26,10 +27,10 @@ selectContact = withShared Nothing
          (viewContactsOnMap mapContacts sel <<@ Title "Map")
 		 <<@ ArrangeWithTabs True
         )
-where	
-    mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
+where
+    mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
 
-	selectContactFromLists :: (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
+	selectContactFromLists :: (Shared sds (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | RWShared sds
 	selectContactFromLists sel
 		= anyTask [editSharedSelectionWithShared (Title "Involved in open incidents") False
 						(SelectInTree groupByIncident select) contactsOfOpenIncidentsShort (selIds sel)
@@ -40,11 +41,12 @@ where
 /*
 				  ,(editSharedSelectionWithShared (Title "AIS") False
 						(SelectInTree ungrouped) (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
-*/				  ] <<@ (ArrangeSplit Horizontal True) @? tvHd 
+*/				  ] <<@ (ArrangeSplit Horizontal True) @? tvHd
 
     fromOpenOption [{ContactShortWithIncidents|contactNo}] = contactNo
 
-	selIds sel = mapReadWrite (toPrj,fromPrj) sel
+    selIds :: (Shared sds (Maybe (Either ContactNo MMSI))) -> SimpleSDSLens [Int] | RWShared sds
+	selIds sel = mapReadWrite (toPrj,fromPrj) (Just \p w. Ok (toPrj w)) sel
 	where
 		toPrj Nothing = []
 		toPrj (Just (Left contactNo)) = [contactNo]
@@ -112,7 +114,7 @@ manageContactBasics contactNo = (
        ] @! ()) <<@ Title "General" <<@ (ApplyAttribute "icon" "basic-information")
 where
 
-    contactBasics contactNo = mapReadWrite (toPrj,fromPrj) (sdsFocus contactNo contactByNo)
+    contactBasics contactNo = mapReadWrite (toPrj,fromPrj) (Just \p w. Ok (toPrj w)) (sdsFocus contactNo contactByNo)
     where
         toPrj {Contact|type,name,group,position,heading,needsHelp,providesHelp,status,notes}
             = {ContactBasic|type=type,name=name,group=group,position=position,heading=heading,needsHelp=needsHelp,providesHelp=providesHelp,status=status,notes=notes}
@@ -195,7 +197,7 @@ manageContactCommunicationMeans compact contactNo = forever (
     >^* [OnAction ActionAdd  (always (addMean contactNo <<@ InWindow @! ()))
         ,OnAction ActionEdit (hasValue (\{CommunicationMean|id} -> editMean id <<@ InWindow @! ()))
         ,OnAction ActionRemove (hasValue (\{CommunicationMean|id} -> removeMean id))
-        ] 
+        ]
     )
 where
     ActionAdd = Action (if compact "Add" "/Add")
@@ -263,7 +265,7 @@ manageContactIncidents :: Workspace ContactNo -> Task ()
 manageContactIncidents ws contactNo
     =	feedForward choose
     (	\sel ->
-        withSelection viewNoSelection viewIncidentDetails sel 
+        withSelection viewNoSelection viewIncidentDetails sel
         -&&-
         doAddRemoveOpen (add <<@ InWindow) (\c -> (remove c) <<@ InWindow) (\c -> doOrClose (open c)) ws sel
     )	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
@@ -387,7 +389,7 @@ where
 
 updateContactPosition :: ContactNo -> Task (Maybe (Maybe ContactPosition))
 updateContactPosition contactNo
-    =   get (sdsFocus contactNo contactByNo |+| standardMapLayers)
+    =   get (sdsFocus contactNo contactByNo |*| standardMapLayers)
     >>- \({Contact|name,type,position},baseLayers) ->
         withShared (position,initPerspective position)
         \tmpInfo ->
@@ -434,7 +436,7 @@ updateContactStatus contactNo
     >>| logContactStatusUpdated contactNo status newStatus
     @!  newStatus
 
-updateSharedContactRefList :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | toPrompt d
+updateSharedContactRefList :: d (Shared sds [ContactNo]) -> Task [ContactNo] | toPrompt d & RWShared sds
 updateSharedContactRefList d refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
@@ -494,19 +496,19 @@ addContactPhoto contactNo original
     =   withTemporaryDirectory
         \tmp ->
         exportDocument (tmp</>"orig.jpg") original
-    >>- \_ ->
+    >-|
         callProcess "Creating thumbnail..." [] CONVERT_BIN
             ["-define","jpeg:size=400x400",(tmp</>"orig.jpg"),"-thumbnail","200x200^","-gravity","center","-extent","200x200",(tmp</>"thumb.png")] Nothing Nothing
-    >>- \_ ->
+    >-|
         importDocument (tmp</>"thumb.png")
     >>- \thumb ->
         callProcess "Creating avatar..." [] CONVERT_BIN
             ["-define","jpeg:size=100x100",(tmp</>"orig.jpg"),"-thumbnail","50x50^","-gravity","center","-extent","50x50",(tmp</>"avatar.png")] Nothing Nothing
-    >>- \_ ->
+    >-|
         importDocument (tmp</>"avatar.png")
     >>- \avatar -> let photo = {ContactPhoto|original = original, thumb = thumb, avatar = avatar} in
         upd (\photos -> 'DM'.put contactNo [photo:fromMaybe [] ('DM'.get contactNo photos)] photos) allContactPhotos
-    >>- \_ ->
+    >-|
         logContactPhotoAdded contactNo photo
     @!  photo
 
@@ -524,7 +526,7 @@ createCommunicationMean contactNo mean=:{NewCommunicationMean|type,phoneNo,callS
         sqlExecute db ["allCommunicationMeans"] (execInsert "INSERT INTO CommunicationMean (type) VALUES (?)" (toSQL type))
     >>- \id ->
         sqlExecute db [] (execInsert "INSERT INTO communicationMeans1_communicationMeans2 (communicationMeans1,communicationMeans2) VALUES (?,?)" (toSQL id ++ toSQL contactNo))
-    >>- \_ -> case type of
+    >-| case type of
         CMPhone = sqlExecute db [] (execInsert "INSERT INTO Telephone (id,phoneNo) VALUES (?,?)" (toSQL id ++ mbToSQL phoneNo))
         CMVHF   = sqlExecute db [] (execInsert "INSERT INTO VHFRadio (id,callSign,mmsi) VALUES (?,?,?)" (toSQL id ++ mbToSQL callSign ++ mbToSQL mmsi))
         CMEmail = sqlExecute db [] (execInsert "INSERT INTO EmailAccount (id,emailAddress) VALUES (?,?)" (toSQL id ++ mbToSQL emailAddress))
@@ -535,12 +537,12 @@ deleteCommunicationMean id
     =   get databaseDef
     >>- \db ->
         sqlExecute db ["allCommunicationMeans"] (execDelete "DELETE FROM communicationMeans1_communicationMeans2 WHERE communicationMeans1 = ? " (toSQL id))
-    >>- \_ ->
+    >-|
         allTasks [sqlExecute db [] (execDelete ("DELETE FROM " +++ table +++" WHERE id = ? ") (toSQL id)) \\ table <-
                     ["CommunicationMean","Telephone","VHFRadio","EmailAccount","P2000Receiver"]]
     @!  ()
 
-updatePosition :: ContactPosition String (Shared Contact) -> Task Contact
+updatePosition :: ContactPosition String (Shared sds Contact) -> Task Contact | RWShared sds
 updatePosition newposition src contact
 	= upd (update newposition src) contact
 where
@@ -552,9 +554,9 @@ verifyContactCredentials credentials
     = get (sdsFocus credentials contactByCredentials)
     @ fmap contactUser
 
-viewContactsOnMap :: (ReadWriteShared [ContactGeo] w) (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w
+viewContactsOnMap :: (sds1 () [ContactGeo] w) (Shared sds2 (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w & RWShared sds1 & RWShared sds2
 viewContactsOnMap sharedContacts sel
-   =   get (standardMapLayers |+| standardPerspective)
+   =   get (standardMapLayers |*| standardPerspective)
    >>- \(baseLayers,perspective) ->
        withShared (False,perspective)
        \localState ->
@@ -565,11 +567,11 @@ viewContactsOnMap sharedContacts sel
                 ]
         @? selection
 where
-    mapState :: (Shared (Bool,ContactMapPerspective))
-                (ReadWriteShared [ContactGeo] w)
-                (Shared (Maybe (Either ContactNo MMSI))) ->
-                ReadWriteShared ([(Bool,ContactGeo)], Maybe (Either ContactNo MMSI), ContactMapPerspective) (Maybe (Either ContactNo MMSI), ContactMapPerspective) | iTask w
-    mapState local contacts sel = sdsSequence "mapState" id (\_ r -> r) (\_ _ -> Right read) writel writer (local >+< sel) mapContacts
+    mapState :: (Shared sds1 (Bool,ContactMapPerspective))
+                (sds2 () [ContactGeo] w)
+                (Shared sds3 (Maybe (Either ContactNo MMSI)))  ->
+                SDSSequence () ([(Bool,ContactGeo)], Maybe (Either ContactNo MMSI), ContactMapPerspective) (Maybe (Either ContactNo MMSI), ContactMapPerspective) | iTask w & RWShared sds1 & RWShared sds2 & RWShared sds3
+    mapState local contacts sel = sdsSequence "mapState" id (\_ r -> r) (\_ _ -> Right read) writel writer (local >*< sel) mapContacts
     where
         mapContacts = sdsSelect "mapContacts" choose (SDSNotifyConst (\_ _ _ _-> False)) (SDSNotifyConst (\_ _ _ _-> False)) withoutAISContacts withAISContacts
         where
@@ -580,7 +582,7 @@ where
             aisContacts = mapRead (\cs -> [(True,c)\\c=:{ContactGeo|position=Just position}<-map aisToContactGeo cs]) (toReadOnly boundedAISContacts)
 
             withoutAISContacts = sdsFocus () baseContacts
-            withAISContacts = mapRead (\(a,b) -> a++b) (aisContacts |+| sdsFocus () baseContacts)
+            withAISContacts = mapRead (\(a,b) -> a++b) (aisContacts |*| sdsFocus () baseContacts)
 
         read (((showAis,perspective),mbSel),contacts) = (contacts,mbSel,perspective)
         writel = SDSWrite (\_ ((showAis,_),_) (mbSel,perspective) -> Ok (Just ((showAis,perspective),mbSel)))
@@ -596,7 +598,7 @@ where
 	selection _								= NoValue
 
     sharePerspective (_,perspective) = set (WallOverview perspective) wallContent @! ()
-	
+
     toMarkers sel contacts
         = [contactGeoToMapMarker ais (isSelected contactNo sel) c \\ (ais,c=:{ContactGeo|contactNo,name=Just _,position=Just _}) <- contacts]
 
@@ -605,11 +607,11 @@ where
     isSelected _ _ = False
 
     updateSelection [] = Nothing
-	updateSelection [markerId:ms]
+	updateSelection [LeafletObjectID markerId:ms]
         | startsWith "c" markerId   = Just (Left (toInt (subString 1 (textSize markerId) markerId)))
         | startsWith "a" markerId   = Just (Right (toInt (subString 1 (textSize markerId) markerId)))
                                     = updateSelection ms
-		
+
 	findContactNo title contacts = case [(isAis,contactNo) \\ (isAis,{ContactGeo|contactNo,name}) <- contacts | name == title] of
 		[(False,contactNo)] = Just (Left contactNo)
 		[(True,mmsi)]   = Just (Right mmsi)

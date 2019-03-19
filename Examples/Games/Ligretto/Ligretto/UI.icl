@@ -5,17 +5,17 @@ from   StdFunc import id, const
 import Data.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
-import ScalableExts.Scalable
+import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 derive JSEncode GameSt, Player, Color, Hand, Card, SideUp
+derive JSDecode GameSt, Player, Color, Hand, Card, SideUp
 
 ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
 ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 
@@ -23,7 +23,6 @@ accoladesEditor :: !Color -> UpdateOption GameSt GameSt
 accoladesEditor me = UpdateUsing id (const id) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
-												, updView     = const id
 												, updModel    = const id
 												})
 
@@ -80,7 +79,7 @@ row_images :: !Bool !RowPlayer -> [Image GameSt]
 row_images interactive row
   = [  tuneIf interactive (card_image Front row_card)
               {onclick = const (play_row_card row_card.back no), local = False}
-	\\ row_card <- row 
+	\\ row_card <- row
 	 & no       <- [1..]
 	]
 
@@ -105,9 +104,9 @@ player_image r interactive player
 players_image :: !Span !Color !Bool ![Player] -> Image GameSt
 players_image r color playing players
   #! no = length players
-  = rotate (rad (player_arc/(toReal (2*(3+no_of_cards_in_row no))) - player_arc/2.0)) 
+  = rotate (rad (player_arc/(toReal (2*(3+no_of_cards_in_row no))) - player_arc/2.0))
            (circular zero (2.0*pi)
-                [  player_image r (playing && player.color === color) player 
+                [  player_image r (playing && player.color === color) player
                 \\ player <- players
                 ]
            )
