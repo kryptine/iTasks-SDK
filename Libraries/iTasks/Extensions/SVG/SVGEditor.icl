@@ -1,24 +1,29 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
+import StdMisc, StdArray
+
+import iTasks
+import iTasks.UI.JS.Encoding, iTasks.UI.Definition, iTasks.UI.Editor
 import Graphics.Scalable.Internal.Image`
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
-import StdEnv
-import Data.List, Data.GenEq, Data.Func
-import Data.Error
-import Data.MapCollection
-import qualified Data.Foldable as DF
-from Data.Map import :: Map, instance Functor (Map k)
-from Data.Set import :: Set, instance == (Set a), instance < (Set a), instance Foldable Set
-import qualified Data.Map as DM
-import qualified Data.Set as DS
-import Text
-import Data.Matrix
-import Text.HTML
-import Text.GenJSON
+//import StdEnv
+import Data.Either
+//import Data.Func
+//import Data.GenEq
+import Data.List
+import qualified Data.Map
+//import Data.MapCollection
+//import Data.Matrix
+//import qualified Data.Foldable
+import qualified Data.Set
+//from Data.Map import :: Map, instance Functor (Map k)
+//from Data.Set import :: Set, instance == (Set a), instance < (Set a)//, instance Foldable Set
 import Math.Geometry
+//import Text
+//import Text.GenJSON
+import Text.HTML
 
 import StdDebug
-from iTasks.Internal.Generic.Visualization import <+++
+from iTasks.Internal.Generic.Visualization import <+++, generic gText
 class short a :: !a -> String
 instance short FontDef where short fontdef = "{FontDef | " <+++ getfontfamily fontdef <+++ "," <+++ getfontysize fontdef <+++ "}"
 str :: !String -> String
@@ -113,7 +118,7 @@ derive JSDecode ServerToClientAttr, Set, FontDef`
 
 toUIAttributes :: !ServerToClientAttr -> UIAttributes
 toUIAttributes attr
-  = 'DM'.fromList [(JS_ATTR_SVG,encodeOnServer attr)]
+  = 'Data.Map'.fromList [(JS_ATTR_SVG,encodeOnServer attr)]
 
 fromUIAttributes :: !JSArg !*JSWorld -> (!ServerToClientAttr,!*JSWorld)
 fromUIAttributes json world
@@ -138,9 +143,9 @@ getFontsCache :: !EditMask -> FontSpans
 getFontsCache (CompoundMask [FieldMask {FieldMask | state}:_])
 	= case fromJSON state of
 		Just fonts = fonts
-		nothing    = 'DM'.newMap
+		nothing    = 'Data.Map'.newMap
 getFontsCache _
-	= 'DM'.newMap
+	= 'Data.Map'.newMap
 
 setFontsCache :: !FontSpans !EditMask -> EditMask
 setFontsCache fonts (CompoundMask entries)
@@ -150,9 +155,9 @@ getTextsCache :: !EditMask -> TextSpans
 getTextsCache (CompoundMask [_,FieldMask {FieldMask | state}:_])
 	= case fromJSON state of
 		Just texts = texts
-		nothing    = 'DM'.newMap
+		nothing    = 'Data.Map'.newMap
 getTextsCache _
-	= 'DM'.newMap
+	= 'Data.Map'.newMap
 
 setTextsCache :: !TextSpans !EditMask -> EditMask
 setTextsCache texts (CompoundMask entries)
@@ -164,15 +169,15 @@ imgTagSource taskId
 
 newImgTables :: ImgTables m
 newImgTables
-  = {ImgTables | imgEventhandlers = 'DM'.newMap
-               , imgNewFonts      = 'DS'.newSet
-               , imgNewTexts      = 'DM'.newMap
-               , imgMasks         = 'DM'.newMap
-               , imgLineMarkers   = 'DM'.newMap
-               , imgPaths         = 'DM'.newMap
-               , imgSpans         = 'DM'.newMap
-               , imgGrids         = 'DM'.newMap
-               , imgTags          = 'DM'.newMap
+  = {ImgTables | imgEventhandlers = 'Data.Map'.newMap
+               , imgNewFonts      = 'Data.Set'.newSet
+               , imgNewTexts      = 'Data.Map'.newMap
+               , imgMasks         = 'Data.Map'.newMap
+               , imgLineMarkers   = 'Data.Map'.newMap
+               , imgPaths         = 'Data.Map'.newMap
+               , imgSpans         = 'Data.Map'.newMap
+               , imgGrids         = 'Data.Map'.newMap
+               , imgTags          = 'Data.Map'.newMap
                , imgUniqIds       = 0
     }
 
@@ -217,7 +222,7 @@ where
 	initServerSideUI :: !DataPath !s !*VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt) | iTask s & JSEncode{|*|} s
 	initServerSideUI dp model world=:{VSt | taskId}
 	  = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
-	    (Ok (uia UIComponent ('DM'.union (valueAttr (encodeOnServer model)) (sizeAttr FlexSize FlexSize)),initServerSideState),world)
+	    (Ok (uia UIComponent ('Data.Map'.union (valueAttr (encodeOnServer model)) (sizeAttr FlexSize FlexSize)),initServerSideState),world)
 
 //	initClientSideUI is called after initServerSideUI.
 //	Information exchange from server -> client occurs via the attributes of the client object.
@@ -236,8 +241,8 @@ where
 	  #! (jsInitDOMEl,world)         = jsWrapFun (clientInitDOMEl svglet me) world
 	  #! world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
 	// Initialize caches
-	  #! world                       = jsPutCleanVal JS_ATTR_FONT_SPANS 'DM'.newMap me world   // initialize font spans cache
-	  #! world                       = jsPutCleanVal JS_ATTR_TEXT_SPANS 'DM'.newMap me world   // initialize text-widths cache
+	  #! world                       = jsPutCleanVal JS_ATTR_FONT_SPANS 'Data.Map'.newMap me world   // initialize font spans cache
+	  #! world                       = jsPutCleanVal JS_ATTR_TEXT_SPANS 'Data.Map'.newMap me world   // initialize text-widths cache
 	  = trace "initClientSideUI" world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
@@ -251,15 +256,15 @@ where
 	          (Ok (attributesToUIChange set_attrs,mask),new,vst)
 	      nope = case fromJSON json of       // check if the client sends new font/text-width metrics
 	               Just (ClientHasNewTextMetrics new_font_metrics new_texts_metrics)
-	                 #! font_spans           = 'DM'.union                new_font_metrics  (getFontsCache mask)
-	                 #! text_spans           = 'DM'.unionWith 'DM'.union new_texts_metrics (getTextsCache mask)
+	                 #! font_spans           = 'Data.Map'.union                new_font_metrics  (getFontsCache mask)
+	                 #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics (getTextsCache mask)
 	                 #! mask                 = setTextsCache text_spans (setFontsCache font_spans mask)
 	                 #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
-	                 = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('DM'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'DM'.keys) ('DM'.elems new_texts_metrics))) +++ "]")
+	                 = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
 	                   (Ok (attributesToUIChange set_attrs,mask),old,vst)
 	               nope = case fromJSON json of     // check if the client has initialized, and is ready to receive a server side generated SVG rendering
 	                        Just ClientNeedsSVG
-	                          #! (attrs,mask,vst) = serverHandleModel svglet 'DM'.newMap 'DM'.newMap old (svglet.initView old) initServerSideState vst
+	                          #! (attrs,mask,vst) = serverHandleModel svglet 'Data.Map'.newMap 'Data.Map'.newMap old (svglet.initView old) initServerSideState vst
 	                          = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
 	                            (Ok (attributesToUIChange attrs,mask),old,vst)
 	                        nope                  // unchecked event from the client
@@ -285,18 +290,18 @@ serverHandleModel svglet font_spans text_spans model view state world=:{VSt | ta
   #! state = setTextsCache text_spans (setFontsCache font_spans state)
   = case serverSVG svglet font_spans text_spans taskId model view of                            // start to generate the image server-side
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
-	    #! attrs = 'DM'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
+	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
 	    = (attrs, state, world)
       Right (svg,es)                                                                            // image complete, send it to client
-	    #! attrs = 'DM'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es))) size_and_model
+	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es))) size_and_model
 	    = (attrs, state, world)
 where
 	size_and_model = sizeAttr FlexSize FlexSize
 
 attributesToUIChange :: !UIAttributes -> UIChange
 attributesToUIChange set_attrs
-  = trace_n ("attributesToUIChange: attributes to set = [" +++ join "," ('DM'.keys set_attrs) +++ "]") (
-    ChangeUI [SetAttribute label value \\ (label,value) <- 'DM'.toList set_attrs] []
+  = trace_n ("attributesToUIChange: attributes to set = [" +++ join "," ('Data.Map'.keys set_attrs) +++ "]") (
+    ChangeUI [SetAttribute label value \\ (label,value) <- 'Data.Map'.toList set_attrs] []
     )
 
 //	server side rendering of model value:
@@ -305,14 +310,14 @@ serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
   #! image`               = renderImage s v (imgTagSource taskId)
   #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})
                           = toImg image` [] font_spans text_spans newImgTables
-  | not ('DS'.null new_fonts) || not ('DM'.null new_texts)                    // some font / text-width information is missing: need to ask the client
+  | not ('Data.Set'.null new_fonts) || not ('Data.Map'.null new_texts)                    // some font / text-width information is missing: need to ask the client
       = Left (img,tables)
   #! {ImgTables | imgEventhandlers=es,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags}
                           = tables
   = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
       Error error         = abort error
       Ok (img,masks,markers,paths,spans,grids)
-        #! svg            = genSVGElt img taskId ('DM'.keys es) masks markers paths spans grids
+        #! svg            = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
         = Right (svg,es)
 
 clientGetTaskId :: !(JSVal a) !*JSWorld -> (!String,!*JSWorld)
@@ -368,8 +373,8 @@ where
 	  #! (text_spans,    world) = jsGetCleanVal JS_ATTR_TEXT_SPANS me world            // Load the cached text width spans
 	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                  // Get missing font spans
 	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                  // Get missing text width spans
-	  #! font_spans             = 'DM'.union new_font_spans font_spans                 // Add missing font spans to cached font spans
-	  #! text_spans             = 'DM'.unionWith 'DM'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
+	  #! font_spans             = 'Data.Map'.union new_font_spans font_spans                 // Add missing font spans to cached font spans
+	  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
 	  #! world                  = jsPutCleanVal JS_ATTR_FONT_SPANS font_spans me world // Store the cached font spans
 	  #! world                  = jsPutCleanVal JS_ATTR_TEXT_SPANS text_spans me world // Store the cached text width spans
 	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here
@@ -384,7 +389,7 @@ where
 	  #! (v,     world)     = jsGetCleanVal JS_ATTR_VIEW  me world
 	  #! (s,     world)     = jsGetCleanVal JS_ATTR_MODEL me world
 	  #! image`             = renderImage s v (imgTagSource taskId)
-	  #! (_,tables)         = toImg image` [] 'DM'.newMap 'DM'.newMap newImgTables      // only interested in the tags, so we do not need font and text spans
+	  #! (_,tables)         = toImg image` [] 'Data.Map'.newMap 'Data.Map'.newMap newImgTables      // only interested in the tags, so we do not need font and text spans
 	  #! world              = clientRegisterEventhandlers` svglet me taskId es tables.ImgTables.imgTags world
 	  = world
 
@@ -402,14 +407,14 @@ clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
                             = toImg image` [] font_spans text_spans newImgTables
   #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                       // Get missing font spans
   #! (new_text_spans,world) = getNewTextsSpans new_texts me world                       // Get missing text width spans
-  #! font_spans             = 'DM'.union          new_font_spans font_spans             // Add missing font spans to cached font spans
-  #! text_spans             = 'DM'.unionWith 'DM'.union new_text_spans text_spans       // Add missing text width spans to cached text width spans
+  #! font_spans             = 'Data.Map'.union          new_font_spans font_spans             // Add missing font spans to cached font spans
+  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans       // Add missing text width spans to cached text width spans
   #! world                  = jsPutCleanVal JS_ATTR_FONT_SPANS font_spans me world
   #! world                  = jsPutCleanVal JS_ATTR_TEXT_SPANS text_spans me world
   = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
       Error error           = abort error
       Ok (img,masks,markers,paths,spans,grids)
-        #! svg              = genSVGElt img taskId ('DM'.keys es) masks markers paths spans grids
+        #! svg              = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
         #! svgStr           = browserFriendlySVGEltToString svg
         #! world            = clientUpdateSVGString svgStr me world
         #! world            = clientRegisterEventhandlers` svglet me taskId (defuncImgEventhandlers es) tags world
@@ -441,7 +446,7 @@ clientUpdateSVGString svgStr me world
 //	return the dimensions of the root image:
 getImgRootSize :: !Img !ImgSpans -> (!Real,!Real)
 getImgRootSize img=:{Img | uniqId} spans
-	= case 'DM'.find uniqId spans of
+	= case 'Data.Map'.find uniqId spans of
 	    (PxSpan w,PxSpan h) = (w,h)
 	    _                   = abort "Unexpected error in module SVGEditor (getImgRootSize): size of root image is undetermined."
 
@@ -449,13 +454,13 @@ getImgRootSize img=:{Img | uniqId} spans
 genSVGMasks :: !ImgMasks !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 genSVGMasks masks taskId es markers paths spans grids
 	= [  DefsElt [] [] [MaskElt [IdAttr (mkMaskId taskId no)] [] (genSVGElts m taskId es markers paths spans grids)]
-	  \\ (no,m) <- 'DM'.toList masks
+	  \\ (no,m) <- 'Data.Map'.toList masks
 	  ]
 
 //	measure font dimensions:
 getNewFontSpans :: !ImgFonts !(JSVal a) !*JSWorld -> (!FontSpans,!*JSWorld)
 getNewFontSpans newFonts me world
-  | 'DS'.null newFonts  = ('DM'.newMap,world)
+  | 'Data.Set'.null newFonts  = ('Data.Map'.newMap,world)
   | otherwise           = calcImgFontsSpans newFonts world
 where
 // compute the font dimensions of new fonts that are used in an image
@@ -467,7 +472,7 @@ where
 	  #! (elem,world) = (jsDocument `createElementNS` (svgns, "text")) world
 	  #! (_,   world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
 	  #! (_,   world) = (svg `appendChild` elem) world
-	  #! (res, world) = foldl (calcFontSpan elem) ('DM'.newMap,world) ('DS'.toList new_fonts)
+	  #! (res, world) = foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
 	  = (res,  world)
@@ -476,7 +481,7 @@ where
 		calcFontSpan elem (font_spans,world) fontdef
 		  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
 		  #! (fd, world) = calcFontDescent elem (getfontysize fontdef) world
-		  = ('DM'.put fontdef fd font_spans, world)
+		  = ('Data.Map'.put fontdef fd font_spans, world)
 		
 		calcFontDescent :: !(JSVal (JSObject a)) !Real !*JSWorld -> (!Real, !*JSWorld)
 		// same heuristic as used below (at function 'genSVGBasicHostImg'), must be replaced by proper determination of descent of current font
@@ -486,7 +491,7 @@ where
 //	measure text dimensions:
 getNewTextsSpans :: !ImgTexts !(JSVal a) !*JSWorld -> (!TextSpans,!*JSWorld)
 getNewTextsSpans newTexts me world
-  | 'DM'.null newTexts  = ('DM'.newMap,world)
+  | 'Data.Map'.null newTexts  = ('Data.Map'.newMap,world)
   | otherwise           = calcImgTextsLengths newTexts world
 where
 	calcImgTextsLengths :: !ImgTexts !*JSWorld -> (!TextSpans,!*JSWorld)
@@ -497,7 +502,7 @@ where
 	  #! (elem,world) = (jsDocument `createElementNS` (svgns, "text")) world
 	  #! (_,   world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
 	  #! (_,   world) = (svg `appendChild` elem) world
-	  #! (res, world) = 'DM'.foldrWithKey (calcTextLengths elem) ('DM'.newMap, world) texts
+	  #! (res, world) = 'Data.Map'.foldrWithKey (calcTextLengths elem) ('Data.Map'.newMap, world) texts
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
 	  = (res,  world)
@@ -505,18 +510,18 @@ where
 		calcTextLengths :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!TextSpans, !*JSWorld) -> *(!TextSpans,!*JSWorld)
 		calcTextLengths elem fontdef strs (text_spans, world)
 		  #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
-		  #! (ws, world) = 'DS'.fold (calcTextLength elem) ('DM'.newMap, world) strs
-		  = ('DM'.alter (merge ws) fontdef text_spans, world)
+		  #! (ws, world) = 'Data.Set'.fold (calcTextLength elem) ('Data.Map'.newMap, world) strs
+		  = ('Data.Map'.alter (merge ws) fontdef text_spans, world)
 		where
 			merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
-			merge ws` (Just ws) = Just ('DM'.union ws` ws)
+			merge ws` (Just ws) = Just ('Data.Map'.union ws` ws)
 			merge ws` nothing   = Just ws`
 		
 		calcTextLength :: !(JSVal (JSObject a)) !String !*(!Map String TextSpan, !*JSWorld) -> *(!Map String TextSpan,!*JSWorld)
 		calcTextLength elem str (text_spans, world)
 		  #! world        = (elem .# "textContent" .= str) world
 		  #! (ctl, world) = (elem `getComputedTextLength` ()) world
-		  = ('DM'.put str (jsValToReal ctl) text_spans, world)
+		  = ('Data.Map'.put str (jsValToReal ctl) text_spans, world)
 
 clientRootSVGElt :: !(JSVal a) !*JSWorld -> (!JSObj svg,!*JSWorld)
 clientRootSVGElt me world
@@ -535,7 +540,7 @@ clientRegisterEventhandlers` svglet me taskId es` tags world
   #! (_,      world)     = (svg `addEventListener` ("mousemove", cbMove, True)) world
   #! (_,      world)     = (svg `addEventListener` ("mouseup",   cbUp,   True)) world
 // register all individual event handlers:
-  = 'DM'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
+  = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
 where
 	registerEventhandler` :: !(SVGEditor s v) !(JSVal a) !String !(JSObj svg) !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 	registerEventhandler` svglet me taskId svg uniqId es` world
@@ -722,7 +727,7 @@ doMouseDragUp svglet me svg idMap args world
   #! (model,world)     = jsGetCleanVal JS_ATTR_MODEL me world
   #! xdiff             = ds.SVGDragState.svgTrueCoordsX - ds.SVGDragState.svgGrabPointX
   #! ydiff             = ds.SVGDragState.svgTrueCoordsY - ds.SVGDragState.svgGrabPointY
-  #! view              = ds.SVGDragState.svgDropCallback ('DM'.findWithDefault 'DS'.newSet parentId idMap) (xdiff,ydiff) view 
+  #! view              = ds.SVGDragState.svgDropCallback ('Data.Map'.findWithDefault 'Data.Set'.newSet parentId idMap) (xdiff,ydiff) view 
   #! model             = svglet.SVGEditor.updModel model view
   #! ds                = { SVGDragState
                          | ds & svgMousePos   = MouseUp
@@ -842,7 +847,7 @@ where
 		isTextHost  = case img.Img.host of
 		                BasicHostImg (TextImg _ _) _ = True
 		                _                            = False
-		imgSpan     = case 'DM'.get img.Img.uniqId spans of
+		imgSpan     = case 'Data.Map'.get img.Img.uniqId spans of
 			            Just (PxSpan w, PxSpan h) = (w,h)
 			            Just _                    = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unresolvedErrorMsg  "image")
 			            nothing                   = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unavailableErrorMsg "image")
@@ -907,7 +912,7 @@ where
 		= genSVGBasicHostImg no basic (genSVGImageAttrs attrs) taskId es markers paths spans grids
 	where
 		genSVGImageAttrs :: !(Set BasicImgAttr) -> [SVGAttr]
-		genSVGImageAttrs atts = strictTRMap genSVGImageAttr ('DS'.toList atts)
+		genSVGImageAttrs atts = strictTRMap genSVGImageAttr ('Data.Set'.toList atts)
 		where
 			genSVGImageAttr :: !BasicImgAttr -> SVGAttr
 			genSVGImageAttr (BasicImgStrokeAttr      color)      = StrokeAttr (PaintColor color Nothing)
@@ -934,21 +939,21 @@ where
 	genSVGBasicHostImg no RectImg attrs taskId es markers paths spans grids
 		= [RectElt sizeAtts attrs]
 	where
-		sizeAtts          = case 'DM'.get no spans of
+		sizeAtts          = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = mkWH (w,h)
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "rect"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "rect"))
 	genSVGBasicHostImg no CircleImg attrs taskId es markers paths spans grids
 		= [CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]]
 	where
-		radius            = case 'DM'.get no spans of
+		radius            = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w,h)         = to2decString (w / 2.0)
 		                      Just (_,_)                = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "circle"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "circle"))
 	genSVGBasicHostImg no EllipseImg attrs taskId es markers paths spans grids
 		= [EllipseElt [] [RxAttr (xradius,PX), CxAttr (xradius,PX), RyAttr (yradius,PX), CyAttr (yradius,PX) : attrs]]
 	where
-		(xradius,yradius) = case 'DM'.get no spans of
+		(xradius,yradius) = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = (to2decString (w / 2.0), to2decString (h / 2.0))
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "ellipse"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "ellipse"))
@@ -957,10 +962,10 @@ where
 		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 		  ]
 	where
-		markers                   = case 'DM'.get no markers` of
+		markers                   = case 'Data.Map'.get no markers` of
 		                              Just m  = m
 		                              nothing = defaultLineMarkers
-		points                    = case 'DM'.get no paths of
+		points                    = case 'Data.Map'.get no paths of
 		                              Just ps = ps.ImgPath.pathPoints
 		                              nothing = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "polyline"))
 		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polyline" markers taskId es markers` paths spans grids)
@@ -969,10 +974,10 @@ where
 		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 		  ]
 	where
-		markers                   = case 'DM'.get no markers` of
+		markers                   = case 'Data.Map'.get no markers` of
 		                              Just m  = m
 		                              nothing = defaultLineMarkers
-		points                    = case 'DM'.get no paths of
+		points                    = case 'Data.Map'.get no paths of
 		                              Just ps = ps.ImgPath.pathPoints
 		                              nothing = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "polygon"))
 		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polygon" markers taskId es markers` paths spans grids)
@@ -1001,7 +1006,7 @@ where
 			  )
 		where
 			mid   = mkMarkerId taskId uniqId
-			(w,h) = case 'DM'.get uniqId spans of
+			(w,h) = case 'Data.Map'.get uniqId spans of
 			          Just (PxSpan w, PxSpan h) = (w,h)
 			          Just _                    = abort (lookupSpanErrorMsg "genSVGLineMarkers" (unresolvedErrorMsg  elt))
 			          nothing                   = abort (lookupSpanErrorMsg "genSVGLineMarkers" (unavailableErrorMsg elt))
