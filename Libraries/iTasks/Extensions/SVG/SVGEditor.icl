@@ -5,10 +5,10 @@ import StdMisc, StdArray
 import iTasks
 import iTasks.UI.JS.Encoding, iTasks.UI.Definition, iTasks.UI.Editor
 import Graphics.Scalable.Internal.Image`
-//import StdEnv
+import StdEnv
 import Data.Either
-//import Data.Func
-//import Data.GenEq
+import Data.Func
+import Data.GenEq
 import Data.List
 import qualified Data.Map
 import Data.MapCollection
@@ -498,7 +498,7 @@ where
 	  #! (elem,world) = (jsDocument `createElementNS` (svgns, "text")) world
 	  #! (_,   world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
 	  #! (_,   world) = (svg `appendChild` elem) world
-	  #! (res, world) = foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
+	  #! (res, world) = 'Data.Foldable'.foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
 	  = (res,  world)
@@ -570,7 +570,7 @@ clientRegisterEventhandlers` svglet me taskId es` tags world
 where
 	registerEventhandler` :: !(SVGEditor s v) !(JSVal a) !String !(JSObj svg) !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 	registerEventhandler` svglet me taskId svg uniqId es` world
-		= foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
+		= 'Data.Foldable'.foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
 	where
 		register` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !(ImgNodePath,ImgEventhandler`) !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnClickAttr`,local}) world
