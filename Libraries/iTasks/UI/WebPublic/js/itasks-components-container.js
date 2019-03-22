@@ -398,23 +398,11 @@ itasks.Window = {
     }
 };
 itasks.ToolBar  = {
-	cssCls: 'toolbar',
-	attributes: {
-		height: 'wrap',
-		width: 'flex',
-		direction: 'horizontal',
-		halign: 'left'
-	},
+	cssCls: 'toolbar'
 };
 
 itasks.ButtonBar  = {
-	cssCls: 'buttonbar',
-	attributes: {
-		height: 'wrap',
-		width: 'flex',
-		direction: 'horizontal',
-		halign: 'right'
-	}
+	cssCls: 'buttonbar'
 };
 itasks.List = {
 	cssCls: 'list'
@@ -428,10 +416,6 @@ itasks.Debug = {
 
 itasks.Menu = {
 	cssCls: 'menu',
-	attributes: {
-		height: 'wrap',
-		width: 'wrap'
-	},
     initDOMEl: function() {
 		var me = this;	
 

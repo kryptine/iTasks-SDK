@@ -63,27 +63,30 @@ arrangeWithHeader :: !Int -> LayoutRule
 arrangeWithHeader index = setAside "itasks-headerbar" index TopSide False
 
 arrangeWithSideBar :: !Int !UISide !Bool -> LayoutRule
-arrangeWithSideBar index side resize = setAside "itasks-sidebar" index side resize
+arrangeWithSideBar index side resize = setAside ("itasks-sidebar" +++ suffix side) index side resize
+where
+	suffix TopSide = "-top"
+	suffix BottomSide = "-bottom"
+	suffix LeftSide = "-left"
+	suffix RightSide = "-right"
 
 setAside className index side resize = sequenceLayouts
 	[wrapUI UIPanel //Push the current container down a level
 	,copySubUIAttributes SelectAll [0] [] //Keep the attributes from the original UI
-	,setUIAttributes (directionAttr direction)
+	,addCSSClass className
 	,moveSubUIs (SelectByPath [0,index]) [] sidePanelIndex
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
 		(if resize
 		[wrapUI UIPanel
-		,addCSSClass className
+		,addCSSClass "aside"
 		,setUIAttributes (resizableAttr (resizers side))
 		]
-		[addCSSClass className]
+		[addCSSClass "aside"]
 		)
 	)
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
-	mainPanelIndex = if (side === TopSide || side === LeftSide) 1 0
-	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	resizers TopSide = [BottomSide]
 	resizers BottomSide = [TopSide]
@@ -171,15 +174,15 @@ where
 arrangeSplit :: !UIDirection !Bool -> LayoutRule
 arrangeSplit direction resize 
 	= sequenceLayouts
-		[layoutSubUIs (SelectByPath []) (setUIAttributes (directionAttr direction))
+		[layoutSubUIs (SelectByPath []) (if (direction === Horizontal) arrangeHorizontal arrangeVertical)
 		,layoutSubUIs SelectChildren (setUIAttributes (sizeAttr FlexSize FlexSize))
 		]
 
 arrangeVertical :: LayoutRule
-arrangeVertical = setUIAttributes (directionAttr Vertical)
+arrangeVertical = addCSSClass "itasks-vertical-container"
 
 arrangeHorizontal :: LayoutRule
-arrangeHorizontal = setUIAttributes (directionAttr Horizontal)
+arrangeHorizontal = addCSSClass "itasks-horizontal-container"
 
 frameCompact :: LayoutRule
 frameCompact = sequenceLayouts
@@ -335,7 +338,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 	(sequenceLayouts
 		//Create the 'row' that holds the form item
 		[wrapUI UIContainer
-		,setUIAttributes ('DM'.unions [classAttr ["itasks-form-item"],directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
+		,addCSSClass "itasks-form-item"
 		//If there is a label attribute, create a label 
 		,optAddLabel
 		//If there is hint attribute, create an extra icon 

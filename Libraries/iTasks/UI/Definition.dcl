@@ -27,7 +27,7 @@ from Data.GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
 derive class iTask UI, UIType
-derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
+derive class iTask UISize, UIBound, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode
 
 //Representation of a collection of changes that need to be applied to an existing UI
@@ -147,13 +147,6 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| BottomSide
 	| LeftSide
 
-:: UISideSizes =
-	{ top		:: !Int
-	, right		:: !Int
-	, bottom	:: !Int
-	, left		:: !Int
-	}	
-
 :: UITreeNode =
 	{ text		:: !String
     , iconCls   :: !Maybe String
@@ -188,32 +181,16 @@ uiac :: UIType UIAttributes [UI] -> UI
 emptyAttr         :: UIAttributes
 
 optionalAttr 	  :: !Bool                                -> UIAttributes
+
 sizeAttr          :: !UISize !UISize                      -> UIAttributes
 widthAttr         :: !UISize                              -> UIAttributes
 heightAttr        :: !UISize                              -> UIAttributes
-minSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
-minWidthAttr      :: !UIBound                             -> UIAttributes
-minHeightAttr     :: !UIBound                             -> UIAttributes
-maxSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
-maxWidthAttr      :: !UIBound                             -> UIAttributes
-maxHeightAttr     :: !UIBound                             -> UIAttributes
-marginsAttr       :: !Int !Int !Int !Int                  -> UIAttributes
-topMarginAttr     :: !Int                                 -> UIAttributes
-rightMarginAttr   :: !Int                                 -> UIAttributes
-bottomMarginAttr  :: !Int                                 -> UIAttributes
-leftMarginAttr    :: !Int                                 -> UIAttributes
-paddingAttr       :: !Int !Int !Int !Int                  -> UIAttributes
-topPaddingAttr    :: !Int                                 -> UIAttributes
-rightPaddingAttr  :: !Int                                 -> UIAttributes
-bottomPaddingAttr :: !Int                                 -> UIAttributes
-leftPaddingAttr   :: !Int                                 -> UIAttributes
+
 titleAttr         :: !String                              -> UIAttributes
 frameAttr         :: !Bool                                -> UIAttributes
 iconClsAttr       :: !String                              -> UIAttributes
 tooltipAttr       :: !String                              -> UIAttributes
-directionAttr     :: !UIDirection                         -> UIAttributes
-halignAttr        :: !UIHAlign                            -> UIAttributes
-valignAttr        :: !UIVAlign                            -> UIAttributes
+
 hposAttr          :: !UIHAlign                            -> UIAttributes
 vposAttr          :: !UIVAlign                            -> UIAttributes
 windowTypeAttr    :: !UIWindowType                        -> UIAttributes
@@ -262,7 +239,6 @@ instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UI
-instance encodeUI UISideSizes
 instance encodeUI UISize
 instance encodeUI UIBound
 instance encodeUI UIVAlign

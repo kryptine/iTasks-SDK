@@ -3,11 +3,22 @@
 	min-width: fit-content;
 	margin: 5px 5px 10px 5px;
 }
-.#{$prefix}form-item {
+.#{$prefix}container.#{$prefix}form-item {
 	margin: 2px 4px 2px 4px;
+	flex-direction: row;
+	align-items: start;
+
+	flex: 0;
+	align-self: stretch;
 }
 .#{$prefix}form-item .#{$prefix}icon {
 	margin-left: 5px;
+}
+.#{$prefix}container.#{$prefix}cons, .#{$prefix}container.#{$prefix}var-cons  {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-items: start;
 }
 
 .#{$prefix}frame-compact-outer {
@@ -23,6 +34,7 @@
 	flex: 0; 
 	flex-basis: content;
 }
+
 .#{$prefix}header {
 	font-weight: bold;
 	font-size: 11px;
@@ -51,15 +63,31 @@
 	}
 }
 .#{$prefix}inner {
+	display: flex;
+	flex-direction: column;
+
 	flex: 1;
+	align-items: flex-start;
 }
 
 /* Minimal containers */
 .#{$prefix}container {
+	display: flex;
+	flex-direction: column;
+ 	align-items: flex-start;
+
 	/* Default flexible sizes */
 	flex: 1;
 	align-self: stretch;
+
 }
+.#{$prefix}horizontal-container {
+	flex-direction: row;
+}
+.#{$prefix}vertical-container {
+	flex-direction: column;
+}
+
 /* Panels */
 .#{$prefix}panel {
 	color: $canvas-text-color;
@@ -88,7 +116,7 @@
 	align-items: stretch;
 	flex-direction: column;
 }
-.#{$prefix}tabset * {
+.#{$prefix}tabset > * {
 	align-self: stretch;
 }
 .#{$prefix}tabbar {
@@ -244,11 +272,19 @@
 	}
 }
 /* Toolbars, button bars & menu's */
-.#{$prefix}toolbar {
+.#{$prefix}toolbar, .#{$prefix}buttonbar {
+	align-self: stretch;
+	flex: 0;
+
 	display: flex;
 	flex-direction: row;
-	justify-content: flex-start;
 	align-items: center;
+
+	background: linear-gradient(lighten($button-base-color,4%), darken($button-base-color,12.5%));
+}
+.#{$prefix}toolbar {
+
+	justify-content: flex-start;
 	margin: 0;
 	padding: 2px;
 	background: $canvas-base-color;
@@ -260,10 +296,8 @@
 		background-position: 95% center;
 	}
 }
-.#{$prefix}buttonbar, .#{$prefix}toolbar {
-	background: linear-gradient(lighten($button-base-color,4%), darken($button-base-color,12.5%));
-}
 .#{$prefix}buttonbar {
+	justify-content: flex-end;
 	padding: 2px 2px 2px 0;
 }
 
@@ -275,12 +309,22 @@
 }
 .#{$prefix}listitem {
 	margin: 0px 5px 5px 5px;
+	align-self: stretch;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
 }
 .#{$prefix}listitem:nth-child(even) {
 	background-color: $list-highlight-color;
 }
+.#{$prefix}listitem-controls {
+	flex-direction: row;
+	justify-items: flex-end;
+}
 
 .#{$prefix}menu {
+	flex: 0;
+
 	display: block;
 	position: relative;
 	border: 1px solid transparent;
@@ -398,7 +442,7 @@
 		background-color: #{$select-base-color};
 	}
 }
-.#{$prefix}vcontainer > .#{$prefix}headerbar {
+.#{$prefix}headerbar > .#{$prefix}inner > .aside {
 	flex-basis: 50px;
 	flex-grow: 0;
 	align-self: stretch;
@@ -406,15 +450,26 @@
 }
 
 /* Sidebar elements */
-.#{$prefix}vcontainer > .#{$prefix}sidebar {
+.#{$prefix}sidebar-left > .#{$prefix}inner, .#{$prefix}sidebar-right > .#{$prefix}inner {
+	flex-direction: row;
+}
+.#{$prefix}sidebar-top > .#{$prefix}inner > .aside,
+.#{$prefix}sidebar-bottom > .#{$prefix}inner > .aside {
 	height: 200px;
 	min-height: 200px;
 	flex: 0;
 	align-self: stretch;
 }
-.#{$prefix}hcontainer > .#{$prefix}sidebar {
+.#{$prefix}sidebar-right > .#{$prefix}inner > .aside,
+.#{$prefix}sidebar-left > .#{$prefix}inner > .aside {
 	width: 200px;
 	min-width: 200px;
 	flex: 0;
 	align-self: stretch;
+}
+
+/* Headers of various sorts */
+.#{$prefix}compact-header {
+	padding: 2px 2px 2px 10px;
+	flex-direction: row;
 }

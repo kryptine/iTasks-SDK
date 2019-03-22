@@ -85,11 +85,8 @@ itasks.Component = {
 		}
 		//Custom initialization after the dom element has been rendered
 		me.initDOMEl();
-		//Size the element
+		//Size the element if explicit sizes are given
 		me.initDOMElSize();
-		//Set margins and alignment
-		me.initContainerEl();
-
 		//Add the the child renderings 
 		me.children.forEach(function(child) {
 			if(child.domEl) {
@@ -115,37 +112,12 @@ itasks.Component = {
 		}
 		if(height === 'flex') {
 			el.classList.add(me.cssPrefix + 'flex-height');
-		} else if (width === 'wrap') {
+		} else if (height === 'wrap') {
 			el.classList.add(me.cssPrefix + 'wrap-height');
 		} else {	
-			el.style.height = width + 'px';
+			el.style.height = height + 'px';
 		}
     },
-	initContainerEl: function() {
-		var me = this,
-            el = me.containerEl,
-            horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
-			valign = me.attributes.valign || 'top',
-			halign = me.attributes.halign || 'left';
-	
-		if(me.container === false) {
-			return;
-		}
-		//Direction
-        el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
-
-		//Alignment
-		switch(valign) {
-			case 'top': el.classList.add(me.cssPrefix + 'valign-top'); break;
-			case 'middle': el.classList.add(me.cssPrefix + 'valign-middle'); break;
-			case 'bottom': el.classList.add(me.cssPrefix + 'valign-middle'); break;
-		}
-		switch(halign) {
-			case 'left': el.classList.add(me.cssPrefix + 'halign-left'); break;
-			case 'center': el.classList.add(me.cssPrefix + 'halign-center'); break;
-			case 'right': el.classList.add(me.cssPrefix + 'halign-right'); break;
-		}
-	},
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this;
 		if(me.parentCmp) {

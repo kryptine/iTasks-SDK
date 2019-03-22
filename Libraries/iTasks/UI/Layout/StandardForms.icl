@@ -121,14 +121,14 @@ layoutRecord = sequenceLayouts
 layoutCons :: LayoutRule
 layoutCons = sequenceLayouts
 	[setUIType UIContainer
-	,setUIAttributes (directionAttr Horizontal)
+	,addCSSClass "itasks-cons"
 	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UICons)) layoutCons
 	]
 
 layoutVarCons :: LayoutRule
 layoutVarCons = sequenceLayouts
 	[setUIType UIContainer
-	,setUIAttributes (directionAttr Horizontal)
+	,addCSSClass "itasks-var-cons"
 	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIVarCons)) layoutVarCons
 	]

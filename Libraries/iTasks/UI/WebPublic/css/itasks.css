@@ -5,6 +5,7 @@
 */
 /* You can customize these options to create branded iTask applications */
 *.itasks-viewport {
+  display: flex;
   margin: 0;
   overflow: auto;
   font-family: tahoma, arial, verdana, sans-serif;
@@ -148,11 +149,11 @@
   transform: translateX(-8px);
 }
 *.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
-  min-height: fit-content;
   font-size: 9pt;
 }
 
 div.itasks-loader {
+  display: flex;
   font-size: 16pt;
   font-style: italic;
   text-align: center;
@@ -180,99 +181,62 @@ div.itasks-exception {
   text-align: center;
 }
 
-.itasks-vcontainer, .itasks-hcontainer {
-  display: flex;
-  align-items: flex-start;
-}
-
-.itasks-vcontainer {
-  flex-direction: column;
-}
-
-.itasks-vcontainer > .itasks-flex-width {
+/* Sizing children of vertical containers */
+.itasks-viewport > .itasks-flex-width,
+.itasks-panel > .itasks-inner > .itasks-flex-width,
+.itasks-window > .itasks-inner > .itasks-flex-width,
+.itasks-container > .itasks-flex-width {
   align-self: stretch;
 }
 
-.itasks-vcontainer > .itasks-flex-height {
+.itasks-viewport > .itasks-flex-height,
+.itasks-panel > .itasks-inner > .itasks-flex-height,
+.itasks-window > .itasks-inner > .itasks-flex-height,
+.itasks-container > .itasks-flex-height {
   flex: 1;
 }
 
-.itasks-vcontainer > .itasks-wrap-height {
+.itasks-viewport > .itasks-wrap-height,
+.itasks-panel > .itasks-inner > .itasks-wrap-height,
+.itasks-window > .itasks-inner > .itasks-wrap-height,
+.itasks-container > .itasks-wrap-height {
   flex-shrink: 0;
-  min-height: fit-content;
-}
-.itasks-vcontainer > .itasks-wrap-height * {
-  min-height: fit-content;
+  flex-basis: auto;
 }
 
-.itasks-hcontainer {
-  flex-direction: row;
-  flex-shrink: 0;
-}
-
-.itasks-hcontainer > .itasks-flex-width {
+/* Sizing children of horizontal containers */
+.itasks-horizontal-container > .itasks-flex-width,
+.itasks-form-item > .itasks-flex-width,
+.itasks-toolbar > .itasks-flex-width,
+.itasks-buttonbar > .itasks-flex-width,
+.itasks-cons > .itasks-flex-width,
+.itasks-var-cons > .itasks-flex-width,
+.itasks-listitem > .itasks-flex-width,
+.itasks-listitem-controls > .itasks-flex-width {
   flex: 1;
 }
 
-.itasks-hcontainer > .itasks-flex-height {
+.itasks-horizontal-container > .itasks-flex-height,
+.itasks-form-item > .itasks-flex-height,
+.itasks-toolbar > .itasks-flex-height,
+.itasks-buttonbar > .itasks-flex-height,
+.itasks-cons > .itasks-flex-height,
+.itasks-var-cons > .itasks-flex-height,
+.itasks-listitem > .itasks-flex-height,
+.itasks-listitem-controls > .itasks-flex-height {
   align-self: stretch;
 }
 
-.itasks-hcontainer > .itasks-wrap-width {
+.itasks-horizontal-container > .itasks-wrap-width,
+.itasks-form-item > .itasks-wrap-width,
+.itasks-toolbar > .itasks-wrap-width,
+.itasks-buttonbar > .itasks-wrap-width,
+.itasks-cons > .itasks-wrap-width,
+.itasks-var-cons > .itasks-wrap-width,
+.itasks-listitem > .itasks-wrap-width,
+.itasks-listitem-controls > .itasks-wrap-width {
   flex-shrink: 0;
-  min-width: fit-content;
-}
-.itasks-hcontainer > .itasks-wrap-width * {
-  min-width: fit-content;
-}
-
-/* Transititional classes for alignment */
-.itasks-vcontainer.itasks-halign-left {
-  align-items: start;
-}
-
-.itasks-vcontainer.itasks-halign-center {
-  align-items: center;
-}
-
-.itasks-vcontainer.itasks-halign-right {
-  align-items: end;
-}
-
-.itasks-vcontainer.itasks-valign-top {
-  justify-content: flex-start;
-}
-
-.itasks-vcontainer.itasks-valign-middle {
-  justify-content: center;
-}
-
-.itasks-vcontainer.itasks-valign-bottom {
-  justify-content: flex-end;
-}
-
-.itasks-hcontainer.itasks-halign-left {
-  justify-content: flex-start;
-}
-
-.itasks-hcontainer.itasks-halign-center {
-  justify-content: center;
-}
-
-.itasks-hcontainer.itasks-halign-right {
-  justify-content: flex-end;
-}
-
-.itasks-hcontainer.itasks-valign-top {
-  align-items: start;
-}
-
-.itasks-hcontainer.itasks-valign-middle {
-  align-items: center;
-}
-
-.itasks-hcontainer.itasks-valign-bottom {
-  align-items: end;
+  flex-basis: auto;
 }
 
 /* Styles for unlayouted content */
@@ -390,12 +354,23 @@ div.itasks-exception {
   margin: 5px 5px 10px 5px;
 }
 
-.itasks-form-item {
+.itasks-container.itasks-form-item {
   margin: 2px 4px 2px 4px;
+  flex-direction: row;
+  align-items: start;
+  flex: 0;
+  align-self: stretch;
 }
 
 .itasks-form-item .itasks-icon {
   margin-left: 5px;
+}
+
+.itasks-container.itasks-cons, .itasks-container.itasks-var-cons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: start;
 }
 
 .itasks-frame-compact-outer {
@@ -440,14 +415,28 @@ div.itasks-exception {
 }
 
 .itasks-inner {
+  display: flex;
+  flex-direction: column;
   flex: 1;
+  align-items: flex-start;
 }
 
 /* Minimal containers */
 .itasks-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   /* Default flexible sizes */
   flex: 1;
   align-self: stretch;
+}
+
+.itasks-horizontal-container {
+  flex-direction: row;
+}
+
+.itasks-vertical-container {
+  flex-direction: column;
 }
 
 /* Panels */
@@ -478,7 +467,7 @@ div.itasks-exception {
   flex-direction: column;
 }
 
-.itasks-tabset * {
+.itasks-tabset > * {
   align-self: stretch;
 }
 
@@ -651,11 +640,17 @@ div.itasks-exception {
 }
 
 /* Toolbars, button bars & menu's */
-.itasks-toolbar {
+.itasks-toolbar, .itasks-buttonbar {
+  align-self: stretch;
+  flex: 0;
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
   align-items: center;
+  background: linear-gradient(#f8f8f8, #cecece);
+}
+
+.itasks-toolbar {
+  justify-content: flex-start;
   margin: 0;
   padding: 2px;
   background: #eee;
@@ -667,11 +662,8 @@ div.itasks-exception {
   background-position: 95% center;
 }
 
-.itasks-buttonbar, .itasks-toolbar {
-  background: linear-gradient(#f8f8f8, #cecece);
-}
-
 .itasks-buttonbar {
+  justify-content: flex-end;
   padding: 2px 2px 2px 0;
 }
 
@@ -684,13 +676,23 @@ div.itasks-exception {
 
 .itasks-listitem {
   margin: 0px 5px 5px 5px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 .itasks-listitem:nth-child(even) {
   background-color: #eee;
 }
 
+.itasks-listitem-controls {
+  flex-direction: row;
+  justify-items: flex-end;
+}
+
 .itasks-menu {
+  flex: 0;
   display: block;
   position: relative;
   border: 1px solid transparent;
@@ -795,7 +797,7 @@ div.itasks-exception {
   background-color: #333;
 }
 
-.itasks-vcontainer > .itasks-headerbar {
+.itasks-headerbar > .itasks-inner > .aside {
   flex-basis: 50px;
   flex-grow: 0;
   align-self: stretch;
@@ -803,18 +805,30 @@ div.itasks-exception {
 }
 
 /* Sidebar elements */
-.itasks-vcontainer > .itasks-sidebar {
+.itasks-sidebar-left > .itasks-inner, .itasks-sidebar-right > .itasks-inner {
+  flex-direction: row;
+}
+
+.itasks-sidebar-top > .itasks-inner > .aside,
+.itasks-sidebar-bottom > .itasks-inner > .aside {
   height: 200px;
   min-height: 200px;
   flex: 0;
   align-self: stretch;
 }
 
-.itasks-hcontainer > .itasks-sidebar {
+.itasks-sidebar-right > .itasks-inner > .aside,
+.itasks-sidebar-left > .itasks-inner > .aside {
   width: 200px;
   min-width: 200px;
   flex: 0;
   align-self: stretch;
+}
+
+/* Headers of various sorts */
+.itasks-compact-header {
+  padding: 2px 2px 2px 10px;
+  flex-direction: row;
 }
 
 .itasks-icon {

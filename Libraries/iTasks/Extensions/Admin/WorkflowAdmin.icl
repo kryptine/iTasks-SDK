@@ -118,7 +118,7 @@ loginAndManageWork welcome
 				,
 					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
 					>>| (return Nothing)
-				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
+				] <<@ ArrangeHorizontal)
 	 	   )  <<@ ApplyLayout layout
 		>>- browse) //Compact layout before login, full screen afterwards
 		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
@@ -156,7 +156,7 @@ where
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
-		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
+		,addCSSClass "itasks-compact-header"
 		]
 	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
@@ -206,7 +206,7 @@ where
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list
-	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ArrangeHorizontal
 	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
 		,OnAction ActionCancel (always (return ()))
 		] ) <<@ Title "New work"

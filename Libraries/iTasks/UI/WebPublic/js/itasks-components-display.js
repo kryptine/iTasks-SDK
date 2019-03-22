@@ -1,7 +1,6 @@
 itasks.TextView = {
 	cssCls: 'textview',
 	container: false,
-	attributes: {},
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.attributes.value || '';
 	},
@@ -16,7 +15,6 @@ itasks.TextView = {
 };
 itasks.HtmlView = {
 	cssCls: 'htmlview',
-	attributes: {},
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.attributes.value || '';
 	},
@@ -31,10 +29,7 @@ itasks.HtmlView = {
 };
 itasks.ProgressBar = {
     domTag: 'progress',
-	attributes: {
-		width: 'flex',
-		height: 'wrap'
-	},
+	cssCls: 'progress',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;

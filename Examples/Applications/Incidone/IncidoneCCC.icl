@@ -99,6 +99,6 @@ where
 		,moveSubUIs (SelectByPath [0,0]) [] 2
 		,removeSubUIs (SelectByPath [0])
 		,layoutSubUIs (SelectByType UIAction) actionToButton
-		,setUIAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, classAttr ["summary-bar"]])
+		,addCSSClass "summary-bar"
 		,setUIType UIContainer
         ]
