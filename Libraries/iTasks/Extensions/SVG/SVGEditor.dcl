@@ -11,4 +11,4 @@ import iTasks.UI.JS.Encoding
 	, updModel    :: m v -> m                    // When the view is updated (using the image), the change needs to be merged back into the view
 	}
 
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask, JSEncode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask, JSEncode{|*|}, JSDecode{|*|} s

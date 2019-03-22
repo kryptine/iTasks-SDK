@@ -7,7 +7,7 @@ import Text.GenPrint								// printing via <+++ has a known bug, so we use prin
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
-from   StdFunc import id
+from   StdFunc import id, const
 import Text
 
 //	shorthand definitions for the used fonts in these examples

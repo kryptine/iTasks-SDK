@@ -8,7 +8,7 @@ import iTasks.UI.Prompt
 import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList
-from   StdFunc import id, o
+import StdFunctions
 
 //	shorthand definitions for the used fonts in these examples
 arial			= normalFontDef "Arial"

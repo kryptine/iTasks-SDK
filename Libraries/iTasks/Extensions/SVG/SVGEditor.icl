@@ -105,6 +105,16 @@ instance toString ViaImg
 :: ImgFonts`  :== Set FontDef`                            // the collection of fonts used in the image for which no metrics are available
 :: ImgTexts`  :== Map FontDef` (Set String)               // of each font, the collection of texts
 
+// when using a LeafEditor, a single type is used for the client -> server communication:
+:: ClientToServerMsg s
+ = ClientNeedsSVG                                         // client is ready to receive SVG
+ | ClientHasNewModel !s                                   // client has created a new public model value
+ | ClientHasNewTextMetrics !FontSpans` !TextSpans`        // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
+derive JSONEncode ClientToServerMsg, Map
+derive JSONDecode ClientToServerMsg, Map
+derive JSDecode   ClientToServerMsg
+
+/* IN THAT CASE, THESE TYPES ARE OBSOLETE:
 :: ClientNeedsSVG                                         // client is ready to receive SVG
  = ClientNeedsSVG                                         // no additional data
 :: ClientHasNewModel  s                                   // client has created a new public model value
@@ -112,7 +122,7 @@ instance toString ViaImg
 :: ClientHasNewTextMetrics                                // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
  = ClientHasNewTextMetrics !FontSpans` !TextSpans`        // the new font and text-width metrics
 derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Map
-derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Map
+derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Map*/
 
 //	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
 :: ServerToClientAttr
@@ -130,6 +140,19 @@ fromUIAttributes json world
   = decodeOnClient (toJSVal json) world
 
 
+//	the server side state:
+:: ServerSVGState s
+   = { model :: !s
+     , fonts :: !FontSpans
+     , texts :: !TextSpans
+     }
+derive JSONEncode ServerSVGState
+derive JSONDecode ServerSVGState
+
+initServerSVGState :: !s -> ServerSVGState s
+initServerSVGState model = {ServerSVGState | model = model, fonts = 'Data.Map'.newMap, texts = 'Data.Map'.newMap}
+
+/* WITH THE NEW TYPE ServerSVGState, THE BELOW FUNCTIONS ARE OBSOLETE:
 /*	the server side state is a list of state elements (CompoundState JSONNull [ ]):
 	at MODEL:     the current model value of the editor
 	at FM_FONTS:  the FontSpans are stored
@@ -147,22 +170,28 @@ FM_TEXTS  :== 2	// index in CompoundState to access texts widths
 
 //	access functions to get and set server side state elements:
 getModel :: !EditState -> *Maybe s | JSONDecode{|*|} s
-getModel (CompoundState _ [LeafState {LeafState | state}:_])
-	= case fromJSON state of
-		Just m = Just m
-		_      = Nothing
-getModel _
-	= Nothing
+getModel (CompoundState _ entries)
+	= case entries !? MODEL of
+	    Just (LeafState {LeafState | state}) = case fromJSON state of
+	                                             Just m  = Just m
+	                                             _       = trace_n ("getModel: MODEL entry can not be decoded by JSONDecode (length of entries is " <+++ length entries <+++ ").") Nothing
+	    nothing = trace_n ("getModel unexpectedly applied to CompoundState with list of length " <+++ length entries <+++ " instead of 3.") Nothing
+getModel (LeafState _) = trace_n "getModel unexpectedly applied to LeafState" Nothing
+getModel _             = trace_n "getModel unexpectedly applied to AnnotatedState" Nothing
+//getModel _
+//	= Nothing
 
 setModel :: !s !EditState -> EditState | JSONEncode{|*|} s
 setModel new (CompoundState json entries)
 	= CompoundState json (updateAt MODEL (LeafState (mkLeafState new)) entries)
 
 getFontsCache :: !EditState -> FontSpans
-getFontsCache (CompoundState _ [_,LeafState {LeafState | state}:_])
-	= case fromJSON state of
-		Just fonts = fonts
-		nothing    = 'Data.Map'.newMap
+getFontsCache (CompoundState _ entries)
+	= case entries !? FM_FONTS of
+	    Just (LeafState {LeafState | state}) = case fromJSON state of
+	                                             Just fonts = fonts
+	                                             nothing    = 'Data.Map'.newMap
+	    nothing = 'Data.Map'.newMap
 getFontsCache _
 	= 'Data.Map'.newMap
 
@@ -171,16 +200,19 @@ setFontsCache fonts (CompoundState json entries)
 	= CompoundState json (updateAt FM_FONTS (LeafState (mkLeafState fonts)) entries)
 
 getTextsCache :: !EditState -> TextSpans
-getTextsCache (CompoundState _ [_,_,LeafState {LeafState | state}:_])
-	= case fromJSON state of
-		Just texts = texts
-		nothing    = 'Data.Map'.newMap
+getTextsCache (CompoundState _ entries)
+	= case entries !? FM_TEXTS of
+	    Just (LeafState {LeafState | state}) = case fromJSON state of
+	                                             Just texts = texts
+	                                             nothing    = 'Data.Map'.newMap
+	    nothing = 'Data.Map'.newMap
 getTextsCache _
 	= 'Data.Map'.newMap
 
 setTextsCache :: !TextSpans !EditState -> EditState
 setTextsCache texts (CompoundState json entries)
 	= CompoundState json (updateAt FM_TEXTS (LeafState (mkLeafState texts)) entries)
+*/
 
 imgTagSource :: !String -> *TagSource
 imgTagSource taskId
@@ -228,21 +260,23 @@ svgFontDefAttrs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,f
 
 
 //	transform the functions of an SVGEditor into an Editor:
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask, JSEncode{|*|} s
-fromSVGEditor svglet
-  = { Editor
+fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask, JSEncode{|*|}, JSDecode{|*|} s
+fromSVGEditor svglet = leafEditorToEditor
+    { LeafEditor
     | genUI          = withClientSideInit (initClientSideUI svglet) initServerSideUI
     , onEdit         = serverHandleEditFromClient  svglet
     , onRefresh      = serverHandleEditFromContext svglet
-    , valueFromState = getModel // server side state now also keeps track of the model value, in addition to text metrics
+    , valueFromState = valueFromState
     }
 where
 //	initServerSideUI is called first.
 //	Its sole purpose is to tell the client which model value is being manipulated. 
-	initServerSideUI :: !UIAttributes !DataPath !s !*VSt -> *(!MaybeErrorString (!UI,!EditState), !*VSt) | JSEncode{|*|}, JSONEncode{|*|} s
-	initServerSideUI uiAttrs dp model world=:{VSt | taskId}
-	  = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
-	    (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (encodeOnServer model)) (sizeAttr FlexSize FlexSize))),initServerSideState model),world)
+	initServerSideUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI,!ServerSVGState s), !*VSt) | JSEncode{|*|} s
+	initServerSideUI uiAttrs dp mode world=:{VSt | taskId}
+	  = case editModeValue mode of
+	      Nothing    = (Error "Error in module SVGEditor (fromSVGEditor/initServerSideUI): SVG editors cannot be used in Enter EditMode.",world)
+	      Just model = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
+	                   (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (encodeOnServer model)) (sizeAttr FlexSize FlexSize))),initServerSVGState model),world)
 
 //	initClientSideUI is called after initServerSideUI.
 //	Information exchange from server -> client occurs via the attributes of the client object.
@@ -267,53 +301,45 @@ where
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
-  	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!JSONNode) !EditState !*VSt -> (!MaybeErrorString (!UIChange,!EditState), !*VSt) | JSONDecode{|*|}, JSONEncode{|*|}, gText{|*|} s
-  	serverHandleEditFromClient svglet _ (_,json) mask vst 
-	  = case fromJSON json of                // check if the client sends a new model value
-	      Just (ClientHasNewModel new)
-	        #! (set_attrs,mask,vst)          = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) (setModel new mask) vst
-	        = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
-	          (Ok (attributesToUIChange set_attrs,mask),vst)
-	      nope = case getModel mask of
-	               Nothing  = (Error "Unexpected error in module SVGEditor (serverHandleEditFromClient): missing model value.",vst)
-	               Just old = case fromJSON json of       // check if the client sends new font/text-width metrics
-	                            Just (ClientHasNewTextMetrics new_font_metrics new_texts_metrics)
-	                              #! font_spans           = 'Data.Map'.union                new_font_metrics  (getFontsCache mask)
-	                              #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics (getTextsCache mask)
-	                              #! mask                 = setTextsCache text_spans (setFontsCache font_spans mask)
-	                              #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
-	                              = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
-	                                (Ok (attributesToUIChange set_attrs,mask),vst)
-	                            nope = case fromJSON json of     // check if the client has initialized, and is ready to receive a server side generated SVG rendering
-	                                     Just ClientNeedsSVG
-	                                       #! (attrs,mask,vst) = serverHandleModel svglet 'Data.Map'.newMap 'Data.Map'.newMap old (svglet.initView old) (initServerSideState old) vst
-	                                       = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
-	                                         (Ok (attributesToUIChange attrs,mask),vst)
-	                                     nope                  // unchecked event from the client
-	                                       = trace_n "serverHandleEditFromClient unspecified case"
-	                                         (Ok (NoChange,mask),vst)
+ 	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|} s
+  	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
+  	  #! (set_attrs,mask,vst) = serverHandleModel svglet fonts texts new (svglet.initView new) {ServerSVGState | mask & model=new} vst
+  	  = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
+  	    (Ok (attributesToUIChange set_attrs,mask),vst)
+  	serverHandleEditFromClient svglet _ (_,ClientHasNewTextMetrics new_font_metrics new_texts_metrics) mask=:{ServerSVGState | model=old,fonts,texts} vst 
+      #! font_spans           = 'Data.Map'.union                      new_font_metrics  fonts
+      #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
+      #! mask                 = {ServerSVGState | mask & fonts=font_spans, texts=text_spans}
+      #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
+      = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
+        (Ok (attributesToUIChange set_attrs,mask),vst)
+    serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old} vst
+	  #! (attrs,mask,vst) = serverHandleModel svglet 'Data.Map'.newMap 'Data.Map'.newMap old (svglet.initView old) mask/*(initServerSVGState old)*/ vst
+	  = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
+	    (Ok (attributesToUIChange attrs,mask),vst)
 	
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
-  	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !EditState !*VSt -> (!MaybeErrorString (!UIChange,!EditState), !*VSt) | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} s
-  	serverHandleEditFromContext svglet _ new mask vst
-  	= case getModel mask of
-  	     Nothing  = (Error "Unexpected error in module SVGEditor (serverHandleEditFromContext): missing model value.",vst)
-  	     Just old = if (gEq{|*|} old new)
-  	                  (Ok (NoChange,mask),vst)
-  	                  (let (set_attrs,mask`,vst`) = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) (setModel new mask) vst
-  	                    in trace_n ("serverHandleEditFromContext")
-  	                       (Ok (attributesToUIChange set_attrs,mask`),vst`)
-  	                  )
+	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gEq{|*|} s
+	serverHandleEditFromContext svglet _ new mask=:{ServerSVGState | model=old,fonts,texts} vst
+  	| gEq{|*|} old new
+  		= (Ok (NoChange,mask),vst)
+  	#! (set_attrs,mask`,vst`) = serverHandleModel svglet fonts texts new (svglet.initView new) {ServerSVGState | mask & model=new} vst
+  	= trace_n ("serverHandleEditFromContext")
+  	  (Ok (attributesToUIChange set_attrs,mask`),vst`)
+	
+//	valueFromState, using a LeafEditor always succeeds
+	valueFromState :: !(ServerSVGState s) -> *Maybe s
+	valueFromState {ServerSVGState | model} = Just model
 
 //	serverHandleModel is called whenever a new model/view value has been obtained.
 //	It computes the SVG rendering on the server side.
 //	This may `fail' due to missing font/text metrics, in which case these are requested to the client via the attributes.
 //  If it succeeds, then the client receives the fully evaluated SVG and the defunctionalized event handlers that need to be registered via the attributes.
 //	The client handles these changes via clientHandleAttributeChange.
-serverHandleModel :: !(SVGEditor s v) !FontSpans !TextSpans !s !v !EditState !*VSt -> (!UIAttributes,!EditState,!*VSt)
+serverHandleModel :: !(SVGEditor s v) !FontSpans !TextSpans !s !v !(ServerSVGState s) !*VSt -> (!UIAttributes,!ServerSVGState s,!*VSt)
 serverHandleModel svglet font_spans text_spans model view state world=:{VSt | taskId}
-  #! state = setTextsCache text_spans (setFontsCache font_spans state)
+  #! state = {ServerSVGState | state & texts=text_spans, fonts=font_spans}
   = case serverSVG svglet font_spans text_spans taskId model view of                            // start to generate the image server-side
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
 	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
@@ -355,21 +381,25 @@ clientGetTaskId me world
 //	client side initialisation of DOM:
 //  The client receives the model value via the .value attribute and stores it at the client side.
 //  This makes the client ready to receive the SVG rendering that is computed at the server side (via `doEditEvent' and ClientNeedsSVG message).
-clientInitDOMEl :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | iTask s & JSEncode{|*|} s
+clientInitDOMEl :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | JSONEncode{|*|} s
 clientInitDOMEl svglet me args world
   #! (model, world) = .? (me .# "attributes.value") world
   #! (model, world) = decodeOnClient model world
   #! world          = jsPutCleanVal JS_ATTR_VIEW  (svglet.initView model) me world
   #! world          = jsPutCleanVal JS_ATTR_MODEL model me world
-  #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON ClientNeedsSVG))) world //TODO: Should not really print+parse here
+  #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet ClientNeedsSVG))) world //TODO: Should not really print+parse here
   #! (cidJS, world) = .? (me .# "attributes.taskId")   world
   #! (editId,world) = .? (me .# "attributes.editorId") world
   #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
   = trace ("clientInitDOMEl")
     (jsNull,world)
 
+//  this auxiliary function is necessary to resolve otherwise internal overloading because of the type parameter s
+toJSON` :: (SVGEditor s v) !(ClientToServerMsg s) -> JSONNode | JSONEncode{|*|} s
+toJSON` _ msg = toJSON msg
+
 //	client side handling of server requests via attributes:
-clientHandleAttributeChange :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | iTask s & JSEncode{|*|} s
+clientHandleAttributeChange :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | iTask, JSEncode{|*|} s
 clientHandleAttributeChange svglet me args world
   = case svg_or_text of
       Just json
@@ -377,7 +407,7 @@ clientHandleAttributeChange svglet me args world
         = case request of
             (ServerNeedsTextMetrics new_fonts new_texts)
               = trace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
-                (jsNull,clientHandlesTextMetrics new_fonts new_texts me world)
+                (jsNull,clientHandlesTextMetrics svglet new_fonts new_texts me world)
             (ServerHasSVG svg_body svg_handlers)
               #! world     = clientUpdateSVGString svg_body me world
               #! world     = clientRegisterEventhandlers svglet me svg_handlers world
@@ -393,8 +423,8 @@ where
 	to_name_value_pairs [n,v : nvs] = [(jsArgToString n,v) : to_name_value_pairs nvs]
 	to_name_value_pairs _           = []
 
-	clientHandlesTextMetrics :: !ImgFonts !ImgTexts !(JSVal a) !*JSWorld -> *JSWorld
-	clientHandlesTextMetrics new_fonts new_texts me world
+	clientHandlesTextMetrics :: !(SVGEditor s v) !ImgFonts !ImgTexts !(JSVal a) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+	clientHandlesTextMetrics svglet new_fonts new_texts me world
 	  #! (font_spans,    world) = jsGetCleanVal JS_ATTR_FONT_SPANS me world            // Load the cached font spans
 	  #! (text_spans,    world) = jsGetCleanVal JS_ATTR_TEXT_SPANS me world            // Load the cached text width spans
 	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                  // Get missing font spans
@@ -403,13 +433,13 @@ where
 	  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
 	  #! world                  = jsPutCleanVal JS_ATTR_FONT_SPANS font_spans me world // Store the cached font spans
 	  #! world                  = jsPutCleanVal JS_ATTR_TEXT_SPANS text_spans me world // Store the cached text width spans
-	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here
+	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here
 	  #! (cidJS,         world) = .? (me .# "attributes.taskId")   world
 	  #! (editId,        world) = .? (me .# "attributes.editorId") world
 	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	  = world
 	
-	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !ImgEventhandlers` !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !ImgEventhandlers` !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es world
 	  #! (taskId,world)     = clientGetTaskId me world
 	  #! (v,     world)     = jsGetCleanVal JS_ATTR_VIEW  me world
@@ -420,7 +450,7 @@ where
 	  = world
 
 //	client side entire rendering of model value:
-clientHandleModel :: !(SVGEditor s v) !(JSVal a) !s !v !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+clientHandleModel :: !(SVGEditor s v) !(JSVal a) !s !v !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
   #! world                  = trace "clientHandleModel" world
   #! (taskId,world)         = clientGetTaskId me world
@@ -556,7 +586,7 @@ clientRootSVGElt me world
   = (currSVG, world)
 
 //	register the defunctionalized event handlers of the image:
-clientRegisterEventhandlers` :: !(SVGEditor s v) !(JSVal a) !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+clientRegisterEventhandlers` :: !(SVGEditor s v) !(JSVal a) !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 clientRegisterEventhandlers` svglet me taskId es` tags world
   #! (svg,    world)     = clientRootSVGElt me world
   #! idMap               = invertToMapSet (fmap (mkUniqId taskId) tags)
@@ -568,11 +598,11 @@ clientRegisterEventhandlers` svglet me taskId es` tags world
 // register all individual event handlers:
   = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
 where
-	registerEventhandler` :: !(SVGEditor s v) !(JSVal a) !String !(JSObj svg) !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	registerEventhandler` :: !(SVGEditor s v) !(JSVal a) !String !(JSObj svg) !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 	registerEventhandler` svglet me taskId svg uniqId es` world
 		= 'Data.Foldable'.foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
 	where
-		register` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !(ImgNodePath,ImgEventhandler`) !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+		register` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !(ImgNodePath,ImgEventhandler`) !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnClickAttr`,local}) world
 			= registerNClick` svglet me svg elemId uniqId p local world
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseDownAttr`,local}) world
@@ -588,28 +618,28 @@ where
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerDraggableAttr`}) world
 			= registerDraggable` svglet me svg elemId uniqId p world
 	
-	registerNClick` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	registerNClick` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 	registerNClick` svglet me svg elemId uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
 	  #! (cb,  world) = jsWrapFun (mkNClickCB` svglet me svg elemId uniqId p local) world
 	  #! (_,   world) = (elem `addEventListener` ("click", cb, False)) world
 	  = world
 	
-	registerMouse` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	registerMouse` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 	registerMouse` svglet me svg elemId evt uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
 	  #! (cb,  world) = jsWrapFun (doMouseEvent` svglet me svg elemId uniqId p MouseNoData local) world
 	  #! (_,   world) = (elem `addEventListener` (evt, cb, True)) world
 	  = world
 	
-	registerDraggable` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	registerDraggable` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
 	registerDraggable` svglet me svg elemId uniqId p world
 	  #! (elem,  world) = (svg .# "getElementById" .$ elemId) world
 	  #! (cbDown,world) = jsWrapFun (doMouseDragEvent` svglet me svg uniqId p elemId elem) world
 	  #! (_,     world) = (elem `addEventListener` ("mousedown", cbDown, True)) world
 	  = world
 	
-	mkNClickCB` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool ![JSArg] !*JSWorld-> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+	mkNClickCB` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool ![JSArg] !*JSWorld-> *(!JSVal (), !*JSWorld) | iTask, JSEncode{|*|} s
 	mkNClickCB` svglet me svg elemId uniqId p local args world
 	  #! world           = case args of [a:_] = snd (((toJSVal a) .# "stopPropagation" .$ ()) world) ; _ = world
 	// If another click already registered a timeout, clear that timeout
@@ -624,7 +654,7 @@ where
 	  #! world           = (me .# "clickCount" .= (toJSVal (jsValToInt nc + 1))) world
 	  = (jsNull,world)
 	
-	doNClickEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool ![JSArg] !*JSWorld-> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+	doNClickEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !Bool ![JSArg] !*JSWorld-> *(!JSVal (), !*JSWorld) | iTask, JSEncode{|*|} s
 	doNClickEvent` svglet me svg elemId uniqId p local args world
 	// Get click count
 	  #! (nc,world)      = .? (me .# "clickCount") world
@@ -633,7 +663,7 @@ where
 	  #! nc              = jsValToInt nc
 	  = doMouseEvent` svglet me svg elemId uniqId p (MouseOnClickData nc) local args world
 	
-	doMouseEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+	doMouseEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask, JSEncode{|*|} s
 	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local _ world
 	  #! world              = trace ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
 	  #! (cidJS,world)      = .? (me .# "attributes.taskId") world
@@ -666,7 +696,7 @@ where
 		applyImgEventhandler (ImgEventhandlerOnMouseOutAttr  {OnMouseOutAttr  | onmouseout  = f}) _ m = f m
 		applyImgEventhandler _ _ m = m		// this case should never be reached (including ImgEventhandlerDraggableAttr)
 	
-	doMouseDragEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !ImgTagNo !ImgNodePath !String !(JSObj o) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+	doMouseDragEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !ImgTagNo !ImgNodePath !String !(JSObj o) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld)
 	doMouseDragEvent` svglet=:{SVGEditor | renderImage} me svg uniqId p elemId elem args world
 	  #! (ds,           world) = jsGetCleanVal "dragState" me world
 	  #! (targetElement,world) = (svg .# "getElementById" .$ elemId) world
@@ -701,7 +731,7 @@ where
 	        = (jsNull,  world)
 	      _ = (jsNull,  world)   // this code should never be reached
 
-doMouseDragMove :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+doMouseDragMove :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld)
 doMouseDragMove svglet me svg [] world
   = (jsNull,world)
 doMouseDragMove svglet me svg args world
@@ -731,7 +761,7 @@ doMouseDragMove svglet me svg args world
   #! world          = jsPutCleanVal "dragState" ds me world
   = (jsNull,world)
 
-doMouseDragUp :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !(Map String (Set ImageTag)) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+doMouseDragUp :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !(Map String (Set ImageTag)) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld)
 doMouseDragUp svglet me svg idMap [] world
   = (jsNull,world)
 doMouseDragUp svglet me svg idMap args world

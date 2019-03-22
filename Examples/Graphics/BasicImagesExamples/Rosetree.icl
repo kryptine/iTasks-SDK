@@ -2,11 +2,10 @@ module Rosetree
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdList, StdTuple
-from   StdFunc import id, seqList, :: St(..)
+from   StdFunc import const, id, seqList, :: St(..)
 
 //	shorthand definitions for the used fonts in these examples
 arial			= normalFontDef "Arial"

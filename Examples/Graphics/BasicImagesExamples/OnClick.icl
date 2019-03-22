@@ -2,11 +2,10 @@ module OnClick
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdInt, StdReal
-from   StdFunc import id
+from   StdFunc import id, const
 import Text
 
 //	shorthand definitions for the used fonts in these examples
@@ -33,12 +32,9 @@ count n _
 	    overlay [(AtMiddleX,AtMiddleY)] []
 	       [ text font (toString n) <@< {fill = white}]
 	       (Host (rect (textxspan font ("  " <+ n)) (px (h + m))))
-//	       <@< {onclick = (+), local = False}
-	       <@< {onclick = \a b -> trace (join " " ["onclick",toString a,toString b]) (a+b), local = False}
+	       <@< {onclick = (+), local = False}
 	  )
 where
 	font = times h
 	h    = 100.0
 	m    = 6.0
-
-import StdDebug
