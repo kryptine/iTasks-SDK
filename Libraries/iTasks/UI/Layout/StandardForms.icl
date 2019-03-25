@@ -135,8 +135,7 @@ layoutVarCons = sequenceLayouts
 
 layoutList :: LayoutRule
 layoutList = sequenceLayouts
-	[setUIType UIContainer
-	,layoutSubUIs SelectChildren (setUIAttributes (heightAttr WrapSize))
+	[layoutSubUIs SelectChildren (setUIAttributes (heightAttr WrapSize))
 	,setUIAttributes (heightAttr WrapSize)
 	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIList)) layoutList
 	]

@@ -769,6 +769,9 @@ div.itasks-exception {
   background-color: #fff;
   border: 2px solid #ccc;
   border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
 }
 .itasks-list .itasks-listitem {
   margin: 0px 5px 5px 5px;

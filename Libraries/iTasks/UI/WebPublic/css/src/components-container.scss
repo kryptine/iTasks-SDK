@@ -459,6 +459,10 @@
 	border: 2px solid $list-border-color;
 	border-radius: 5px;
 
+	display: flex;
+	flex-direction: column;
+	align-self: stretch;
+
 	.#{$prefix}listitem {
 		margin: 0px 5px 5px 5px;
 		align-self: stretch;
