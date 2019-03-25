@@ -1,19 +1,4 @@
 /* Standard container components */
-/*
- 74     | UIContainer
- 75     | UIPanel
- 77     | UIWindow
- 76     | UITabSet
-
- 80     | UIToolBar
- 81     | UIButtonBar
-
- 78     | UIMenu
- 79     | UIMenuSep
-
- 82     | UIList
- 83     | UIListItem
-*/
 *.#{$prefix}viewport {
 	display: flex;
 	margin: 0;
@@ -44,20 +29,44 @@
 	color: $canvas-text-color;
 	background-color: $canvas-base-color;
 	border: 1px solid $panel-border-color;
-	display: flex;
-	flex-direction: column;
+
+	display: grid;
+	grid-template-areas:
+		"header"
+		"inner";
+
+	grid-template-rows: min-content minmax(0, 1fr);
 
 	> .#{$prefix}header {
+		grid-area: header;
 		color: $panel-header-text-color;
 		background-color: $panel-header-base-color;
 		background: linear-gradient(lighten($panel-header-base-color,12.5%), $panel-header-base-color);
+
+		font-weight: bold;
+		font-size: 11px;
+		height: 25px;
+		span {
+			float: left;
+			margin: 4px 0 0 4px;
+		}
+	}
+	> .#{$prefix}inner {
+		grid-area: inner;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
 	}
 
-	flex-grow: 1;
-	flex-shrink: 0;
-	flex-basis: auto;
-	align-self: stretch;
+	&.#{$prefix}scroll-content {
+		flex-basis: 0;
+		overflow: auto;
 
+		> .#{$prefix}inner {
+			overflow: auto;
+		}
+	}
+/*
 	.#{$prefix}vsizer {
 		height: 5px;
 		cursor: ns-resize;
@@ -67,9 +76,14 @@
 			background-color: #{$select-base-color};
 		}
 	}
-	overflow: auto;
+*/
+
+	flex-grow: 1;
+	flex-shrink: 0;
+	flex-basis: auto;
+	align-self: stretch;
 }
-.#{$prefix}panel > .#{$prefix}header,
+
 .#{$prefix}window > .#{$prefix}header {
 	font-weight: bold;
 	font-size: 11px;
@@ -97,7 +111,6 @@
 		margin: 4px 0 0 4px;
 	}
 }
-.#{$prefix}panel > .#{$prefix}inner,
 .#{$prefix}window > .#{$prefix}inner {
 	display: flex;
 	flex-direction: column;
@@ -108,11 +121,9 @@
 
 	align-items: flex-start;
 
-	overflow: hidden;
+	overflow: auto;
 }
-.#{$prefix}panel.#{$prefix}scroll-content > .#{$prefix}inner,
 .#{$prefix}window.#{$prefix}scroll-content > .#{$prefix}inner {
-
 	flex-basis: 0;
 	overflow: auto;
 }	
@@ -272,11 +283,16 @@
 		background-color: $canvas-base-color;
 		flex: 1;
 		display: flex;
+		flex-direction: column;
 	}
 	.#{$prefix}tabitem {
 		display: none;
 	}
-	.#{$prefix}tabitem.#{$prefix}selected {
+	.#{$prefix}panel.#{$prefix}tabitem.#{$prefix}selected {
+		display: grid;
+		border-top: 0;
+	}
+	.#{$prefix}container.#{$prefix}tabitem.#{$prefix}selected {
 		display: flex;
 		border-top: 0;
 	}

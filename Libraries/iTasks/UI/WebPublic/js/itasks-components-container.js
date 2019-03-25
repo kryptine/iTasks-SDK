@@ -9,9 +9,11 @@ itasks.Panel = {
 			isTab = (me.parentCmp && me.parentCmp.type == 'TabSet');
 
 		//Add top sizer
+/*
 		if(me.attributes.resizable && me.attributes.resizable.includes('top')) { 
 			me.domEl.append(me.createSizer());
 		}
+*/
 
 		//Create header
 		if(me.attributes.title && !isTab) {
@@ -26,10 +28,12 @@ itasks.Panel = {
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
 
+	/*
 		//Add bottom sizer
 		if(me.attributes.resizable && me.attributes.resizable.includes('bottom')) { 
 			me.domEl.append(me.createSizer());
 		}
+*/
 		//Fullscreenable
 		if(me.attributes.fullscreenable){
 			me.domEl.style.position = 'relative';
