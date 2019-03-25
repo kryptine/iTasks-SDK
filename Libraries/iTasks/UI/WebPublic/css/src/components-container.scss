@@ -32,10 +32,13 @@
 
 	display: grid;
 	grid-template-areas:
-		"header"
-		"inner";
+		"ls ts rs"
+		"ls header rs"
+		"ls inner rs"
+		"ls bs rs";
 
-	grid-template-rows: min-content minmax(0, 1fr);
+	grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
+	grid-template-columns: min-content 1fr min-content;
 
 	> .#{$prefix}header {
 		grid-area: header;
@@ -66,17 +69,34 @@
 			overflow: auto;
 		}
 	}
-/*
-	.#{$prefix}vsizer {
+	.#{$prefix}sizer-top {
+		grid-area: ts;
+	}
+	.#{$prefix}sizer-bottom {
+		grid-area: bs;
+	}
+	.#{$prefix}sizer-left{
+		grid-area: ls;
+	}
+	.#{$prefix}sizer-right {
+		grid-area: rs;
+	}
+
+	.#{$prefix}sizer-top, .#{$prefix}sizer-bottom {
 		height: 5px;
 		cursor: ns-resize;
+	}
+	.#{$prefix}sizer-left, .#{$prefix}sizer-right {
+		width: 5px;
+		cursor: ew-resize;
+	}
+	.#{$prefix}sizer-top, .#{$prefix}sizer-bottom,
+	.#{$prefix}sizer-left, .#{$prefix}sizer-right {
 		background-color: #{$canvas-base-color};
-		
 		&:hover {
 			background-color: #{$select-base-color};
 		}
 	}
-*/
 
 	flex-grow: 1;
 	flex-shrink: 0;
@@ -525,16 +545,14 @@
 }
 .#{$prefix}sidebar-top > .#{$prefix}inner > .aside,
 .#{$prefix}sidebar-bottom > .#{$prefix}inner > .aside {
-	height: 200px;
-	min-height: 200px;
-	flex: 0;
+	height: 150px;
+	flex: 0 0 150px;
 	align-self: stretch;
 }
 .#{$prefix}sidebar-right > .#{$prefix}inner > .aside,
 .#{$prefix}sidebar-left > .#{$prefix}inner > .aside {
 	width: 200px;
-	min-width: 200px;
-	flex: 0;
+	flex: 0 0 200px;
 	align-self: stretch;
 }
 
