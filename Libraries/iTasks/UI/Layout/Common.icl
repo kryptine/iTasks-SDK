@@ -179,10 +179,10 @@ arrangeSplit direction resize
 		]
 
 arrangeVertical :: LayoutRule
-arrangeVertical = addCSSClass "itasks-vertical-container"
+arrangeVertical = addCSSClass "itasks-vertical"
 
 arrangeHorizontal :: LayoutRule
-arrangeHorizontal = addCSSClass "itasks-horizontal-container"
+arrangeHorizontal = addCSSClass "itasks-horizontal"
 
 frameCompact :: LayoutRule
 frameCompact = sequenceLayouts

@@ -353,9 +353,10 @@ itasks.ExceptionView = {
 	cssCls: 'exception',
 	container: false,
 	initDOMEl: function() {
+
 		//Temporary
-		this.domEl.classList.add(me.cssPrefix + 'flex-width');
-		this.domEl.classList.add(me.cssPrefix + 'flex-height');
+		this.domEl.classList.add(this.cssPrefix + 'flex-width');
+		this.domEl.classList.add(this.cssPrefix + 'flex-height');
 
 		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
 	}

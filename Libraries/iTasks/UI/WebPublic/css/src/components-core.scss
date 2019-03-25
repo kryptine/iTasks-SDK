@@ -1,18 +1,3 @@
-*.#{$prefix}viewport {
-	display: flex;
-	margin: 0;
-    overflow: auto;
-    font-family: tahoma, arial, verdana, sans-serif;
-	text-align: left;
-	font-weight: normal;
-
-	@import "icons.scss";
-	@import "tooltip.scss";
-
-	div, input, td, th, select {
-		font-size: 9pt;
-	}
-}
 div.#{$prefix}loader {
 	display: flex;
 	font-size: 16pt;

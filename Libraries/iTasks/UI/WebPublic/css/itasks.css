@@ -4,154 +4,6 @@
  DO NOT EDIT THE .css FILE! GENERATE USING SASS
 */
 /* You can customize these options to create branded iTask applications */
-*.itasks-viewport {
-  display: flex;
-  margin: 0;
-  overflow: auto;
-  font-family: tahoma, arial, verdana, sans-serif;
-  text-align: left;
-  font-weight: normal;
-}
-*.itasks-viewport .icon-help {
-  background-image: url("/css/icons/help.png");
-}
-*.itasks-viewport .icon-info {
-  background-image: url("/css/icons/information.png") !important;
-}
-*.itasks-viewport .icon-valid {
-  background-image: url("/css/icons/accept.png") !important;
-}
-*.itasks-viewport .icon-warning {
-  background-image: url("/css/icons/warning.png") !important;
-}
-*.itasks-viewport .icon-invalid {
-  background-image: url("/css/icons/exclamation.png") !important;
-}
-*.itasks-viewport .icon-continue {
-  background-image: url("/css/icons/arrow_right.png");
-}
-*.itasks-viewport .icon-login, *.itasks-viewport .icon-log-in {
-  background-image: url("/css/icons/tick.png");
-}
-*.itasks-viewport .icon-logout, *.itasks-viewport .icon-log-out {
-  background-image: url("/css/icons/door_in.png");
-}
-*.itasks-viewport .icon-view {
-  background-image: url("/css/icons/page.png") !important;
-}
-*.itasks-viewport .icon-edit {
-  background-image: url("/css/icons/pencil.png") !important;
-}
-*.itasks-viewport .icon-delete {
-  background-image: url("/css/icons/trash.png") !important;
-}
-*.itasks-viewport .icon-refresh {
-  background-image: url("/css/icons/refresh.png") !important;
-}
-*.itasks-viewport .icon-up {
-  background-image: url("/css/icons/move-up.png") !important;
-}
-*.itasks-viewport .icon-down {
-  background-image: url("/css/icons/move-down.png") !important;
-}
-*.itasks-viewport .icon-add, *.itasks-viewport .icon-new {
-  background-image: url("/css/icons/add.png") !important;
-}
-*.itasks-viewport .icon-remove {
-  background-image: url("/css/icons/delete.png") !important;
-}
-*.itasks-viewport .icon-ok {
-  background-image: url("/css/icons/tick.png") !important;
-}
-*.itasks-viewport .icon-cancel {
-  background-image: url("/css/icons/cancel.png") !important;
-}
-*.itasks-viewport .icon-open {
-  background-image: url("/css/icons/document-open.png") !important;
-}
-*.itasks-viewport .icon-save {
-  background-image: url("/css/icons/document-save.png") !important;
-}
-*.itasks-viewport .icon-document {
-  background-image: url("/css/icons/document.png") !important;
-}
-*.itasks-viewport .icon-document-error {
-  background-image: url("/css/icons/document-error.png") !important;
-}
-*.itasks-viewport .icon-folder {
-  background-image: url("/css/icons/folder.png") !important;
-}
-*.itasks-viewport .icon-close {
-  background-image: url("/css/icons/cancel.png") !important;
-}
-*.itasks-viewport .icon-previous {
-  background-image: url("/css/icons/arrow_left.png") !important;
-}
-*.itasks-viewport .icon-next {
-  background-image: url("/css/icons/arrow_right.png") !important;
-}
-*.itasks-viewport .icon-preferences {
-  background-image: url("/css/icons/cog.png") !important;
-}
-*.itasks-viewport .icon-finish {
-  background-image: url("/css/icons/flag.png") !important;
-}
-*.itasks-viewport .icon-fullscreen {
-  background-image: url("/css/icons/fullscreen.png") !important;
-}
-*.itasks-viewport [tooltip] {
-  position: relative;
-  display: inline-block;
-}
-*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
-  position: absolute;
-  transform: translate3d(0, 0, 0);
-  visibility: hidden;
-  opacity: 0;
-  z-index: 1000000;
-  pointer-events: none;
-  transition: 0.3s ease;
-}
-*.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:focus:before, *.itasks-viewport [tooltip]:focus:after {
-  visibility: visible;
-  opacity: 1;
-}
-*.itasks-viewport [tooltip]:before {
-  content: "";
-  position: absolute;
-  background: transparent;
-  border: 6px solid transparent;
-  z-index: 1000001;
-}
-*.itasks-viewport [tooltip]:after {
-  content: attr(tooltip);
-  background: #ccc;
-  color: #000;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 12px;
-  white-space: nowrap;
-  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
-}
-*.itasks-viewport [tooltip]:before {
-  border-left-color: #ccc;
-  margin-right: -12px;
-  margin-bottom: -6px;
-}
-*.itasks-viewport [tooltip]:after {
-  margin-bottom: -14px;
-}
-*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
-  right: 100%;
-  bottom: 50%;
-}
-*.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:focus:after, *.itasks-viewport [tooltip]:focus:before {
-  transform: translateX(-8px);
-}
-*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
-  font-size: 9pt;
-}
-
 div.itasks-loader {
   display: flex;
   font-size: 16pt;
@@ -348,52 +200,215 @@ div.itasks-exception {
   background-color: #f00;
 }
 
-.itasks-prompt {
-  min-height: fit-content;
-  min-width: fit-content;
-  margin: 5px 5px 10px 5px;
-}
+/* Standard container components */
+/*
+ 74     | UIContainer
+ 75     | UIPanel
+ 77     | UIWindow
+ 76     | UITabSet
 
-.itasks-container.itasks-form-item {
-  margin: 2px 4px 2px 4px;
-  flex-direction: row;
-  align-items: start;
-  flex: 0;
-  align-self: stretch;
-}
+ 80     | UIToolBar
+ 81     | UIButtonBar
 
-.itasks-form-item .itasks-icon {
-  margin-left: 5px;
-}
+ 78     | UIMenu
+ 79     | UIMenuSep
 
-.itasks-container.itasks-cons, .itasks-container.itasks-var-cons {
+ 82     | UIList
+ 83     | UIListItem
+*/
+*.itasks-viewport {
   display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: start;
+  margin: 0;
+  font-family: tahoma, arial, verdana, sans-serif;
+  text-align: left;
+  font-weight: normal;
+  overflow: auto;
+}
+*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
+  font-size: 9pt;
+}
+*.itasks-viewport .icon-help {
+  background-image: url("/css/icons/help.png");
+}
+*.itasks-viewport .icon-info {
+  background-image: url("/css/icons/information.png") !important;
+}
+*.itasks-viewport .icon-valid {
+  background-image: url("/css/icons/accept.png") !important;
+}
+*.itasks-viewport .icon-warning {
+  background-image: url("/css/icons/warning.png") !important;
+}
+*.itasks-viewport .icon-invalid {
+  background-image: url("/css/icons/exclamation.png") !important;
+}
+*.itasks-viewport .icon-continue {
+  background-image: url("/css/icons/arrow_right.png");
+}
+*.itasks-viewport .icon-login, *.itasks-viewport .icon-log-in {
+  background-image: url("/css/icons/tick.png");
+}
+*.itasks-viewport .icon-logout, *.itasks-viewport .icon-log-out {
+  background-image: url("/css/icons/door_in.png");
+}
+*.itasks-viewport .icon-view {
+  background-image: url("/css/icons/page.png") !important;
+}
+*.itasks-viewport .icon-edit {
+  background-image: url("/css/icons/pencil.png") !important;
+}
+*.itasks-viewport .icon-delete {
+  background-image: url("/css/icons/trash.png") !important;
+}
+*.itasks-viewport .icon-refresh {
+  background-image: url("/css/icons/refresh.png") !important;
+}
+*.itasks-viewport .icon-up {
+  background-image: url("/css/icons/move-up.png") !important;
+}
+*.itasks-viewport .icon-down {
+  background-image: url("/css/icons/move-down.png") !important;
+}
+*.itasks-viewport .icon-add, *.itasks-viewport .icon-new {
+  background-image: url("/css/icons/add.png") !important;
+}
+*.itasks-viewport .icon-remove {
+  background-image: url("/css/icons/delete.png") !important;
+}
+*.itasks-viewport .icon-ok {
+  background-image: url("/css/icons/tick.png") !important;
+}
+*.itasks-viewport .icon-cancel {
+  background-image: url("/css/icons/cancel.png") !important;
+}
+*.itasks-viewport .icon-open {
+  background-image: url("/css/icons/document-open.png") !important;
+}
+*.itasks-viewport .icon-save {
+  background-image: url("/css/icons/document-save.png") !important;
+}
+*.itasks-viewport .icon-document {
+  background-image: url("/css/icons/document.png") !important;
+}
+*.itasks-viewport .icon-document-error {
+  background-image: url("/css/icons/document-error.png") !important;
+}
+*.itasks-viewport .icon-folder {
+  background-image: url("/css/icons/folder.png") !important;
+}
+*.itasks-viewport .icon-close {
+  background-image: url("/css/icons/cancel.png") !important;
+}
+*.itasks-viewport .icon-previous {
+  background-image: url("/css/icons/arrow_left.png") !important;
+}
+*.itasks-viewport .icon-next {
+  background-image: url("/css/icons/arrow_right.png") !important;
+}
+*.itasks-viewport .icon-preferences {
+  background-image: url("/css/icons/cog.png") !important;
+}
+*.itasks-viewport .icon-finish {
+  background-image: url("/css/icons/flag.png") !important;
+}
+*.itasks-viewport .icon-fullscreen {
+  background-image: url("/css/icons/fullscreen.png") !important;
+}
+*.itasks-viewport [tooltip] {
+  position: relative;
+  display: inline-block;
+}
+*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
+  position: absolute;
+  transform: translate3d(0, 0, 0);
+  visibility: hidden;
+  opacity: 0;
+  z-index: 1000000;
+  pointer-events: none;
+  transition: 0.3s ease;
+}
+*.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:focus:before, *.itasks-viewport [tooltip]:focus:after {
+  visibility: visible;
+  opacity: 1;
+}
+*.itasks-viewport [tooltip]:before {
+  content: "";
+  position: absolute;
+  background: transparent;
+  border: 6px solid transparent;
+  z-index: 1000001;
+}
+*.itasks-viewport [tooltip]:after {
+  content: attr(tooltip);
+  background: #ccc;
+  color: #000;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 12px;
+  white-space: nowrap;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
+}
+*.itasks-viewport [tooltip]:before {
+  border-left-color: #ccc;
+  margin-right: -12px;
+  margin-bottom: -6px;
+}
+*.itasks-viewport [tooltip]:after {
+  margin-bottom: -14px;
+}
+*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
+  right: 100%;
+  bottom: 50%;
+}
+*.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:focus:after, *.itasks-viewport [tooltip]:focus:before {
+  transform: translateX(-8px);
 }
 
-.itasks-frame-compact-outer {
+.itasks-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   flex: 1;
   align-self: stretch;
 }
 
-.itasks-container > .itasks-frame-compact-inner {
-  margin: 50px 0 20px 0;
-  border-radius: 5px;
-  overflow: hidden;
-  align-self: center;
-  flex: 0;
-  flex-basis: content;
+.itasks-panel {
+  flex: 1;
+  align-self: stretch;
 }
 
-.itasks-header {
+.itasks-panel {
+  color: #000;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-self: stretch;
+}
+.itasks-panel > .itasks-header {
+  color: #000;
+  background-color: #ccc;
+  background: linear-gradient(#ececec, #ccc);
+}
+.itasks-panel .itasks-vsizer {
+  height: 5px;
+  cursor: ns-resize;
+  background-color: #eee;
+}
+.itasks-panel .itasks-vsizer:hover {
+  background-color: #333;
+}
+
+.itasks-panel > .itasks-header,
+.itasks-window > .itasks-header {
   font-weight: bold;
   font-size: 11px;
   height: 25px;
   align-self: stretch;
 }
-.itasks-header a.close {
+.itasks-panel > .itasks-header a.close,
+.itasks-window > .itasks-header a.close {
   float: right;
   color: #000;
   display: inline-block;
@@ -409,69 +424,66 @@ div.itasks-exception {
   padding: 0 4px 2px 4px;
   text-decoration: none;
 }
-.itasks-header span {
+.itasks-panel > .itasks-header span,
+.itasks-window > .itasks-header span {
   float: left;
   margin: 4px 0 0 4px;
 }
 
-.itasks-inner {
+.itasks-panel > .itasks-inner,
+.itasks-window > .itasks-inner {
   display: flex;
   flex-direction: column;
   flex: 1;
   align-items: flex-start;
 }
 
-/* Minimal containers */
-.itasks-container {
+/* Windows */
+.itasks-window {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 100;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  /* Default flexible sizes */
-  flex: 1;
-  align-self: stretch;
+}
+.itasks-window > .itasks-inner {
+  overflow: auto;
 }
 
-.itasks-horizontal-container {
-  flex-direction: row;
-}
-
-.itasks-vertical-container {
-  flex-direction: column;
-}
-
-/* Panels */
-.itasks-panel {
+.itasks-window.itasks-floating-window {
   color: #000;
   background-color: #eee;
   border: 1px solid #ccc;
-  display: flex;
-  flex-direction: column;
-  /* Default flexible sizes */
-  flex: 1;
-  align-self: stretch;
+  border-radius: 5px;
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
 }
-.itasks-panel > .itasks-header {
+.itasks-window.itasks-floating-window > .itasks-header {
   color: #000;
   background-color: #ccc;
   background: linear-gradient(#ececec, #ccc);
 }
 
-.itasks-framed {
-  border-radius: 5px;
+.itasks-window.itasks-notification-bubble {
+  background-color: #eee;
+  border: 3px solid #ccc;
+  border-radius: 10px;
+  opacity: 0.9;
+}
+.itasks-window.itasks-notification-bubble > .itasks-header {
+  color: #000;
+  background-color: #ccc;
 }
 
-/* Tabs */
 .itasks-tabset {
   display: flex;
   align-items: stretch;
   flex-direction: column;
 }
-
 .itasks-tabset > * {
   align-self: stretch;
 }
-
-.itasks-tabbar {
+.itasks-tabset .itasks-tabbar {
   text-align: left;
   list-style: none;
   margin: 0;
@@ -482,22 +494,7 @@ div.itasks-exception {
   background: linear-gradient(white, #ccc);
   overflow: hidden;
 }
-
-.itasks-tabbar:after {
-  position: absolute;
-  content: "";
-  width: 100%;
-  bottom: 0;
-  left: 0;
-  border-bottom: 1px solid #ccc;
-  z-index: 1;
-}
-
-.itasks-tabbar:before {
-  z-index: 1;
-}
-
-.itasks-tabbar li {
+.itasks-tabset .itasks-tabbar li {
   margin: 0;
   padding: 0 10px;
   border: 1px solid #ccc;
@@ -508,14 +505,12 @@ div.itasks-exception {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
-
-.itasks-tabbar li a {
+.itasks-tabset .itasks-tabbar li a {
   color: #000;
   text-decoration: none;
 }
-
-.itasks-tabbar li:before,
-.itasks-tabbar li:after {
+.itasks-tabset .itasks-tabbar li:before,
+.itasks-tabset .itasks-tabbar li:after {
   position: absolute;
   bottom: -1px;
   width: 5px;
@@ -523,37 +518,31 @@ div.itasks-exception {
   content: " ";
   border: 1px solid #ccc;
 }
-
-.itasks-tabbar li:before {
+.itasks-tabset .itasks-tabbar li:before {
   left: -6px;
   border-bottom-right-radius: 5px;
   border-width: 0 1px 1px 0;
   box-shadow: 2px 2px 0 #e1e1e1;
 }
-
-.itasks-tabbar li:after {
+.itasks-tabset .itasks-tabbar li:after {
   right: -6px;
   border-bottom-left-radius: 5px;
   border-width: 0 0 1px 1px;
   box-shadow: -2px 2px 0 #e1e1e1;
 }
-
-.itasks-tabbar li.itasks-selected {
+.itasks-tabset .itasks-tabbar li.itasks-selected {
   background: #eee;
   color: #000;
   z-index: 2;
   border-bottom-color: #eee;
 }
-
-.itasks-tabbar li.itasks-selected:before {
+.itasks-tabset .itasks-tabbar li.itasks-selected:before {
   box-shadow: 2px 2px 0 #eee;
 }
-
-.itasks-tabbar li.itasks-selected:after {
+.itasks-tabset .itasks-tabbar li.itasks-selected:after {
   box-shadow: -2px 2px 0 #eee;
 }
-
-.itasks-tabbar li a.itasks-tabclose {
+.itasks-tabset .itasks-tabbar li a.itasks-tabclose {
   color: #aaa;
   display: inline-block;
   position: relative;
@@ -567,8 +556,19 @@ div.itasks-exception {
   border-radius: 2px;
   padding: 0 2px;
 }
-
-.itasks-tabicon {
+.itasks-tabset .itasks-tabbar:after {
+  position: absolute;
+  content: "";
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid #ccc;
+  z-index: 1;
+}
+.itasks-tabset .itasks-tabbar:before {
+  z-index: 1;
+}
+.itasks-tabset .itasks-tabicon {
   width: 16px;
   height: 16px;
   display: inline-block;
@@ -576,70 +576,27 @@ div.itasks-exception {
   position: relative;
   top: 3px;
 }
-
-.itasks-tab-disabled .itasks-tabicon {
+.itasks-tabset .itasks-tab-disabled .itasks-tabicon {
   opacity: 0.5;
 }
-
-.itasks-tab-disabled span {
+.itasks-tabset .itasks-tab-disabled span {
   color: #aaa;
 }
-
-.itasks-tabitems {
+.itasks-tabset .itasks-tabitems {
   z-index: 2;
   border: 1px solid #ccc;
   border-top-width: 0;
   background-color: #eee;
   flex: 1;
 }
-
-.itasks-tabitem {
+.itasks-tabset .itasks-tabitem {
   display: none;
 }
-
-.itasks-tabitem.itasks-selected {
+.itasks-tabset .itasks-tabitem.itasks-selected {
   display: flex;
   border-top: 0;
 }
 
-/* Windows */
-.itasks-floating-window, .itasks-notification-bubble {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-}
-.itasks-floating-window > .itasks-inner, .itasks-notification-bubble > .itasks-inner {
-  overflow: auto;
-}
-
-.itasks-floating-window {
-  color: #000;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
-}
-.itasks-floating-window > .itasks-header {
-  color: #000;
-  background-color: #ccc;
-  background: linear-gradient(#ececec, #ccc);
-}
-
-.itasks-notification-bubble {
-  background-color: #eee;
-  border: 3px solid #ccc;
-  border-radius: 10px;
-  opacity: 0.9;
-}
-.itasks-notification-bubble > .itasks-header {
-  color: #000;
-  background-color: #ccc;
-}
-
-/* Toolbars, button bars & menu's */
 .itasks-toolbar, .itasks-buttonbar {
   align-self: stretch;
   flex: 0;
@@ -665,30 +622,6 @@ div.itasks-exception {
 .itasks-buttonbar {
   justify-content: flex-end;
   padding: 2px 2px 2px 0;
-}
-
-.itasks-list {
-  color: #000;
-  background-color: #fff;
-  border: 2px solid #ccc;
-  border-radius: 5px;
-}
-
-.itasks-listitem {
-  margin: 0px 5px 5px 5px;
-  align-self: stretch;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-}
-
-.itasks-listitem:nth-child(even) {
-  background-color: #eee;
-}
-
-.itasks-listitem-controls {
-  flex-direction: row;
-  justify-items: flex-end;
 }
 
 .itasks-menu {
@@ -784,17 +717,83 @@ div.itasks-exception {
   box-shadow: 0 3px 3px rgba(0, 0, 0, 0.5);
 }
 
+.itasks-list {
+  color: #000;
+  background-color: #fff;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+}
+.itasks-list .itasks-listitem {
+  margin: 0px 5px 5px 5px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.itasks-list .itasks-listitem:nth-child(even) {
+  background-color: #eee;
+}
+.itasks-list .itasks-listitem-controls {
+  flex-direction: row;
+  justify-items: flex-end;
+}
+
 .itasks-debug {
   border: 3px solid red;
 }
 
-.itasks-vsizer {
-  height: 5px;
-  cursor: ns-resize;
-  background-color: #eee;
+/* Container components with additional styling */
+.itasks-container.itasks-horizontal,
+.itasks-panel.itasks-horizontal {
+  flex-direction: row;
 }
-.itasks-vsizer:hover {
-  background-color: #333;
+
+.itasks-container.itasks-vertical,
+.itasks-panel.itasks-vertical {
+  flex-direction: column;
+}
+
+.itasks-container.itasks-prompt {
+  min-height: fit-content;
+  min-width: fit-content;
+  margin: 5px 5px 10px 5px;
+}
+
+.itasks-container.itasks-form-item {
+  margin: 2px 4px 2px 4px;
+  flex-direction: row;
+  align-items: start;
+  flex: 0;
+  align-self: stretch;
+}
+
+.itasks-container.itasks-form-item .itasks-icon {
+  margin-left: 5px;
+}
+
+.itasks-container.itasks-cons, .itasks-container.itasks-var-cons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: start;
+}
+
+.itasks-container.itasks-frame-compact-outer {
+  flex: 1;
+  align-self: stretch;
+}
+
+.itasks-container.itasks-frame-compact-outer > .itasks-frame-compact-inner {
+  margin: 50px 0 20px 0;
+  border-radius: 5px;
+  overflow: hidden;
+  align-self: center;
+  flex: 0;
+  flex-basis: content;
+}
+
+.itasks-panel.itasks-framed {
+  border-radius: 5px;
 }
 
 .itasks-headerbar > .itasks-inner > .aside {
@@ -805,7 +804,10 @@ div.itasks-exception {
 }
 
 /* Sidebar elements */
-.itasks-sidebar-left > .itasks-inner, .itasks-sidebar-right > .itasks-inner {
+.itasks-panel.itasks-sidebar-left > .itasks-inner,
+.itasks-panel.itasks-sidebar-right > .itasks-inner,
+.itasks-container.itasks-sidebar-left > .itasks-inner,
+.itasks-container.itasks-sidebar-right > .itasks-inner {
   flex-direction: row;
 }
 

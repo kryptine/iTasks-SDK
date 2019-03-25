@@ -299,8 +299,8 @@ itasks.TabSet = {
 }
 
 itasks.Window = {
+	cssCls: 'window',
 	attributes: {
-    	marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
 		movable: true,
 		resizable: true,
 		windowType: 'floating',
