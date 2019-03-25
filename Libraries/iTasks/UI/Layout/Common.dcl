@@ -69,6 +69,12 @@ arrangeHorizontal :: LayoutRule
 */
 frameCompact :: LayoutRule
 
+
+/**
+* Adds a CSS class that indicates that content of a panel should scroll.
+*/
+scrollContent :: LayoutRule
+
 /**
 * Add a tool bar and move selected actions to it
 */ 
@@ -95,6 +101,9 @@ instance tune ArrangeVertical Task
 
 :: ArrangeHorizontal = ArrangeHorizontal
 instance tune ArrangeHorizontal Task
+
+:: ScrollContent = ScrollContent
+instance tune ScrollContent Task
 
 //Changing container types
 

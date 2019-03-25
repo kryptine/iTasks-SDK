@@ -30,6 +30,7 @@ arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
 	(sequenceLayouts
 		[setUIType UITabSet
+		,layoutSubUIs SelectChildren scrollContent
 		:if closeable [moveCloseToTab] []
 		])
 where
@@ -191,6 +192,9 @@ frameCompact = sequenceLayouts
 	,addCSSClass "itasks-frame-compact-outer"
 	]
 
+scrollContent :: LayoutRule
+scrollContent = addCSSClass "itasks-scroll-content"
+
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
 	[wrapUI UIWindow
@@ -296,6 +300,10 @@ where
 instance tune ArrangeHorizontal Task
 where
     tune ArrangeHorizontal t = tune (ApplyLayout arrangeHorizontal) t
+
+instance tune ScrollContent Task
+where
+    tune ScrollContent t = tune (ApplyLayout scrollContent) t
 
 instance tune ToWindow Task
 where

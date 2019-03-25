@@ -25,21 +25,29 @@ div.#{$prefix}exception {
 .#{$prefix}viewport > .#{$prefix}flex-width,
 .#{$prefix}panel > .#{$prefix}inner > .#{$prefix}flex-width,
 .#{$prefix}window > .#{$prefix}inner > .#{$prefix}flex-width,
+.#{$prefix}tabitems > .#{$prefix}flex-width,
 .#{$prefix}container > .#{$prefix}flex-width {
 	align-self: stretch;
 }
 .#{$prefix}viewport > .#{$prefix}flex-height,
 .#{$prefix}panel > .#{$prefix}inner > .#{$prefix}flex-height,
 .#{$prefix}window > .#{$prefix}inner > .#{$prefix}flex-height,
+.#{$prefix}tabitems > .#{$prefix}flex-height,
 .#{$prefix}container > .#{$prefix}flex-height {
 	flex: 1;
 }
 .#{$prefix}viewport > .#{$prefix}wrap-height,
 .#{$prefix}panel > .#{$prefix}inner > .#{$prefix}wrap-height,
 .#{$prefix}window > .#{$prefix}inner > .#{$prefix}wrap-height,
+.#{$prefix}tabitems > .#{$prefix}wrap-height,
 .#{$prefix}container > .#{$prefix}wrap-height {
 	flex-shrink: 0;
+	flex-grow: 0;
 	flex-basis: auto;
+
+	.#{$prefix}inner {
+		flex-basis: auto;
+	}
 }
 
 /* Sizing children of horizontal containers */

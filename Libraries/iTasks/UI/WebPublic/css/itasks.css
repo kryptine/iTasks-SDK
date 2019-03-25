@@ -37,6 +37,7 @@ div.itasks-exception {
 .itasks-viewport > .itasks-flex-width,
 .itasks-panel > .itasks-inner > .itasks-flex-width,
 .itasks-window > .itasks-inner > .itasks-flex-width,
+.itasks-tabitems > .itasks-flex-width,
 .itasks-container > .itasks-flex-width {
   align-self: stretch;
 }
@@ -44,6 +45,7 @@ div.itasks-exception {
 .itasks-viewport > .itasks-flex-height,
 .itasks-panel > .itasks-inner > .itasks-flex-height,
 .itasks-window > .itasks-inner > .itasks-flex-height,
+.itasks-tabitems > .itasks-flex-height,
 .itasks-container > .itasks-flex-height {
   flex: 1;
 }
@@ -51,8 +53,17 @@ div.itasks-exception {
 .itasks-viewport > .itasks-wrap-height,
 .itasks-panel > .itasks-inner > .itasks-wrap-height,
 .itasks-window > .itasks-inner > .itasks-wrap-height,
+.itasks-tabitems > .itasks-wrap-height,
 .itasks-container > .itasks-wrap-height {
   flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: auto;
+}
+.itasks-viewport > .itasks-wrap-height .itasks-inner,
+.itasks-panel > .itasks-inner > .itasks-wrap-height .itasks-inner,
+.itasks-window > .itasks-inner > .itasks-wrap-height .itasks-inner,
+.itasks-tabitems > .itasks-wrap-height .itasks-inner,
+.itasks-container > .itasks-wrap-height .itasks-inner {
   flex-basis: auto;
 }
 
@@ -373,18 +384,16 @@ div.itasks-exception {
 }
 
 .itasks-panel {
-  flex: 1;
-  align-self: stretch;
-}
-
-.itasks-panel {
   color: #000;
   background-color: #eee;
   border: 1px solid #ccc;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: auto;
   align-self: stretch;
+  overflow: auto;
 }
 .itasks-panel > .itasks-header {
   color: #000;
@@ -434,8 +443,17 @@ div.itasks-exception {
 .itasks-window > .itasks-inner {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: auto;
   align-items: flex-start;
+  overflow: hidden;
+}
+
+.itasks-panel.itasks-scroll-content > .itasks-inner,
+.itasks-window.itasks-scroll-content > .itasks-inner {
+  flex-basis: 0;
+  overflow: auto;
 }
 
 /* Windows */
@@ -449,6 +467,7 @@ div.itasks-exception {
 }
 .itasks-window > .itasks-inner {
   overflow: auto;
+  flex-basis: 0;
 }
 
 .itasks-window.itasks-floating-window {
@@ -588,6 +607,7 @@ div.itasks-exception {
   border-top-width: 0;
   background-color: #eee;
   flex: 1;
+  display: flex;
 }
 .itasks-tabset .itasks-tabitem {
   display: none;
