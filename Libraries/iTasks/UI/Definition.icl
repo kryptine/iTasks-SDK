@@ -66,9 +66,6 @@ heightAttr height = 'DM'.fromList [("height",encodeUI height)]
 titleAttr :: !String -> UIAttributes
 titleAttr title = 'DM'.fromList [("title",JSONString title)]
 
-frameAttr :: !Bool -> UIAttributes
-frameAttr frame = 'DM'.fromList [("frame",JSONBool frame)]
-
 iconClsAttr :: !String -> UIAttributes
 iconClsAttr iconCls = 'DM'.fromList [("iconCls",JSONString iconCls)]
 

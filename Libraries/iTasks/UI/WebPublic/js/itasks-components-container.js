@@ -1,11 +1,5 @@
 itasks.Container = {
-	cssCls: 'container',
-	initDOMEl: function() {
-		var me = this;
-		if(me.baseCls) {
-			me.domEl.classList.add(me.baseCls);
-		}
-	}
+	cssCls: 'container'
 };
 
 itasks.Panel = {
@@ -36,14 +30,6 @@ itasks.Panel = {
 		if(me.attributes.resizable && me.attributes.resizable.includes('bottom')) { 
 			me.domEl.append(me.createSizer());
 		}
-
-		if(me.frame) {
-			me.domEl.classList.add(me.cssPrefix + 'framed');
-		}
-		if(me.baseCls) {
-			me.domEl.classList.add(me.attributes.baseCls);
-		}
-
 		//Fullscreenable
 		if(me.attributes.fullscreenable){
 			me.domEl.style.position = 'relative';
@@ -96,12 +82,11 @@ itasks.Panel = {
 			
 			var startPos = e.clientY;
 			var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
-			
 			var resize = function resize(ev) {
 				if (me.attributes.resizable.includes('bottom')) {
-					me.domEl.style['height'] = (startSize + (ev.clientY - startPos)) + 'px';
+					me.domEl.style['flex-basis'] = (startSize + (ev.clientY - startPos)) + 'px';
 				} else {
-					me.domEl.style['height'] = (startSize + (startPos - ev.clientY)) + 'px';
+					me.domEl.style['flex-basis'] = (startSize + (startPos - ev.clientY)) + 'px';
 				}
 			};
 

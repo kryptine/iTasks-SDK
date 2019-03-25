@@ -186,7 +186,6 @@ widthAttr         :: !UISize                              -> UIAttributes
 heightAttr        :: !UISize                              -> UIAttributes
 
 titleAttr         :: !String                              -> UIAttributes
-frameAttr         :: !Bool                                -> UIAttributes
 iconClsAttr       :: !String                              -> UIAttributes
 tooltipAttr       :: !String                              -> UIAttributes
 
