@@ -898,67 +898,47 @@ where
 	
 	genSVGTransform :: !HostImg !(Maybe ImgTransform) !ImgSpans !String -> [SVGAttr]
 	genSVGTransform (CompositeImg img) (Just tf) spans taskId
-		= [genTransform isTextHost imgSpan tf taskId]
+		= [genTransform imgSpan tf taskId]
 	where
-		isTextHost  = case img.Img.host of
-		                BasicHostImg (TextImg _ _) _ = True
-		                _                            = False
 		imgSpan     = case 'Data.Map'.get img.Img.uniqId spans of
 			            Just (PxSpan w, PxSpan h) = (w,h)
 			            Just _                    = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unresolvedErrorMsg  "image")
 			            nothing                   = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unavailableErrorMsg "image")
 		
-		genTransform :: !Bool !ImageSpanReal !ImgTransform !String -> SVGAttr
-		genTransform isText (xsp, ysp) (RotateImg imAn) _
-		// FIXME: We currently divide ysp by 4.0 as an approximation of the text descent height. Text is transformed from the baseline, not top-left. The actual offset for text would be ~((fontyspan / 2) - descent), but we currently don't know the descent.
-			#! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
-			= TransformAttr [RotateTransform (to2decString (toDeg imAn)) (Just (to2decString (xsp / 2.0), to2decString yoff))]
-		genTransform _ _ (SkewXImg imAn) _
+		genTransform :: !ImageSpanReal !ImgTransform !String -> SVGAttr
+		genTransform (xsp, ysp) (RotateImg imAn) _
+			= TransformAttr [RotateTransform (to2decString (toDeg imAn)) (Just (to2decString (xsp / 2.0), to2decString (ysp / 2.0)))]
+		genTransform _ (SkewXImg imAn) _
 			= TransformAttr [SkewXTransform (toString (toDeg imAn))]
-		genTransform _ _ (SkewYImg imAn) _
+		genTransform _ (SkewYImg imAn) _
 			= TransformAttr [SkewYTransform (toString (toDeg imAn))]
-		genTransform isText (xsp, ysp) (FitImg spx spy) _
-			| isText     = TransformAttr [translate, scale]
-			| otherwise  = TransformAttr            [scale]
+		genTransform (xsp, ysp) (FitImg spx spy) _
+			= TransformAttr [ScaleTransform fx fy]
 		where
 			(fx,fy)      = case (spx,spy) of
 			                 (PxSpan rx, PxSpan ry) = (to2decString (rx / xsp), to2decString (ry / ysp))
 			                 _                      = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg  "fit"))
-			translate    = TranslateTransform "0" (toString ysp)
-			scale        = ScaleTransform fx fy
-		genTransform isText (xsp, ysp) (FitXImg sp) _
-			| isText    = TransformAttr [translate, scale]
-			| otherwise = TransformAttr            [scale]
+		genTransform (xsp, ysp) (FitXImg sp) _
+			= TransformAttr [ScaleTransform fxy fxy]
 		where
 			fx          = case sp of
 			                PxSpan rx = rx / xsp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fitx"))
 			fxy         = if (xsp > 0.0) (to2decString fx) "1.0"
-			translate   = TranslateTransform "0" (to2decString (ysp * 0.7 * fx))
-			scale       = ScaleTransform fxy fxy
-		genTransform isText (xsp, ysp) (FitYImg sp) _
-			| isText    = TransformAttr [translate, scale]
-			| otherwise = TransformAttr            [scale]
+		genTransform (xsp, ysp) (FitYImg sp) _
+			= TransformAttr [ScaleTransform fxy fxy]
 		where
 			fy          = case sp of
 			                PxSpan ry = ry / ysp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fity"))
 			fxy         = if (ysp > 0.0) (to2decString fy) "1.0"
-			translate   = TranslateTransform "0" (toString ysp)
-			scale       = ScaleTransform fxy fxy
-		genTransform isText (_, ysp) (ScaleImg fx fy) _
-			| isText    = TransformAttr [translate, scale]
-			| otherwise = TransformAttr            [scale]
-		where
-			translate   = TranslateTransform "0" (toString ysp)
-			scale       = ScaleTransform (to2decString fx) (to2decString fy)
-		genTransform isText (xsp, ysp) FlipXImg _
+		genTransform (_, ysp) (ScaleImg fx fy) _
+			= TransformAttr [ScaleTransform (to2decString fx) (to2decString fy)]
+		genTransform (xsp, ysp) FlipXImg _
 			= TransformAttr [TranslateTransform (to2decString xsp) "0", ScaleTransform "-1" "1"]
-		genTransform isText (xsp, ysp) FlipYImg _
-			= TransformAttr [TranslateTransform "0" (to2decString ysp`), ScaleTransform "1" "-1"]
-		where
-			ysp`        = if isText ((~ ysp) * 0.7) ysp
-		genTransform _ _ (MaskImg uniqId) taskId
+		genTransform (xsp, ysp) FlipYImg _
+			= TransformAttr [TranslateTransform "0" (to2decString ysp), ScaleTransform "1" "-1"]
+		genTransform _ (MaskImg uniqId) taskId
 			= MaskAttr (mkUrl (mkMaskId taskId uniqId))
 	genSVGTransform _ _ _ _
 		= []
