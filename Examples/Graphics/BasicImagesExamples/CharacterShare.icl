@@ -6,7 +6,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.SDS
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-from   StdFunc import id, const
+import StdFunctions
 from   iTasks import instance Identifiable SDSLens, instance Modifiable SDSLens, instance Registrable SDSLens, instance Readable SDSLens, instance Writeable SDSLens
 
 Start :: *World -> *World

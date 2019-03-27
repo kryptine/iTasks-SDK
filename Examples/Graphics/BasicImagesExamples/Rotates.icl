@@ -2,11 +2,9 @@ module Rotates
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdEnum, StdReal
-from   StdFunc import id
+import StdEnum, StdFunctions, StdReal
 
 Start :: *World -> *World
 Start world

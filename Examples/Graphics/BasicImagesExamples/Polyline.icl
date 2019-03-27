@@ -4,7 +4,7 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-from   StdFunc import id, const
+import StdFunctions
 
 //	shorthand definitions for the used colours in these examples
 white			= toSVGColor "white"
