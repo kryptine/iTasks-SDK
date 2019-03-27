@@ -1,11 +1,8 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
-import StdMisc, StdArray
-
-import iTasks
 import iTasks.UI.JS.Encoding, iTasks.UI.Definition, iTasks.UI.Editor
 import Graphics.Scalable.Internal.Image`
-import StdEnv
+import StdArray, StdBool, StdFunctions, StdMisc, StdTuple
 import Data.Either
 import Data.Func
 import Data.GenEq
@@ -19,7 +16,7 @@ from Data.Map import :: Map, instance Functor (Map k)
 from Data.Set import :: Set, instance == (Set a), instance < (Set a), instance Foldable Set
 import Math.Geometry
 import Text
-//import Text.GenJSON
+import Text.GenJSON
 import Text.HTML
 
 import StdDebug
