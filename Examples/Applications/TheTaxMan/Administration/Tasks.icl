@@ -122,10 +122,7 @@ convertExampleData
 	>>|				readLinesFromFile (examplefilepath curDir "officers.txt")
 	>>- \officers -> importDemoUsersFlow
 	>>- \demoAccounts -> allTasks
-					(createUser <$> [{UserAccount | credentials = 	{ username = Username "root", password = Password "root"}
-		 								, title = Just "root", roles = ["admin","programmer","god"]
-		 								}] ++
-						 [{UserAccount | demo & roles = ["admin"]} 	\\ demo <- demoAccounts] ++
+					(createUser <$> 
 						 [{UserAccount | credentials = 	{ username = Username officer, password = Password officer}
 		 								, title = Just officer, roles = ["officer"]
 		 								}
