@@ -1,6 +1,7 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
 import iTasks.UI.JS.Encoding, iTasks.UI.Definition, iTasks.UI.Editor
+import Graphics.Scalable.Image
 import Graphics.Scalable.Internal.Image`
 import StdArray, StdBool, StdFunctions, StdMisc, StdTuple
 import Data.Either
@@ -300,18 +301,18 @@ where
 //	The server component deserializes the received json data to determine the proper action.
  	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|} s
   	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
-  	  #! (set_attrs,mask,vst) = serverHandleModel svglet fonts texts new (svglet.initView new) {ServerSVGState | mask & model=new} vst
+  	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} vst
   	  = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
   	    (Ok (attributesToUIChange set_attrs,mask),vst)
   	serverHandleEditFromClient svglet _ (_,ClientHasNewTextMetrics new_font_metrics new_texts_metrics) mask=:{ServerSVGState | model=old,fonts,texts} vst 
       #! font_spans           = 'Data.Map'.union                      new_font_metrics  fonts
       #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
       #! mask                 = {ServerSVGState | mask & fonts=font_spans, texts=text_spans}
-      #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
+      #! (set_attrs,mask,vst) = serverHandleModel svglet mask vst
       = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
         (Ok (attributesToUIChange set_attrs,mask),vst)
-    serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old} vst
-	  #! (attrs,mask,vst) = serverHandleModel svglet 'Data.Map'.newMap 'Data.Map'.newMap old (svglet.initView old) mask/*(initServerSVGState old)*/ vst
+    serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old,fonts,texts} vst
+	  #! (attrs,mask,vst) = serverHandleModel svglet mask vst
 	  = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
 	    (Ok (attributesToUIChange attrs,mask),vst)
 	
@@ -321,7 +322,7 @@ where
 	serverHandleEditFromContext svglet _ new mask=:{ServerSVGState | model=old,fonts,texts} vst
   	| gEq{|*|} old new
   		= (Ok (NoChange,mask),vst)
-  	#! (set_attrs,mask`,vst`) = serverHandleModel svglet fonts texts new (svglet.initView new) {ServerSVGState | mask & model=new} vst
+  	#! (set_attrs,mask`,vst`) = serverHandleModel svglet {ServerSVGState | mask & model=new} vst
   	= trace_n ("serverHandleEditFromContext")
   	  (Ok (attributesToUIChange set_attrs,mask`),vst`)
 	
@@ -334,9 +335,8 @@ where
 //	This may `fail' due to missing font/text metrics, in which case these are requested to the client via the attributes.
 //  If it succeeds, then the client receives the fully evaluated SVG and the defunctionalized event handlers that need to be registered via the attributes.
 //	The client handles these changes via clientHandleAttributeChange.
-serverHandleModel :: !(SVGEditor s v) !FontSpans !TextSpans !s !v !(ServerSVGState s) !*VSt -> (!UIAttributes,!ServerSVGState s,!*VSt)
-serverHandleModel svglet font_spans text_spans model view state world=:{VSt | taskId}
-  #! state = {ServerSVGState | state & texts=text_spans, fonts=font_spans}
+serverHandleModel :: !(SVGEditor s v) !(ServerSVGState s) !*VSt -> (!UIAttributes,!ServerSVGState s,!*VSt)
+serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=text_spans} world=:{VSt | taskId}
   = case serverSVG svglet font_spans text_spans taskId model view of                            // start to generate the image server-side
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
 	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
@@ -345,6 +345,7 @@ serverHandleModel svglet font_spans text_spans model view state world=:{VSt | ta
 	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es))) size_and_model
 	    = (attrs, state, world)
 where
+	view           = svglet.initView model
 	size_and_model = sizeAttr FlexSize FlexSize
 
 attributesToUIChange :: !UIAttributes -> UIChange
