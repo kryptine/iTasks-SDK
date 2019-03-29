@@ -86,7 +86,7 @@ testEditor :: (Editor a) (EditMode a) -> Task a | iTask a
 testEditor editor mode
 	=   (interact "Editor test" unitShare {onInit = const ((),mode), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
-	)  <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) )
+	)  <<@ ArrangeHorizontal
 
 testEditorWithShare :: (Editor a) a Bool -> Task a | iTask a
 testEditorWithShare editor model viewMode = (withShared model
@@ -96,7 +96,7 @@ testEditorWithShare editor model viewMode = (withShared model
 	    interact "Editor under test" smodel {onInit = \r -> ((),if viewMode View Update $ r)
 	                                        ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
 	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
-	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	) <<@ ArrangeHorizontal
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
