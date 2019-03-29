@@ -125,9 +125,9 @@ derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Ma
 //	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
 :: ServerToClientAttr
  = ServerNeedsTextMetrics !ImgFonts` !ImgTexts`
- | ServerHasSVG           !String !ImgEventhandlers`
-derive JSEncode ServerToClientAttr, Set, FontDef`
-derive JSDecode ServerToClientAttr, Set, FontDef`
+ | ServerHasSVG           !String !ImgEventhandlers` !ImgTags
+derive JSEncode ServerToClientAttr, Set, FontDef`, ImageTag
+derive JSDecode ServerToClientAttr, Set, FontDef`, ImageTag
 
 toUIAttributes :: !ServerToClientAttr -> UIAttributes
 toUIAttributes attr
@@ -341,8 +341,8 @@ serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=t
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
 	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
 	    = (attrs, state, world)
-      Right (svg,es)                                                                            // image complete, send it to client
-	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es))) size_and_model
+      Right (svg,es,tags)                                                                       // image complete, send it to client
+	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es) tags)) size_and_model
 	    = (attrs, state, world)
 where
 	view           = svglet.initView model
@@ -355,7 +355,7 @@ attributesToUIChange set_attrs
     )
 
 //	server side rendering of model value:
-serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v)
+serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v,!ImgTags)
 serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
   #! image`               = renderImage s v (imgTagSource taskId)
   #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})
@@ -368,7 +368,7 @@ serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
       Error error         = abort error
       Ok (img,masks,markers,paths,spans,grids)
         #! svg            = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
-        = Right (svg,es)
+        = Right (svg,es,tags)
 
 clientGetTaskId :: !(JSVal a) !*JSWorld -> (!String,!*JSWorld)
 clientGetTaskId me world
@@ -406,9 +406,9 @@ clientHandleAttributeChange svglet me args world
             (ServerNeedsTextMetrics new_fonts new_texts)
               = trace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
                 (jsNull,clientHandlesTextMetrics svglet new_fonts new_texts me world)
-            (ServerHasSVG svg_body svg_handlers)
+            (ServerHasSVG svg_body svg_handlers svg_tags)
               #! world     = clientUpdateSVGString svg_body me world
-              #! world     = clientRegisterEventhandlers svglet me svg_handlers world
+              #! world     = clientRegisterEventhandlers svglet me svg_handlers svg_tags world
               = trace ("clientHandleAttributeChange reacts to ServerHasSVG")
                 (jsNull,world)
       _ = trace ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
@@ -437,14 +437,10 @@ where
 	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	  = world
 	
-	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !ImgEventhandlers` !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
-	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es world
+	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | iTask, JSEncode{|*|} s
+	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es tags world
 	  #! (taskId,world)     = clientGetTaskId me world
-	  #! (v,     world)     = jsGetCleanVal JS_ATTR_VIEW  me world
-	  #! (s,     world)     = jsGetCleanVal JS_ATTR_MODEL me world
-	  #! image`             = renderImage s v (imgTagSource taskId)
-	  #! (_,tables)         = toImg image` [] 'Data.Map'.newMap 'Data.Map'.newMap newImgTables      // only interested in the tags, so we do not need font and text spans
-	  #! world              = clientRegisterEventhandlers` svglet me taskId es tables.ImgTables.imgTags world
+	  #! world              = clientRegisterEventhandlers` svglet me taskId es tags world
 	  = world
 
 //	client side entire rendering of model value:
