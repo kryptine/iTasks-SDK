@@ -88,6 +88,7 @@ instanceServer port domain = tcplisten port True instanceServerShared {Connectio
 	, onData		= onData
 	, onShareChange		= onShareChange
 	, onDisconnect 		= onDisconnect
+	, onDestroy= \s->(Ok s, [])
 	} -|| (instanceClient` "127.0.0.1" port domain True) -|| (process instanceServerShared) @! ()
 where
 	onConnect :: ConnectionId String InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
@@ -472,6 +473,7 @@ where
                                                       , onData         = onData
 						      , onShareChange  = onShareChange
                                                       , onDisconnect   = onDisconnect
+                                                      , onDestroy      = \s->(Ok s, [])
                                                       } @! Nothing)
                 -||- (viewInformation () [] () >>* [OnAction (Action "reset") (always (return Nothing))])
 
