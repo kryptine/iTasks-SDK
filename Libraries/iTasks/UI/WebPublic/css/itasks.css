@@ -367,6 +367,10 @@ div.itasks-exception {
   flex: 1;
   align-self: stretch;
 }
+.itasks-container.itasks-scroll-content {
+  flex-basis: 0;
+  overflow: auto;
+}
 
 .itasks-panel {
   color: #000;
@@ -471,6 +475,9 @@ div.itasks-exception {
   flex-basis: auto;
   align-items: flex-start;
   overflow: auto;
+  /* Default minimum sizes */
+  min-width: 300px;
+  min-height: 100px;
 }
 
 .itasks-window.itasks-scroll-content > .itasks-inner {
@@ -483,7 +490,7 @@ div.itasks-exception {
   position: absolute;
   top: 0px;
   left: 0px;
-  z-index: 100;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
 }

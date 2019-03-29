@@ -23,6 +23,11 @@
 
 	flex: 1;
 	align-self: stretch;
+
+	&.#{$prefix}scroll-content {
+		flex-basis: 0;
+		overflow: auto;
+	}
 }
 
 .#{$prefix}panel {
@@ -142,6 +147,9 @@
 	align-items: flex-start;
 
 	overflow: auto;
+	/* Default minimum sizes */
+	min-width: 300px;
+	min-height: 100px;
 }
 .#{$prefix}window.#{$prefix}scroll-content > .#{$prefix}inner {
 	flex-basis: 0;
@@ -152,7 +160,7 @@
 	position: absolute;
 	top: 0px;
 	left: 0px;
-	z-index: 100;
+	z-index: 2000;
 	display: flex;
 	flex-direction: column;
 
