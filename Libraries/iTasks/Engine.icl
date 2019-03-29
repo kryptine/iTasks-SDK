@@ -1,44 +1,35 @@
 implementation module iTasks.Engine
 
-import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
+import Data.Func
+import Data.Functor
+import Data.Queue
+import Internet.HTTP
+import StdEnv
+import System.CommandLine
+import System.Directory
+import System.File
+import System.FilePath
+import System.GetOpt
+import System.OS
+import Text
+import iTasks.Internal.Distributed.Symbols
+import iTasks.Internal.EngineTasks
+import iTasks.Internal.IWorld
+import iTasks.Internal.SDS
+import iTasks.Internal.SDSService
+import iTasks.Internal.TaskServer
+import iTasks.Internal.TaskStore
+import iTasks.Internal.Util
+import iTasks.SDS.Sources.System
 import iTasks.WF.Combinators.Common
+import iTasks.WF.Definition
+import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.System
 
-import StdInt, StdChar, StdString
-from StdFunc import o, seqList, ::St, const, id
-
-import tcp
-import Internet.HTTP, System.GetOpt, Data.Func, Data.Functor
-
-from Data.Map import :: Map
-from Data.Queue import :: Queue(..)
-from Data.Set import :: Set, newSet
-
 import qualified Data.Map as DM
-from System.OS import IF_POSIX_OR_WINDOWS, OS_NEWLINE, IF_WINDOWS
 
-import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text
-import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
-
-import iTasks.Internal.Util, iTasks.Internal.HtmlUtil
-import iTasks.Internal.IWorld, iTasks.Internal.WebService, iTasks.Internal.SDSService
-import qualified iTasks.Internal.SDS as SDS
-import iTasks.UI.Layout, iTasks.UI.Layout.Default
-
-from iTasks.WF.Tasks.SDS import get
-from iTasks.WF.Combinators.Tune import class tune(..), instance tune ApplyLayout Task, :: ApplyLayout(..)
-from iTasks.SDS.Combinators.Common import sdsFocus
-from iTasks.SDS.Sources.System import applicationOptions
-
-import iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
-import iTasks.Internal.Util
-import iTasks.Internal.TaskServer
-import iTasks.Internal.EngineTasks
-import iTasks.Internal.Distributed.Symbols
-
-from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
-from Sapl.Linker.SaplLinkerShared import :: SkipSet
-from Sapl.Target.Flavour import :: Flavour, toFlavour
+from TCPIP import :: Timeout
+from StdFunc import :: St, seqList
 
 MAX_EVENTS 		        :== 5
 
@@ -111,7 +102,7 @@ defaultEngineCLIOptions [argv0:argv] defaults
 where
 	opts :: [OptDescr ((Maybe EngineOptions) -> Maybe EngineOptions)]
 	opts =
-		[ Option ['?'] ["help"] (NoArg $ const Nothing)
+		[ Option ['?'] ["help"] (NoArg (\_->Nothing))
 			"Display this message"
 		, Option ['p'] ["port"] (ReqArg (\p->fmap \o->{o & serverPort=toInt p}) "PORT")
 			("Specify the HTTP port (default: " +++ toString defaults.serverPort +++ ")")
@@ -255,3 +246,30 @@ determineAppVersion appPath world
 	# tm				= (fromOk res).lastModifiedTime
 	# version           = strfTime "%Y%m%d-%H%M%S" tm
 	= (version,world)
+
+timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
+timeout mt iworld = case read taskEvents EmptyContext iworld of
+	//No events
+	(Ok (ReadingDone (Queue [] [])),iworld=:{sdsNotifyRequests,world})
+		# (ts, world) = nsTime world
+		= ( minListBy lesser [mt:flatten (map (getTimeoutFromClock ts) ('DM'.elems sdsNotifyRequests))]
+		  , {iworld & world = world})
+	(Ok (ReadingDone (Queue _ _)), iworld)               = (Just 0,iworld)   //There are still events, don't wait
+	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+where
+	lesser (Just x) (Just y) = x < y
+	lesser (Just _) Nothing = True
+	lesser Nothing Nothing = False
+
+	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
+	getTimeoutFromClock now requests = map getTimeoutFromClock` ('DM'.toList requests)
+	where
+		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
+		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
+			| startsWith "$IWorld:timespec$" snr.reqSDSId && ts.interval <> zero
+				# fire = iworldTimespecNextFire now reqTimespec ts
+				= Just (max 0 (toMs fire - toMs now))
+			= mt
+		getTimeoutFromClock` _ = mt
+
+	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000

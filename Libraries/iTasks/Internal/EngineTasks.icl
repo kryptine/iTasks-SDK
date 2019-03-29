@@ -1,63 +1,19 @@
 implementation module iTasks.Internal.EngineTasks
 
-import Data.Functor, Data.Func
-import Data.List
-import qualified Data.Map as DM
+import Data.Error
 import Data.Queue
-import qualified Data.Set as DS
-import StdBool, StdOverloaded, StdList, StdOrdList
-import System.Time
-import Text
-import Text.GenJSON
+import StdEnv
 import iTasks.Engine
-import iTasks.Extensions.DateTime
 import iTasks.Internal.IWorld
-import iTasks.Internal.SDS
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
+import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
-import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
-import iTasks.SDS.Definition
+import iTasks.UI.Definition
 import iTasks.WF.Definition
 
-from TCPIP import :: Timeout
-
-timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout mt iworld = case read taskEvents EmptyContext iworld of
-	//No events
-	(Ok (ReadingDone (Queue [] [])),iworld=:{sdsNotifyRequests,world})
-		# (ts, world) = nsTime world
-		= ( minListBy lesser [mt:flatten $ map (getTimeoutFromClock ts) $ 'DM'.elems sdsNotifyRequests]
-		  , {iworld & world = world})
-	(Ok (ReadingDone (Queue _ _)), iworld)               = (Just 0,iworld)   //There are still events, don't wait
-	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
-where
-	lesser (Just x) (Just y) = x < y
-	lesser (Just _) Nothing = True
-	lesser Nothing Nothing = False
-
-	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
-	getTimeoutFromClock now requests = getTimeoutFromClock` <$> 'DM'.toList requests
-	where
-		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
-		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
-			| startsWith "$IWorld:timespec$" snr.reqSDSId && ts.interval <> zero
-				# fire = iworldTimespecNextFire now reqTimespec ts
-				= Just (max 0 (toMs fire - toMs now))
-			= mt
-		getTimeoutFromClock` _ = mt
-
-	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
-
-updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-updateClock iworld=:{IWorld|clock,world}
-	//Determine current date and time
-	# (timespec,world) = nsTime world
-	# iworld & world   = world
-	//Write SDS if necessary
-	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
-	= (() <$ mbe, iworld)
+from Data.Map import newMap
 
 everyTick :: (*IWorld -> *(!MaybeError TaskException (), !*IWorld)) -> Task ()
 everyTick f = Task eval
@@ -69,7 +25,7 @@ where
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap}
 				NoChange
 				(TCInit taskId ts)
 			, iworld)
