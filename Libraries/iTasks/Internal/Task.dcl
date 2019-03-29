@@ -37,9 +37,6 @@ derive gEq				Task
     , onDestroy     :: !(                    l   *IWorld -> *(!MaybeErrorString l,          ![String],        !*IWorld))
     }
 
-//Background computation tasks
-:: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
-
 /**
 * Wraps a set of connection handlers and a shared source as a connection task
 */
