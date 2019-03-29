@@ -123,17 +123,17 @@ derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Ma
 derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, Map*/
 
 //	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
-:: ServerToClientAttr
- = ServerNeedsTextMetrics !ImgFonts` !ImgTexts`
- | ServerHasSVG           !String !ImgEventhandlers` !ImgTags
+:: ServerToClientAttr s
+ = ServerNeedsTextMetrics !ImgFonts` !ImgTexts`                            // server needs fonts and texts metrics
+ | ServerHasSVG           !String !ImgEventhandlers` !ImgTags !(Maybe s)   // server has computed new image and event handlers, (Just model) in case client-model needs to be updated
 derive JSEncode ServerToClientAttr, Set, FontDef`, ImageTag
 derive JSDecode ServerToClientAttr, Set, FontDef`, ImageTag
 
-toUIAttributes :: !ServerToClientAttr -> UIAttributes
+toUIAttributes :: !(ServerToClientAttr s) -> UIAttributes | JSEncode{|*|} s
 toUIAttributes attr
   = 'Data.Map'.fromList [(JS_ATTR_SVG,encodeOnServer attr)]
 
-fromUIAttributes :: !JSArg !*JSWorld -> (!ServerToClientAttr,!*JSWorld)
+fromUIAttributes :: !JSArg !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
 fromUIAttributes json world
   = decodeOnClient (toJSVal json) world
 
@@ -299,30 +299,30 @@ where
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
- 	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|} s
+ 	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|}, JSEncode{|*|} s
   	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
-  	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} vst
+  	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} False vst
   	  = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
   	    (Ok (attributesToUIChange set_attrs,mask),vst)
   	serverHandleEditFromClient svglet _ (_,ClientHasNewTextMetrics new_font_metrics new_texts_metrics) mask=:{ServerSVGState | model=old,fonts,texts} vst 
       #! font_spans           = 'Data.Map'.union                      new_font_metrics  fonts
       #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
       #! mask                 = {ServerSVGState | mask & fonts=font_spans, texts=text_spans}
-      #! (set_attrs,mask,vst) = serverHandleModel svglet mask vst
+      #! (set_attrs,mask,vst) = serverHandleModel svglet mask False vst
       = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
         (Ok (attributesToUIChange set_attrs,mask),vst)
     serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old,fonts,texts} vst
-	  #! (attrs,mask,vst) = serverHandleModel svglet mask vst
+	  #! (attrs,mask,vst) = serverHandleModel svglet mask False vst
 	  = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
 	    (Ok (attributesToUIChange attrs,mask),vst)
 	
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
-	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gEq{|*|} s
+	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gEq{|*|}, JSEncode{|*|} s
 	serverHandleEditFromContext svglet _ new mask=:{ServerSVGState | model=old,fonts,texts} vst
   	| gEq{|*|} old new
   		= (Ok (NoChange,mask),vst)
-  	#! (set_attrs,mask`,vst`) = serverHandleModel svglet {ServerSVGState | mask & model=new} vst
+  	#! (set_attrs,mask`,vst`) = serverHandleModel svglet {ServerSVGState | mask & model=new} True vst
   	= trace_n ("serverHandleEditFromContext")
   	  (Ok (attributesToUIChange set_attrs,mask`),vst`)
 	
@@ -335,18 +335,28 @@ where
 //	This may `fail' due to missing font/text metrics, in which case these are requested to the client via the attributes.
 //  If it succeeds, then the client receives the fully evaluated SVG and the defunctionalized event handlers that need to be registered via the attributes.
 //	The client handles these changes via clientHandleAttributeChange.
-serverHandleModel :: !(SVGEditor s v) !(ServerSVGState s) !*VSt -> (!UIAttributes,!ServerSVGState s,!*VSt)
-serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=text_spans} world=:{VSt | taskId}
+serverHandleModel :: !(SVGEditor s v) !(ServerSVGState s) !Bool !*VSt -> (!UIAttributes,!ServerSVGState s,!*VSt) | JSEncode{|*|} s
+serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=text_spans} model_is_new_for_client world=:{VSt | taskId}
   = case serverSVG svglet font_spans text_spans taskId model view of                            // start to generate the image server-side
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
-	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
+	    #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
 	    = (attrs, state, world)
       Right (svg,es,tags)                                                                       // image complete, send it to client
-	    #! attrs = 'Data.Map'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es) tags)) size_and_model
-	    = (attrs, state, world)
+	    #! string = browserFriendlySVGEltToString svg
+	    #! es`    = defuncImgEventhandlers es
+	    | model_is_new_for_client
+	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es` tags (Just model))) size_and_model
+	      = (attrs, state, world)
+	    | otherwise
+	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es` tags Nothing)) size_and_model
+	      = (attrs, state, world)
 where
 	view           = svglet.initView model
 	size_and_model = sizeAttr FlexSize FlexSize
+
+// this auxiliary function is necessary to resolve otherwise internal overloading because of the type parameter s
+toUIAttributes` :: (SVGEditor s v) !(ServerToClientAttr s) -> UIAttributes | JSEncode{|*|} s
+toUIAttributes` svglet msg = toUIAttributes msg
 
 attributesToUIChange :: !UIAttributes -> UIChange
 attributesToUIChange set_attrs
@@ -406,11 +416,17 @@ clientHandleAttributeChange svglet me args world
             (ServerNeedsTextMetrics new_fonts new_texts)
               = trace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
                 (jsNull,clientHandlesTextMetrics svglet new_fonts new_texts me world)
-            (ServerHasSVG svg_body svg_handlers svg_tags)
+            (ServerHasSVG svg_body svg_handlers svg_tags new_model)
               #! world     = clientUpdateSVGString svg_body me world
               #! world     = clientRegisterEventhandlers svglet me svg_handlers svg_tags world
-              = trace ("clientHandleAttributeChange reacts to ServerHasSVG")
-                (jsNull,world)
+              = case new_model of
+                  Nothing  = trace ("clientHandleAttributeChange reacts to ServerHasSVG without new model")
+                             (jsNull,world)
+                  Just model
+                    #! world     = jsPutCleanVal JS_ATTR_VIEW  (svglet.initView model) me world
+                    #! world     = jsPutCleanVal JS_ATTR_MODEL model me world
+                    = trace ("clientHandleAttributeChange reacts to ServerHasSVG with new model")
+                      (jsNull,world)
       _ = trace ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
           (jsNull,world)
 where
