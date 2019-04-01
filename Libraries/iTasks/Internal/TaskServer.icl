@@ -226,12 +226,15 @@ process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexCha
 	# iworld = processIOTask
 		i chList opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
 		opts.ConnectionInstanceOpts.removeOnClose sds tcpConnectionIOOps
-		(\_ -> handlers.ConnectionHandlersIWorld.onDisconnect) handlers.ConnectionHandlersIWorld.onData
-		handlers.ConnectionHandlersIWorld.onShareChange handlers.ConnectionHandlersIWorld.onTick (ConnectionInstance opts) duplexChannel iworld
+		(\_ -> handlers.ConnectionHandlersIWorld.onDisconnect)
+		handlers.ConnectionHandlersIWorld.onData
+		handlers.ConnectionHandlersIWorld.onShareChange
+		handlers.ConnectionHandlersIWorld.onTick
+		handlers.ConnectionHandlersIWorld.onDestroy
+		(ConnectionInstance opts) duplexChannel iworld
 	= process (i+1) chList iworld
 where
 	(ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
-
 
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
 	= (process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}})
@@ -286,15 +289,16 @@ processIOTask :: !Int
 				 !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
 				 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
 				 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+				 !(Dynamic *IWorld -> (!MaybeErrorString Dynamic, ![String], !*IWorld))
 				 !(.ioChannels -> *IOTaskInstance)
 				 !.ioChannels
 				 !*IWorld
 			  -> *IWorld
 processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandler onDataHandler
-			  onShareChangeHandler onTickHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+			  onShareChangeHandler onTickHandler onDestroyHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+	# (TaskId instanceNo _) = taskId
 	= case get taskId ioStates of
 		Just (IOActive taskStates)
-			# (TaskId instanceNo _) = taskId
 			// get task state
 			# mbTaskState = get connectionId taskStates
 			| isNothing mbTaskState
@@ -377,6 +381,18 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 						# {done, todo} = iworld.ioTasks
 						= {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
 		Just (IODestroyed taskStates)
+			// get task state one last time
+			# mbTaskState = get connectionId taskStates
+			| isNothing mbTaskState
+				# iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+				# ioStates = put taskId (IOException "Missing IO task state for task ") ioStates
+				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+			# (Just (taskState, _)) = mbTaskState
+			//Ondestroy handler
+			# (mbTaskState, out, iworld) = onDestroyHandler taskState iworld
+			| mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+			// write data
+			# (ioChannels, iworld) = foldl (flip ioOps.writeData) (ioChannels, iworld) out
 			# iworld = ioOps.closeIO (ioChannels, iworld)
 			//Remove the state for this connection
 			//If this is the last connection for this task, we can clean up.

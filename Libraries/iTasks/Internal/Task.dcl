@@ -34,6 +34,7 @@ derive gEq				Task
     , onShareChange :: !(                    l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onTick        :: !(       			 l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onDisconnect  :: !(       			 l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
+    , onDestroy     :: !(                    l   *IWorld -> *(!MaybeErrorString l,          ![String],        !*IWorld))
     }
 
 /**

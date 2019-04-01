@@ -313,6 +313,7 @@ acceptTonicTraces tonicShare
                                    , onData        = onData
                                    , onShareChange = onShareChange
                                    , onDisconnect  = onDisconnect
+                                   , onDestroy     = onDestroy
                                    }
   where
     onConnect :: ConnectionId String TMessageStore
@@ -353,3 +354,4 @@ acceptTonicTraces tonicShare
     onDisconnect st lines
         = (Ok st, Just lines)
 
+	onDestroy st = (Ok st, [])
