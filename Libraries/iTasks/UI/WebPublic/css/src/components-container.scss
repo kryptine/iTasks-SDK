@@ -334,15 +334,15 @@
 	flex-direction: row;
 	align-items: center;
 
-	background: linear-gradient(lighten($button-base-color,4%), darken($button-base-color,12.5%));
+	background: linear-gradient(lighten($toolbar-base-color,4%), darken($toolbar-base-color,12.5%));
 }
 .#{$prefix}toolbar {
 
 	justify-content: flex-start;
 	margin: 0;
 	padding: 2px;
-	background: $canvas-base-color;
-	background: linear-gradient(lighten($canvas-base-color,4%), darken($canvas-base-color,5%));
+	background: $toolbar-base-color;
+	background: linear-gradient(lighten($toolbar-base-color,4%), darken($toolbar-base-color,5%));
 
 	> .#{$prefix}menu-item > div {
 		background-image: url('#{$icon-path}menu-down.png');
