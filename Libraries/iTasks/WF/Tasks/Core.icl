@@ -58,11 +58,11 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interact :: !d !(sds () r w) (EditInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-interact prompt shared handlers editor
+interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interactRW prompt shared handlers editor
 =  Task (eval prompt shared handlers editor)
 where
-	eval :: !d (sds () r w) (EditInteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 	eval _ _ _ _ event evalOpts tt=:(TCDestroy _) iworld
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tt) iworld
 		= (DestroyedResult, iworld)
@@ -139,7 +139,7 @@ where
 		# (Left (taskId,ts,l,v,st,viewMode)) = fromOk mbd
 		# (mbRes, iworld) = case event of
 			EditEvent eTaskId name edit | eTaskId == taskId =
-				applyEditEvent_ name edit taskId editor taskTime shared handlers.EditInteractionHandlers.onEdit l v st iworld
+				applyEditEvent_ name edit taskId editor taskTime shared handlers.InteractionHandlers.onEdit l v st iworld
 			ResetEvent
 				# resetMode = case (viewMode, v) of
 					(True, Just v) = View v
@@ -153,7 +153,7 @@ where
 					)
 					iworld
 			RefreshEvent taskIds _ | 'DS'.member taskId taskIds
-				= refreshView_ taskId editor shared handlers.EditInteractionHandlers.onRefresh l v st taskTime iworld
+				= refreshView_ taskId editor shared handlers.InteractionHandlers.onRefresh l v st taskTime iworld
 			FocusEvent fTaskId | fTaskId == taskId = (Ok (Left (l,editor.Editor.valueFromState st,NoChange,st,taskTime)),iworld)
 			_ = (Ok (Left (l,editor.Editor.valueFromState st,NoChange,st,ts)),iworld)
 		= case mbRes of
@@ -173,11 +173,11 @@ where
                 # info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
                 = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
-interactView :: !d (sds () r w) (ViewInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
-interactView prompt shared handlers editor
+interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactR prompt shared handlers editor
 = Task (eval prompt shared handlers editor)
 where
-	eval :: !d (sds () r w) (ViewInteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 	eval _ _ _ _ event evalOpts tt=:(TCDestroy _) iworld
 		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tt) iworld
 		= (DestroyedResult, iworld)
@@ -191,7 +191,7 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (res :: AsyncRead r^ w^), iworld) = case res of
 				ReadingDone r
-					# (l, mode) = handlers.onInitView r
+					# (l, mode) = handlers.onInit r
 					# mbV = case mode of
 							Enter    = Nothing
 							Update x = Just x
@@ -214,7 +214,7 @@ where
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok ('SDS'.ReadingDone r),iworld)
-						# (l, mode) = handlers.onInitView r
+						# (l, mode) = handlers.onInit r
 						# v = case mode of
 							Enter    = Nothing
 							Update x = Just x
@@ -248,7 +248,7 @@ where
 					)
 					iworld
 			RefreshEvent taskIds _ | 'DS'.member taskId taskIds
-				= refresh taskId editor shared handlers.ViewInteractionHandlers.onRefreshView l v st taskTime iworld
+				= refresh taskId editor shared handlers.InteractionHandlers.onRefresh l v st taskTime iworld
 			_ = (Ok (Left (l,editor.Editor.valueFromState st,NoChange,st,ts)),iworld)
 		= case mbRes of
 		   Error e = (ExceptionResult e, iworld)

@@ -86,17 +86,15 @@ instance toString OSException
 /**
 * Core interaction task. All other interaction tasks are derived from this one.
 */
-:: EditInteractionHandlers l r w v =
+:: InteractionHandlers l r w v =
     { onInit    :: !(r -> (!l, !EditMode v))
     , onEdit    :: !(v l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
     , onRefresh :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
 	}
 
-interact :: !d !(sds () r w) (EditInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+//Version which does not write shared data 
+interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 
-:: ViewInteractionHandlers l r w v =
-    { onInitView    :: !(r -> (!l, !EditMode v))
-    , onRefreshView :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
-	}
+//Version which writes shared data 
+interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 
-interactView :: !d (sds () r w) (ViewInteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
