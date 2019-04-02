@@ -258,8 +258,8 @@ timeout mt iworld = case read taskEvents EmptyContext iworld of
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 where
 	lesser (Just x) (Just y) = x < y
-	lesser (Just _) Nothing = True
-	lesser Nothing Nothing = False
+	lesser (Just _) Nothing  = True
+	lesser _        _        = False
 
 	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
 	getTimeoutFromClock now requests = map getTimeoutFromClock` ('DM'.toList requests)
