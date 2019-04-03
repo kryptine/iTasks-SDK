@@ -24,6 +24,7 @@ from StdOrdList import sortBy
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.GenJSON, Data.Error, Math.Random
+import System.Signal
 import iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.Internal.Serialization
 import iTasks.Internal.SDS
@@ -84,6 +85,7 @@ createIWorld options world
       ,ioStates             = 'DM'.newMap
       ,sdsEvalStates		= 'DM'.newMap
 	  ,world				= world
+	  ,signalHandlers		= []
       ,resources            = []
       ,random               = genRandInt seed
       ,onClient				= False
