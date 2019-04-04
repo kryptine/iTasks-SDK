@@ -1,4 +1,4 @@
-implementation module iTasks.Extensions.Editors.DynamicEditors
+implementation module iTasks.Extensions.Editors.DynamicEditor
 
 import StdEnv => qualified foldl
 import StdMisc, Data.Tuple, Text, Data.Maybe, Text.GenPrint
@@ -7,7 +7,6 @@ from Data.Tuple import appFst
 import iTasks, iTasks.UI.Definition, iTasks.UI.Editor.Common, iTasks.UI.Editor.Modifiers
 import qualified Data.Map as Map
 from Data.Func import $
-import Util
 from Data.List import zip3, intersperse
 import Data.Functor
 

@@ -1,4 +1,4 @@
-definition module iTasks.Extensions.Editors.DynamicEditors
+definition module iTasks.Extensions.Editors.DynamicEditor
 
 import iTasks
 
