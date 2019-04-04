@@ -13,7 +13,7 @@ derive class iTask DynamicEditorValue
 
 :: DynamicEditorElement = DynamicCons !DynamicCons | DynamicConsGroup !String ![DynamicCons]
 :: DynamicCons
-:: DynamicConsOption = HideIfOnlyChoice | UseAsDefault
+:: DynamicConsOption = HideIfOnlyChoice | UseAsDefault | LayoutVertical
 
 (<<@@@) infixl 2 :: !DynamicCons !DynamicConsOption -> DynamicCons
 (@@@>>) infixr 2 :: !DynamicConsOption !DynamicCons -> DynamicCons
