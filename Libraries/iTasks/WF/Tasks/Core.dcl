@@ -85,6 +85,9 @@ instance toString OSException
 
 /**
 * Core interaction task. All other interaction tasks are derived from this one.
+* There are two almost identical versions:
+* The `interactRW` version can update the given sds.
+* The `interactR` version only reads, which means it can also be used for sds's that are not writable.
 */
 :: InteractionHandlers l r w v =
     { onInit    :: !(r -> (!l, !EditMode v))
@@ -92,9 +95,7 @@ instance toString OSException
     , onRefresh :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
 	}
 
-//Version which does not write shared data 
-interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
-
-//Version which writes shared data 
+//Version which can write shared data
 interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-
+//Version which does not write shared data
+interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
