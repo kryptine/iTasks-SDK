@@ -17,7 +17,7 @@ expPromptUI msg
 minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where
 	task :: Task ((),String)
-	task = interact "TEST" unitShare handlers gEditor{|*|}
+	task = interactR "TEST" unitShare handlers gEditor{|*|}
 	handlers = {onInit = \() -> ((),Update "Hello world"), onEdit = \_ l v -> (l,fromJust v,Nothing), onRefresh = \_ l v -> (l,fromJust v,Nothing)}
 
 	events = [Left ResetEvent]
