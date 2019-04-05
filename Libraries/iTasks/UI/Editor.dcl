@@ -6,7 +6,6 @@ definition module iTasks.UI.Editor
 
 from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange, :: TaskId
 from iTasks.UI.JS.Interface import :: JSWorld, :: JSObj, :: JSVal, :: JSObject
-from iTasks.UI.JS.Encoding import generic JSDecode
 
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Generic.Defaults import generic gDefault
@@ -55,12 +54,12 @@ from Control.GenBimap import generic bimap, :: Bimap
 	, valueFromState :: !st -> Maybe a
 	}
 
-leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSDecode{|*|} edit & JSONEncode{|*|}, JSONDecode{|*|} st
+leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
 leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe st, ![JSONNode])) !(LeafEditor edit st a)
-                    -> Editor a | JSDecode{|*|} edit
+                    -> Editor a
 
 /*
 *	Definition of a compound editor using an additional typed state, next to the children's states.

@@ -20,7 +20,6 @@ from Control.Monad import `b`, class Monad(bind)
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
 from iTasks.Extensions.SVG.SVGEditor import fromSVGEditor, :: SVGEditor {..}
-import iTasks.UI.JS.Encoding
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe
@@ -34,9 +33,6 @@ derive gText Set
 derive gDefault Set
 derive JSONEncode Set
 derive JSONDecode Set
-
-derive JSEncode ActionState, TClickAction, ClickMeta, TonicImageState, BlueprintRef, TonicFunc, TExpr, TPriority, TLit, TAssoc
-derive JSDecode ActionState, TClickAction, ClickMeta, TonicImageState, BlueprintRef, TonicFunc, TExpr, TPriority, TLit, TAssoc
 
 tonic :: Task ()
 tonic = tonicDashboard []

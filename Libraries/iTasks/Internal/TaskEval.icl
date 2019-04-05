@@ -19,7 +19,6 @@ from iTasks.SDS.Combinators.Common      import sdsFocus, >*|, mapReadWrite, mapR
 from StdFunc import const, o
 import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
-from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 
 derive gEq TIMeta, TIType
 

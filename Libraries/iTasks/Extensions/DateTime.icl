@@ -23,7 +23,7 @@ import Text, Text.GenJSON, System.Time
 import Data.Maybe, Data.Error 
 import qualified Data.Map as DM
 
-from iTasks.Extensions.Form.Pikaday import pikadayDateField
+//from iTasks.Extensions.Form.Pikaday import pikadayDateField // TODO restore
 from iTasks.Internal.Util import tmToDateTime
 
 //* (Local) date and time
@@ -69,7 +69,9 @@ JSONDecode{|Date|} _ c = (Nothing, c)
 
 gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Date|} = pikadayDateField 
+// TODO restore
+//gEditor{|Date|} = pikadayDateField
+derive gEditor Date
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 2017}
 derive gEq Date

@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable.Internal.Image`
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
+import iTasks.UI.Definition, iTasks.UI.Editor
 
 import StdEnv
 
@@ -23,17 +23,17 @@ CLICK_DELAY :== 225
 svgns =: "http://www.w3.org/2000/svg"
 
 //Predefined object methods
-(`addEventListener`)      obj args :== obj .# "addEventListener"      .$ args
-(`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
-(`setAttributeNS`)        obj args :== obj .# "setAttributeNS"        .$ args
-(`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
-(`appendChild`)           obj args :== obj .# "appendChild"           .$ args
-(`removeChild`)           obj args :== obj .# "removeChild"           .$ args
-(`getComputedTextLength`) obj args :== obj .# "getComputedTextLength" .$ args
-(`createSVGPoint`)        obj args :== obj .# "createSVGPoint"        .$ args
-(`getScreenCTM`)          obj args :== obj .# "getScreenCTM"          .$ args
-(`inverse`)               obj args :== obj .# "inverse"               .$ args
-(`matrixTransform`)       obj args :== obj .# "matrixTransform"       .$ args
+//(`addEventListener`)      obj args :== obj .# "addEventListener"      .$ args
+//(`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
+//(`setAttributeNS`)        obj args :== obj .# "setAttributeNS"        .$ args
+//(`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
+//(`appendChild`)           obj args :== obj .# "appendChild"           .$ args
+//(`removeChild`)           obj args :== obj .# "removeChild"           .$ args
+//(`getComputedTextLength`) obj args :== obj .# "getComputedTextLength" .$ args
+//(`createSVGPoint`)        obj args :== obj .# "createSVGPoint"        .$ args
+//(`getScreenCTM`)          obj args :== obj .# "getScreenCTM"          .$ args
+//(`inverse`)               obj args :== obj .# "inverse"               .$ args
+//(`matrixTransform`)       obj args :== obj .# "matrixTransform"       .$ args
 
 :: ImageSpanReal :== (!Real, !Real)
 
@@ -51,9 +51,8 @@ svgns =: "http://www.w3.org/2000/svg"
 
 derive gEq MousePos
 
-fromSVGEditor :: (SVGEditor s v) -> Editor s
-               | gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|}, JSEncode{|*|}, JSDecode{|*|} s
-fromSVGEditor svglet = leafEditorToEditor
+fromSVGEditor :: (SVGEditor s v) -> Editor s | gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
+fromSVGEditor svglet = undef /* FIXME: restore leafEditorToEditor
     { LeafEditor
     | genUI          = withClientSideInit initUI genUI
     , onEdit         = onEdit
@@ -816,3 +815,4 @@ keepTransformAttrsTogether attr attrs
 isTransformAttr :: !SVGAttr -> Bool
 isTransformAttr (TransformAttr _) = True
 isTransformAttr _ = False
+*/

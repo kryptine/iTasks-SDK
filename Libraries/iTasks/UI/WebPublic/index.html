@@ -25,7 +25,9 @@
 	<!-- load iTasks viewport -->
 	<script type="text/javascript">
 	window.onload = function() {
-		itasks.viewport({syncTitle: true}, document.body);
+		abc_interpreter.loading_promise.then(function(){
+			itasks.viewport({syncTitle: true}, document.body);
+		});
 	};
 	</script>
 </head>

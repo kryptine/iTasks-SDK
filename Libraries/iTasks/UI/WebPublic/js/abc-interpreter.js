@@ -1,7 +1,20 @@
+"use strict";
+
+const JSWorld={
+	abc_type: 'JSWorld'
+};
+
+function SharedCleanValue(index) {
+	return {
+		abc_type: 'SharedCleanValue',
+		index: index
+	};
+}
+
 const abc_interpreter={
 	prog: undefined,
 	memory: undefined,
-	memory_buffer: undefined,
+	memory_array: undefined,
 
 	start: undefined,
 	code_offset: undefined,
@@ -16,11 +29,6 @@ const abc_interpreter={
 
 	util: undefined,
 	interpreter: undefined,
-
-	apply_to_elem_and_JSWorld: function (f, elem) {
-		this.queue.push([f,elem]);
-	},
-	queue: [],
 
 	log_buffer: '',
 	log: function (s) {
@@ -37,9 +45,50 @@ const abc_interpreter={
 		if (abc_interpreter.log_buffer.length>0)
 			console.log(abc_interpreter.log_buffer);
 	},
+
+	deserialize: function(string) {
+		var array=new Int8Array(string.length);
+		for (var i in string)
+			array[i]=string.charCodeAt(i);
+		var graph=new Uint32Array(array.buffer);
+		var unused_semispace=abc_interpreter.util.instance.exports.get_unused_semispace();
+		for (var i=0; i<graph.length; i++)
+			abc_interpreter.memory_array[unused_semispace/4+i] = graph[i];
+
+		abc_interpreter.hp=abc_interpreter.util.instance.exports.copy_from_string(
+			unused_semispace,
+			graph.length/2,
+			abc_interpreter.asp,
+			abc_interpreter.bsp,
+			abc_interpreter.hp,
+			abc_interpreter.code_offset*8);
+
+		var index=abc_interpreter.shared_clean_values.length;
+		abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[unused_semispace/4]);
+
+		return SharedCleanValue(index);
+	},
+
+	interpret: function() {
+		this.queue.push(arguments);
+	},
+	queue: [],
+
+	shared_js_values: [], // javascript objects accessible from Clean
+	shared_clean_values: [], // pointers to the Clean heap
+
+	apply_to_clean_value: function (index) {
+		return function () {
+			var args=[SharedCleanValue(index)];
+			for (var i=0; i<arguments.length; i++)
+				args[i+1]=arguments[i];
+			args.push(JSWorld);
+			return abc_interpreter.interpret.apply(null, args);
+		};
+	},
 };
 
-fetch('js/app.ubc').then(function(resp){
+abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 	if (!resp.ok)
 		throw 'failed to fetch bytecode';
 	return resp.arrayBuffer();
@@ -54,10 +103,10 @@ fetch('js/app.ubc').then(function(resp){
 	const blocks_needed=Math.floor((abc_interpreter.prog.length*4 + abc_interpreter.stack_size + abc_interpreter.heap_size*2 + 65535) / 65536);
 
 	abc_interpreter.memory=new WebAssembly.Memory({initial: blocks_needed});
-	abc_interpreter.memory_buffer=new Uint32Array(abc_interpreter.memory.buffer);
+	abc_interpreter.memory_array=new Uint32Array(abc_interpreter.memory.buffer);
 
 	for (var i in abc_interpreter.prog)
-		abc_interpreter.memory_buffer[i]=abc_interpreter.prog[i];
+		abc_interpreter.memory_array[i]=abc_interpreter.prog[i];
 
 	(function(prog){
 		var i=0;
@@ -112,11 +161,26 @@ fetch('js/app.ubc').then(function(resp){
 			},
 			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp) {
 				if (abc_instructions[instr]=='instruction') {
-					switch (abc_interpreter.memory_buffer[(pc+8)/4]) {
+					const arg=abc_interpreter.memory_array[(pc+8)/4];
+					switch (arg) {
 						case 0: /* evaluation finished */
 							return 0;
-						case 1: /* jsEval */
+						case 1: /* iTasks.UI.JS.Interface: eval_js */
+							var clean_string=abc_interpreter.memory_array[asp/4];
+							var size=abc_interpreter.memory_array[clean_string/4+2];
+							var string_buffer=new Uint8Array(abc_interpreter.memory.buffer, clean_string+16);
+							var string='';
+							for (var i=0; i<size; i++)
+								string+=String.fromCharCode(string_buffer[i]);
+							console.log('eval',string);
+							Function(string)();
 							break;
+						case 2: /* iTasks.UI.JS.Interface: share */
+							abc_interpreter.memory_array[bsp/4]=abc_interpreter.shared_clean_values.length;
+							abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[asp/4]);
+							break;
+						default:
+							throw ('unknown instruction '+arg);
 					}
 					return pc+16;
 				}
@@ -139,12 +203,7 @@ fetch('js/app.ubc').then(function(resp){
 				throw ('halt at '+((pc/8)-abc_interpreter.code_offset));
 			},
 
-			memcpy: function (dest,src,n) {
-				// TODO: optimise; move to wasm
-				var mem=new Uint8Array(abc_interpreter.memory_buffer.buffer, abc_interpreter.memory_buffer.byteOffset);
-				for (var i=0; i<n; i++)
-					mem[dest+i]=mem[src+i];
-			},
+			memcpy: util.instance.exports.memcpy,
 			strncmp: util.instance.exports.strncmp,
 
 			putchar: function (v) {
@@ -198,44 +257,51 @@ fetch('js/app.ubc').then(function(resp){
 }).then(function(intp){
 	abc_interpreter.interpreter=intp;
 
-	abc_interpreter.apply_to_elem_and_JSWorld=function(f,elem){
-		var f_array=new Int8Array(f.length);
-		for (var i in f)
-			f_array[i]=f.charCodeAt(i);
-		var graph=new Uint32Array(f_array.buffer);
-		var unused_semispace=abc_interpreter.util.instance.exports.get_unused_semispace();
-		for (var i=0; i<graph.length; i++)
-			abc_interpreter.memory_buffer[unused_semispace/4+i] = graph[i];
-		var hp=abc_interpreter.util.instance.exports.copy_from_string(
-			unused_semispace,
-			graph.length/2,
-			abc_interpreter.asp,
-			abc_interpreter.bsp,
-			abc_interpreter.hp, // TODO: use latest hp pointers etc. here
-			abc_interpreter.code_offset*8);
-
-		var asp=abc_interpreter.asp+24;
-		abc_interpreter.memory_buffer[asp/4-4]=(31+37*2)*8; // INT 37
-		abc_interpreter.memory_buffer[asp/4-2]=(31+37*2)*8; // INT 37 TODO: one of these should be a reference to `elem`
-		abc_interpreter.memory_buffer[asp/4]=abc_interpreter.memory_buffer[unused_semispace/4];
+	abc_interpreter.interpret=function(){
+		var asp=abc_interpreter.asp;
+		for (var i=arguments.length-1; i>=0; i--) {
+			asp+=8;
+			if ('abc_type' in arguments[i]) {
+				switch (arguments[i].abc_type) {
+					case 'JSWorld':
+						abc_interpreter.memory_array[asp/4]=(31+17*2)*8; // INT 17
+						break;
+					case 'SharedCleanValue':
+						abc_interpreter.memory_array[asp/4]=abc_interpreter.shared_clean_values[arguments[i].index];
+						break;
+					default:
+						throw ('unknown abc_type '+arguments[i].abc_type);
+				}
+			} else if ('domEl' in arguments[i]) { /* probably an iTasks.Component; TODO: come up with a better check for this */
+				abc_interpreter.memory_array[asp/4]=abc_interpreter.hp;
+				abc_interpreter.memory_array[abc_interpreter.hp/4]=661*8+2; // DOMNode type
+				abc_interpreter.memory_array[abc_interpreter.hp/4+2]=abc_interpreter.shared_js_values.length;
+				abc_interpreter.shared_js_values.push(arguments[i]);
+				abc_interpreter.hp+=16;
+			} else {
+				console.log(arguments[i]);
+				throw 'Could not pass the above value to Clean';
+			}
+		}
 
 		var csp=abc_interpreter.csp+8;
-		abc_interpreter.memory_buffer[csp/4-2]=659*8; // instruction 0
+		abc_interpreter.memory_array[csp/4-2]=659*8; // instruction 0
 
-		var start=100*8; // jmp_ap2
+		var start=(97+arguments.length)*8; // jmp_apn as appropriate; TODO: fix for case where arguments.length=1
 
 		var r=abc_interpreter.interpreter.instance.exports.interpret(
 			start,
 			asp,
 			abc_interpreter.bsp,
 			csp,
-			hp,
+			abc_interpreter.hp,
 			abc_interpreter.heap_size/8);
+		abc_interpreter.hp=abc_interpreter.interpreter.instance.exports.get_hp();
 		console.log(r);
 	};
 
 	while (abc_interpreter.queue.length) {
 		var task=abc_interpreter.queue.shift();
-		abc_interpreter.apply_to_elem_and_JSWorld(task[0], task[1]);
+		abc_interpreter.interpret.apply(this, task);
 	}
 });

@@ -10,6 +10,7 @@ import ABC.Interpreter
 
 import iTasks.Engine
 import iTasks.Internal.IWorld
+import iTasks.UI.Editor
 
 serialize_for_client :: f !*IWorld -> *(!MaybeErrorString String, !*IWorld)
 serialize_for_client f iworld=:{world,options}
@@ -20,3 +21,10 @@ serialize_for_client f iworld=:{world,options}
 	Nothing -> Error "Failed to serialize graph"
 	Just g  -> Ok g
 = (graph, iworld)
+
+serialize_in_vst :: f !*VSt -> *(!String, !*VSt)
+serialize_in_vst f vst=:{iworld}
+# (s,iworld) = serialize_for_client f iworld
+= case s of
+	Error e -> abort (e+++"\n")
+	Ok s    -> (s, {vst & iworld=iworld})
