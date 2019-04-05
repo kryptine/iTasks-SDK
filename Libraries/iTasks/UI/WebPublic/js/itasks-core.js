@@ -78,9 +78,13 @@ itasks.Component = {
 			me.domEl.style = me.attributes['style'];
 		}
 		if(me.attributes['class']) {
-			var len = me.attributes['class'].length;
-			for(var i = 0; i < len; i++) {
-				me.domEl.classList.add(me.attributes['class'][i]);
+			if(Array.isArray(me.attributes['class'])) {
+				var len = me.attributes['class'].length;
+				for(var i = 0; i < len; i++) {
+					me.domEl.classList.add(me.attributes['class'][i]);
+				}
+			} else {
+				me.domEl.classList.add(me.attributes['class']);
 			}
 		}
 		//Custom initialization after the dom element has been rendered

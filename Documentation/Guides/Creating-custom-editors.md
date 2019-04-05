@@ -44,7 +44,7 @@ So to use a custom task UI we need to do two things: We need to specify an edito
 
 The iTask framework provides a number of builtin UI components that it can render in a browser. These are the lowest level building blocks with which all iTasks GUI's are constructed.
 
-In the example of the previous section we have seen the `slider` editor. This editor is one of the builtin componentens in the `iTasks.UI.Editor.Controls` module. All builtin editors have no arguments, but can dynamically be configured by setting attributes. For example if we wanted to set the maximum value of the slider, we would write `slider <<@ maxAttr 42`. The tuning combinators `<<@` or `@>>` are used to set attributes on editors. This pattern is used to make it easy to create editors without the need to specify all attributes in advance. In many cases, it is not necessary to deviate from the default values of the configurable attributes. Forcing a programmer to specify them all makes our GUI code too verbose. The price we pay for this convenience is that we lose some type safety. We dynamically set arbitrary attributes on editors, whether the UI rendering code uses them or not. 
+In the example of the previous section we have seen the `slider` editor. This editor is one of the builtin componentens in the `iTasks.UI.Editor.Controls` module. All builtin editors have no arguments, but can dynamically be configured by setting attributes. For example if we wanted to set the maximum value of the slider, we would write `slider <<@ maxAttr 42`. The tuning combinators `<<@` or `@>>` are used to set attributes on editors. This pattern is used to make it easy to create editors without the need to specify all attributes in advance. In many cases, it is not necessary to deviate from the default values of the configurable attributes. Forcing a programmer to specify them all makes our GUI code too verbose. The price we pay for this convenience is that we lose some type safety. We dynamically set arbitrary attributes on editors, whether the UI rendering code uses them or not. Two noteworthy attributes are `classAttr` and `styleAttr` which let you attach CSS classes and inline styles to editors.
 
 ## Composing editors ##
 
@@ -56,7 +56,7 @@ myTask = updateInformation "Change the magic number"
     [UpdateUsing (\x -> ("Mylabel",x)) (\_ (_,x) -> x) editor] 42
 where
     editor :: Editor (String,Int)
-    editor = (container2 label slider) <<@ directionAttr Horizontal
+    editor = (container2 label slider) <<@ classAttr ["itasks-horizontal"]
 ```
 
 When you run this example, you'll see the same slider as before, but this time with a label "Mylabel" to the left of it. There are a few things going on here. The first new thing is the `label` builtin editor that we are using. This is an editor of type `String` and simply displays its value. The next new thing is the `container2` combinator. This is where the composition happens. This combinator takes two editors and puts them together in a container. The values are combined into a tuple, so the type of the combined editor in this case is `(String,Int)`.  There are combinators for different kinds of containers, such as `panel`, `window` or `tabset`. Because grouping editors with these combinators creates tuples, we need different versions of each depending on how many items we group together. In this case we are using `container2` to group two editors. The last thing we are doing in this example is providing the actual label. We are using the model-to-view mapping of `UpdateUsing` to add the static label to the value.
@@ -70,7 +70,7 @@ myTask = updateInformation "Change the magic number"
 where
     editor :: Editor Int
     editor = bijectEditorValue (\x -> ("Mylabel",x)) snd
-        (panel2 label slider <<@ directionAttr Horizontal)
+        (panel2 label slider <<@ classAttr ["itasks-horizontal"])
 ```
 
 In this revision, we have used a new combinator from `iTasks.UI.Editor.Modifiers`: The `bijectEditorValue` combinator. With this function we can change the type of the editor. In this case the two functions `(\x -> "Mylabel",x))` and `snd` define a bijection between the domain of the composed editor (of type `(String,Int)`) and the domain we would like our editor to work on (of type `Int`).
@@ -93,9 +93,9 @@ where
                 (panel2
                     (row "Footastic:" passwordField)
                     (row "Barmagic:" slider)
-                ) <<@ heightAttr WrapSize
-    row l e = bijectEditorValue (\x -> (l,x)) snd
-                ((container2 (viewConstantValue l label) e) <<@ directionAttr Horizontal)
+                ) <<@ classAttr ["itasks-wrap-height"]
+    row l e = bijectEditorValue (\x -> ((),x)) snd
+                ((container2 (viewConstantValue l label) e) <<@ classAttr ["itasks-horizontal"])
 ```
 
 This example is a little more complex, but uses only things we have already seen. By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
