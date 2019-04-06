@@ -20,7 +20,8 @@ const abc_interpreter={
 	code_offset: undefined,
 
 	stack_size: (512<<10)*2,
-	heap_size:  2<<20,
+	hp_size: 2<<20,
+	hp_free: 2<<17,
 
 	asp: undefined,
 	bsp: undefined,
@@ -55,13 +56,16 @@ const abc_interpreter={
 		for (var i=0; i<graph.length; i++)
 			abc_interpreter.memory_array[unused_semispace/4+i] = graph[i];
 
+		var old_hp=abc_interpreter.hp;
+		// TODO: watch out for garbage collection
 		abc_interpreter.hp=abc_interpreter.util.instance.exports.copy_from_string(
 			unused_semispace,
 			graph.length/2,
 			abc_interpreter.asp,
 			abc_interpreter.bsp,
-			abc_interpreter.hp,
+			old_hp,
 			abc_interpreter.code_offset*8);
+		abc_interpreter.hp_free=(abc_interpreter.hp-old_hp)/8;
 
 		var index=abc_interpreter.shared_clean_values.length;
 		abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[unused_semispace/4]);
@@ -100,7 +104,7 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 	abc_interpreter.csp=abc_interpreter.asp+abc_interpreter.stack_size/2;
 	abc_interpreter.hp=abc_interpreter.bsp+8;
 
-	const blocks_needed=Math.floor((abc_interpreter.prog.length*4 + abc_interpreter.stack_size + abc_interpreter.heap_size*2 + 65535) / 65536);
+	const blocks_needed=Math.floor((abc_interpreter.prog.length*4 + abc_interpreter.stack_size + abc_interpreter.hp_free*8*2 + 65535) / 65536);
 
 	abc_interpreter.memory=new WebAssembly.Memory({initial: blocks_needed});
 	abc_interpreter.memory_array=new Uint32Array(abc_interpreter.memory.buffer);
@@ -113,19 +117,23 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 		while (prog.length > 0) {
 			if (prog[0]==1) /* ST_Code section; see ABCInterpreter's bcprelink.c */
 				abc_interpreter.code_offset=i+1;
-			if (prog[0]==3) /* ST_Start */
-				abc_interpreter.start=prog[2];
 			i+=1+prog[1];
 			prog=prog.slice(2+2*prog[1]);
 		}
 	})(abc_interpreter.prog);
-	if (abc_interpreter.start==undefined)
-		throw 'program has no start address'; // TODO start address actually not required here
 
 	return WebAssembly.instantiateStreaming(
 		fetch('js/abc-interpreter-util.wasm'),
 		{ clean: {
 			memory: abc_interpreter.memory,
+			has_host_reference: function (index) {
+				if (abc_interpreter.shared_clean_values.length>index && abc_interpreter.shared_clean_values[index]!=null)
+					return abc_interpreter.shared_clean_values[index];
+				return 0;
+			},
+			update_host_reference: function (index, new_location) {
+				abc_interpreter.shared_clean_values[index]=new_location;
+			},
 			debug: function(what,a,b,c) {
 				switch (what) {
 					case 0:
@@ -148,7 +156,7 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 	abc_interpreter.util=util;
 	abc_interpreter.util.instance.exports.setup_gc(
 		abc_interpreter.hp,
-		abc_interpreter.heap_size,
+		abc_interpreter.hp_free*8,
 		abc_interpreter.asp,
 		98*8);
 
@@ -278,6 +286,7 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 				abc_interpreter.memory_array[abc_interpreter.hp/4+2]=abc_interpreter.shared_js_values.length;
 				abc_interpreter.shared_js_values.push(arguments[i]);
 				abc_interpreter.hp+=16;
+				abc_interpreter.hp_free-=2;
 			} else {
 				console.log(arguments[i]);
 				throw 'Could not pass the above value to Clean';
@@ -295,8 +304,9 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 			abc_interpreter.bsp,
 			csp,
 			abc_interpreter.hp,
-			abc_interpreter.heap_size/8);
+			abc_interpreter.hp_free);
 		abc_interpreter.hp=abc_interpreter.interpreter.instance.exports.get_hp();
+		abc_interpreter.hp_free=abc_interpreter.interpreter.instance.exports.get_hp_free();
 		console.log(r);
 	};
 

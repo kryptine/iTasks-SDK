@@ -43,7 +43,7 @@ where
 	where
 		initDOMEl :: !(JSObj ()) !*JSWorld -> (!JSVal a, !*JSWorld)
 		initDOMEl comp w
-		# w = (comp .# "domEl.value" .= toJS 37) w
+		# w = (comp .# "domEl.value" .= toJS (MyReverse 1000)) w
 		= (jsNull,w)
 
 	genUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI, !s), !*VSt)
@@ -53,3 +53,14 @@ where
 		Just val
 			# (s,vst) = serialize_in_vst val vst
 			-> (Ok (ui UITextField, val), vst)
+
+MyReverse::Int -> Int
+MyReverse n =  last (Rev_n n [1..n])
+where
+	Rev_n::Int [Int] -> [Int]
+	Rev_n 1 list	=  Rev list []
+	Rev_n n list	=  Rev_n (n - 1) (Rev list [])
+
+	Rev::[Int] [Int] -> [Int]
+	Rev [x:r]	list	=  Rev r [x : list]
+	Rev []		list	=  list
