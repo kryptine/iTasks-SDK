@@ -1,6 +1,7 @@
 implementation module iTasks.UI.JS.Interface
 
 import StdEnv
+import Text
 
 :: *JSWorld = JSWorld
 
@@ -9,7 +10,7 @@ import StdEnv
 	| JSString !String
 	| JSRef !Int // a reference to shared_js_values
 	| JSCleanRef !Int // a reference to shared_clean_values
-	| JSNull
+	| JSVar !String
 
 	| E.b c: JSSel !(JSVal b) !(JSVal c) // b[c]
 	| E.b: JSSelPath !(JSVal b) !String // b.path1.path2...pathn
@@ -24,7 +25,7 @@ where
 		JSString s -> "'"+++s+++"'" // TODO escape
 		JSRef i -> "abc_interpreter.shared_js_values["+++toString i+++"]"
 		JSCleanRef i -> "abc_interpreter.apply_to_clean_value("+++toString i+++")"
-		JSNull -> "null"
+		JSVar v -> v
 
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
@@ -32,6 +33,49 @@ where
 js_set :: !(JSVal a) !(JSVal b) !*JSWorld -> *JSWorld
 js_set var val w = case eval_js (toString var+++"="+++toString val) of
 	True -> w
+
+instance toJS Int where toJS i = JSInt i
+instance toJS String where toJS s = JSString s
+
+instance .# String where .# obj path = JSSelPath obj path
+instance .# Int where .# arr i = JSSel arr (JSInt i)
+
+(.=) infixl 1 :: !(JSObj a) !(JSVal b) !*JSWorld -> *JSWorld
+(.=) sel v w = js_set sel v w
+
+instance toJSArgs Int where toJSArgs i = [toJS i]
+instance toJSArgs String where toJSArgs s = [toJS s]
+instance toJSArgs () where toJSArgs _ = []
+
+instance toJSArgs (a,b) | toJS a & toJS b
+where toJSArgs (a,b) = [toJS a, toJS b]
+
+instance toJSArgs (a,b,c) | toJS a & toJS b & toJS c
+where toJSArgs (a,b,c) = [toJS a, toJS b, toJS c]
+
+instance toJSArgs (a,b,c,d) | toJS a & toJS b & toJS c & toJS d
+where toJSArgs (a,b,c,d) = [toJS a, toJS b, toJS c, toJS d]
+
+instance toJSArgs (a,b,c,d,e) | toJS a & toJS b & toJS c & toJS d & toJS e
+where toJSArgs (a,b,c,d,e) = [toJS a, toJS b, toJS c, toJS d, toJS e]
+
+instance toJSArgs (a,b,c,d,e,f) | toJS a & toJS b & toJS c & toJS d & toJS e & toJS f
+where toJSArgs (a,b,c,d,e,f) = [toJS a, toJS b, toJS c, toJS d, toJS e, toJS f]
+
+(.$!) infixl 2 :: !(JSFun a) !b !*JSWorld -> *JSWorld | toJSArgs b
+(.$!) f args w = case eval_js call of
+	True -> w
+where
+	call = toString f+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
+
+jsGlobal :: !String -> JSVal a
+jsGlobal s = JSVar s
+
+jsWrapFun :: !f !*JSWorld -> *(!JSFun f, !*JSWorld)
+jsWrapFun f world = (cast (share f), world)
+
+referenceToJS :: !Int -> JSVal a
+referenceToJS ref = JSRef ref
 
 eval_js :: !String -> Bool
 eval_js s = code {
@@ -56,21 +100,3 @@ cast :: !.a -> .b
 cast _ = code {
 	no_op
 }
-
-instance toJS Int where toJS i = JSInt i
-instance toJS String where toJS s = JSString s
-
-jsNull :: JSVal a
-jsNull = JSNull
-
-referenceToJS :: !Int -> JSVal a
-referenceToJS ref = JSRef ref
-
-instance .# String where .# obj path = JSSelPath obj path
-instance .# Int where .# arr i = JSSel arr (JSInt i)
-
-(.=) infixl 2 :: !(JSObj a) !(JSVal b) !*JSWorld -> *JSWorld
-(.=) sel v w = js_set sel v w
-
-jsWrapFun :: !f !*JSWorld -> *(!JSFun f, !*JSWorld)
-jsWrapFun f world = (cast (share f), world)

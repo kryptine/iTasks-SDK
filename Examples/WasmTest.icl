@@ -12,9 +12,6 @@ import iTasks.UI.JS.Interface
 import iTasks.UI.Prompt
 import iTasks.WF.Tasks.Interaction
 
-// TODO: remove
-import Text.GenJSON
-
 Start w = doTasks task w
 
 //import iTasks.Internal.SDS
@@ -37,6 +34,7 @@ task = updateInformation "test"
 where
 	initUI :: !(JSObj ()) !*JSWorld -> *JSWorld
 	initUI comp w
+	# w = (jsGlobal "console.log" .$! (1,2,3)) w
 	# (jsInitDOMEl,w) = jsWrapFun (initDOMEl comp) w
 	# w = (comp .# "initDOMEl" .= jsInitDOMEl) w
 	= w
