@@ -21,12 +21,6 @@ const abc_interpreter={
 
 	stack_size: (512<<10)*2,
 	hp_size: 2<<20,
-	hp_free: 2<<17,
-
-	asp: undefined,
-	bsp: undefined,
-	csp: undefined,
-	hp:  undefined,
 
 	util: undefined,
 	interpreter: undefined,
@@ -56,16 +50,18 @@ const abc_interpreter={
 		for (var i=0; i<graph.length; i++)
 			abc_interpreter.memory_array[unused_semispace/4+i] = graph[i];
 
-		var old_hp=abc_interpreter.hp;
-		// TODO: watch out for garbage collection
-		abc_interpreter.hp=abc_interpreter.util.instance.exports.copy_from_string(
+		// TODO: maybe garbage collection is needed
+		var old_hp=abc_interpreter.interpreter.instance.exports.get_hp();
+		var new_hp=abc_interpreter.util.instance.exports.copy_from_string(
 			unused_semispace,
 			graph.length/2,
-			abc_interpreter.asp,
-			abc_interpreter.bsp,
+			abc_interpreter.interpreter.instance.exports.get_asp(),
+			abc_interpreter.interpreter.instance.exports.get_bsp(),
 			old_hp,
 			abc_interpreter.code_offset*8);
-		abc_interpreter.hp_free=(abc_interpreter.hp-old_hp)/8;
+		abc_interpreter.interpreter.instance.exports.set_hp(new_hp);
+		abc_interpreter.interpreter.instance.exports.set_hp_free(
+			abc_interpreter.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8);
 
 		var index=abc_interpreter.shared_clean_values.length;
 		abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[unused_semispace/4]);
@@ -73,10 +69,7 @@ const abc_interpreter={
 		return SharedCleanValue(index);
 	},
 
-	interpret: function() {
-		this.queue.push(arguments);
-	},
-	queue: [],
+	interpret: null,
 
 	shared_js_values: [], // javascript objects accessible from Clean
 	shared_clean_values: [], // pointers to the Clean heap
@@ -99,12 +92,7 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 }).then(function(bytecode){
 	abc_interpreter.prog=new Uint32Array(bytecode);
 
-	abc_interpreter.asp=4*abc_interpreter.prog.length;
-	abc_interpreter.bsp=abc_interpreter.asp+abc_interpreter.stack_size;
-	abc_interpreter.csp=abc_interpreter.asp+abc_interpreter.stack_size/2;
-	abc_interpreter.hp=abc_interpreter.bsp+8;
-
-	const blocks_needed=Math.floor((abc_interpreter.prog.length*4 + abc_interpreter.stack_size + abc_interpreter.hp_free*8*2 + 65535) / 65536);
+	const blocks_needed=Math.floor((abc_interpreter.prog.length*4 + abc_interpreter.stack_size + abc_interpreter.hp_size*2 + 65535) / 65536);
 
 	abc_interpreter.memory=new WebAssembly.Memory({initial: blocks_needed});
 	abc_interpreter.memory_array=new Uint32Array(abc_interpreter.memory.buffer);
@@ -154,11 +142,6 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 	);
 }).then(function(util){
 	abc_interpreter.util=util;
-	abc_interpreter.util.instance.exports.setup_gc(
-		abc_interpreter.hp,
-		abc_interpreter.hp_free*8,
-		abc_interpreter.asp,
-		98*8);
 
 	const interpreter_imports={
 		clean: {
@@ -265,8 +248,25 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 }).then(function(intp){
 	abc_interpreter.interpreter=intp;
 
+	const asp=4*abc_interpreter.prog.length;
+	const bsp=asp+abc_interpreter.stack_size;
+	const csp=asp+abc_interpreter.stack_size/2;
+	const hp=bsp+8;
+
+	abc_interpreter.util.instance.exports.setup_gc(hp, abc_interpreter.hp_size, asp, 98*8);
+
+	abc_interpreter.interpreter.instance.exports.set_asp(asp);
+	abc_interpreter.interpreter.instance.exports.set_bsp(bsp);
+	abc_interpreter.interpreter.instance.exports.set_csp(csp);
+	abc_interpreter.interpreter.instance.exports.set_hp(hp);
+	abc_interpreter.interpreter.instance.exports.set_hp_free(abc_interpreter.hp_size/8);
+	abc_interpreter.interpreter.instance.exports.set_hp_size(abc_interpreter.hp_size);
+
 	abc_interpreter.interpret=function(){
-		var asp=abc_interpreter.asp;
+		var asp=abc_interpreter.interpreter.instance.exports.get_asp();
+		var hp=abc_interpreter.interpreter.instance.exports.get_hp();
+		var hp_free=abc_interpreter.interpreter.instance.exports.get_hp_free();
+
 		for (var i=arguments.length-1; i>=0; i--) {
 			asp+=8;
 			if ('abc_type' in arguments[i]) {
@@ -281,37 +281,31 @@ abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
 						throw ('unknown abc_type '+arguments[i].abc_type);
 				}
 			} else if ('domEl' in arguments[i]) { /* probably an iTasks.Component; TODO: come up with a better check for this */
-				abc_interpreter.memory_array[asp/4]=abc_interpreter.hp;
-				abc_interpreter.memory_array[abc_interpreter.hp/4]=661*8+2; // DOMNode type
-				abc_interpreter.memory_array[abc_interpreter.hp/4+2]=abc_interpreter.shared_js_values.length;
+				// TODO: check if garbage collection is needed
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=661*8+2; // DOMNode type
+				abc_interpreter.memory_array[hp/4+2]=abc_interpreter.shared_js_values.length;
 				abc_interpreter.shared_js_values.push(arguments[i]);
-				abc_interpreter.hp+=16;
-				abc_interpreter.hp_free-=2;
+				hp+=16;
+				hp_free-=2;
 			} else {
 				console.log(arguments[i]);
 				throw 'Could not pass the above value to Clean';
 			}
 		}
 
-		var csp=abc_interpreter.csp+8;
-		abc_interpreter.memory_array[csp/4-2]=659*8; // instruction 0
+		var csp=abc_interpreter.interpreter.instance.exports.get_csp();
+		abc_interpreter.memory_array[csp/4]=659*8; // instruction 0; to return
+		csp+=8;
 
 		var start=(97+arguments.length)*8; // jmp_apn as appropriate; TODO: fix for case where arguments.length=1
 
-		var r=abc_interpreter.interpreter.instance.exports.interpret(
-			start,
-			asp,
-			abc_interpreter.bsp,
-			csp,
-			abc_interpreter.hp,
-			abc_interpreter.hp_free);
-		abc_interpreter.hp=abc_interpreter.interpreter.instance.exports.get_hp();
-		abc_interpreter.hp_free=abc_interpreter.interpreter.instance.exports.get_hp_free();
-		console.log(r);
-	};
+		abc_interpreter.interpreter.instance.exports.set_pc(start);
+		abc_interpreter.interpreter.instance.exports.set_asp(asp);
+		abc_interpreter.interpreter.instance.exports.set_csp(csp);
+		abc_interpreter.interpreter.instance.exports.set_hp(hp);
+		abc_interpreter.interpreter.instance.exports.set_hp_free(hp_free);
 
-	while (abc_interpreter.queue.length) {
-		var task=abc_interpreter.queue.shift();
-		abc_interpreter.interpret.apply(this, task);
-	}
+		abc_interpreter.interpreter.instance.exports.interpret();
+	};
 });

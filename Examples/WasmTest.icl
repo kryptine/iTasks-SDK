@@ -37,11 +37,19 @@ where
 	# w = (jsGlobal "console.log" .$! (1,2,3)) w
 	# (jsInitDOMEl,w) = jsWrapFun (initDOMEl comp) w
 	# w = (comp .# "initDOMEl" .= jsInitDOMEl) w
+	# (jsAfterInitDOM,w) = jsWrapFun afterInitDOM w
+	# w = (comp .# "afterInitDOM" .= jsAfterInitDOM) w
 	= w
 	where
 		initDOMEl :: !(JSObj ()) !*JSWorld -> (!JSVal a, !*JSWorld)
 		initDOMEl comp w
 		# w = (comp .# "domEl.value" .= toJS (MyReverse 1000)) w
+		# w = (comp .# "afterInitDOM" .$! ()) w
+		= (jsNull,w)
+
+		afterInitDOM :: !*JSWorld -> (!JSVal a, !*JSWorld)
+		afterInitDOM w
+		# w = (jsGlobal "console.log" .$! "element initialized") w
 		= (jsNull,w)
 
 	genUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI, !s), !*VSt)
