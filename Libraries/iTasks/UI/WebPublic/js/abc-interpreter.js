@@ -85,7 +85,7 @@ const abc_interpreter={
 	},
 };
 
-abc_interpreter.loading_promise=fetch('js/app.ubc').then(function(resp){
+abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 	if (!resp.ok)
 		throw 'failed to fetch bytecode';
 	return resp.arrayBuffer();

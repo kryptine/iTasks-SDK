@@ -14,8 +14,7 @@ import iTasks.UI.Editor
 
 serialize_for_client :: f !*IWorld -> *(!MaybeErrorString String, !*IWorld)
 serialize_for_client f iworld=:{world,options}
-# (graph,world) = serialize_for_prelinked_interpretation f (options.appName+++".bc") options.appPath world
-	// TODO: store bytecodePath in EngineOptions
+# (graph,world) = serialize_for_prelinked_interpretation f options.byteCodePath options.appPath world
 # iworld & world = world
 # graph = case graph of
 	Nothing -> Error "Failed to serialize graph"

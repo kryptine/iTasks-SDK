@@ -74,7 +74,7 @@ instance Startable (a,b) | Startable a & Startable b
 	, webDirPath    :: FilePath  // Location of public files that are served by the iTask webserver
 	, storeDirPath  :: FilePath  // Location of the application's persistent data files 
 	, tempDirPath   :: FilePath  // Location for temporary files used in tasks
-	, saplDirPath   :: FilePath  // Location of the application's sapl files (client-side code)
+	, byteCodePath  :: FilePath  // Location of the application's bytecode
 	}
 
 /**
