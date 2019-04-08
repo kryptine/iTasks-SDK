@@ -84,6 +84,53 @@ const abc_interpreter={
 		};
 	},
 
+	copy_js_to_clean: function (values, asp, hp, hp_free) {
+		for (var i=values.length-1; i>=0; i--) {
+			asp+=8;
+			if (typeof values[i]=='number') {
+				// TODO use small integers
+				// TODO check garbage collection
+				if (Number.isInteger(values[i])) {
+					abc_interpreter.memory_array[asp/4]=hp;
+					abc_interpreter.memory_array[hp/4]=26*8+2; // INT
+					abc_interpreter.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
+					hp+=16;
+					hp_free-=2;
+				} else {
+					throw 'Cannot pass non-integral numbers to Clean yet'; // TODO
+				}
+			} else if ('abc_type' in values[i]) {
+				switch (values[i].abc_type) {
+					case 'SharedCleanValue':
+						abc_interpreter.memory_array[asp/4]=abc_interpreter.shared_clean_values[values[i].index];
+						break;
+					case 'JSWorld':
+						abc_interpreter.memory_array[asp/4]=(31+17*2)*8; // INT 17
+						break;
+					default:
+						throw ('unknown abc_type '+values[i].abc_type);
+				}
+			} else if ('domEl' in values[i]) { /* probably an iTasks.Component; TODO: come up with a better check for this */
+				// TODO: check if garbage collection is needed
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=661*8+2; // DOMNode type
+				abc_interpreter.memory_array[hp/4+2]=abc_interpreter.shared_js_values.length;
+				abc_interpreter.shared_js_values.push(values[i]);
+				hp+=16;
+				hp_free-=2;
+			} else {
+				console.log(values[i]);
+				throw 'Could not pass the above value to Clean';
+			}
+		}
+
+		return {
+			asp: asp,
+			hp: hp,
+			hp_free: hp_free,
+		};
+	},
+
 	get_clean_string: function (hp_ptr) {
 		var size=abc_interpreter.memory_array[hp_ptr/4+2];
 		var string_buffer=new Uint8Array(abc_interpreter.memory.buffer, hp_ptr+16);
@@ -159,7 +206,7 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 			debug_instr: function (addr, instr) {
 				console.log(addr,(addr/8-abc_interpreter.code_offset)+'\t'+abc_instructions[instr]);
 			},
-			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp) {
+			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp, hp_free) {
 				if (abc_instructions[instr]=='instruction') {
 					const arg=abc_interpreter.memory_array[(pc+8)/4];
 					switch (arg) {
@@ -170,7 +217,18 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							console.log('eval',string);
 							Function(string)();
 							break;
-						case 2: /* iTasks.UI.JS.Interface: share */
+						case 2:
+							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
+							console.log('eval',string);
+							var result=eval(string);
+							var copied=abc_interpreter.copy_js_to_clean([result], asp-8, hp, hp_free);
+							abc_interpreter.interpreter.instance.exports.set_hp(copied.hp);
+							abc_interpreter.interpreter.instance.exports.set_hp_free(copied.hp_free);
+							break;
+						case 3: /* TODO: iTasks.UI.JS.Interface: store_js_value */
+							throw 'store_js_value';
+							break;
+						case 4: /* iTasks.UI.JS.Interface: share */
 							abc_interpreter.memory_array[bsp/4]=abc_interpreter.shared_clean_values.length;
 							abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[asp/4]);
 							break;
@@ -188,7 +246,8 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							var callback=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4-2]);
 							var js=document.createElement('script');
 							js.type='text/javascript';
-							js.onload=Function(callback+'();');
+							if (callback.length>0)
+								js.onload=Function(callback+'();');
 							console.log(url,callback,js);
 							document.head.appendChild(js);
 							js.src=url;
@@ -290,38 +349,20 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 		var hp=abc_interpreter.interpreter.instance.exports.get_hp();
 		var hp_free=abc_interpreter.interpreter.instance.exports.get_hp_free();
 
-		for (var i=arguments.length-1; i>=0; i--) {
-			asp+=8;
-			if ('abc_type' in arguments[i]) {
-				switch (arguments[i].abc_type) {
-					case 'JSWorld':
-						abc_interpreter.memory_array[asp/4]=(31+17*2)*8; // INT 17
-						break;
-					case 'SharedCleanValue':
-						abc_interpreter.memory_array[asp/4]=abc_interpreter.shared_clean_values[arguments[i].index];
-						break;
-					default:
-						throw ('unknown abc_type '+arguments[i].abc_type);
-				}
-			} else if ('domEl' in arguments[i]) { /* probably an iTasks.Component; TODO: come up with a better check for this */
-				// TODO: check if garbage collection is needed
-				abc_interpreter.memory_array[asp/4]=hp;
-				abc_interpreter.memory_array[hp/4]=661*8+2; // DOMNode type
-				abc_interpreter.memory_array[hp/4+2]=abc_interpreter.shared_js_values.length;
-				abc_interpreter.shared_js_values.push(arguments[i]);
-				hp+=16;
-				hp_free-=2;
-			} else {
-				console.log(arguments[i]);
-				throw 'Could not pass the above value to Clean';
-			}
-		}
+		var copied=abc_interpreter.copy_js_to_clean(arguments, asp, hp, hp_free);
+		asp=copied.asp;
+		hp=copied.hp;
+		hp_free=copied.hp_free;
 
 		var csp=abc_interpreter.interpreter.instance.exports.get_csp();
 		abc_interpreter.memory_array[csp/4]=659*8; // instruction 0; to return
 		csp+=8;
 
 		var start=(97+arguments.length)*8; // jmp_apn as appropriate; TODO: fix for case where arguments.length=1
+
+		// TODO: it would be useful to have a check here whether the jmp_ap will be saturated.
+		// If not, that may indicate a bug in the Clean code, but the type system cannot not catch that.
+		// See for instance the removal of the 'a' argument in the initDOMEl of Pikaday.
 
 		abc_interpreter.interpreter.instance.exports.set_pc(start);
 		abc_interpreter.interpreter.instance.exports.set_asp(asp);

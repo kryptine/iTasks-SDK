@@ -164,5 +164,5 @@ withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr 
 			-> (Error e, {VSt|vst & iworld = iworld})
 	e -> e
 where
-	initUI` :: Int *JSWorld -> *JSWorld
+	initUI` :: !Int !*JSWorld -> *JSWorld
 	initUI` ref_to_js_elem world = initUI (referenceToJS ref_to_js_elem) world

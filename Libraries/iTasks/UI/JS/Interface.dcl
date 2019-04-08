@@ -12,7 +12,7 @@ from StdMaybe import :: Maybe
 :: JSFunction a
 
 class toJS a :: !a -> JSVal b
-instance toJS Int, String
+instance toJS Int, Bool, String, (JSVal b), (Maybe b) | toJS b
 
 /**
  * Access properties of a JavaScript value.
@@ -22,17 +22,23 @@ class (.#) infixl 3 attr :: !(JSVal a) !attr -> JSVal b
 instance .# String // object access; may contain dots
 instance .# Int // array access
 
-(.=) infixl 1 :: !(JSObj a) !(JSVal b) !*JSWorld -> *JSWorld
+(.?) infixl 1 :: !(JSVal a) !*JSWorld -> *(!JSVal r, !*JSWorld)
+(.=) infixl 1 :: !(JSObj a) !b !*JSWorld -> *JSWorld | toJS b
 
 class toJSArgs a :: !a -> [JSVal a]
-instance toJSArgs Int, String, ()
+instance toJSArgs Int, Bool, String, (JSVal b), (Maybe b) | toJS b, ()
 instance toJSArgs (a,b) | toJS a & toJS b
 instance toJSArgs (a,b,c) | toJS a & toJS b & toJS c
 instance toJSArgs (a,b,c,d) | toJS a & toJS b & toJS c & toJS d
 instance toJSArgs (a,b,c,d,e) | toJS a & toJS b & toJS c & toJS d & toJS e
 instance toJSArgs (a,b,c,d,e,f) | toJS a & toJS b & toJS c & toJS d & toJS e & toJS f
 
+(.$) infixl 2 :: !(JSFun a) !b !*JSWorld -> *(!JSVal c, !*JSWorld) | toJSArgs b
 (.$!) infixl 2 :: !(JSFun a) !b !*JSWorld -> *JSWorld | toJSArgs b
+
+jsNew :: !String !a !*JSWorld -> *(!JSVal b, !*JSWorld) | toJSArgs a
+
+jsEmptyObject :: !*JSWorld -> *(!JSVal a, !*JSWorld)
 
 jsGlobal :: !String -> JSVal a
 
