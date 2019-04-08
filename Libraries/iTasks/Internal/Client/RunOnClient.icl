@@ -158,6 +158,7 @@ createClientIWorld serverURL currentInstance
           ,ioTasks              = {done=[],todo=[]}
 		  ,ioStates             = 'Data.Map'.newMap
 		  ,world				= world
+		  ,signalHandlers		= []
 		  ,resources			= []
 		  ,onClient				= True
 		  }
