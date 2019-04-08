@@ -1,6 +1,7 @@
 implementation module iTasks.UI.JS.Interface
 
 import StdEnv
+import StdMaybe
 import Text
 
 :: *JSWorld = JSWorld
@@ -76,6 +77,32 @@ jsWrapFun f world = (cast (share f), world)
 
 referenceToJS :: !Int -> JSVal a
 referenceToJS ref = JSRef ref
+
+addCSSFromUrl :: !String !*JSWorld -> *JSWorld
+addCSSFromUrl css w = case add_css css of
+	True -> w
+where
+	add_css :: !String -> Bool
+	add_css _ = code {
+		instruction 10
+		pop_a 1
+		pushB TRUE
+	}
+
+addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
+addJSFromUrl js mbCallback w = case add_js js callback of
+	True -> w
+where
+	callback = case mbCallback of
+		Just cb -> toString cb
+		Nothing -> ""
+
+	add_js :: !String !String -> Bool
+	add_js _ _ = code {
+		instruction 11
+		pop_a 2
+		pushB TRUE
+	}
 
 eval_js :: !String -> Bool
 eval_js s = code {

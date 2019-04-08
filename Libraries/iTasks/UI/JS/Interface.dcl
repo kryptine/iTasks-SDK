@@ -1,5 +1,7 @@
 definition module iTasks.UI.JS.Interface
 
+from StdMaybe import :: Maybe
+
 :: *JSWorld
 
 :: JSVal a
@@ -49,3 +51,18 @@ referenceToJS :: !Int -> JSVal a
  * @param A function of the type (a b .. z *JSWorld -> *JSWorld)
  */
 jsWrapFun :: !f !*JSWorld -> *(!JSFun f, !*JSWorld)
+
+/**
+ * Load external CSS stylesheet by its URL.
+ *
+ * @param The URL.
+ */
+addCSSFromUrl :: !String !*JSWorld -> *JSWorld
+
+/**
+ * Load an external JavaScript file by its URL.
+ *
+ * @param The URL.
+ * @param An optional callback function for when the script has loaded.
+ */
+addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld

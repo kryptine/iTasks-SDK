@@ -83,6 +83,15 @@ const abc_interpreter={
 			return abc_interpreter.interpret.apply(null, args);
 		};
 	},
+
+	get_clean_string: function (hp_ptr) {
+		var size=abc_interpreter.memory_array[hp_ptr/4+2];
+		var string_buffer=new Uint8Array(abc_interpreter.memory.buffer, hp_ptr+16);
+		var string='';
+		for (var i=0; i<size; i++)
+			string+=String.fromCharCode(string_buffer[i]);
+		return string;
+	},
 };
 
 abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
@@ -157,18 +166,32 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 						case 0: /* evaluation finished */
 							return 0;
 						case 1: /* iTasks.UI.JS.Interface: eval_js */
-							var clean_string=abc_interpreter.memory_array[asp/4];
-							var size=abc_interpreter.memory_array[clean_string/4+2];
-							var string_buffer=new Uint8Array(abc_interpreter.memory.buffer, clean_string+16);
-							var string='';
-							for (var i=0; i<size; i++)
-								string+=String.fromCharCode(string_buffer[i]);
+							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
 							console.log('eval',string);
 							Function(string)();
 							break;
 						case 2: /* iTasks.UI.JS.Interface: share */
 							abc_interpreter.memory_array[bsp/4]=abc_interpreter.shared_clean_values.length;
 							abc_interpreter.shared_clean_values.push(abc_interpreter.memory_array[asp/4]);
+							break;
+						case 10: /* iTasks.UI.JS.Interface: add CSS */
+							var url=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
+							var css=document.createElement('link');
+							css.rel='stylesheet';
+							css.type='text/css';
+							css.async=true;
+							css.href=url;
+							document.head.appendChild(css);
+							break;
+						case 11: /* iTasks.UI.JS.Interface: add JS */
+							var url=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
+							var callback=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4-2]);
+							var js=document.createElement('script');
+							js.type='text/javascript';
+							js.onload=Function(callback+'();');
+							console.log(url,callback,js);
+							document.head.appendChild(js);
+							js.src=url;
 							break;
 						default:
 							throw ('unknown instruction '+arg);
