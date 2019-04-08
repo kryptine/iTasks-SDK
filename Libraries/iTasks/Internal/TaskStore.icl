@@ -162,7 +162,9 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> (Ok instanceNo, iworld)
+  `b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
+
+import StdDebug
 
 (`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
 (`b`) (Ok _, st)    f = f st
@@ -239,7 +241,8 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
-filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just \filter metas -> read filter metas) taskInstanceIndex
+filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify)
+	(Just \filter metas -> read filter metas) taskInstanceIndex
 where
     param tfilter = ()
 
@@ -303,10 +306,13 @@ where
 
 		instanceType {instanceType} _ _ = instanceType
 
-    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession,matchAttribute} i
+    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,includeSessions,includeDetached,includeStartup,matchAttribute} i
         =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
         &&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
-        &&  (maybe True (\m -> (i.instanceType =: (TISession _)) == m ) onlySession)
+        &&  ((includeSessions && i.instanceType =: (TISession _)) ||
+		     (includeDetached && i.instanceType =: (TIPersistent _ _)) ||
+		     (includeStartup && i.instanceType =: (TIStartup))
+		    )
 		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.attributes))) matchAttribute)
 
 	notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
@@ -315,7 +321,7 @@ where
 taskInstance :: SDSLens InstanceNo InstanceData InstanceData
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) (Just \p ws -> read p ws) filteredInstanceIndex
 where
-	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=True,includeProgress=True,includeAttributes=True}
 	read no [data]  = Ok data
 	read no _       = Error (exception ("Could not find task instance "<+++ no))
@@ -325,7 +331,7 @@ where
 taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> Ok ())  filteredInstanceIndex
 where
-	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=True,includeProgress=False,includeAttributes=False}
 	read no [(_,Just c,_,_)]    = Ok c
 	read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
@@ -335,7 +341,7 @@ where
 taskInstanceProgress :: SDSLens InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> read p ws) filteredInstanceIndex
 where
-	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=False,includeProgress=True,includeAttributes=False}
 	read no [(_,_,Just p,_)]    = Ok p
 	read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
@@ -346,7 +352,7 @@ where
 taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> read p ws) filteredInstanceIndex
 where
-	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=False,includeProgress=False,includeAttributes=True}
 	read no [(_,_,_,Just a)]    = Ok a
 	read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
@@ -360,8 +366,8 @@ topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite wri
 					 ((sdsFocus filter filteredInstanceIndex) >*| currentInstanceShare)
 where
     param _ = ()
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
-             ,includeConstants=True,includeProgress=True,includeAttributes=True}
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=False,includeDetached=True,includeStartup=False
+		,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
     read _ (instances,curInstance) = Ok (TaskId 0 0, items)
     where
         items = [{TaskListItem|taskId = TaskId instanceNo 0, listId = listId
@@ -504,7 +510,7 @@ where
 		= (Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
-					 ,onlySession=Nothing, matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
+					 ,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
 
 	read ((listId,items),detachedInstances)
 		# detachedProgress = 'DM'.fromList [(TaskId instanceNo 0,progress) \\ (instanceNo,_,Just progress,_) <- detachedInstances]

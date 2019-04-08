@@ -29,11 +29,13 @@ where
 				NoChange
 				(TCInit taskId ts)
 			, iworld)
+	eval event evalOpts tree=:(TCDestroy _) iworld
+		= (DestroyedResult, iworld)
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
 removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
-	case read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld of
+	case read (sdsFocus {InstanceFilter|defaultValue & includeSessions=True} filteredInstanceIndex) EmptyContext iworld of
 		(Ok (ReadingDone index), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
@@ -86,6 +88,8 @@ stopOnStable = everyTick \iworld=:{IWorld|shutdown}->case read (sdsFocus {Instan
 				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
 				_       = shutdown
 			= (Ok (), {IWorld|iworld & shutdown = shutdown})
+		(Ok _,iworld)
+			= (Error (exception "Unexpeced SDS state"),iworld)
 		(Error e, iworld)  = (Error e, iworld)
 where
 	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances)

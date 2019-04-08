@@ -43,7 +43,7 @@ myWork :: SDSLens () [(TaskId,WorklistRow)] ()
 myWork = workList taskInstancesForCurrentUser
 
 allWork :: SDSLens () [(TaskId,WorklistRow)] ()
-allWork = workList allTaskInstances
+allWork = workList detachedTaskInstances
 
 workList instances = mapRead projection (instances |*| currentTopTask)
 where

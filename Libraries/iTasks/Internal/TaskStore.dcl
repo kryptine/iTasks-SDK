@@ -20,7 +20,9 @@ from System.Time    import :: Timestamp
 	{ //'Vertical' filters
 	  onlyInstanceNo    :: !Maybe [InstanceNo]
 	, notInstanceNo     :: !Maybe [InstanceNo]
-	, onlySession       :: !Maybe Bool
+	, includeSessions   :: !Bool
+	, includeDetached   :: !Bool
+	, includeStartup    :: !Bool
 	, matchAttribute 	:: !Maybe (!String,!String)
 	  //'Horizontal' filters
 	, includeConstants  :: !Bool
