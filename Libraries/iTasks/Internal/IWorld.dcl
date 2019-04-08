@@ -21,6 +21,7 @@ from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIde
 from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel, class RWShared, class Registrable, class Modifiable, class Identifiable, class Readable, class Writeable
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
+from System.Signal import :: SigHandler
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
 from Sapl.Target.Flavour import :: Flavour
@@ -29,30 +30,32 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ options               :: !EngineOptions                                   // Engine configuration
-                    , clock                 :: !Timespec                                        // Server side clock
-                    , current               :: !TaskEvalState                                   // Shared state during task evaluation
+:: *IWorld =
+	{ options               :: !EngineOptions                                   // Engine configuration
+	, clock                 :: !Timespec                                        // Server side clock
+	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
-                    , random                :: [Int]                                            // Infinite random stream
+	, random                :: [Int]                                            // Infinite random stream
 
-                    , sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
-                    , sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentity)                    // Allows to efficiently find notification by taskID for clearing notifications
-                    , memoryShares          :: !Map String Dynamic                              // Run-time memory shares
-                    , readCache             :: !Map (String,String) Dynamic                     // Cached share reads
-                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
-					, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
+	, sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
+	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentity)                    // Allows to efficiently find notification by taskID for clearing notifications
+	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
+	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
+	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+	, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
 
-	                , ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
-                    , ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
-                    , sdsEvalStates         :: !SDSEvalStates
+	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
+	, ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+	, sdsEvalStates         :: !SDSEvalStates
 
-					, world					:: !*World									        // The outside world
+	, signalHandlers        :: *[*SigHandler]                                   // Signal handlers
+	, world					:: !*World									        // The outside world
 
-                    //Experimental database connection cache
-                    , resources             :: *[*Resource]
-                    , onClient				:: !Bool									// "False" on the server, "True" on the client
-					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
-					}
+	//Experimental database connection cache
+	, resources             :: *[*Resource]
+	, onClient				:: !Bool									// "False" on the server, "True" on the client
+	, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
+	}
 
 :: JSCompilerState =
 	{ loaderState 			:: !LoaderState							// State of the lazy loader
