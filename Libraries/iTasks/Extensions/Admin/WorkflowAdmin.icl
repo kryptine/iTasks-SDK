@@ -9,6 +9,8 @@ from StdFunc import seq
 import qualified Data.Map as DM
 import Data.Map.GenJSON
 import Data.List, Data.Tuple
+import Text.HTML
+
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 import iTasks.Extensions.DateTime
 // SPECIALIZATIONS
@@ -174,9 +176,8 @@ where
 	manageWorkWf = transientWorkflow "My work" "Manage your worklist"  manageWork
 
 manageWork :: Task ()
-manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
+manageWork = parallel [(Embedded, manageList),(Embedded, const viewInstructions)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
-
 	manageList taskList
 		= get currentUser @ userRoles
 		>>- \roles ->
@@ -204,6 +205,17 @@ where
 			layoutSubUIs (SelectByDepth 1) (setUIAttributes $ 'DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
 		]
 
+viewInstructions :: Task ()
+viewInstructions = viewInformation (Title "Welcome") [] instructions @! ()
+where
+	instructions = DivTag [] [H1Tag [] [Text "Welcome"],PTag [] (flatten (map (\t -> [Text t,BrTag []]) text))]
+	text = ["In this framework you can work on multiple tasks in a multi-user setting."
+		   ,"In the list above you can see the set of tasks that you can choose to work on."
+		   ,"You can add tasks to this list with the 'New' button. This will open a window with a collection of predefined tasks."
+		   ,"These tasks range from simple TODO items, to complex multi-user workflows."
+		   ]
+
+	
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list
 	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
