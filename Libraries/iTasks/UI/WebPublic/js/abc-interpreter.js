@@ -87,7 +87,22 @@ const abc_interpreter={
 	copy_js_to_clean: function (values, asp, hp, hp_free) {
 		for (var i=values.length-1; i>=0; i--) {
 			asp+=8;
-			if (typeof values[i]=='number') {
+			console.log('copy',values[i]);
+			if (values[i]===null) {
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=26*8+2; // INT
+				abc_interpreter.memory_array[hp/4+2]=0;
+				abc_interpreter.memory_array[hp/4+3]=1<<30;
+				hp+=16;
+				hp_free-=2;
+			} else if (typeof values[i]=='undefined') {
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=26*8+2; // INT
+				abc_interpreter.memory_array[hp/4+2]=0;
+				abc_interpreter.memory_array[hp/4+3]=(1<<30)+1;
+				hp+=16;
+				hp_free-=2;
+			} else if (typeof values[i]=='number') {
 				// TODO use small integers
 				// TODO check garbage collection
 				if (Number.isInteger(values[i])) {
@@ -110,7 +125,7 @@ const abc_interpreter={
 					default:
 						throw ('unknown abc_type '+values[i].abc_type);
 				}
-			} else if ('domEl' in values[i]) { /* probably an iTasks.Component; TODO: come up with a better check for this */
+			} else if (typeof values[i]=='object') {
 				// TODO: check if garbage collection is needed
 				abc_interpreter.memory_array[asp/4]=hp;
 				abc_interpreter.memory_array[hp/4]=661*8+2; // DOMNode type
@@ -220,7 +235,7 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 						case 2:
 							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
 							console.log('eval',string);
-							var result=eval(string);
+							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
 							var copied=abc_interpreter.copy_js_to_clean([result], asp-8, hp, hp_free);
 							abc_interpreter.interpreter.instance.exports.set_hp(copied.hp);
 							abc_interpreter.interpreter.instance.exports.set_hp_free(copied.hp_free);
@@ -248,7 +263,6 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							js.type='text/javascript';
 							if (callback.length>0)
 								js.onload=Function(callback+'();');
-							console.log(url,callback,js);
 							document.head.appendChild(js);
 							js.src=url;
 							break;

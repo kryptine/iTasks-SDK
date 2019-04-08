@@ -14,6 +14,7 @@ import Text
 	| JSCleanRef !Int // a reference to shared_clean_values
 	| JSVar !String
 	| JSNull
+	| JSUndefined
 
 	| E.b c: JSSel !(JSVal b) !(JSVal c) // b[c]
 	| E.b: JSSelPath !(JSVal b) !String // b.path1.path2...pathn
@@ -31,9 +32,13 @@ where
 		JSCleanRef i -> "abc_interpreter.apply_to_clean_value("+++toString i+++")"
 		JSVar v -> v
 		JSNull -> "null"
+		JSUndefined -> "undefined"
 
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
+
+jsIsUndefined :: !(JSVal a) -> Bool
+jsIsUndefined v = v=:JSUndefined
 
 instance toJS Int where toJS i = JSInt i
 instance toJS Bool where toJS b = JSBool b
@@ -99,7 +104,7 @@ where
 	call = "new "+++cons+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
 
 jsEmptyObject :: !*JSWorld -> *(!JSVal a, !*JSWorld)
-jsEmptyObject w = (store_js_value "{}", w)
+jsEmptyObject w = (eval_js_with_return_value "{}", w)
 
 jsGlobal :: !String -> JSVal a
 jsGlobal s = JSVar s
@@ -148,24 +153,38 @@ eval_js_with_return_value s = code {
 	instruction 2
 	eq_desc dINT 0 0
 	jmp_true return_int
-	print "eval_js_with_return_value: return type unknown\n"
+	pushD_a 0
+	pushI 5290 | 661*8+2; DOMNode (bcprelink.c)
+	eqI
+	jmp_true return_ref
+	print "eval_js_with_return_value: return type unknown:\n"
+	print_symbol_sc 0
+	print "\n"
 	halt
 :return_int
 	repl_r_args 0 1
+	push_b 0
+	pushI 4611686018427387904 | 1<<62; null
+	eqI
+	jmp_true return_null
+	push_b 0
+	pushI 4611686018427387905 | 1<<62+1; undefined
+	eqI
+	jmp_true return_undefined
 	fill_r e_iTasks.UI.JS.Interface_kJSInt 0 1 0 0 0
+	jmp return
+:return_null
+	fillh e_iTasks.UI.JS.Interface_dJSNull 0 0
+	jmp return
+:return_undefined
+	fillh e_iTasks.UI.JS.Interface_dJSUndefined 0 0
+	jmp return
+:return_ref
+	repl_r_args 0 1
+	fill_r e_iTasks.UI.JS.Interface_kJSRef 0 1 0 0 0
 	jmp return
 :return
 }
-
-store_js_value :: !String -> JSVal a
-store_js_value s = JSRef (eval_and_store s)
-where
-	eval_and_store :: !String -> Int
-	eval_and_store _ = code {
-		pushI 0 | to return the result
-		instruction 3
-		pop_a 1
-	}
 
 share :: !a -> JSVal b
 share x = JSCleanRef (get_shared_value_index x)

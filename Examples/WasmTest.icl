@@ -14,10 +14,11 @@ import iTasks.WF.Tasks.Interaction
 
 Start w = doTasks task w
 
-//import iTasks.Internal.SDS
-//import iTasks.SDS.Sources.System
-//
-//task = viewSharedInformation "Current date and time" [] currentDateTime
+import iTasks.Internal.SDS
+import iTasks.SDS.Sources.System
+
+task :: Task Date
+task = enterInformation "date" []
 
 task = updateInformation "test"
 	[ UpdateUsing (\m -> m) (\_ v -> v) $ leafEditorToEditor

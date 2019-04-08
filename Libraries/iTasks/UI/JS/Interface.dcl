@@ -14,6 +14,8 @@ from StdMaybe import :: Maybe
 class toJS a :: !a -> JSVal b
 instance toJS Int, Bool, String, (JSVal b), (Maybe b) | toJS b
 
+jsIsUndefined :: !(JSVal a) -> Bool
+
 /**
  * Access properties of a JavaScript value.
  */

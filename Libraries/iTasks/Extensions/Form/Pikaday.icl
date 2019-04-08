@@ -13,75 +13,76 @@ pikadayField :: Editor String
 pikadayField = leafEditorToEditor {LeafEditor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	genUI attr dp mode vst=:{VSt|taskId,optional}
-        # val = editModeValue mode
+		# val = editModeValue mode
 		# valAttr = maybe JSONNull JSONString val
-        # attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr valAttr, attr]
+		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr valAttr, attr]
 		= (Ok (uia UITextField attr, val),vst)
 
 	initUI me world
 		//Load css
 		# world      = addCSSFromUrl PIKADAY_CSS_URL world
 		//Defer further action till after the field is created...
-		# (cb,world) = jsWrapFun (\a w -> (jsNull,initDOMEl me w)) world
-		# world      = ((me .# "initDOMEl") .= cb) world
-		# (cb,world) = jsWrapFun (\a w -> (jsNull,beforeRemove me w)) world
-		# world      = ((me .# "beforeRemove") .= cb) world
+		# (cb,world) = jsWrapFun (initDOMEl me) world
+		# world      = (me .# "initDOMEl" .= cb) world
+		# (cb,world) = jsWrapFun (beforeRemove me) world
+		# world      = (me .# "beforeRemove" .= cb) world
 		= world
 
-	beforeRemove me = snd o (me .# "picker" .# "destroy" .$ [])
-	
+	beforeRemove me = snd o (me .# "picker" .# "destroy" .$ ())
+
 	initDOMEl me world
 		//Load javascript library first, then start
-		# (cb,world) = jsWrapFun (\_ w -> (jsNull,initDOMEl` me w)) world
+		# (cb,world) = jsWrapFun (initDOMEl` me) world
 		# world      = addJSFromUrl MOMENT_JS_URL Nothing world
 		# world      = addJSFromUrl PIKADAY_JS_URL (Just cb) world
 		= world
 
 	initDOMEl` me world
 		//Create pikaday object
-		# (value,world) 	= .? (me .# "attributes.value") world
-		# (domEl,world)     = .? (me .# "domEl") world
-		# world 		 	= ((domEl .# "value") .= value) world
+		# (value,world)     = me .# "attributes.value" .? world
+		# (domEl,world)     = me .# "domEl" .? world
+		# world             = (domEl .# "value" .= value) world
 		//Create onselect/keyup
-		# (onSelectCb,world) = jsWrapFun (\a w -> (jsNull,onSelect me w)) world
-        # (onKeyupCb,world)  = jsWrapFun (\a w -> (jsNull,onKeyup me w)) world
-		# (cfg,world)		 = jsEmptyObject world
-		# world				 = ((cfg .# "field") .= domEl) world
-		# world				 = ((cfg .# "format") .= "YYYY-MM-DD") world
-		# world				 = ((cfg .# "firstDay") .= 1) world
-		# world				 = ((cfg .# "onSelect") .= onSelectCb) world
-        # (_,world)          = ((domEl .# "addEventListener") .$ ("keyup", onKeyupCb)) world
-		# (picker,world)	 = jsNewObject "Pikaday" [toJSArg cfg] world
-		# world				 = ((me .# "picker") .= picker) world
+		# (onSelectCb,world) = jsWrapFun (onSelect me) world
+		# (onKeyupCb,world)  = jsWrapFun (onKeyup me) world
+		# (cfg,world)        = jsEmptyObject world
+		# world              = (cfg .# "field" .= domEl) world
+		# world              = (cfg .# "format" .= "YYYY-MM-DD") world
+		# world              = (cfg .# "firstDay" .= 1) world
+		# world              = (cfg .# "onSelect" .= onSelectCb) world
+		# world              = (domEl .# "addEventListener" .$! ("keyup", onKeyupCb)) world
+		# (picker,world)     = jsNew "Pikaday" cfg world
+		# world              = (me .# "picker" .= picker) world
 		//Handle attribute changes
-		# (cb,world) 		 = jsWrapFun (\a w -> (jsNull,onAttributeChange picker me a w)) world
-		# world      		 = ((me .# "onAttributeChange") .= cb) world
+		# (cb,world)         = jsWrapFun (\n v w -> onAttributeChange picker me n v w) world
+		# world              = (me .# "onAttributeChange" .= cb) world
 		//React to selects
 		= world
 
-	onAttributeChange picker me [name,value] world
-		# world      = ((me.# "noEvents") .= True ) world
-		# (_,world)  = ((picker .# "setDate") .$ value) world
-		# world      = ((me.# "noEvents") .= False) world
+	onAttributeChange :: !(JSObj ()) !(JSObj ()) !String !String !*JSWorld -> *JSWorld
+	onAttributeChange picker me name value world
+		# world      = (me.# "noEvents" .= True ) world
+		# (_,world)  = (picker .# "setDate" .$ value) world
+		# world      = (me.# "noEvents" .= False) world
 		= world
 
 	onSelect me world
-		# (noEvents,world)  = .? (me .# "noEvents") world
-		| (not (jsIsUndefined noEvents)) && jsValToBool noEvents
+		# (noEvents,world)  = me .# "noEvents" .? world
+		| (not (jsIsUndefined noEvents)) // TODO && jsValToBool noEvents
 			= world
-		# (picker,world)    = .? (me .# "picker") world
-		# (value,world)     = ((picker .# "toString") .$ "YYYY-MM-DD" ) world
-		# (taskId,world)  = .? (me .# "attributes.taskId") world
-		# (editorId,world)  = .? (me .# "attributes.editorId") world
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,Just value)) world
+		# (picker,world)    = me .# "picker" .? world
+		# (value,world)     = (picker .# "toString" .$ "YYYY-MM-DD" ) world
+		# (taskId,world)  = me .# "attributes.taskId" .? world
+		# (editorId,world)  = me .# "attributes.editorId" .? world
+		# (_,world) = (me .# "doEditEvent" .$ (taskId,editorId,Just value)) world
 		= world
 
-    onKeyup me world
-        # (taskId,world)   = .? (me .# "attributes.taskId") world
-		# (editorId,world) = .? (me .# "attributes.editorId") world
-        # (value,world)    = .? (me .# "domEl.value") world
-        # value            = if (jsValToString value == "") Nothing (Just value)
-        # (_,world)        = ((me .# "doEditEvent") .$ (taskId, editorId,value)) world
+	onKeyup me world
+		# (taskId,world)   = me .# "attributes.taskId" .? world
+		# (editorId,world) = me .# "attributes.editorId" .? world
+		# (value,world)    = me .# "domEl.value" .? world
+		//# value            = if (jsValToString value == "") Nothing (Just value) // TODO
+		# (_,world)        = (me .# "doEditEvent" .$ (taskId, editorId,value)) world
 		= world
 
 	onEdit dp (tp,e) _ vst = (Ok (NoChange, e),vst)
@@ -95,5 +96,5 @@ where
 pikadayDateField :: Editor Date
 pikadayDateField = selectByMode
 	(bijectEditorValue toString fromString textView)
-   	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
-   	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
