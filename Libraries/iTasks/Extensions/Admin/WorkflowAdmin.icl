@@ -156,7 +156,7 @@ where
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
-		,addCSSClass "itasks-compact-header"
+		,addCSSClass "manage-work-header"
 		]
 	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
@@ -176,7 +176,6 @@ where
 manageWork :: Task ()
 manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
-
 	manageList taskList
 		= get currentUser @ userRoles
 		>>- \roles ->
@@ -188,7 +187,7 @@ where
 	worklist roles = if (isMember "admin" roles) allWork  myWork
 	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
 	where
-		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
+		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList <<@ InWindow <<@ AddCSSClass "new-work-window")) taskList @! () ))
 		open = OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
 		delete = OnAction (Action "Delete") (ifValue (\x -> snd x || isMember "admin" roles) (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
 
@@ -328,9 +327,10 @@ where
 
 removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a
 removeWhenStable task slist
-    =   task
+    =   (task
     >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]
-    @?  const NoValue
+    @?  const NoValue)
+	<<@ ApplyLayout unwrapUI
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional

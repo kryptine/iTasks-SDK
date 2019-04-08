@@ -199,11 +199,14 @@ toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
 	[wrapUI UIWindow
 	,interactToWindow
-	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
+	//Move title and class attributes to window
+	,copySubUIAttributes (SelectKeys ["title","class"]) [0] []
+	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title","class"]))
+	//Set window specific attributes
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 where
+	//If the first child is an interact, move the title one level up
 	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
 		(sequenceLayouts [copySubUIAttributes (SelectKeys ["title"]) [0,0] []
 							 ,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
@@ -304,6 +307,10 @@ where
 instance tune ScrollContent Task
 where
     tune ScrollContent t = tune (ApplyLayout scrollContent) t
+
+instance tune AddCSSClass Task
+where
+	tune (AddCSSClass s) t = tune (ApplyLayout (addCSSClass s)) t
 
 instance tune ToWindow Task
 where

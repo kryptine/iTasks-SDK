@@ -105,6 +105,9 @@ instance tune ArrangeHorizontal Task
 :: ScrollContent = ScrollContent
 instance tune ScrollContent Task
 
+:: AddCSSClass = AddCSSClass !String
+instance tune AddCSSClass Task
+
 //Changing container types
 
 toContainer ::                                   LayoutRule

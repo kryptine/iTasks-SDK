@@ -638,7 +638,7 @@ div.itasks-exception {
   display: flex;
   flex-direction: column;
 }
-.itasks-tabset .itasks-tabitem {
+.itasks-tabset .itasks-container.itasks-tabitem, .itasks-tabset .itasks-panel.itasks-tabitem {
   display: none;
 }
 .itasks-tabset .itasks-panel.itasks-tabitem.itasks-selected {
