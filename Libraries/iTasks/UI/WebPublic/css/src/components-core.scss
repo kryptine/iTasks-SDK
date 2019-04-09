@@ -51,7 +51,8 @@ div.#{$prefix}exception {
 }
 
 /* Sizing children of horizontal containers */
-.#{$prefix}horizontal-container > .#{$prefix}flex-width,
+.#{$prefix}container.#{$prefix}horizontal > .#{$prefix}flex-width,
+.#{$prefix}panel.#{$prefix}horizontal > .#{$prefix}flex-width,
 .#{$prefix}form-item > .#{$prefix}flex-width,
 .#{$prefix}toolbar > .#{$prefix}flex-width,
 .#{$prefix}buttonbar > .#{$prefix}flex-width,
@@ -61,7 +62,8 @@ div.#{$prefix}exception {
 .#{$prefix}listitem-controls > .#{$prefix}flex-width {
 	flex: 1;
 }
-.#{$prefix}horizontal-container > .#{$prefix}flex-height,
+.#{$prefix}container.#{$prefix}horizontal > .#{$prefix}flex-height,
+.#{$prefix}panel.#{$prefix}horizontal > .#{$prefix}flex-height,
 .#{$prefix}form-item > .#{$prefix}flex-height,
 .#{$prefix}toolbar > .#{$prefix}flex-height,
 .#{$prefix}buttonbar > .#{$prefix}flex-height,

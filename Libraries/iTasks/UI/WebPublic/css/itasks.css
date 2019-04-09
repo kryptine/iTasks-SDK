@@ -67,7 +67,8 @@ div.itasks-exception {
 }
 
 /* Sizing children of horizontal containers */
-.itasks-horizontal-container > .itasks-flex-width,
+.itasks-container.itasks-horizontal > .itasks-flex-width,
+.itasks-panel.itasks-horizontal > .itasks-flex-width,
 .itasks-form-item > .itasks-flex-width,
 .itasks-toolbar > .itasks-flex-width,
 .itasks-buttonbar > .itasks-flex-width,
@@ -78,7 +79,8 @@ div.itasks-exception {
   flex: 1;
 }
 
-.itasks-horizontal-container > .itasks-flex-height,
+.itasks-container.itasks-horizontal > .itasks-flex-height,
+.itasks-panel.itasks-horizontal > .itasks-flex-height,
 .itasks-form-item > .itasks-flex-height,
 .itasks-toolbar > .itasks-flex-height,
 .itasks-buttonbar > .itasks-flex-height,
