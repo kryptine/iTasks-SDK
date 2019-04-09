@@ -14,11 +14,17 @@ import iTasks.WF.Tasks.Interaction
 
 Start w = doTasks task w
 
+import iTasks.Extensions.DateTime
 import iTasks.Internal.SDS
 import iTasks.SDS.Sources.System
+import iTasks.WF.Combinators.Common
+import iTasks.WF.Combinators.SDS
 
 task :: Task Date
-task = enterInformation "date" []
+task = withShared {Date|year=2019,mon=4,day=9} \sds ->
+	viewSharedInformation "view" [] sds -||-
+	updateSharedInformation "update 1" [] sds -||-
+	updateSharedInformation "update 2" [] sds
 
 task = updateInformation "test"
 	[ UpdateUsing (\m -> m) (\_ v -> v) $ leafEditorToEditor
@@ -43,14 +49,14 @@ where
 	# w = (comp .# "afterInitDOM" .= jsAfterInitDOM) w
 	= w
 	where
-		initDOMEl :: !(JSObj ()) !*JSWorld -> *JSWorld
-		initDOMEl comp w
+		initDOMEl :: !(JSObj ()) !{!JSVal a} !*JSWorld -> *JSWorld
+		initDOMEl comp _ w
 		# w = (comp .# "domEl.value" .= toJS (MyReverse 1000)) w
 		# w = (comp .# "afterInitDOM" .$! ()) w
 		= w
 
-		afterInitDOM :: !*JSWorld -> *JSWorld
-		afterInitDOM w
+		afterInitDOM :: !{!JSVal a} !*JSWorld -> *JSWorld
+		afterInitDOM _ w
 		# w = (jsGlobal "console.log" .$! "element initialized") w
 		= w
 

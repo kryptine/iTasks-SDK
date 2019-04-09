@@ -13,20 +13,20 @@ derive JSONEncode EditState, LeafState, EditMode
 derive JSONDecode EditState, LeafState, EditMode
 derive gEq        EditState, LeafState
 
-leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st
+leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
 leafEditorToEditor leafEditor = leafEditorToEditor_ JSONEncode{|*|} JSONDecode{|*|} leafEditor
 
 leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe st, ![JSONNode])) !(LeafEditor edit st a)
-                    -> Editor a
+                    -> Editor a | JSONDecode{|*|} edit
 leafEditorToEditor_ jsonEncode jsonDecode leafEditor =
 	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	genUI attr dp val vst = mapRes False $ leafEditor.LeafEditor.genUI attr dp val vst
 
 	onEdit dp (tp, jsone) (LeafState {state}) vst = case fromJSON` state of
-		Just st = undef /*case decodeOnServer jsone of // FIXME: decodeOnServer
+		Just st = case fromJSON jsone of
 			Just e = mapRes True $ leafEditor.LeafEditor.onEdit dp (tp, e) st vst
-			_      = (Error ("Invalid edit event for leaf editor: " +++ toString jsone), vst) */
+			_      = (Error ("Invalid edit event for leaf editor: " +++ toString jsone), vst)
 		_       = (Error "Corrupt internal state in leaf editor", vst)
 	onEdit _ _ _ vst = (Error "Corrupt editor state in leaf editor", vst)
 
@@ -152,7 +152,7 @@ withClientSideInit ::
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serialize_for_client initUI` iworld of
+	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serialize_for_client (wrapInitUIFunction initUI) iworld of
 		(Ok initUI,iworld)
 			# extraAttr = 'DM'.fromList
 				[("taskId",  JSONString taskId)
@@ -163,6 +163,3 @@ withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr 
 		(Error e,iworld)
 			-> (Error e, {VSt|vst & iworld = iworld})
 	e -> e
-where
-	initUI` :: !Int !*JSWorld -> *JSWorld
-	initUI` ref_to_js_elem world = initUI (referenceToJS ref_to_js_elem) world

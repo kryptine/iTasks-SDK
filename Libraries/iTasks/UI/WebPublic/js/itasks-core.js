@@ -43,7 +43,7 @@ itasks.Component = {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			var initUI=abc_interpreter.deserialize(me.attributes.initUI);
-			abc_interpreter.interpret(initUI, me, JSWorld);
+			abc_interpreter.interpret(initUI, [me]);
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
@@ -521,6 +521,7 @@ itasks.Viewport = {
 	},
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this, taskNo = taskId.split("-")[1];
+		value = JSON.parse(value);
 		if(editorId) {
 			me.connection.sendEditEvent(me.attributes.instanceNo, taskNo, editorId, value);
 		} else {

@@ -1,5 +1,7 @@
 "use strict";
 
+var MAX_INSTRUCTIONS=-1;
+
 const JSWorld={
 	abc_type: 'JSWorld'
 };
@@ -76,21 +78,21 @@ const abc_interpreter={
 
 	apply_to_clean_value: function (index) {
 		return function () {
-			var args=[SharedCleanValue(index)];
+			var args=[];
 			for (var i=0; i<arguments.length; i++)
-				args[i+1]=arguments[i];
-			args.push(JSWorld);
-			return abc_interpreter.interpret.apply(null, args);
+				args[i]=arguments[i];
+			abc_interpreter.interpret(SharedCleanValue(index), args);
 		};
 	},
 
 	copy_js_to_clean: function (values, asp, hp, hp_free) {
-		for (var i=values.length-1; i>=0; i--) {
+		for (var i=0; i<values.length; i++) {
 			asp+=8;
-			console.log('copy',values[i]);
+			//console.log('copy',values[i]);
 			if (values[i]===null) {
 				abc_interpreter.memory_array[asp/4]=hp;
 				abc_interpreter.memory_array[hp/4]=26*8+2; // INT
+				abc_interpreter.memory_array[hp/4+1]=0;
 				abc_interpreter.memory_array[hp/4+2]=0;
 				abc_interpreter.memory_array[hp/4+3]=1<<30;
 				hp+=16;
@@ -98,8 +100,9 @@ const abc_interpreter={
 			} else if (typeof values[i]=='undefined') {
 				abc_interpreter.memory_array[asp/4]=hp;
 				abc_interpreter.memory_array[hp/4]=26*8+2; // INT
-				abc_interpreter.memory_array[hp/4+2]=0;
-				abc_interpreter.memory_array[hp/4+3]=(1<<30)+1;
+				abc_interpreter.memory_array[hp/4+1]=0;
+				abc_interpreter.memory_array[hp/4+2]=1;
+				abc_interpreter.memory_array[hp/4+3]=1<<30;
 				hp+=16;
 				hp_free-=2;
 			} else if (typeof values[i]=='number') {
@@ -108,12 +111,53 @@ const abc_interpreter={
 				if (Number.isInteger(values[i])) {
 					abc_interpreter.memory_array[asp/4]=hp;
 					abc_interpreter.memory_array[hp/4]=26*8+2; // INT
+					abc_interpreter.memory_array[hp/4+1]=0;
 					abc_interpreter.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
+					abc_interpreter.memory_array[hp/4+3]=0;
 					hp+=16;
 					hp_free-=2;
 				} else {
 					throw 'Cannot pass non-integral numbers to Clean yet'; // TODO
 				}
+			} else if (typeof values[i]=='boolean') {
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=11*8+2; // BOOL
+				abc_interpreter.memory_array[hp/4+1]=0;
+				abc_interpreter.memory_array[hp/4+2]=values[i] ? 1 : 0;
+				abc_interpreter.memory_array[hp/4+3]=0;
+				hp+=16;
+				hp_free-=2;
+			} else if (typeof values[i]=='string') {
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=6*8+2; // _STRING_
+				abc_interpreter.memory_array[hp/4+1]=0;
+				abc_interpreter.memory_array[hp/4+2]=values[i].length;
+				abc_interpreter.memory_array[hp/4+3]=0;
+				var array=new Int8Array(((values[i].length+3)>>2)<<2);
+				for (var j in values[i])
+					array[j]=values[i].charCodeAt(j);
+				array=new Uint32Array(array.buffer);
+				for (var j=0; j<((values[i].length+3)>>2); j++)
+					abc_interpreter.memory_array[hp/4+4+j]=array[j];
+				hp+=16+(((values[i].length+7)>>3)<<3);
+				hp_free-=2+((values[i].length+7)>>3);
+			} else if (Array.isArray(values[i])) {
+				abc_interpreter.memory_array[asp/4]=hp;
+				abc_interpreter.memory_array[hp/4]=2; // fake ARRAY, needed because we use jmp_ap
+				abc_interpreter.memory_array[hp/4+1]=0;
+				abc_interpreter.memory_array[hp/4+2]=hp+16;
+				abc_interpreter.memory_array[hp/4+3]=0;
+				abc_interpreter.memory_array[hp/4+4]=1*8+2; // _ARRAY_
+				abc_interpreter.memory_array[hp/4+5]=0;
+				abc_interpreter.memory_array[hp/4+6]=values[i].length;
+				abc_interpreter.memory_array[hp/4+7]=0;
+				abc_interpreter.memory_array[hp/4+8]=0;
+				abc_interpreter.memory_array[hp/4+9]=0;
+				hp+=40;
+				hp_free-=5;
+				var copied=abc_interpreter.copy_js_to_clean(values[i], hp-8, hp+8*values[i].length, hp_free);
+				hp=copied.hp;
+				hp_free=copied.hp_free-values[i].length;
 			} else if ('abc_type' in values[i]) {
 				switch (values[i].abc_type) {
 					case 'SharedCleanValue':
@@ -129,7 +173,9 @@ const abc_interpreter={
 				// TODO: check if garbage collection is needed
 				abc_interpreter.memory_array[asp/4]=hp;
 				abc_interpreter.memory_array[hp/4]=661*8+2; // DOMNode type
+				abc_interpreter.memory_array[hp/4+1]=0;
 				abc_interpreter.memory_array[hp/4+2]=abc_interpreter.shared_js_values.length;
+				abc_interpreter.memory_array[hp/4+3]=0;
 				abc_interpreter.shared_js_values.push(values[i]);
 				hp+=16;
 				hp_free-=2;
@@ -219,6 +265,8 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 			memory: abc_interpreter.memory,
 
 			debug_instr: function (addr, instr) {
+				if (MAX_INSTRUCTIONS-- == 0)
+					throw 'MAX_INSTRUCTIONS ran out';
 				console.log(addr,(addr/8-abc_interpreter.code_offset)+'\t'+abc_instructions[instr]);
 			},
 			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp, hp_free) {
@@ -358,12 +406,13 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 	abc_interpreter.interpreter.instance.exports.set_hp_free(abc_interpreter.hp_size/8);
 	abc_interpreter.interpreter.instance.exports.set_hp_size(abc_interpreter.hp_size);
 
-	abc_interpreter.interpret=function(){
+	abc_interpreter.interpret=function (f, args) {
 		var asp=abc_interpreter.interpreter.instance.exports.get_asp();
+		const old_asp=asp;
 		var hp=abc_interpreter.interpreter.instance.exports.get_hp();
 		var hp_free=abc_interpreter.interpreter.instance.exports.get_hp_free();
 
-		var copied=abc_interpreter.copy_js_to_clean(arguments, asp, hp, hp_free);
+		const copied=abc_interpreter.copy_js_to_clean([JSWorld, args, f], asp, hp, hp_free);
 		asp=copied.asp;
 		hp=copied.hp;
 		hp_free=copied.hp_free;
@@ -372,18 +421,16 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 		abc_interpreter.memory_array[csp/4]=659*8; // instruction 0; to return
 		csp+=8;
 
-		var start=(97+arguments.length)*8; // jmp_apn as appropriate; TODO: fix for case where arguments.length=1
-
-		// TODO: it would be useful to have a check here whether the jmp_ap will be saturated.
-		// If not, that may indicate a bug in the Clean code, but the type system cannot not catch that.
-		// See for instance the removal of the 'a' argument in the initDOMEl of Pikaday.
-
-		abc_interpreter.interpreter.instance.exports.set_pc(start);
+		const old_pc=abc_interpreter.interpreter.instance.exports.get_pc();
+		abc_interpreter.interpreter.instance.exports.set_pc(100*8); // jmp_ap2
 		abc_interpreter.interpreter.instance.exports.set_asp(asp);
 		abc_interpreter.interpreter.instance.exports.set_csp(csp);
 		abc_interpreter.interpreter.instance.exports.set_hp(hp);
 		abc_interpreter.interpreter.instance.exports.set_hp_free(hp_free);
 
 		abc_interpreter.interpreter.instance.exports.interpret();
+
+		abc_interpreter.interpreter.instance.exports.set_pc(old_pc);
+		abc_interpreter.interpreter.instance.exports.set_asp(old_asp);
 	};
 });

@@ -16,6 +16,10 @@ instance toJS Int, Bool, String, (JSVal b), (Maybe b) | toJS b
 
 jsIsUndefined :: !(JSVal a) -> Bool
 
+jsValToInt :: !(JSVal a) -> Maybe Int
+jsValToBool :: !(JSVal a) -> Maybe Bool
+jsValToString :: !(JSVal a) -> Maybe String
+
 /**
  * Access properties of a JavaScript value.
  */
@@ -49,16 +53,9 @@ jsThis :== jsGlobal "this"
 jsWindow :== jsGlobal "window"
 jsDocument :== jsGlobal "document"
 
-/**
- * Should not be used outside this library. The argument is a reference to a
- * DOM element stored somewhere in JavaScript.
- */
-referenceToJS :: !Int -> JSVal a
+jsWrapFun :: !({!JSVal a} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun f, !*JSWorld)
 
-/**
- * @param A function of the type (a b .. z *JSWorld -> *JSWorld)
- */
-jsWrapFun :: !f !*JSWorld -> *(!JSFun f, !*JSWorld)
+wrapInitUIFunction :: !((JSObj ()) *JSWorld -> *JSWorld) -> {!JSVal a} -> *JSWorld -> *JSWorld
 
 /**
  * Load external CSS stylesheet by its URL.

@@ -40,6 +40,31 @@ where
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined v = v=:JSUndefined
 
+jsValToInt :: !(JSVal a) -> Maybe Int
+jsValToInt v = case v of
+	JSInt i    -> Just i
+	JSString s -> case toInt s of
+		0 -> if (s=="0") (Just 0) Nothing
+		i -> Just i
+	_          -> Nothing
+
+jsValToBool :: !(JSVal a) -> Maybe Bool
+jsValToBool v = case v of
+	JSBool b   -> Just b
+	JSInt i    -> Just (i<>0)
+	JSString s -> case s of
+		"true"  -> Just True
+		"false" -> Just False
+		_       -> Nothing
+	_          -> Nothing
+
+jsValToString :: !(JSVal a) -> Maybe String
+jsValToString v = case v of
+	JSString s -> Just s
+	JSInt i    -> Just (toString i)
+	JSBool b   -> Just (if b "true" "false")
+	_          -> Nothing
+
 instance toJS Int where toJS i = JSInt i
 instance toJS Bool where toJS b = JSBool b
 instance toJS String where toJS s = JSString s
@@ -109,8 +134,20 @@ jsEmptyObject w = (eval_js_with_return_value "{}", w)
 jsGlobal :: !String -> JSVal a
 jsGlobal s = JSVar s
 
-jsWrapFun :: !f !*JSWorld -> *(!JSFun f, !*JSWorld)
-jsWrapFun f world = (cast (share f), world)
+jsWrapFun :: !({!JSVal a} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun f, !*JSWorld)
+jsWrapFun f world = (cast (share casting_f), world)
+where
+	casting_f :: !{!a} !*JSWorld -> *JSWorld
+	casting_f args w = f {cast_value_from_js a \\ a <-: args} w
+
+wrapInitUIFunction :: !((JSObj ()) *JSWorld -> *JSWorld) -> {!JSVal a} -> *JSWorld -> *JSWorld
+wrapInitUIFunction f = \args
+	| size args<>1
+		-> abort ("failed to get iTasks component from JavaScript (args.size="+++toString (size args)+++")\n")
+		-> case cast_value_from_js args.[0] of
+			r=:(JSRef _)
+				-> f r
+				-> abort "failed to get iTasks component from JavaScript\n"
 
 referenceToJS :: !Int -> JSVal a
 referenceToJS ref = JSRef ref
@@ -149,15 +186,26 @@ eval_js s = code {
 }
 
 eval_js_with_return_value :: !String -> JSVal a
-eval_js_with_return_value s = code {
-	instruction 2
+eval_js_with_return_value s = cast_value_from_js (eval s)
+where
+	eval :: !String -> a
+	eval _ = code {
+		instruction 2
+	}
+
+cast_value_from_js :: !a -> JSVal b
+cast_value_from_js _ = code {
 	eq_desc dINT 0 0
 	jmp_true return_int
+	eq_desc BOOL 0 0
+	jmp_true return_bool
+	eq_desc _STRING_ 0 0
+	jmp_true return_string
 	pushD_a 0
 	pushI 5290 | 661*8+2; DOMNode (bcprelink.c)
 	eqI
 	jmp_true return_ref
-	print "eval_js_with_return_value: return type unknown:\n"
+	print "cast_value_from_js: return type unknown:\n"
 	print_symbol_sc 0
 	print "\n"
 	halt
@@ -172,16 +220,29 @@ eval_js_with_return_value s = code {
 	eqI
 	jmp_true return_undefined
 	fill_r e_iTasks.UI.JS.Interface_kJSInt 0 1 0 0 0
+	pop_b 1
 	jmp return
 :return_null
 	fillh e_iTasks.UI.JS.Interface_dJSNull 0 0
+	pop_b 1
 	jmp return
 :return_undefined
 	fillh e_iTasks.UI.JS.Interface_dJSUndefined 0 0
+	pop_b 1
+	jmp return
+:return_bool
+	repl_r_args 0 1
+	fill_r e_iTasks.UI.JS.Interface_kJSBool 0 1 0 0 0
+	pop_b 1
+	jmp return
+:return_string
+	fill_r e_iTasks.UI.JS.Interface_kJSString 1 0 1 0 0
+	pop_a 1
 	jmp return
 :return_ref
 	repl_r_args 0 1
 	fill_r e_iTasks.UI.JS.Interface_kJSRef 0 1 0 0 0
+	pop_b 1
 	jmp return
 :return
 }

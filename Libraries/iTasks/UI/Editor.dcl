@@ -54,12 +54,12 @@ from Control.GenBimap import generic bimap, :: Bimap
 	, valueFromState :: !st -> Maybe a
 	}
 
-leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st
+leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
 leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe st, ![JSONNode])) !(LeafEditor edit st a)
-                    -> Editor a
+                    -> Editor a | JSONDecode{|*|} edit
 
 /*
 *	Definition of a compound editor using an additional typed state, next to the children's states.

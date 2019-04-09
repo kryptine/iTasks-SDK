@@ -1,4 +1,6 @@
 implementation module iTasks.Extensions.Form.Pikaday
+
+import StdEnv
 import iTasks, Data.Func
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
 import iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Controls
@@ -28,16 +30,19 @@ where
 		# world      = (me .# "beforeRemove" .= cb) world
 		= world
 
-	beforeRemove me = snd o (me .# "picker" .# "destroy" .$ ())
+	beforeRemove me args = snd o (me .# "picker" .# "destroy" .$ ())
 
-	initDOMEl me world
-		//Load javascript library first, then start
+	initDOMEl me args world
 		# (cb,world) = jsWrapFun (initDOMEl` me) world
-		# world      = addJSFromUrl MOMENT_JS_URL Nothing world
+		# world      = addJSFromUrl MOMENT_JS_URL (Just cb) world
+		= world
+
+	initDOMEl` me args world
+		# (cb,world) = jsWrapFun (initDOMEl`` me) world
 		# world      = addJSFromUrl PIKADAY_JS_URL (Just cb) world
 		= world
 
-	initDOMEl` me world
+	initDOMEl`` me args world
 		//Create pikaday object
 		# (value,world)     = me .# "attributes.value" .? world
 		# (domEl,world)     = me .# "domEl" .? world
@@ -54,38 +59,39 @@ where
 		# (picker,world)     = jsNew "Pikaday" cfg world
 		# world              = (me .# "picker" .= picker) world
 		//Handle attribute changes
-		# (cb,world)         = jsWrapFun (\n v w -> onAttributeChange picker me n v w) world
+		# (cb,world)         = jsWrapFun (onAttributeChange picker me) world
 		# world              = (me .# "onAttributeChange" .= cb) world
 		//React to selects
 		= world
 
-	onAttributeChange :: !(JSObj ()) !(JSObj ()) !String !String !*JSWorld -> *JSWorld
-	onAttributeChange picker me name value world
-		# world      = (me.# "noEvents" .= True ) world
-		# (_,world)  = (picker .# "setDate" .$ value) world
-		# world      = (me.# "noEvents" .= False) world
-		= world
-
-	onSelect me world
-		# (noEvents,world)  = me .# "noEvents" .? world
-		| (not (jsIsUndefined noEvents)) // TODO && jsValToBool noEvents
+	onAttributeChange picker me {[0]=name,[1]=value} world
+		| jsValToString name <> Just "value"
 			= world
-		# (picker,world)    = me .# "picker" .? world
-		# (value,world)     = (picker .# "toString" .$ "YYYY-MM-DD" ) world
-		# (taskId,world)  = me .# "attributes.taskId" .? world
-		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# (_,world) = (me .# "doEditEvent" .$ (taskId,editorId,Just value)) world
+		# world = (me.# "noEvents" .= True ) world
+		# world = (picker .# "setDate" .$! value) world
+		# world = (me.# "noEvents" .= False) world
 		= world
 
-	onKeyup me world
+	onSelect me args world
+		# (noEvents,world)  = me .# "noEvents" .? world
+		| not (jsIsUndefined noEvents) && jsValToBool noEvents == Just True
+			= world
+		# (value,world)     = (me .# "picker.toString" .$ "YYYY-MM-DD") world
+		# value             = jsValToString value
+		# (taskId,world)    = me .# "attributes.taskId" .? world
+		# (editorId,world)  = me .# "attributes.editorId" .? world
+		# (_,world)         = (me .# "doEditEvent" .$ (taskId, editorId, toString (toJSON value))) world
+		= world
+
+	onKeyup me args world
 		# (taskId,world)   = me .# "attributes.taskId" .? world
 		# (editorId,world) = me .# "attributes.editorId" .? world
 		# (value,world)    = me .# "domEl.value" .? world
-		//# value            = if (jsValToString value == "") Nothing (Just value) // TODO
-		# (_,world)        = (me .# "doEditEvent" .$ (taskId, editorId,value)) world
+		# value            = jsValToString value
+		# world            = (me .# "doEditEvent" .$! (taskId, editorId, toString (toJSON value))) world
 		= world
 
-	onEdit dp (tp,e) _ vst = (Ok (NoChange, e),vst)
+	onEdit dp (tp,e) _ vst = (Ok (ChangeUI [SetAttribute "value" (JSONString (fromMaybe "" e))] [], e),vst)
 
 	onRefresh dp new st vst=:{VSt| optional}
 		| st === Just new = (Ok (NoChange, st), vst)
