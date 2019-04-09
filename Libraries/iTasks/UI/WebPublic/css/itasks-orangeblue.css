@@ -691,12 +691,12 @@ div.itasks-exception {
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  border: 1px solid #00101e;
+  border: 1px solid #bbbbbb;
   border-width: 0 0 1px 0;
 }
 .itasks-menu div.itasks-menu-label {
   height: 23px;
-  background: linear-gradient(#0060b7, #004584);
+  background: linear-gradient(white, #eee);
   background-repeat: none;
   background-image: url("/css/icons/menu-down.png");
   background-repeat: no-repeat;
@@ -705,9 +705,9 @@ div.itasks-exception {
   flex-direction: row;
   align-items: center;
   text-decoration: none;
-  color: #fff;
+  color: #000;
   flex-shrink: 0;
-  border: 1px solid #00101e;
+  border: 1px solid #bbbbbb;
   border-radius: 3px;
   text-decoration: none;
   float: left;
@@ -730,7 +730,7 @@ div.itasks-exception {
   position: absolute;
   background: #eee;
   box-shadow: 0 3px 3px rgba(0, 0, 0, 0.5);
-  border: 1px solid #00101e;
+  border: 1px solid #bbbbbb;
   border-radius: 0 3px 3px 3px;
   min-width: 150px;
   /* Submenu styling */
@@ -881,12 +881,6 @@ div.itasks-exception {
   align-self: stretch;
 }
 
-/* Headers of various sorts */
-.itasks-compact-header {
-  padding: 2px 2px 2px 10px;
-  flex-direction: row;
-}
-
 .itasks-icon {
   width: 16px;
   height: 16px;
@@ -901,19 +895,19 @@ div.itasks-exception {
 .itasks-button {
   font-size: 8pt;
   padding: 3px;
-  background: linear-gradient(#007aea, #004584);
+  background: linear-gradient(white, #eee);
   background-repeat: none;
-  border: 1px solid #00101e;
+  border: 1px solid #bbbbbb;
   border-radius: 3px;
   display: flex;
   flex-direction: row;
   align-items: center;
   text-decoration: none;
-  color: #fff;
+  color: #000;
   flex-shrink: 0;
 }
 .itasks-button:hover {
-  border-color: #00101e;
+  border-color: #bbbbbb;
 }
 
 .itasks-button-label {
@@ -927,12 +921,12 @@ div.itasks-exception {
 }
 
 .itasks-button-disabled {
-  color: white;
-  background: linear-gradient(#007aea, #002a51);
+  color: #262626;
+  background: linear-gradient(white, #d5d5d5);
 }
 
 .itasks-button-disabled:hover {
-  border-color: #00101e;
+  border-color: #bbbbbb;
 }
 
 .itasks-button-disabled .itasks-button-icon {

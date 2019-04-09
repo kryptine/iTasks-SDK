@@ -881,12 +881,6 @@ div.itasks-exception {
   align-self: stretch;
 }
 
-/* Headers of various sorts */
-.itasks-compact-header {
-  padding: 2px 2px 2px 10px;
-  flex-direction: row;
-}
-
 .itasks-icon {
   width: 16px;
   height: 16px;
