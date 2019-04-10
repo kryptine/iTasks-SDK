@@ -66,6 +66,7 @@ where
     	, onShareChange = onShareChange
     	, onTick = onTick
     	, onDisconnect = onDisconnect
+    	, onDestroy = \s iw->(Ok s, [], iw)
 		}
 
 	reevaluateShares :: !{#Symbol} !TaskId ![(ConnectionId, (Bool, String, String))] *IWorld -> (MaybeErrorString [(ConnectionId, (Bool, String, String))], *IWorld)
