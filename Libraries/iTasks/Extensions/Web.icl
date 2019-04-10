@@ -62,7 +62,7 @@ serveWebService port handler
 where
 	manageConnections io
 		= tcplisten port False (currentTimespec |*< io)
-			{ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
+			{ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])}
 			
     onConnect connId client_name (now,io)
 		= (Ok (Idle client_name now), Nothing, [], False)
@@ -185,7 +185,7 @@ where
 
 callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
-    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
+    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])}
     @?  taskResult
 where
     port = fromMaybe 80 uriPort

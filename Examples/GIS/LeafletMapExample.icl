@@ -19,13 +19,13 @@ manipulateMap m = updateSharedInformation () [] m
 managePerspective :: (Shared sds LeafletMap) -> Task () | RWShared sds
 managePerspective m = updateSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) Nothing m)  @! ()
 
+// objects can currently only be viewed, as the editor for `HtmlTag` only works in view mode
 manageMapObjects :: (Shared sds LeafletMap) -> Task () | RWShared sds
-manageMapObjects m = updateSharedInformation (Title "Manage objects") [UpdateAs toPrj fromPrj] m
+manageMapObjects m = viewSharedInformation (Title "View objects") [ViewAs toPrj] m
 				   -|| addDemoObjects m
 				   @! ()
 where
 	toPrj m = m.LeafletMap.objects
-	fromPrj m objects = {m & objects = objects}
 
 	addDemoObjects m
 		= enterChoiceAs "Add objects:" [ChooseFromCheckGroup fst] options snd
@@ -36,6 +36,8 @@ where
 			,("Marker at cursor position",addMarkerAtCursor m)
 			,("Line connecting current markers",addMarkerConnectingLine m)
 			,("Polygon from current markers",addMarkerConnectingPolygon m)
+			,("Circle at cursor position",addCircleAtCursor m)
+			,("Rectangle around current perspective",addRectangleAroundCurrentPerspective m)
 			]
 
 	addRandomMarker m
@@ -56,6 +58,7 @@ where
 		line objects = Polyline { polylineId = LeafletObjectID "markerConnection"
                                 , style      = [Style (LineStrokeColor "#f0f"), Style (LineStrokeWidth 4)]
                                 , points     = points objects
+                                , editable   = True
                                 }
 		points objects = [position \\ Marker {LeafletMarker|position} <- objects]
 
@@ -63,11 +66,12 @@ where
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [polygon objects]}) m
 	where
 		polygon objects = Polygon { polygonId = LeafletObjectID "markerConnection"
-                                  , style     = [ Style (PolygonLineStrokeColor "#000")
-                                                , Style (PolygonLineStrokeWidth 2)
-                                                , Style (PolygonFillColor "#0f0")
+                                  , style     = [ Style (AreaLineStrokeColor "#000")
+                                                , Style (AreaLineStrokeWidth 2)
+                                                , Style (AreaFillColor "#0f0")
                                                 ]
                                   , points    = points objects
+                                  , editable  = True
                                   }
 		points objects = [position \\ Marker {LeafletMarker|position} <- objects]
 
@@ -76,5 +80,17 @@ where
 	where
 		withMarkerFromCursor Nothing objects = objects
 		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = LeafletObjectID "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
+
+	addCircleAtCursor m
+		= upd (\l=:{LeafletMap|perspective={LeafletPerspective|cursor},objects} -> {LeafletMap|l & objects = withCircleFromCursor cursor objects}) m
+	where
+		withCircleFromCursor Nothing objects = objects
+		withCircleFromCursor (Just position) objects = objects ++ [Circle {circleId = LeafletObjectID "CIRCLE_CURSOR", center = position, radius = 100000.0, editable = True, style = []}]
+
+	addRectangleAroundCurrentPerspective m
+		= upd (\l=:{LeafletMap|perspective={LeafletPerspective|bounds},objects} -> {LeafletMap|l & objects = withRectangleAroundCurrentPerspective bounds objects}) m
+	where
+		withRectangleAroundCurrentPerspective Nothing objects = objects
+		withRectangleAroundCurrentPerspective (Just bounds) objects = objects ++ [Rectangle {rectangleId = LeafletObjectID "RECT_PERSPECTIVE", bounds = bounds, editable = True, style = []}]
 
 Start world = doTasks playWithMaps world
