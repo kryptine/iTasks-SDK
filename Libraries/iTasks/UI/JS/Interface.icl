@@ -55,6 +55,9 @@ where
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined v = v=:JSUndefined
 
+jsIsNull :: !(JSVal a) -> Bool
+jsIsNull v = v=:JSNull
+
 jsValToInt :: !(JSVal a) -> Maybe Int
 jsValToInt v = case v of
 	JSInt i    -> Just i
@@ -78,6 +81,13 @@ jsValToString v = case v of
 	JSString s -> Just s
 	JSInt i    -> Just (toString i)
 	JSBool b   -> Just (if b "true" "false")
+	_          -> Nothing
+
+// TODO add proper support for Reals
+jsValToReal :: !(JSVal a) -> Maybe Real
+jsValToReal v = case v of
+	JSInt i    -> Just (toReal i)
+	JSString s -> Just (toReal s)
 	_          -> Nothing
 
 instance toJS Int where toJS i = JSInt i
@@ -164,6 +174,14 @@ wrapInitUIFunction f = \args
 				-> f r
 				-> abort "failed to get iTasks component from JavaScript\n"
 
+jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph s w = (deserialize s, w)
+where
+	deserialize :: !String -> .a
+	deserialize _ = code {
+		instruction 5
+	}
+
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld
 addCSSFromUrl css w = case add_css css of
 	True -> w
@@ -189,6 +207,10 @@ where
 		pop_a 2
 		pushB TRUE
 	}
+
+jsTrace :: !a .b -> .b | toString a
+jsTrace s x = case eval_js ("console.log('"+++toString s+++"')") of
+	True -> x
 
 eval_js :: !String -> Bool
 eval_js s = code {

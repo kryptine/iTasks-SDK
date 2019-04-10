@@ -1,6 +1,7 @@
 definition module iTasks.UI.JS.Interface
 
 from StdMaybe import :: Maybe
+from StdOverloaded import class toString
 
 :: *JSWorld
 
@@ -18,10 +19,12 @@ jsMakeCleanReference :: a -> JSVal b
 jsGetCleanReference :: !(JSVal a) !*JSWorld -> *(!Maybe b, !*JSWorld)
 
 jsIsUndefined :: !(JSVal a) -> Bool
+jsIsNull :: !(JSVal a) -> Bool
 
 jsValToInt :: !(JSVal a) -> Maybe Int
 jsValToBool :: !(JSVal a) -> Maybe Bool
 jsValToString :: !(JSVal a) -> Maybe String
+jsValToReal :: !(JSVal a) -> Maybe Real
 
 /**
  * Access properties of a JavaScript value.
@@ -60,6 +63,8 @@ jsWrapFun :: !({!JSVal a} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun f, !*JSWor
 
 wrapInitUIFunction :: !((JSObj ()) *JSWorld -> *JSWorld) -> {!JSVal a} -> *JSWorld -> *JSWorld
 
+jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+
 /**
  * Load external CSS stylesheet by its URL.
  *
@@ -74,3 +79,5 @@ addCSSFromUrl :: !String !*JSWorld -> *JSWorld
  * @param An optional callback function for when the script has loaded.
  */
 addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
+
+jsTrace :: !a .b -> .b | toString a

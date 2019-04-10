@@ -1,6 +1,6 @@
 "use strict";
 
-var MAX_INSTRUCTIONS=-1;
+var ABC_DEBUG=false;
 
 function SharedCleanValue(index) {
 	return {
@@ -52,8 +52,8 @@ const abc_interpreter={
 		var new_hp=abc_interpreter.util.instance.exports.copy_from_string(
 			unused_semispace,
 			graph.length/2,
-			abc_interpreter.interpreter.instance.exports.get_asp(),
-			abc_interpreter.interpreter.instance.exports.get_bsp(),
+			abc_interpreter.interpreter.instance.exports.get_asp()+8,
+			abc_interpreter.interpreter.instance.exports.get_bsp()-8,
 			old_hp,
 			abc_interpreter.code_offset*8);
 		abc_interpreter.interpreter.instance.exports.set_hp(new_hp);
@@ -84,7 +84,6 @@ const abc_interpreter={
 
 	copy_js_to_clean: function (values, store_ptrs, hp, hp_free) {
 		for (var i=0; i<values.length; i++) {
-			//console.log('copy',values[i]);
 			if (values[i]===null) {
 				abc_interpreter.memory_array[store_ptrs/4]=hp;
 				abc_interpreter.memory_array[hp/4]=26*8+2; // INT
@@ -233,19 +232,13 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 				abc_interpreter.shared_clean_values[index]=new_location;
 			},
 			debug: function(what,a,b,c) {
+				if (!ABC_DEBUG)
+					return;
 				switch (what) {
-					case 0:
-						console.log('loop',a,'/',b,'; hp at',c);
-						break;
-					case 1:
-						console.log('desc',a);
-						break;
-					case 2:
-						console.log('hnf, arity',a);
-						break;
-					case 3:
-						console.log('thunk, arity',a);
-						break;
+					case 0: console.log('loop',a,'/',b,'; hp at',c); break;
+					case 1: console.log('desc',a); break;
+					case 2: console.log('hnf, arity',a); break;
+					case 3: console.log('thunk, arity',a); break;
 				}
 			}
 		}}
@@ -260,7 +253,8 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 			debug_instr: function (addr, instr) {
 				if (MAX_INSTRUCTIONS-- == 0)
 					throw 'MAX_INSTRUCTIONS ran out';
-				console.log(addr,(addr/8-abc_interpreter.code_offset)+'\t'+abc_instructions[instr]);
+				if (ABC_DEBUG)
+					console.log(addr/8-abc_interpreter.code_offset,abc_instructions[instr]);
 			},
 			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp, hp_free) {
 				if (abc_instructions[instr]=='instruction') {
@@ -270,12 +264,14 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							return 0;
 						case 1: /* iTasks.UI.JS.Interface: eval_js */
 							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
-							console.log('eval',string);
+							if (ABC_DEBUG)
+								console.log('eval',string);
 							Function(string)();
 							break;
 						case 2:
 							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
-							console.log('eval',string);
+							if (ABC_DEBUG)
+								console.log('eval',string);
 							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
 							var copied=abc_interpreter.copy_js_to_clean([result], asp, hp, hp_free);
 							abc_interpreter.interpreter.instance.exports.set_hp(copied.hp);
@@ -288,6 +284,11 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 						case 4: /* iTasks.UI.JS.Interface: fetch */
 							var index=abc_interpreter.memory_array[bsp/4];
 							abc_interpreter.memory_array[asp/4]=abc_interpreter.shared_clean_values[index];
+							break;
+						case 5: /* iTasks.UI.JS.Interface: deserialize */
+							var string=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
+							var shared_clean_value=abc_interpreter.deserialize(string);
+							abc_interpreter.memory_array[asp/4]=abc_interpreter.shared_clean_values[shared_clean_value.shared_clean_value_index];
 							break;
 						case 10: /* iTasks.UI.JS.Interface: add CSS */
 							var url=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4]);
@@ -377,6 +378,23 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 			expR: Math.exp,
 			lnR: Math.log,
 			log10R: Math.log10,
+			RtoAC: function (dest, v) {
+				v=Number(0+v).toLocaleString(
+					['en-US'],
+					{
+						useGrouping: false,
+						maximumSignificantDigits: 15,
+					}
+				);
+				abc_interpreter.memory_array[dest/4]=6*8+2; // __STRING__
+				abc_interpreter.memory_array[dest/4+1]=0;
+				abc_interpreter.memory_array[dest/4+2]=v.length;
+				abc_interpreter.memory_array[dest/4+3]=0;
+				var arr=new Uint8Array(abc_interpreter.memory_array.buffer, dest+16);
+				for (var i=0; i<v.length; i++)
+					arr[i]=v.charCodeAt(i);
+				return dest+16+(((v.length+7)>>3)<<3);
+			},
 		}
 	};
 
