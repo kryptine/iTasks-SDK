@@ -251,7 +251,7 @@ compute :: !String a -> Task a | iTask a
 compute s a = enterInformation s [EnterUsing id ed] >>~ \_->return a
 where
 	ed :: Editor Bool
-	ed = fieldComponent UILoader Nothing
+	ed = fieldComponent UILoader Nothing (\_ _ -> True)
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
