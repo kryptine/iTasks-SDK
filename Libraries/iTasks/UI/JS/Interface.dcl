@@ -14,6 +14,9 @@ from StdMaybe import :: Maybe
 class toJS a :: !a -> JSVal b
 instance toJS Int, Bool, String, (JSVal b), (Maybe b) | toJS b
 
+jsMakeCleanReference :: a -> JSVal b
+jsGetCleanReference :: !(JSVal a) !*JSWorld -> *(!Maybe b, !*JSWorld)
+
 jsIsUndefined :: !(JSVal a) -> Bool
 
 jsValToInt :: !(JSVal a) -> Maybe Int

@@ -42,6 +42,7 @@ where
 	initUI :: !(JSObj ()) !*JSWorld -> *JSWorld
 	initUI comp w
 	# w = (jsGlobal "console.log" .$! (1,2,3)) w
+	# w = (comp .# "reversed_list" .= jsMakeCleanReference (MyReverse 1000)) w
 	# (v,w) = (jsGlobal "Math.floor" .$ 17) w
 	# (jsInitDOMEl,w) = jsWrapFun (initDOMEl comp) w
 	# w = (comp .# "initDOMEl" .= jsInitDOMEl) w
@@ -51,7 +52,14 @@ where
 	where
 		initDOMEl :: !(JSObj ()) !{!JSVal a} !*JSWorld -> *JSWorld
 		initDOMEl comp _ w
-		# w = (comp .# "domEl.value" .= toJS (MyReverse 1000)) w
+		# (v,w) = jsGetCleanReference (comp .# "reversed_list") w
+		# v = case v of
+			Nothing -> "stored value not found?"
+			Just xs -> toString (last` xs)
+				with
+					last` :: ![Int] -> Int
+					last` xs = last xs
+		# w = (comp .# "domEl.value" .= toJS v) w
 		# w = (comp .# "afterInitDOM" .$! ()) w
 		= w
 
@@ -68,8 +76,8 @@ where
 			# (s,vst) = serialize_in_vst val vst
 			-> (Ok (ui UITextField, val), vst)
 
-MyReverse::Int -> Int
-MyReverse n =  last (Rev_n n [1..n])
+MyReverse::Int -> [Int]
+MyReverse n =  Rev_n n [1..n]
 where
 	Rev_n::Int [Int] -> [Int]
 	Rev_n 1 list	=  Rev list []

@@ -37,6 +37,21 @@ where
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
 
+jsMakeCleanReference :: a -> JSVal b
+jsMakeCleanReference x = share x
+
+jsGetCleanReference :: !(JSVal a) !*JSWorld -> *(!Maybe b, !*JSWorld)
+jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
+	JSCleanRef i -> (Just (fetch i), w)
+	_            -> (Nothing, w)
+where
+	fetch :: !Int -> a
+	fetch _ = code {
+		create
+		instruction 4
+		pop_b 1
+	}
+
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined v = v=:JSUndefined
 
@@ -149,9 +164,6 @@ wrapInitUIFunction f = \args
 				-> f r
 				-> abort "failed to get iTasks component from JavaScript\n"
 
-referenceToJS :: !Int -> JSVal a
-referenceToJS ref = JSRef ref
-
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld
 addCSSFromUrl css w = case add_css css of
 	True -> w
@@ -240,8 +252,21 @@ cast_value_from_js _ = code {
 	pop_a 1
 	jmp return
 :return_ref
+	pushI 1 | for shiftr%
 	repl_r_args 0 1
+	push_b 0
+	pushI 1
+	and%
+	pushI 1
+	eqI
+	jmp_true return_clean_ref
+	shiftr%
 	fill_r e_iTasks.UI.JS.Interface_kJSRef 0 1 0 0 0
+	pop_b 1
+	jmp return
+:return_clean_ref
+	shiftr%
+	fill_r e_iTasks.UI.JS.Interface_kJSCleanRef 0 1 0 0 0
 	pop_b 1
 	jmp return
 :return
@@ -253,7 +278,7 @@ where
 	get_shared_value_index :: !a -> Int
 	get_shared_value_index _ = code {
 		pushI 0 | to return the result
-		instruction 4
+		instruction 3
 		pop_a 1
 	}
 
