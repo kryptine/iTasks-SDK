@@ -21,6 +21,7 @@ import Text
 	| JSTypeOf !JSVal
 
 	| JSObject !{!JSObjectElement}
+	| JSArray !{!JSVal}
 
 	| JSSel !JSVal !JSVal // x[y]
 	| JSSelPath !JSVal !String // x.path1.path2...pathn
@@ -51,6 +52,7 @@ where
 		JSTypeOf v -> "typeof "+++toString v
 
 		JSObject elems -> foldl (+++) "{" [key+++":"+++toString val+++"," \\ {key,val} <-: elems] +++ "}"
+		JSArray elems -> foldl (+++) "[" [toString v+++"," \\ v <-: elems] +++ "]"
 
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
@@ -147,8 +149,17 @@ where
 	collect_elems (JSTempField k v) = [!{key=k,val=v}!]
 	collect_elems (JSTempPair a b)  = collect_elems a ++| collect_elems b
 
-instance .# String where .# obj path = JSSelPath obj path
 instance .# Int where .# arr i = JSSel arr (JSInt i)
+
+instance .# String
+where
+	.# obj path
+		| contains_dot (size path-1) path
+			= JSSelPath obj path
+			= JSSel obj (JSString path)
+	where
+		contains_dot -1 _ = False
+		contains_dot i s = if (s.[i]=='.') True (contains_dot (i-1) s)
 
 (.?) infixl 1 :: !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
 (.?) sel w = (eval_js_with_return_value (toString sel), w)
@@ -274,19 +285,26 @@ where
 	}
 
 cast_value_from_js :: !a -> JSVal
-cast_value_from_js _ = code {
+cast_value_from_js x = case cast_value_from_js` x of
+	JSArray arr -> JSArray {cast_value_from_js x \\ x <-: arr} // TODO exploit uniqueness
+	v           -> v
+
+cast_value_from_js` :: !a -> JSVal
+cast_value_from_js` _ = code {
 	eq_desc dINT 0 0
 	jmp_true return_int
 	eq_desc BOOL 0 0
 	jmp_true return_bool
 	eq_desc _STRING_ 0 0
 	jmp_true return_string
-	eq_desc REAL 0 0
-	jmp_true return_real
 	pushD_a 0
 	pushI 5290 | 661*8+2; DOMNode (bcprelink.c)
 	eqI
 	jmp_true return_ref
+	eq_desc REAL 0 0
+	jmp_true return_real
+	eq_desc _ARRAY_ 0 0
+	jmp_true return_array
 	print "cast_value_from_js: return type unknown:\n"
 	.d 1 0
 	jsr _print_graph
@@ -325,6 +343,10 @@ cast_value_from_js _ = code {
 	jmp return
 :return_string
 	fill_r e_iTasks.UI.JS.Interface_kJSString 1 0 1 0 0
+	pop_a 1
+	jmp return
+:return_array
+	fill_r e_iTasks.UI.JS.Interface_kJSArray 1 0 1 0 0
 	pop_a 1
 	jmp return
 :return_ref

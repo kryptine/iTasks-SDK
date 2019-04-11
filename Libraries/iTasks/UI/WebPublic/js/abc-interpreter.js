@@ -82,7 +82,7 @@ const abc_interpreter={
 		return f;
 	},
 
-	copy_js_to_clean: function (values, store_ptrs, hp, hp_free) {
+	copy_js_to_clean: function (values, store_ptrs, hp, hp_free, wrap_array) {
 		for (var i=0; i<values.length; i++) {
 			if (values[i]===null) {
 				abc_interpreter.memory_array[store_ptrs/4]=hp;
@@ -144,19 +144,23 @@ const abc_interpreter={
 				hp_free-=2+((values[i].length+7)>>3);
 			} else if (Array.isArray(values[i])) {
 				abc_interpreter.memory_array[store_ptrs/4]=hp;
-				abc_interpreter.memory_array[hp/4]=2; // fake ARRAY, needed because we use jmp_ap
+				if (wrap_array) {
+					abc_interpreter.memory_array[hp/4]=2;
+					abc_interpreter.memory_array[hp/4+1]=0;
+					abc_interpreter.memory_array[hp/4+2]=hp+16;
+					abc_interpreter.memory_array[hp/4+3]=0;
+					hp+=16;
+					hp_free-=2;
+				}
+				abc_interpreter.memory_array[hp/4]=1*8+2; // _ARRAY_
 				abc_interpreter.memory_array[hp/4+1]=0;
-				abc_interpreter.memory_array[hp/4+2]=hp+16;
+				abc_interpreter.memory_array[hp/4+2]=values[i].length;
 				abc_interpreter.memory_array[hp/4+3]=0;
-				abc_interpreter.memory_array[hp/4+4]=1*8+2; // _ARRAY_
+				abc_interpreter.memory_array[hp/4+4]=0;
 				abc_interpreter.memory_array[hp/4+5]=0;
-				abc_interpreter.memory_array[hp/4+6]=values[i].length;
-				abc_interpreter.memory_array[hp/4+7]=0;
-				abc_interpreter.memory_array[hp/4+8]=0;
-				abc_interpreter.memory_array[hp/4+9]=0;
-				hp+=40;
-				hp_free-=5;
-				var copied=abc_interpreter.copy_js_to_clean(values[i], hp, hp+8*values[i].length, hp_free);
+				hp+=24;
+				hp_free-=3;
+				var copied=abc_interpreter.copy_js_to_clean(values[i], hp, hp+8*values[i].length, hp_free, false);
 				hp=copied.hp;
 				hp_free=copied.hp_free-values[i].length;
 			} else if ('shared_clean_value_index' in values[i]) {
@@ -279,7 +283,7 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
-							var copied=abc_interpreter.copy_js_to_clean([result], asp, hp, hp_free);
+							var copied=abc_interpreter.copy_js_to_clean([result], asp, hp, hp_free, false);
 							abc_interpreter.interpreter.instance.exports.set_hp(copied.hp);
 							abc_interpreter.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
@@ -310,6 +314,7 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 							var callback=abc_interpreter.get_clean_string(abc_interpreter.memory_array[asp/4-2]);
 							var js=document.createElement('script');
 							js.type='text/javascript';
+							js.async=false;
 							if (callback.length>0)
 								js.onload=Function(callback+'();');
 							document.head.appendChild(js);
@@ -434,7 +439,7 @@ abc_interpreter.loading_promise=fetch('js/app.pbc').then(function(resp){
 		abc_interpreter.memory_array[asp/4+2]=hp;
 		abc_interpreter.memory_array[asp/4+4]=abc_interpreter.shared_clean_values[f.shared_clean_value_index];
 
-		const copied=abc_interpreter.copy_js_to_clean([args], asp+8, hp, hp_free);
+		const copied=abc_interpreter.copy_js_to_clean([args], asp+8, hp, hp_free, true);
 		asp+=16;
 		hp=copied.hp;
 		hp_free=copied.hp_free;
