@@ -156,7 +156,7 @@ where
 				# (taskId,world)    = me .# "attributes.taskId" .? world
 				# (editorId,world)  = me .# "attributes.editorId" .? world
 				# (bounds,world)    = getMapBounds mapObj world
-				# edit              = toString (toJSON [LDSetBounds bounds])
+				# edit              = toJSON [LDSetBounds bounds]
 				# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 				= world
         //Add initial objects
@@ -202,7 +202,7 @@ where
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (center,world)    = getMapCenter mapObj world
         # (bounds,world)    = getMapBounds mapObj world
-		# edit              = toString (toJSON [LDSetCenter center,LDSetBounds bounds])
+		# edit              = toJSON [LDSetCenter center,LDSetBounds bounds]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
@@ -212,7 +212,7 @@ where
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (zoom,world)      = getMapZoom mapObj world
         # (bounds,world)    = getMapBounds mapObj world
-		# edit              = toString (toJSON [LDSetZoom zoom,LDSetBounds bounds])
+		# edit              = toJSON [LDSetZoom zoom,LDSetBounds bounds]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
@@ -222,7 +222,7 @@ where
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (clickPos,world)  = args.[0] .# "latlng" .? world
 		# (cursor,world)    = toLatLng clickPos world 
-		# edit              = toString (toJSON [LDSetCursor cursor])
+		# edit              = toJSON [LDSetCursor cursor]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		//Update cursor position on the map
 		//# world             = setMapCursor me mapObj (toJSVal cursor) world // TODO
@@ -232,7 +232,7 @@ where
 	onMarkerClick me markerId args world
 		# (taskId,world)    = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# edit              = toString (toJSON [LDSelectMarker markerId])
+		# edit              = toJSON [LDSelectMarker markerId]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
@@ -269,7 +269,7 @@ where
         // send edit event to server
         # (taskId,world)    = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# edit              = toString (toJSON [LDRemoveWindow windowId])
+		# edit              = toJSON [LDRemoveWindow windowId]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
     where
@@ -512,7 +512,7 @@ where
 		onEditing layer _ world
 			# (update,   world) = getUpdate layer world
 			# (objectId, world) = object .# "attributes." +++ idFieldName .? world
-			# edit = toString (toJSON [LDUpdateObject (LeafletObjectID (jsValToString` "" objectId)) update])
+			# edit              = toJSON [LDUpdateObject (LeafletObjectID (jsValToString` "" objectId)) update]
 			# (taskId,   world) = me .# "attributes.taskId" .? world
 			# (editorId, world) = me .# "attributes.editorId" .? world
 			# (_,        world) = (me .# "doEditEvent" .$ (taskId, editorId, edit)) world

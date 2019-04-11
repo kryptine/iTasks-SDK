@@ -6,6 +6,7 @@ import StdOverloadedList
 
 import Data.Maybe
 import Text
+import Text.GenJSON
 
 :: *JSWorld = JSWorld
 
@@ -140,6 +141,15 @@ gToJS{|Maybe|} fx v = case v of
 	Nothing -> JSNull
 	Just x  -> fx x
 gToJS{|()|} _ = abort "gToJS{|()|} should not be called!"
+gToJS{|JSONNode|} n = case n of
+	JSONNull -> JSNull
+	JSONBool b -> JSBool b
+	JSONInt i -> JSInt i
+	JSONReal r -> JSReal r
+	JSONString s -> JSString s
+	JSONArray xs -> JSArray {toJS x \\ x <- xs}
+	JSONObject xs -> JSObject {{key=k,val=toJS v} \\ (k,v) <- xs}
+	_ -> abort "missing case in gToJS{|JSONNode|}"
 
 gToJS{|PAIR|} fx fy (PAIR x y) = JSTempPair (fx x) (fy y)
 gToJS{|FIELD of {gfd_name}|} fx (FIELD x) = JSTempField gfd_name (fx x)

@@ -3,6 +3,7 @@ definition module iTasks.UI.JS.Interface
 import StdGeneric
 from StdMaybe import :: Maybe
 from StdOverloaded import class toString
+from Text.GenJSON import :: JSONNode
 
 :: *JSWorld
 
@@ -11,7 +12,7 @@ from StdOverloaded import class toString
 :: JSObj :== JSVal
 
 generic gToJS a :: !a -> JSVal
-derive gToJS Int, Bool, String, Real, JSVal, Maybe, ()
+derive gToJS Int, Bool, String, Real, JSVal, Maybe, (), JSONNode
 derive gToJS PAIR, FIELD of {gfd_name}, RECORD
 toJS x :== gToJS{|*|} x
 

@@ -521,7 +521,6 @@ itasks.Viewport = {
 	},
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this, taskNo = taskId.split("-")[1];
-		value = JSON.parse(value);
 		if(editorId) {
 			me.connection.sendEditEvent(me.attributes.instanceNo, taskNo, editorId, value);
 		} else {

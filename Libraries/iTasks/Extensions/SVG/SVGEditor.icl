@@ -346,10 +346,9 @@ doImageEvent me svglet svg elemId sttf local _ world
 // Don't trigger an event, just re-render
   	= onNewState me svglet model world
 // Send edit event
-  #! (json,    world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON model))) world //TODO: Should not really print+parse here
   #! (taskId,  world) = me .# "attributes.taskId" .? world
   #! (editorId,world) = me .# "attributes.editorId" .? world
-  #! (_,       world) = (me .# "doEditEvent" .$ (taskId,editorId,json)) world
+  #! (_,       world) = (me .# "doEditEvent" .$ (taskId,editorId,toJSON model)) world
 // Re-render
   = onNewState me svglet model world
 

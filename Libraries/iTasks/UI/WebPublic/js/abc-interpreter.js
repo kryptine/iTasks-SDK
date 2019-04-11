@@ -169,6 +169,8 @@ const ABC={
 				ABC.memory_array[hp/4+1]=0;
 				ABC.memory_array[hp/4+2]=(values[i].shared_clean_value_index<<1)+1;
 				ABC.memory_array[hp/4+3]=0;
+				hp+=16;
+				hp_free-=2;
 			} else if (typeof values[i]=='object') {
 				// TODO: check if garbage collection is needed
 				ABC.memory_array[store_ptrs/4]=hp;
@@ -261,8 +263,6 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 			memory: ABC.memory,
 
 			debug_instr: function (addr, instr) {
-				if (MAX_INSTRUCTIONS-- == 0)
-					throw 'MAX_INSTRUCTIONS ran out';
 				if (ABC_DEBUG)
 					console.log(addr/8-ABC.code_offset,abc_instructions[instr]);
 			},
