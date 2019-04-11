@@ -5,7 +5,7 @@ definition module iTasks.UI.Editor
 */
 
 from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange, :: TaskId
-from iTasks.UI.JS.Interface import :: JSWorld, :: JSObj, :: JSVal, :: JSObject
+from iTasks.UI.JS.Interface import :: JSWorld, :: JSVal
 
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Generic.Defaults import generic gDefault
@@ -151,7 +151,7 @@ isCompound :: !EditState -> Bool
 
 //Add client-side initialization to the generation of an initial UI
 withClientSideInit ::
-	!((JSObj ()) *JSWorld -> *JSWorld)
+	!(JSVal *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt ->
 		*(!MaybeErrorString (!UI, !st), !*VSt)

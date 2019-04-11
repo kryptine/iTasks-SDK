@@ -1,46 +1,65 @@
 implementation module iTasks.UI.JS.Interface
 
 import StdEnv
-import StdMaybe
+import StdGeneric
+import StdOverloadedList
+
+import Data.Maybe
 import Text
 
 :: *JSWorld = JSWorld
 
-:: JSVal a
+:: JSVal
 	= JSInt !Int
 	| JSBool !Bool
 	| JSString !String
-	| JSRef !Int // a reference to shared_js_values
-	| JSCleanRef !Int // a reference to shared_clean_values
+
 	| JSVar !String
 	| JSNull
 	| JSUndefined
+	| JSTypeOf !JSVal
 
-	| E.b c: JSSel !(JSVal b) !(JSVal c) // b[c]
-	| E.b: JSSelPath !(JSVal b) !String // b.path1.path2...pathn
+	| JSObject !{!JSObjectElement}
 
-:: JSObject a :== ()
-:: JSFunction a :== ()
+	| JSSel !JSVal !JSVal // x[y]
+	| JSSelPath !JSVal !String // x.path1.path2...pathn
 
-instance toString (JSVal a)
+	| JSRef !Int // a reference to shared_js_values
+	| JSCleanRef !Int // a reference to shared_clean_values
+
+	| JSTempPair !JSVal !JSVal
+	| JSTempField !String !JSVal
+
+:: JSObjectElement =
+	{ key :: !String
+	, val :: !JSVal
+	}
+
+// TODO optimise this by first computing the size
+instance toString JSVal
 where
 	toString v = case v of
 		JSInt i -> toString i
 		JSBool b -> if b "true" "false"
 		JSString s -> "'"+++s+++"'" // TODO escape
-		JSRef i -> "abc_interpreter.shared_js_values["+++toString i+++"]"
-		JSCleanRef i -> "abc_interpreter.apply_to_clean_value("+++toString i+++")"
+
 		JSVar v -> v
 		JSNull -> "null"
 		JSUndefined -> "undefined"
+		JSTypeOf v -> "typeof "+++toString v
+
+		JSObject elems -> foldl (+++) "{" [key+++":"+++toString val+++"," \\ {key,val} <-: elems] +++ "}"
 
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
 
-jsMakeCleanReference :: a -> JSVal b
+		JSRef i -> "abc_interpreter.shared_js_values["+++toString i+++"]"
+		JSCleanRef i -> "abc_interpreter.apply_to_clean_value("+++toString i+++")"
+
+jsMakeCleanReference :: a -> JSVal
 jsMakeCleanReference x = share x
 
-jsGetCleanReference :: !(JSVal a) !*JSWorld -> *(!Maybe b, !*JSWorld)
+jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
 	JSCleanRef i -> (Just (fetch i), w)
 	_            -> (Nothing, w)
@@ -52,13 +71,16 @@ where
 		pop_b 1
 	}
 
-jsIsUndefined :: !(JSVal a) -> Bool
+jsTypeOf :: !JSVal -> JSVal
+jsTypeOf v = JSTypeOf v
+
+jsIsUndefined :: !JSVal -> Bool
 jsIsUndefined v = v=:JSUndefined
 
-jsIsNull :: !(JSVal a) -> Bool
+jsIsNull :: !JSVal -> Bool
 jsIsNull v = v=:JSNull
 
-jsValToInt :: !(JSVal a) -> Maybe Int
+jsValToInt :: !JSVal -> Maybe Int
 jsValToInt v = case v of
 	JSInt i    -> Just i
 	JSString s -> case toInt s of
@@ -66,7 +88,7 @@ jsValToInt v = case v of
 		i -> Just i
 	_          -> Nothing
 
-jsValToBool :: !(JSVal a) -> Maybe Bool
+jsValToBool :: !JSVal -> Maybe Bool
 jsValToBool v = case v of
 	JSBool b   -> Just b
 	JSInt i    -> Just (i<>0)
@@ -76,7 +98,7 @@ jsValToBool v = case v of
 		_       -> Nothing
 	_          -> Nothing
 
-jsValToString :: !(JSVal a) -> Maybe String
+jsValToString :: !JSVal -> Maybe String
 jsValToString v = case v of
 	JSString s -> Just s
 	JSInt i    -> Just (toString i)
@@ -84,88 +106,107 @@ jsValToString v = case v of
 	_          -> Nothing
 
 // TODO add proper support for Reals
-jsValToReal :: !(JSVal a) -> Maybe Real
+jsValToReal :: !JSVal -> Maybe Real
 jsValToReal v = case v of
 	JSInt i    -> Just (toReal i)
 	JSString s -> Just (toReal s)
 	_          -> Nothing
 
-instance toJS Int where toJS i = JSInt i
-instance toJS Bool where toJS b = JSBool b
-instance toJS String where toJS s = JSString s
-instance toJS (JSVal b) where toJS val = cast val
+jsValToInt` :: !Int !JSVal -> Int
+jsValToInt` i v = fromMaybe i (jsValToInt v)
 
-instance toJS (Maybe b) | toJS b
+jsValToBool` :: !Bool !JSVal -> Bool
+jsValToBool` b v = fromMaybe b (jsValToBool v)
+
+jsValToString` :: !String !JSVal -> String
+jsValToString` s v = fromMaybe s (jsValToString v)
+
+jsValToReal` :: !Real !JSVal -> Real
+jsValToReal` r v = fromMaybe r (jsValToReal v)
+
+gToJS{|Int|} i = JSInt i
+gToJS{|Bool|} b = JSBool b
+gToJS{|String|} s = JSString s
+gToJS{|Real|} r = JSInt (toInt r) // TODO
+gToJS{|JSVal|} v = v
+gToJS{|Maybe|} fx v = case v of
+	Nothing -> JSNull
+	Just x  -> fx x
+gToJS{|()|} _ = abort "gToJS{|()|} should not be called!"
+
+gToJS{|PAIR|} fx fy (PAIR x y) = JSTempPair (fx x) (fy y)
+gToJS{|FIELD of {gfd_name}|} fx (FIELD x) = JSTempField gfd_name (fx x)
+gToJS{|RECORD|} fx (RECORD x) = JSObject {e \\ e <|- collect_elems (fx x)}
 where
-	toJS val = case val of
-		Just v  -> toJS v
-		Nothing -> JSNull
+	collect_elems :: !JSVal -> [!JSObjectElement!]
+	collect_elems (JSTempField k v) = [!{key=k,val=v}!]
+	collect_elems (JSTempPair a b)  = collect_elems a ++| collect_elems b
 
 instance .# String where .# obj path = JSSelPath obj path
 instance .# Int where .# arr i = JSSel arr (JSInt i)
 
-(.?) infixl 1 :: !(JSVal a) !*JSWorld -> *(!JSVal r, !*JSWorld)
+(.?) infixl 1 :: !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
 (.?) sel w = (eval_js_with_return_value (toString sel), w)
 
-(.=) infixl 1 :: !(JSObj a) !b !*JSWorld -> *JSWorld | toJS b
+(.=) infixl 1 :: !JSVal !b !*JSWorld -> *JSWorld | gToJS{|*|} b
 (.=) sel v w = case eval_js (toString sel+++"="+++toString (toJS v)) of
 	True -> w
 
 instance toJSArgs Int where toJSArgs i = [toJS i]
 instance toJSArgs Bool where toJSArgs b = [toJS b]
 instance toJSArgs String where toJSArgs s = [toJS s]
-instance toJSArgs (JSVal b) where toJSArgs v = [cast v]
-instance toJSArgs (Maybe b) | toJS b
+instance toJSArgs JSVal where toJSArgs v = [cast v]
+instance toJSArgs (Maybe b) | gToJS{|*|} b
 where
 	toJSArgs v = case v of
 		Just v  -> [toJS v]
 		Nothing -> [JSNull]
 instance toJSArgs () where toJSArgs _ = []
 
-instance toJSArgs (a,b) | toJS a & toJS b
+instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
 where toJSArgs (a,b) = [toJS a, toJS b]
 
-instance toJSArgs (a,b,c) | toJS a & toJS b & toJS c
+instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c
 where toJSArgs (a,b,c) = [toJS a, toJS b, toJS c]
 
-instance toJSArgs (a,b,c,d) | toJS a & toJS b & toJS c & toJS d
+instance toJSArgs (a,b,c,d) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d
 where toJSArgs (a,b,c,d) = [toJS a, toJS b, toJS c, toJS d]
 
-instance toJSArgs (a,b,c,d,e) | toJS a & toJS b & toJS c & toJS d & toJS e
+instance toJSArgs (a,b,c,d,e) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e
 where toJSArgs (a,b,c,d,e) = [toJS a, toJS b, toJS c, toJS d, toJS e]
 
-instance toJSArgs (a,b,c,d,e,f) | toJS a & toJS b & toJS c & toJS d & toJS e & toJS f
+instance toJSArgs (a,b,c,d,e,f) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e & gToJS{|*|} f
 where toJSArgs (a,b,c,d,e,f) = [toJS a, toJS b, toJS c, toJS d, toJS e, toJS f]
 
-(.$) infixl 2 :: !(JSFun a) !b !*JSWorld -> *(!JSVal c, !*JSWorld) | toJSArgs b
+(.$) infixl 2 :: !JSFun !b !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs b
 (.$) f args w = (eval_js_with_return_value call, w)
 where
 	call = toString f+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
 
-(.$!) infixl 2 :: !(JSFun a) !b !*JSWorld -> *JSWorld | toJSArgs b
+(.$!) infixl 2 :: !JSFun !b !*JSWorld -> *JSWorld | toJSArgs b
 (.$!) f args w = case eval_js call of
 	True -> w
 where
 	call = toString f+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
 
-jsNew :: !String !a !*JSWorld -> *(!JSVal b, !*JSWorld) | toJSArgs a
+jsNew :: !String !a !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs a
 jsNew cons args w = (eval_js_with_return_value call, w)
 where
 	call = "new "+++cons+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
 
-jsEmptyObject :: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsEmptyObject :: !*JSWorld -> *(!JSVal, !*JSWorld)
 jsEmptyObject w = (eval_js_with_return_value "{}", w)
 
-jsGlobal :: !String -> JSVal a
+jsGlobal :: !String -> JSVal
 jsGlobal s = JSVar s
 
-jsWrapFun :: !({!JSVal a} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun f, !*JSWorld)
+jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun, !*JSWorld)
 jsWrapFun f world = (cast (share casting_f), world)
 where
 	casting_f :: !{!a} !*JSWorld -> *JSWorld
 	casting_f args w = f {cast_value_from_js a \\ a <-: args} w
 
-wrapInitUIFunction :: !((JSObj ()) *JSWorld -> *JSWorld) -> {!JSVal a} -> *JSWorld -> *JSWorld
+wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 wrapInitUIFunction f = \args
 	| size args<>1
 		-> abort ("failed to get iTasks component from JavaScript (args.size="+++toString (size args)+++")\n")
@@ -193,7 +234,7 @@ where
 		pushB TRUE
 	}
 
-addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
+addJSFromUrl :: !String !(Maybe JSFun) !*JSWorld -> *JSWorld
 addJSFromUrl js mbCallback w = case add_js js callback of
 	True -> w
 where
@@ -219,7 +260,7 @@ eval_js s = code {
 	pushB TRUE
 }
 
-eval_js_with_return_value :: !String -> JSVal a
+eval_js_with_return_value :: !String -> JSVal
 eval_js_with_return_value s = cast_value_from_js (eval s)
 where
 	eval :: !String -> a
@@ -227,7 +268,7 @@ where
 		instruction 2
 	}
 
-cast_value_from_js :: !a -> JSVal b
+cast_value_from_js :: !a -> JSVal
 cast_value_from_js _ = code {
 	eq_desc dINT 0 0
 	jmp_true return_int
@@ -240,8 +281,9 @@ cast_value_from_js _ = code {
 	eqI
 	jmp_true return_ref
 	print "cast_value_from_js: return type unknown:\n"
-	print_symbol_sc 0
-	print "\n"
+	.d 1 0
+	jsr _print_graph
+	.o 0 0
 	halt
 :return_int
 	repl_r_args 0 1
@@ -294,7 +336,7 @@ cast_value_from_js _ = code {
 :return
 }
 
-share :: !a -> JSVal b
+share :: !a -> JSVal
 share x = JSCleanRef (get_shared_value_index x)
 where
 	get_shared_value_index :: !a -> Int

@@ -148,7 +148,7 @@ isCompound (AnnotatedState _ childSt) = isCompound childSt
 isCompound (CompoundState _ _)        = True
 
 withClientSideInit ::
-	!((JSObj ()) *JSWorld -> *JSWorld)
+	!(JSVal *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of

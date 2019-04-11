@@ -1,67 +1,74 @@
 definition module iTasks.UI.JS.Interface
 
+import StdGeneric
 from StdMaybe import :: Maybe
 from StdOverloaded import class toString
 
 :: *JSWorld
 
-:: JSVal a
-:: JSObj a :== JSVal (JSObject a)
-:: JSFun a :== JSVal (JSFunction a)
+:: JSVal
+:: JSFun :== JSVal
+:: JSObj :== JSVal
 
-:: JSObject a
-:: JSFunction a
+generic gToJS a :: !a -> JSVal
+derive gToJS Int, Bool, String, Real, JSVal, Maybe, ()
+derive gToJS PAIR, FIELD of {gfd_name}, RECORD
+toJS x :== gToJS{|*|} x
 
-class toJS a :: !a -> JSVal b
-instance toJS Int, Bool, String, (JSVal b), (Maybe b) | toJS b
+jsMakeCleanReference :: a -> JSVal
+jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 
-jsMakeCleanReference :: a -> JSVal b
-jsGetCleanReference :: !(JSVal a) !*JSWorld -> *(!Maybe b, !*JSWorld)
+jsTypeOf :: !JSVal -> JSVal
 
-jsIsUndefined :: !(JSVal a) -> Bool
-jsIsNull :: !(JSVal a) -> Bool
+jsIsUndefined :: !JSVal -> Bool
+jsIsNull :: !JSVal -> Bool
 
-jsValToInt :: !(JSVal a) -> Maybe Int
-jsValToBool :: !(JSVal a) -> Maybe Bool
-jsValToString :: !(JSVal a) -> Maybe String
-jsValToReal :: !(JSVal a) -> Maybe Real
+jsValToInt :: !JSVal -> Maybe Int
+jsValToBool :: !JSVal -> Maybe Bool
+jsValToString :: !JSVal -> Maybe String
+jsValToReal :: !JSVal -> Maybe Real
+
+jsValToInt` :: !Int !JSVal -> Int
+jsValToBool` :: !Bool !JSVal -> Bool
+jsValToString` :: !String !JSVal -> String
+jsValToReal` :: !Real !JSVal -> Real
 
 /**
  * Access properties of a JavaScript value.
  */
-class (.#) infixl 3 attr :: !(JSVal a) !attr -> JSVal b
+class (.#) infixl 3 attr :: !JSVal !attr -> JSVal
 
 instance .# String // object access; may contain dots
 instance .# Int // array access
 
-(.?) infixl 1 :: !(JSVal a) !*JSWorld -> *(!JSVal r, !*JSWorld)
-(.=) infixl 1 :: !(JSObj a) !b !*JSWorld -> *JSWorld | toJS b
+(.?) infixl 1 :: !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
+(.=) infixl 1 :: !JSVal !b !*JSWorld -> *JSWorld | gToJS{|*|} b
 
-class toJSArgs a :: !a -> [JSVal a]
-instance toJSArgs Int, Bool, String, (JSVal b), (Maybe b) | toJS b, ()
-instance toJSArgs (a,b) | toJS a & toJS b
-instance toJSArgs (a,b,c) | toJS a & toJS b & toJS c
-instance toJSArgs (a,b,c,d) | toJS a & toJS b & toJS c & toJS d
-instance toJSArgs (a,b,c,d,e) | toJS a & toJS b & toJS c & toJS d & toJS e
-instance toJSArgs (a,b,c,d,e,f) | toJS a & toJS b & toJS c & toJS d & toJS e & toJS f
+class toJSArgs a :: !a -> [JSVal]
+instance toJSArgs Int, Bool, String, JSVal, (Maybe b) | gToJS{|*|} b, ()
+instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
+instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c
+instance toJSArgs (a,b,c,d) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d
+instance toJSArgs (a,b,c,d,e) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e
+instance toJSArgs (a,b,c,d,e,f) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e & gToJS{|*|} f
 
-(.$) infixl 2 :: !(JSFun a) !b !*JSWorld -> *(!JSVal c, !*JSWorld) | toJSArgs b
-(.$!) infixl 2 :: !(JSFun a) !b !*JSWorld -> *JSWorld | toJSArgs b
+(.$) infixl 2 :: !JSFun !b !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs b
+(.$!) infixl 2 :: !JSFun !b !*JSWorld -> *JSWorld | toJSArgs b
 
-jsNew :: !String !a !*JSWorld -> *(!JSVal b, !*JSWorld) | toJSArgs a
+jsNew :: !String !a !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs a
 
-jsEmptyObject :: !*JSWorld -> *(!JSVal a, !*JSWorld)
+jsEmptyObject :: !*JSWorld -> *(!JSVal, !*JSWorld)
 
-jsGlobal :: !String -> JSVal a
+jsGlobal :: !String -> JSVal
 
 jsNull :== jsGlobal "null"
 jsThis :== jsGlobal "this"
 jsWindow :== jsGlobal "window"
 jsDocument :== jsGlobal "document"
 
-jsWrapFun :: !({!JSVal a} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun f, !*JSWorld)
+jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun, !*JSWorld)
 
-wrapInitUIFunction :: !((JSObj ()) *JSWorld -> *JSWorld) -> {!JSVal a} -> *JSWorld -> *JSWorld
+wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 
 jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
 
@@ -78,6 +85,6 @@ addCSSFromUrl :: !String !*JSWorld -> *JSWorld
  * @param The URL.
  * @param An optional callback function for when the script has loaded.
  */
-addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
+addJSFromUrl :: !String !(Maybe JSFun) !*JSWorld -> *JSWorld
 
 jsTrace :: !a .b -> .b | toString a

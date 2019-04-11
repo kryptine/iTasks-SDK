@@ -49,7 +49,7 @@ svgns =: "http://www.w3.org/2000/svg"
   , svgTrueCoordsY  :: !Real
   , svgGrabPointX   :: !Real
   , svgGrabPointY   :: !Real
-  , svgDragTarget   :: !Maybe (JSObj DropTarget)
+  , svgDragTarget   :: !Maybe JSObj
   }
 
 derive gEq MousePos
@@ -63,7 +63,7 @@ fromSVGEditor svglet = leafEditorToEditor
 	, valueFromState = valueFromState
     }
 where
-	initUI :: !(JSObj ()) !*JSWorld -> *JSWorld
+	initUI :: !JSObj !*JSWorld -> *JSWorld
 	initUI me world
 	// Set attributes
 	# world                       = (me .# "clickCount" .= 0) world
@@ -139,7 +139,7 @@ newImgTables
                , imgUniqIds       = 0
     }
 
-onNewState :: !(JSVal a) !(SVGEditor s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+onNewState :: !JSVal !(SVGEditor s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
   #! (cidJS,world)                 = me .# "attributes.taskId" .? world
   #! (Just cid)                    = jsValToString cidJS
@@ -197,7 +197,7 @@ where
 		    _                   = abort "Unexpected error in module SVGEditor (local function getImgRootSize of onNewState): size of root image is undetermined."
 
 //	update the DOM element with the new SVG content:
-	updSVG :: ![SVGElt] !(!Real,!Real) !String !(JSVal a) !*JSWorld -> (!JSObj svg,!*JSWorld)
+	updSVG :: ![SVGElt] !(!Real,!Real) !String !JSVal !*JSWorld -> (!JSObj,!*JSWorld)
 	updSVG elts (imXSp,imYSp) cid me world
 	  #! imXSp           = to2decString imXSp
 	  #! imYSp           = to2decString imYSp
@@ -228,7 +228,7 @@ calcImgFontsSpans new_fonts font_spans world
   #! (_,   world) = (body `removeChild` svg) world
   = (res,  world)
 where
-	calcFontSpan :: !(JSVal (JSObject a)) !*(!FontSpans,!*JSWorld) !FontDef -> *(!FontSpans,!*JSWorld)
+	calcFontSpan :: !JSObj !*(!FontSpans,!*JSWorld) !FontDef -> *(!FontSpans,!*JSWorld)
 	calcFontSpan elem (font_spans, world) fontdef
 	  #! fontAttrs   = [ ("font-family",  fontdef.fontfamily)
                        , ("font-size",    toString fontdef.fontysize)
@@ -245,7 +245,7 @@ where
 	  #! (fd, world) = calcFontDescent elem fontdef.fontysize world
 	  = ('DM'.put fontdef fd font_spans, world)
 	
-	calcFontDescent :: !(JSVal (JSObject a)) !Real !*JSWorld -> (!Real, !*JSWorld)
+	calcFontDescent :: !JSObj !Real !*JSWorld -> (!Real, !*JSWorld)
 	// same heuristic as used below (at function 'genSVGBasicImage'), must be replaced by proper determination of descent of current font
 	calcFontDescent elem fontysize world
 	  = (fontysize * 0.25,world)
@@ -264,7 +264,7 @@ calcImgTextsLengths texts text_spans world
   #! (_,   world) = (body `removeChild` svg) world
   = (res,  world)
 where
-	calcTextLengths :: !(JSVal (JSObject a)) !FontDef !(Set String) !*(!TextSpans, !*JSWorld) -> *(!TextSpans, !*JSWorld)
+	calcTextLengths :: !JSObj !FontDef !(Set String) !*(!TextSpans, !*JSWorld) -> *(!TextSpans, !*JSWorld)
 	calcTextLengths elem fontdef strs (text_spans, world)
 	  #! fontAttrs   = [ ("font-family",  fontdef.fontfamily)
                        , ("font-size",    toString fontdef.fontysize)
@@ -285,14 +285,14 @@ where
 		merge ws` (Just ws) = Just ('DM'.union ws` ws)
 		merge ws` nothing   = Just ws`
 	
-	calcTextLength :: !(JSVal (JSObject a)) !String !*(!Map String TextSpan, !*JSWorld) -> *(!Map String TextSpan, !*JSWorld)
+	calcTextLength :: !JSObj !String !*(!Map String TextSpan, !*JSWorld) -> *(!Map String TextSpan, !*JSWorld)
 	calcTextLength elem str (text_spans, world)
 	  #! world        = (elem .# "textContent" .= str) world
 	  #! (ctl, world) = (elem `getComputedTextLength` ()) world
 	  = ('DM'.put str (fromMaybe 0.0 (jsValToReal ctl)) text_spans, world)
 
 //	register the event handlers of the img:
-registerEventhandlers :: !(JSVal a) !(SVGEditor s v) !String !(JSObj svg) !(ImgEventhandlers v) !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+registerEventhandlers :: !JSVal !(SVGEditor s v) !String !JSObj !(ImgEventhandlers v) !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 registerEventhandlers me svglet cid svg es tags world
   #! (domEl,  world)     = me .# "domEl" .? world
   #! (svgRoot,world)     = domEl .# "firstChild" .? world
@@ -305,10 +305,10 @@ registerEventhandlers me svglet cid svg es tags world
 // register all individual event handlers:
   = 'DM'.foldrWithKey (registerEventhandler me svglet svg) world es
 where
-	registerEventhandler :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+	registerEventhandler :: !JSVal !(SVGEditor s v) !JSObj !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	registerEventhandler me svglet svg uniqId es world = foldr (register me svglet svg (mkUniqId cid uniqId)) world es
 	where
-		register :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(ImgEventhandler v) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+		register :: !JSVal !(SVGEditor s v) !JSObj !String !(ImgEventhandler v) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		register me svglet svg elemId (ImgEventhandlerOnClickAttr {OnClickAttr | local,onclick}) world
 			= registerNClick me svglet svg elemId onclick local world
 		register me svglet svg elemId (ImgEventhandlerOnMouseDownAttr {OnMouseDownAttr | local,onmousedown}) world
@@ -324,14 +324,14 @@ where
 		register me svglet svg elemId (ImgEventhandlerDraggableAttr {DraggableAttr | draggable}) world
 			= registerDraggable me svglet svg elemId draggable world
 
-actuallyRegister :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !String !(v -> v) !Bool! *JSWorld -> *JSWorld | JSONEncode{|*|} s
+actuallyRegister :: !JSVal !(SVGEditor s v) !JSObj !String !String !(v -> v) !Bool! *JSWorld -> *JSWorld | JSONEncode{|*|} s
 actuallyRegister me svglet svg elemId evt sttf local world
   #! (elem,world) = (svg .# "getElementById" .$ elemId) world
   #! (cb,  world) = jsWrapFun (doImageEvent me svglet svg elemId sttf local) world
   #! (_,   world) = (elem `addEventListener` (evt, cb, True)) world
   = world
 
-doImageEvent :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(v -> v) !Bool !{!JSVal arg} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+doImageEvent :: !JSVal !(SVGEditor s v) !JSObj !String !(v -> v) !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 doImageEvent me svglet svg elemId sttf local _ world
 // Get model & view value 
   #! (Just view, world) = jsGetCleanReference (me .# "view") world
@@ -353,14 +353,14 @@ doImageEvent me svglet svg elemId sttf local _ world
 // Re-render
   = onNewState me svglet model world
 
-registerNClick :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(Int v -> v) !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+registerNClick :: !JSVal !(SVGEditor s v) !JSObj !String !(Int v -> v) !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 registerNClick me svglet svg elemId sttf local world
   #! (elem,world) = (svg .# "getElementById" .$ elemId) world
   #! (cb,  world) = jsWrapFun (mkNClickCB me svglet svg elemId sttf local) world
   #! (_,   world) = (elem `addEventListener` ("click", cb, False)) world
   = world
 
-mkNClickCB :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(Int v -> v) !Bool !{!JSVal arg} !*JSWorld-> *JSWorld | JSONEncode{|*|} s
+mkNClickCB :: !JSVal !(SVGEditor s v) !JSObj !String !(Int v -> v) !Bool !{!JSVal} !*JSWorld-> *JSWorld | JSONEncode{|*|} s
 mkNClickCB me svglet svg elemId sttf local args world
   #! world           = if (size args>0) ((args.[0] .# "stopPropagation" .$! ()) world) world
 // If another click already registered a timeout, clear that timeout
@@ -375,7 +375,7 @@ mkNClickCB me svglet svg elemId sttf local args world
   #! world           = (me .# "clickCount" .= fromMaybe 0 (jsValToInt nc) + 1) world
   = world
 
-doNClickEvent :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(Int v -> v) !Bool !{!JSVal arg} !*JSWorld-> *JSWorld | JSONEncode{|*|} s
+doNClickEvent :: !JSVal !(SVGEditor s v) !JSObj !String !(Int v -> v) !Bool !{!JSVal} !*JSWorld-> *JSWorld | JSONEncode{|*|} s
 doNClickEvent me svglet svg elemId sttf local args world
 // Get click count
   #! (nc,world)      = me .# "clickCount" .? world
@@ -384,14 +384,14 @@ doNClickEvent me svglet svg elemId sttf local args world
   #! nc              = fromMaybe 0 (jsValToInt nc)
   = doImageEvent me svglet svg elemId (sttf nc) local args world
 
-registerDraggable :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(SVGDragFun v) !*JSWorld -> *JSWorld
+registerDraggable :: !JSVal !(SVGEditor s v) !JSObj !String !(SVGDragFun v) !*JSWorld -> *JSWorld
 registerDraggable me svglet svg elemId f world
   #! (elem,  world) = (svg .# "getElementById" .$ elemId) world
   #! (cbDown,world) = jsWrapFun (doMouseDragDown me svglet svg f elemId elem) world
   #! (_,     world) = (elem `addEventListener` ("mousedown", cbDown, True)) world
   = world
 
-doMouseDragDown :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !(SVGDragFun v) !String !(JSObj o) !{!JSVal arg} !*JSWorld -> *JSWorld
+doMouseDragDown :: !JSVal !(SVGEditor s v) !JSObj !(SVGDragFun v) !String !JSObj !{!JSVal} !*JSWorld -> *JSWorld
 doMouseDragDown me svglet svgRoot sttf elemId elem args world
   #! (Just ds,      world) = jsGetCleanReference (me .# "dragState") world
   #! (targetElement,world) = (svgRoot .# "getElementById" .$ elemId) world
@@ -418,7 +418,7 @@ doMouseDragDown me svglet svgRoot sttf elemId elem args world
   #!                world  = (me .# "dragState" .= jsMakeCleanReference ds) world
   = world
 
-doMouseDragMove :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !{!JSObj arg} !*JSWorld -> *JSWorld
+doMouseDragMove :: !JSVal !(SVGEditor s v) !JSObj !{!JSVal} !*JSWorld -> *JSWorld
 doMouseDragMove me svglet svgRoot args world
   #! (Just ds,world) = jsGetCleanReference (me .# "dragState") world
   #! evt             = args.[0]
@@ -448,7 +448,7 @@ doMouseDragMove me svglet svgRoot args world
   #! world          = (me .# "dragState" .= jsMakeCleanReference ds) world
   = world
 
-doMouseDragUp :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !(Map String (Set ImageTag)) !{!JSVal arg} !*JSWorld -> *JSWorld
+doMouseDragUp :: !JSVal !(SVGEditor s v) !JSObj !(Map String (Set ImageTag)) !{!JSVal} !*JSWorld -> *JSWorld
 doMouseDragUp me svglet svgRoot idMap args world
   #! evt               = args.[0]
   #! (Just ds,world)   = jsGetCleanReference (me .# "dragState") world
@@ -479,7 +479,7 @@ doMouseDragUp me svglet svgRoot idMap args world
   #! world             = (me .# "dragState" .= jsMakeCleanReference ds) world
   = world
 
-firstIdentifiableParentId :: !(JSObj a) !*JSWorld -> *(!String, !*JSWorld)
+firstIdentifiableParentId :: !JSObj !*JSWorld -> *(!String, !*JSWorld)
 firstIdentifiableParentId elem world
   #! (idval,world)      = elem .# "id" .? world
   | jsIsNull idval
@@ -492,7 +492,7 @@ firstIdentifiableParentId elem world
   | otherwise
       = (idval, world)
 
-getNewTrueCoords :: !(JSVal a) !(JSObj event) !*JSWorld -> *(!Real, !Real, !*JSWorld)
+getNewTrueCoords :: !JSVal !JSObj !*JSWorld -> *(!Real, !Real, !*JSWorld)
 getNewTrueCoords me evt world
   #! (domEl,       world) = me .# "domEl" .? world
   #! (svgRoot,     world) = domEl .# "firstChild" .? world
