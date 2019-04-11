@@ -26,7 +26,7 @@ import Text
 	| JSSel !JSVal !JSVal // x[y]
 	| JSSelPath !JSVal !String // x.path1.path2...pathn
 
-	| JSRef !Int // a reference to shared_js_values
+	| JSRef !Int // a reference to js
 	| JSCleanRef !Int // a reference to shared_clean_values
 
 	| JSTempPair !JSVal !JSVal
@@ -57,8 +57,8 @@ where
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
 
-		JSRef i -> "abc_interpreter.shared_js_values["+++toString i+++"]"
-		JSCleanRef i -> "abc_interpreter.apply_to_clean_value("+++toString i+++")"
+		JSRef i -> "ABC.js["+++toString i+++"]"
+		JSCleanRef i -> "ABC.ap("+++toString i+++")"
 
 jsMakeCleanReference :: a -> JSVal
 jsMakeCleanReference x = share x
