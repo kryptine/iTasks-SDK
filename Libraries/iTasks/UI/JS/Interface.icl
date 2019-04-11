@@ -159,7 +159,13 @@ where
 	collect_elems (JSTempField k v) = [!{key=k,val=v}!]
 	collect_elems (JSTempPair a b)  = collect_elems a ++| collect_elems b
 
-instance .# Int where .# arr i = JSSel arr (JSInt i)
+instance .# Int
+where
+	.# arr i = case arr of
+		JSArray xs
+			| 0<=i && i<size xs -> xs.[i]
+			| otherwise         -> JSUndefined
+		arr -> JSSel arr (JSInt i)
 
 instance .# String
 where
@@ -172,7 +178,29 @@ where
 		contains_dot i s = if (s.[i]=='.') True (contains_dot (i-1) s)
 
 (.?) infixl 1 :: !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
-(.?) sel w = (eval_js_with_return_value (toString sel), w)
+(.?) js w = case try_local_computation js of
+	(True,v) -> (v,w)
+	_        -> (eval_js_with_return_value (toString js), w)
+where
+	try_local_computation :: !JSVal -> (!Bool, !JSVal)
+	try_local_computation v = case v of
+		JSInt _      -> (True,v)
+		JSBool _     -> (True,v)
+		JSString _   -> (True,v)
+		JSReal _     -> (True,v)
+
+		JSNull       -> (True,v)
+		JSUndefined  -> (True,v)
+
+		JSSel (JSArray xs) (JSInt i)
+			| 0<=i && i<size xs -> (True,xs.[i])
+			| otherwise         -> (True,JSUndefined)
+		// TODO add a case for JSObject and JSString?
+
+		JSRef _      -> (True,v)
+		JSCleanRef _ -> (True,v)
+
+		_            -> (False,v)
 
 (.=) infixl 1 :: !JSVal !b !*JSWorld -> *JSWorld | gToJS{|*|} b
 (.=) sel v w = case eval_js (toString sel+++"="+++toString (toJS v)) of
