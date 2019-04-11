@@ -60,6 +60,8 @@ jsNew :: !String !a !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs a
 
 jsEmptyObject :: !*JSWorld -> *(!JSVal, !*JSWorld)
 
+jsDelete :: !JSVal !*JSWorld -> *JSWorld
+
 jsGlobal :: !String -> JSVal
 
 jsNull :== jsGlobal "null"

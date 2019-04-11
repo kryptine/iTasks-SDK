@@ -32,7 +32,7 @@ LEAFLET_CSS_WINDOW   :== "leaflet-window.css"
 
 derive JSONEncode IconOptions
 
-derive gToJS CursorOptions, MapOptions
+derive gToJS CursorOptions, MapOptions, LeafletLatLng
 
 CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
 MAP_OPTIONS     :== {attributionControl = False, zoomControl = True, editable = True}
@@ -51,7 +51,7 @@ leafletObjectIdOf (Window w)    = w.windowId
     | LDSetCenter       !LeafletLatLng
     | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
-    //Updating markers 
+    //Updating markers
     | LDSelectMarker    !LeafletObjectID
     //Updating windows
     | LDRemoveWindow    !LeafletObjectID
@@ -65,7 +65,7 @@ leafletObjectIdOf (Window w)    = w.windowId
 
 openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-	
+
 leafletEditor :: Editor LeafletMap
 leafletEditor = leafEditorToEditor
 	{ LeafEditor
@@ -112,7 +112,7 @@ where
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
-		//Check if the leaflet library is loaded and either load it, 
+		//Check if the leaflet library is loaded and either load it,
 		//and delay dom initialization or set the initDOM method to continue
 		//as soon as the component's DOM element is available
         # (l, world) = jsTypeOf (jsGlobal "L") .? world
@@ -143,8 +143,7 @@ where
 		//Set initial cursor
         # world             = setMapCursor me mapObj cursor world
         //Add icons
-		# (icons,world)     = me .# "attributes.icons" .? world
-		# world             = setMapIcons me mapObj icons world 
+		# world             = setMapIcons me mapObj (me .# "attributes.icons") world
 		//Create tile layer
 		# (tilesUrls,world) = me .# "attributes.tilesUrls" .? world
 		# world             = forall (addMapTilesLayer me mapObj) tilesUrls world
@@ -221,12 +220,11 @@ where
 		# (editorId,world)  = me .# "attributes.editorId" .? world
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (clickPos,world)  = args.[0] .# "latlng" .? world
-		# (cursor,world)    = toLatLng clickPos world 
+		# (cursor,world)    = toLatLng clickPos world
 		# edit              = toJSON [LDSetCursor cursor]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		//Update cursor position on the map
-		//# world             = setMapCursor me mapObj (toJSVal cursor) world // TODO
-		# world = jsTrace "onMapClick not fully implemented" world
+		# world             = setMapCursor me mapObj (toJS cursor) world
 		= world
 
 	onMarkerClick me markerId args world
@@ -307,7 +305,7 @@ where
 	getMapCenter mapObj world
         # (center,world)    = (mapObj .# "getCenter" .$ ()) world
         = toLatLng center world
-	
+
 	setMapCenter mapObj center world
 		# world     = (mapObj .# "panTo" .$! center) world
 		= world
@@ -322,14 +320,13 @@ where
 				# (l, world)      = jsGlobal "L" .? world
 				# (cursor,world)  = (l .# "circleMarker" .$ (position, CURSOR_OPTIONS)) world
 				# world           = (cursor .# "addTo" .$! mapObj) world
-				# world           = ((me .# "cursor") .= cursor) world	
+				# world           = (me .# "cursor" .= cursor) world
 				= world
 		| otherwise //Update the position
 			| jsIsNull position
 				//Destroy the cursor
 				# world           = (mapObj .# "removeLayer" .$! cursor) world
-				//# world           = jsDeleteObjectAttr "cursor" me world // TODO
-				# world = jsTrace "setMapCursor not fully implemented" world
+				# world           = jsDelete (me .# "cursor") world
 				= world
 			| otherwise
         		# world           = (cursor .# "setLatLng" .$! position) world
@@ -342,12 +339,12 @@ where
         # world             = (layer .# "addTo" .$! mapObj) world
 		= world
 
-	setMapIcons me mapObj icons world 
+	setMapIcons me mapObj icons world
 		# (l, world)      	= jsGlobal "L" .? world
 		# (index,world) 	= jsEmptyObject world
-		# world 			= ((me .# "icons") .= index) world
+		# world 			= (me .# "icons" .= index) world
 		= forall (createMapIcon me mapObj l index) icons world
-	where	
+	where
 		createMapIcon me mapObj l index _ def world
 			# (iconId,world)   = def .# 0 .? world
 			# (iconSpec,world) = def .# 1 .? world
@@ -395,7 +392,7 @@ where
         # world               = (layer .# "addEventListener" .$! ("click",cb)) world
         //Add to map
         # world               = (layer .# "addTo" .$! mapObj) world
-		= world	
+		= world
 	where
 		addIconOption iconId icons options world
 			| jsIsUndefined iconId = world
@@ -416,8 +413,8 @@ where
             // keep reference in marker object to remove popup if marker is removed
             # world           = (marker .# "myPopup" .= popup) world
             = world
-	
-	createPolyline me mapObj l object world 
+
+	createPolyline me mapObj l object world
 		= jsTrace "createPolyline temporarily commented" world /*
 		//Set options
 		# (options,world)     = jsEmptyObject world

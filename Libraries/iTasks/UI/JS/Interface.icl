@@ -220,6 +220,10 @@ jsNew cons args w = (eval_js_with_return_value call, w)
 where
 	call = "new "+++cons+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
 
+jsDelete :: !JSVal !*JSWorld -> *JSWorld
+jsDelete v w = case eval_js ("delete "+++toString v) of
+	True -> w
+
 jsEmptyObject :: !*JSWorld -> *(!JSVal, !*JSWorld)
 jsEmptyObject w = (eval_js_with_return_value "{}", w)
 
