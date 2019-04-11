@@ -112,7 +112,13 @@ const abc_interpreter={
 					hp+=16;
 					hp_free-=2;
 				} else {
-					throw 'Cannot pass non-integral numbers to Clean yet'; // TODO
+					abc_interpreter.memory_array[store_ptrs/4]=hp;
+					abc_interpreter.memory_array[hp/4]=21*8+2; // REAL
+					abc_interpreter.memory_array[hp/4+1]=0;
+					const float_array=new Float64Array(abc_interpreter.memory_array.buffer, hp+8);
+					float_array[0]=values[i];
+					hp+=16;
+					hp_free-=2;
 				}
 			} else if (typeof values[i]=='boolean') {
 				abc_interpreter.memory_array[store_ptrs/4]=hp;

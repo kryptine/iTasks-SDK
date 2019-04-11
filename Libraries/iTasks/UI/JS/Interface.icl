@@ -13,6 +13,7 @@ import Text
 	= JSInt !Int
 	| JSBool !Bool
 	| JSString !String
+	| JSReal !Real
 
 	| JSVar !String
 	| JSNull
@@ -42,6 +43,7 @@ where
 		JSInt i -> toString i
 		JSBool b -> if b "true" "false"
 		JSString s -> "'"+++s+++"'" // TODO escape
+		JSReal r -> toString r
 
 		JSVar v -> v
 		JSNull -> "null"
@@ -83,6 +85,7 @@ jsIsNull v = v=:JSNull
 jsValToInt :: !JSVal -> Maybe Int
 jsValToInt v = case v of
 	JSInt i    -> Just i
+	JSReal r   -> Just (toInt r)
 	JSString s -> case toInt s of
 		0 -> if (s=="0") (Just 0) Nothing
 		i -> Just i
@@ -92,6 +95,7 @@ jsValToBool :: !JSVal -> Maybe Bool
 jsValToBool v = case v of
 	JSBool b   -> Just b
 	JSInt i    -> Just (i<>0)
+	JSReal r   -> Just (r<>0.0)
 	JSString s -> case s of
 		"true"  -> Just True
 		"false" -> Just False
@@ -102,12 +106,13 @@ jsValToString :: !JSVal -> Maybe String
 jsValToString v = case v of
 	JSString s -> Just s
 	JSInt i    -> Just (toString i)
+	JSReal r   -> Just (toString r)
 	JSBool b   -> Just (if b "true" "false")
 	_          -> Nothing
 
-// TODO add proper support for Reals
 jsValToReal :: !JSVal -> Maybe Real
 jsValToReal v = case v of
+	JSReal r   -> Just r
 	JSInt i    -> Just (toReal i)
 	JSString s -> Just (toReal s)
 	_          -> Nothing
@@ -127,7 +132,7 @@ jsValToReal` r v = fromMaybe r (jsValToReal v)
 gToJS{|Int|} i = JSInt i
 gToJS{|Bool|} b = JSBool b
 gToJS{|String|} s = JSString s
-gToJS{|Real|} r = JSInt (toInt r) // TODO
+gToJS{|Real|} r = JSReal r
 gToJS{|JSVal|} v = v
 gToJS{|Maybe|} fx v = case v of
 	Nothing -> JSNull
@@ -276,6 +281,8 @@ cast_value_from_js _ = code {
 	jmp_true return_bool
 	eq_desc _STRING_ 0 0
 	jmp_true return_string
+	eq_desc REAL 0 0
+	jmp_true return_real
 	pushD_a 0
 	pushI 5290 | 661*8+2; DOMNode (bcprelink.c)
 	eqI
@@ -309,6 +316,11 @@ cast_value_from_js _ = code {
 :return_bool
 	repl_r_args 0 1
 	fill_r e_iTasks.UI.JS.Interface_kJSBool 0 1 0 0 0
+	pop_b 1
+	jmp return
+:return_real
+	repl_r_args 0 1
+	fill_r e_iTasks.UI.JS.Interface_kJSReal 0 1 0 0 0
 	pop_b 1
 	jmp return
 :return_string
