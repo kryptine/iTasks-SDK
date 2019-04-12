@@ -96,10 +96,10 @@ allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <-
 
 instance Startable WorkflowCollection
 where
-	toStartable {WorkflowCollection|name,workflows} =
+	toStartable {WorkflowCollection|name,welcomeMessage,workflows} =
 		[onStartup (installWorkflows workflows)
 		,onStartup installDemoUsers
-		,onRequest "/" (loginAndManageWork name)
+		,onRequest "/" (loginAndManageWork name welcomeMessage)
 		]
 
 installWorkflows :: ![Workflow] -> Task ()
@@ -115,10 +115,10 @@ installDemoUsers
 	=   try (get users) (\(StoreReadBuildVersionError _) -> return [])
 	>>- \us -> if (length us <= 1) (importDemoUsersFlow @! ()) (return ()) //No users, or just a single root user
 
-loginAndManageWork :: !String -> Task ()
-loginAndManageWork welcome
+loginAndManageWork :: !String !(Maybe HtmlTag) -> Task ()
+loginAndManageWork name welcomeMessage
 	= forever
-		(((	viewTitle welcome
+		(((	viewTitle name welcomeMessage
 			||-
 			(anyTask [
 	 				enterInformation ("Authenticated access","Enter your credentials and login") [] @ Just
@@ -129,15 +129,20 @@ loginAndManageWork welcome
 				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
 	 	   )  <<@ ApplyLayout layout
 		>>- browse) //Compact layout before login, full screen afterwards
-		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
+		) <<@ Title name
 where
 	browse (Just {Credentials|username,password})
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
 			Just user 	= workAs user manageWorkOfCurrentUser
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
+			Nothing		= (viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
 	browse Nothing
 		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) manageWorkOfCurrentUser
+
+	viewTitle name welcomeMessage = viewInformation () [] html
+	where
+		html = DivTag [] [H1Tag [] [Text name]:maybe [] (\msg -> [msg]) welcomeMessage]
+
 
 	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
 
