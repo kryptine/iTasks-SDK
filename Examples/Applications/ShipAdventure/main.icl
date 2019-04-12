@@ -17,7 +17,7 @@ Start world = doTasks
 	,onRequest "/" (ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
 	,onRequest "/tonic" (tonicDashboard [])
 	,onRequest "/debug" showDebug
-	,onRequest "/adventure" (loginAndManageWork "Adventure")
+	,onRequest "/adventure" (loginAndManageWork "Adventure" Nothing)
 	,onRequest "/alarm" (setSectionDetectors)
 	,onRequest "/log" showLog
 	//,onRequest "/devices" (manageDevices True)
