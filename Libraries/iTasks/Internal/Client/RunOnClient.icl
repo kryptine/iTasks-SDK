@@ -126,7 +126,7 @@ createClientIWorld serverURL currentInstance
  	                    , appVersion = locundef "appVersion"
  	                    , serverPort = 80
                         , serverUrl = locundef "serverUrl"
-						, localhostOnly = False
+						, allowedHosts = []
 	                    , keepaliveTime = locundef "keepaliveTime"
                         , sessionTime = locundef "sessionTime"
                         , persistTasks = False
