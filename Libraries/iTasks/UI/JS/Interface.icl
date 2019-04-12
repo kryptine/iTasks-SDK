@@ -132,6 +132,32 @@ jsValToString` s v = fromMaybe s (jsValToString v)
 jsValToReal` :: !Real !JSVal -> Real
 jsValToReal` r v = fromMaybe r (jsValToReal v)
 
+jsValToList :: !JSVal !(JSVal -> Maybe a) !*JSWorld -> *(!Maybe [a], !*JSWorld)
+jsValToList arr get w
+# (len,w) = arr .# "length" .? w
+= case jsValToInt len of
+	Nothing  -> (Nothing,w)
+	Just len -> get_elements [] (len-1) w
+where
+	get_elements xs -1 w = (Just xs,w)
+	get_elements xs i w
+	# (x,w) = arr .# i .? w
+	= case get x of
+		Nothing -> (Nothing,w)
+		Just x  -> get_elements [x:xs] (i-1) w
+
+jsValToList` :: !JSVal !(JSVal -> a) !*JSWorld -> *(![a], !*JSWorld)
+jsValToList` arr get w
+# (len,w) = arr .# "length" .? w
+= case jsValToInt len of
+	Nothing  -> ([],w)
+	Just len -> get_elements [] (len-1) w
+where
+	get_elements xs -1 w = (xs,w)
+	get_elements xs i w
+	# (x,w) = arr .# i .? w
+	= get_elements [get x:xs] (i-1) w
+
 gToJS{|Int|} i = JSInt i
 gToJS{|Bool|} b = JSBool b
 gToJS{|String|} s = JSString s
@@ -140,7 +166,7 @@ gToJS{|JSVal|} v = v
 gToJS{|Maybe|} fx v = case v of
 	Nothing -> JSNull
 	Just x  -> fx x
-gToJS{|()|} _ = abort "gToJS{|()|} should not be called!"
+gToJS{|[]|} fx xs = JSArray {fx x \\ x <- xs}
 gToJS{|JSONNode|} n = case n of
 	JSONNull -> JSNull
 	JSONBool b -> JSBool b
@@ -178,9 +204,11 @@ where
 		contains_dot i s = if (s.[i]=='.') True (contains_dot (i-1) s)
 
 (.?) infixl 1 :: !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
-(.?) js w = case try_local_computation js of
-	(True,v) -> (v,w)
-	_        -> (eval_js_with_return_value (toString js), w)
+(.?) js w
+# (done,js) = try_local_computation js
+| done
+	= (js,w)
+	= (eval_js_with_return_value (toString js), w)
 where
 	try_local_computation :: !JSVal -> (!Bool, !JSVal)
 	try_local_computation v = case v of
@@ -193,7 +221,7 @@ where
 		JSUndefined  -> (True,v)
 
 		JSSel (JSArray xs) (JSInt i)
-			| 0<=i && i<size xs -> (True,xs.[i])
+			| 0<=i && i<size xs -> try_local_computation xs.[i]
 			| otherwise         -> (True,JSUndefined)
 		// TODO add a case for JSObject and JSString?
 

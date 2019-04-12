@@ -415,7 +415,6 @@ where
             = world
 
 	createPolyline me mapObj l object world
-		= jsTrace "createPolyline temporarily commented" world /*
 		//Set options
 		# (options,world)     = jsEmptyObject world
 		# (style,world)       = object .# "attributes.style" .? world
@@ -429,14 +428,13 @@ where
 	where
 		getUpdate layer world
 			# (points, world) = (layer .# "getLatLngs" .$ ()) world
-			# (points, world) = fromJSArray points id world
+			# (points, world) = jsValToList` points id world
 			# (points, world) = foldl (\(res, world) point = appFst (\latLng -> [latLng: res]) $ toLatLng point world)
 			                          ([], world)
 			                          points
-			= (UpdatePolyline $ reverse points, world)*/
+			= (UpdatePolyline $ reverse points, world)
 
 	createPolygon me mapObj l object world
-		= jsTrace "createPolygon temporarily commented" world /*
 		//Set options
 		# (options,world)     = jsEmptyObject world
 		# (style,world)       = object .# "attributes.style" .? world
@@ -451,11 +449,11 @@ where
 		getUpdate layer world
 			# (points, world) = (layer .# "getLatLngs" .$ ()) world
 			# (points, world) = points .# 0 .? world
-			# (points, world) = fromJSArray points id world
+			# (points, world) = jsValToList` points id world
 			# (points, world) = foldl (\(res, world) point = appFst (\latLng -> [latLng: res]) $ toLatLng point world)
 			                          ([], world)
 			                          points
-			= (UpdatePolygon $ reverse points, world)*/
+			= (UpdatePolygon $ reverse points, world)
 
 	createCircle me mapObj l object world
 		//Set options
@@ -484,7 +482,6 @@ where
 		# world               = forall (applyAreaStyle options) style world
 		# (sw,world)          = object .# "attributes.bounds.southWest" .? world
 		# (ne,world)          = object .# "attributes.bounds.northEast" .? world
-		= world /* TODO
 		# (layer,world)       = (l .# "rectangle" .$ ([sw, ne], options)) world
 		# world               = (layer .# "addTo" .$! mapObj) world
 		# world               = enableEdit "rectangleId" me mapObj layer object getUpdate world
@@ -494,7 +491,7 @@ where
 		getUpdate layer world
 			# (bounds, world) = (layer .# "getBounds" .$ ()) world
 			# (bounds, world) = toBounds bounds world
-			= (UpdateRectangle bounds, world)*/
+			= (UpdateRectangle bounds, world)
 
 	enableEdit idFieldName me mapObj layer object getUpdate world
 		# (isEditable,world)  = object .# "attributes.editable" .? world
@@ -522,15 +519,16 @@ where
 			# (directStyle, world) = style .# 1 .? world
 			# (directStyleType, world) = directStyle .# 0 .? world
 			# (directStyleVal, world)  = directStyle .# 1 .? world
-			# directStyleType = jsValToString` "" directStyleType
-			| directStyleType == "AreaLineStrokeColor" = (options .# "color"       .= directStyleVal) world
-			| directStyleType == "AreaLineStrokeWidth" = (options .# "weight"      .= directStyleVal) world
-			| directStyleType == "AreaLineOpacity"     = (options .# "opacity"     .= directStyleVal) world
-			| directStyleType == "AreaLineDashArray"   = (options .# "dashArray"   .= directStyleVal) world
-			| directStyleType == "AreaNoFill"          = (options .# "fill"        .= False)          world
-			| directStyleType == "AreaFillColor"       = (options .# "fillColor"   .= directStyleVal) world
-			| directStyleType == "AreaFillOpacity"     = (options .# "fillOpacity" .= directStyleVal) world
-			= abort "unknown style"
+			# directStyleType = jsValToString directStyleType
+			= case directStyleType of
+				Just "AreaLineStrokeColor" = (options .# "color"       .= directStyleVal) world
+				Just "AreaLineStrokeWidth" = (options .# "weight"      .= directStyleVal) world
+				Just "AreaLineOpacity"     = (options .# "opacity"     .= directStyleVal) world
+				Just "AreaLineDashArray"   = (options .# "dashArray"   .= directStyleVal) world
+				Just "AreaNoFill"          = (options .# "fill"        .= False)          world
+				Just "AreaFillColor"       = (options .# "fillColor"   .= directStyleVal) world
+				Just "AreaFillOpacity"     = (options .# "fillOpacity" .= directStyleVal) world
+				_                          = abort "unknown style"
 		| styleType == Just "Class"
 			# (cls, world) = style .# 1 .? world
 			= (options .# "className" .= cls) world
@@ -586,17 +584,18 @@ where
     applyLineStyle options _ style world
         # (styleType, world) = style .# 0 .? world
         # styleType = jsValToString styleType
-        | styleType == "Style"
+        | styleType == Just "Style"
             # (directStyle, world) = style .# 1 .? world
             # (directStyleType, world) = directStyle .# 0 .? world
             # (directStyleVal, world)  = directStyle .# 1 .? world
             # directStyleType = jsValToString directStyleType
-            | directStyleType == "LineStrokeColor" = (options .# "color"     .= directStyleVal) world
-            | directStyleType == "LineStrokeWidth" = (options .# "weight"    .= directStyleVal) world
-            | directStyleType == "LineOpacity"     = (options .# "opacity"   .= directStyleVal) world
-            | directStyleType == "LineDashArray"   = (options .# "dashArray" .= directStyleVal) world
-            = abort "unknown style"
-        | styleType == "Class"
+            = case directStyleType of
+                Just "LineStrokeColor" = (options .# "color"     .= directStyleVal) world
+                Just "LineStrokeWidth" = (options .# "weight"    .= directStyleVal) world
+                Just "LineOpacity"     = (options .# "opacity"   .= directStyleVal) world
+                Just "LineDashArray"   = (options .# "dashArray" .= directStyleVal) world
+                _                      = abort "unknown style"
+        | styleType == Just "Class"
             # (cls, world) = style .# 1 .? world
             = (options .# "className" .= cls) world
         = abort "unknown style"

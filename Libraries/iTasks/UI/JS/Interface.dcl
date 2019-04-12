@@ -12,7 +12,7 @@ from Text.GenJSON import :: JSONNode
 :: JSObj :== JSVal
 
 generic gToJS a :: !a -> JSVal
-derive gToJS Int, Bool, String, Real, JSVal, Maybe, (), JSONNode
+derive gToJS Int, Bool, String, Real, JSVal, Maybe, [], JSONNode
 derive gToJS PAIR, FIELD of {gfd_name}, RECORD
 toJS x :== gToJS{|*|} x
 
@@ -33,6 +33,9 @@ jsValToInt` :: !Int !JSVal -> Int
 jsValToBool` :: !Bool !JSVal -> Bool
 jsValToString` :: !String !JSVal -> String
 jsValToReal` :: !Real !JSVal -> Real
+
+jsValToList :: !JSVal !(JSVal -> Maybe a) !*JSWorld -> *(!Maybe [a], !*JSWorld)
+jsValToList` :: !JSVal !(JSVal -> a) !*JSWorld -> *(![a], !*JSWorld)
 
 /**
  * Access properties of a JavaScript value.

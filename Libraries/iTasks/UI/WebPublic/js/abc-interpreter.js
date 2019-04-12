@@ -109,17 +109,15 @@ const ABC={
 					ABC.memory_array[hp/4+1]=0;
 					ABC.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
 					ABC.memory_array[hp/4+3]=0;
-					hp+=16;
-					hp_free-=2;
 				} else {
 					ABC.memory_array[store_ptrs/4]=hp;
 					ABC.memory_array[hp/4]=21*8+2; // REAL
 					ABC.memory_array[hp/4+1]=0;
 					const float_array=new Float64Array(ABC.memory_array.buffer, hp+8);
 					float_array[0]=values[i];
-					hp+=16;
-					hp_free-=2;
 				}
+				hp+=16;
+				hp_free-=2;
 			} else if (typeof values[i]=='boolean') {
 				ABC.memory_array[store_ptrs/4]=hp;
 				ABC.memory_array[hp/4]=11*8+2; // BOOL
@@ -159,10 +157,10 @@ const ABC={
 				ABC.memory_array[hp/4+4]=0;
 				ABC.memory_array[hp/4+5]=0;
 				hp+=24;
-				hp_free-=3;
+				hp_free-=3+values[i].length;;
 				var copied=ABC.copy_js_to_clean(values[i], hp, hp+8*values[i].length, hp_free, false);
 				hp=copied.hp;
-				hp_free=copied.hp_free-values[i].length;
+				hp_free=copied.hp_free;
 			} else if ('shared_clean_value_index' in values[i]) {
 				ABC.memory_array[store_ptrs/4]=hp;
 				ABC.memory_array[hp/4]=661*8+2; // DOMNode type
@@ -278,7 +276,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 								console.log('eval',string);
 							Function(string)();
 							break;
-						case 2:
+						case 2: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							if (ABC_DEBUG)
 								console.log('eval',string);
