@@ -236,7 +236,7 @@ addNewTask list
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) <<@ Title "Workflow Catalogue"
+	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedPersistentWorkflows (const []) <<@ Title "Workflow Catalogue"
 	@? tvHd
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
