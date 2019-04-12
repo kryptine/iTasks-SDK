@@ -63,6 +63,7 @@ instance Startable (a,b) | Startable a & Startable b
 	, appVersion    :: String
 	, serverPort    :: Int
 	, serverUrl     :: String
+	, localhostOnly :: Bool     // Only allow connections from localhost. (default to true)
 	, keepaliveTime :: Timespec
 	, sessionTime   :: Timespec
 	, persistTasks  :: Bool
