@@ -108,6 +108,9 @@ where
 			("Specify the HTTP port (default: " +++ toString defaults.serverPort +++ ")")
 		, Option [] ["timeout"] (OptArg (\mp->fmap \o->{o & timeout=fmap toInt mp}) "MILLISECONDS")
 			"Specify the timeout in ms (default: 500)\nIf not given, use an indefinite timeout."
+		, Option [] ["allowed-hosts"] (ReqArg (\p->fmap \o->{o & allowedHosts = split "," p}) "IPADRESSES")
+			("Specify a comma separated white list of hosts that are allowed to connected to this application\ndefault: "
+			 +++ join "," defaults.allowedHosts)
 		, Option [] ["keepalive"] (ReqArg (\p->fmap \o->{o & keepaliveTime={tv_sec=toInt p,tv_nsec=0}}) "SECONDS")
 			"Specify the keepalive time in seconds (default: 300)"
 		, Option [] ["maxevents"] (ReqArg (\p->fmap \o->{o & maxEvents=toInt p}) "NUM")
@@ -203,6 +206,7 @@ defaultEngineOptions world
 		, appVersion     = appVersion
 		, serverPort     = IF_POSIX_OR_WINDOWS 8080 80
 		, serverUrl      = "http://localhost/"
+		, allowedHosts   = ["127.0.0.1"]
 		, keepaliveTime  = {tv_sec=300,tv_nsec=0} // 5 minutes
 		, sessionTime    = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
 		, persistTasks   = False
