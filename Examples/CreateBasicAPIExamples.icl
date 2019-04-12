@@ -34,7 +34,8 @@ makeExs :: [FilePath] -> [String]
 makeExs i =
 	[ "module BasicAPIExamples\n"
 	, "\n"
-	, "import iTasks"
+	, "import iTasks\n"
+	, "import qualified iTasks.Extensions.Admin.UserAdmin\n"
 	, "\n"
 	, join "\n" ["import qualified " +++ toDots i\\i<-i]
 	, "\n\n"
@@ -45,8 +46,10 @@ makeExs i =
 	, "\n"
 	, "basicAPIExamples :: [Workflow]\n"
 	, "basicAPIExamples =\n"
-	, "\t[",join "\n\t," (map (\i->concat ["'", toDots i, "'.wf \"", toString (insertSpaces 0 (dropExtension i)), "\""]) i), "\n\t]\n"]
+	, "\t[",join "\n\t," (defaultWfs ++ exampleWfs), "\n\t]\n"]
 where
+	defaultWfs = ["restrictedTransientWorkflow \"Users\" \"User management\" [\"admin\"] 'iTasks.Extensions.Admin.UserAdmin'.manageUsers"]
+	exampleWfs = map (\i->concat ["'", toDots i, "'.wf \"", toString (insertSpaces 0 (dropExtension i)), "\""]) i
 	toDots = join "." o split (toString pathSeparator) o dropExtension
 	insertSpaces i s
 		| i == size s = []
