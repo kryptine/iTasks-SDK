@@ -32,77 +32,6 @@ div.itasks-exception {
   text-align: center;
 }
 
-/* Sizing children of vertical containers */
-.itasks-viewport > .itasks-flex-width,
-.itasks-panel > .itasks-inner > .itasks-flex-width,
-.itasks-window > .itasks-inner > .itasks-flex-width,
-.itasks-tabitems > .itasks-flex-width,
-.itasks-container > .itasks-flex-width {
-  align-self: stretch;
-}
-
-.itasks-viewport > .itasks-flex-height,
-.itasks-panel > .itasks-inner > .itasks-flex-height,
-.itasks-window > .itasks-inner > .itasks-flex-height,
-.itasks-tabitems > .itasks-flex-height,
-.itasks-container > .itasks-flex-height {
-  flex: 1;
-}
-
-.itasks-viewport > .itasks-wrap-height,
-.itasks-panel > .itasks-inner > .itasks-wrap-height,
-.itasks-window > .itasks-inner > .itasks-wrap-height,
-.itasks-tabitems > .itasks-wrap-height,
-.itasks-container > .itasks-wrap-height {
-  flex-shrink: 0;
-  flex-grow: 0;
-  flex-basis: auto;
-}
-.itasks-viewport > .itasks-wrap-height .itasks-inner,
-.itasks-panel > .itasks-inner > .itasks-wrap-height .itasks-inner,
-.itasks-window > .itasks-inner > .itasks-wrap-height .itasks-inner,
-.itasks-tabitems > .itasks-wrap-height .itasks-inner,
-.itasks-container > .itasks-wrap-height .itasks-inner {
-  flex-basis: auto;
-}
-
-/* Sizing children of horizontal containers */
-.itasks-container.itasks-horizontal > .itasks-flex-width,
-.itasks-panel.itasks-horizontal > .itasks-flex-width,
-.itasks-form-item > .itasks-flex-width,
-.itasks-toolbar > .itasks-flex-width,
-.itasks-buttonbar > .itasks-flex-width,
-.itasks-cons > .itasks-flex-width,
-.itasks-var-cons > .itasks-flex-width,
-.itasks-listitem > .itasks-flex-width,
-.itasks-listitem-controls > .itasks-flex-width {
-  flex: 1;
-}
-
-.itasks-container.itasks-horizontal > .itasks-flex-height,
-.itasks-panel.itasks-horizontal > .itasks-flex-height,
-.itasks-form-item > .itasks-flex-height,
-.itasks-toolbar > .itasks-flex-height,
-.itasks-buttonbar > .itasks-flex-height,
-.itasks-cons > .itasks-flex-height,
-.itasks-var-cons > .itasks-flex-height,
-.itasks-listitem > .itasks-flex-height,
-.itasks-listitem-controls > .itasks-flex-height {
-  align-self: stretch;
-}
-
-.itasks-horizontal-container > .itasks-wrap-width,
-.itasks-form-item > .itasks-wrap-width,
-.itasks-toolbar > .itasks-wrap-width,
-.itasks-buttonbar > .itasks-wrap-width,
-.itasks-cons > .itasks-wrap-width,
-.itasks-var-cons > .itasks-wrap-width,
-.itasks-listitem > .itasks-wrap-width,
-.itasks-listitem-controls > .itasks-wrap-width {
-  flex-shrink: 0;
-  flex-basis: auto;
-}
-
 /* Styles for unlayouted content */
 .itasks-raw-record,
 .itasks-raw-cons,
@@ -798,6 +727,107 @@ div.itasks-exception {
 
 .itasks-debug {
   border: 3px solid red;
+}
+
+/* Sizing the children of containers that have specific size classes assigned to them: */
+/* Sizing children of vertical containers */
+.itasks-viewport > .itasks-flex-width,
+.itasks-panel > .itasks-inner > .itasks-flex-width,
+.itasks-window > .itasks-inner > .itasks-flex-width,
+.itasks-tabitems > .itasks-flex-width,
+.itasks-container > .itasks-flex-width {
+  align-self: stretch;
+}
+.itasks-viewport > .itasks-flex-height,
+.itasks-panel > .itasks-inner > .itasks-flex-height,
+.itasks-window > .itasks-inner > .itasks-flex-height,
+.itasks-tabitems > .itasks-flex-height,
+.itasks-container > .itasks-flex-height {
+  flex: 1;
+}
+.itasks-viewport > .itasks-exact-height, .itasks-viewport > .itasks-wrap-height,
+.itasks-panel > .itasks-inner > .itasks-exact-height,
+.itasks-panel > .itasks-inner > .itasks-wrap-height,
+.itasks-window > .itasks-inner > .itasks-exact-height,
+.itasks-window > .itasks-inner > .itasks-wrap-height,
+.itasks-tabitems > .itasks-exact-height,
+.itasks-tabitems > .itasks-wrap-height,
+.itasks-container > .itasks-exact-height,
+.itasks-container > .itasks-wrap-height {
+  flex: 0 0 auto;
+}
+.itasks-viewport > .itasks-exact-height > .itasks-inner, .itasks-viewport > .itasks-wrap-height > .itasks-inner,
+.itasks-panel > .itasks-inner > .itasks-exact-height > .itasks-inner,
+.itasks-panel > .itasks-inner > .itasks-wrap-height > .itasks-inner,
+.itasks-window > .itasks-inner > .itasks-exact-height > .itasks-inner,
+.itasks-window > .itasks-inner > .itasks-wrap-height > .itasks-inner,
+.itasks-tabitems > .itasks-exact-height > .itasks-inner,
+.itasks-tabitems > .itasks-wrap-height > .itasks-inner,
+.itasks-container > .itasks-exact-height > .itasks-inner,
+.itasks-container > .itasks-wrap-height > .itasks-inner {
+  flex-basis: auto;
+}
+
+/* Sizing children of horizontal containers */
+.itasks-container.itasks-horizontal > .itasks-flex-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-width,
+.itasks-form-item > .itasks-flex-width,
+.itasks-toolbar > .itasks-flex-width,
+.itasks-buttonbar > .itasks-flex-width,
+.itasks-cons > .itasks-flex-width,
+.itasks-var-cons > .itasks-flex-width,
+.itasks-listitem > .itasks-flex-width,
+.itasks-listitem-controls > .itasks-flex-width {
+  flex: 1;
+}
+.itasks-container.itasks-horizontal > .itasks-flex-height,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-height,
+.itasks-form-item > .itasks-flex-height,
+.itasks-toolbar > .itasks-flex-height,
+.itasks-buttonbar > .itasks-flex-height,
+.itasks-cons > .itasks-flex-height,
+.itasks-var-cons > .itasks-flex-height,
+.itasks-listitem > .itasks-flex-height,
+.itasks-listitem-controls > .itasks-flex-height {
+  align-self: stretch;
+}
+.itasks-container.itasks-horizontal > .itasks-exact-width, .itasks-container.itasks-horizontal > .itasks-wrap-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width,
+.itasks-form-item > .itasks-exact-width,
+.itasks-form-item > .itasks-wrap-width,
+.itasks-toolbar > .itasks-exact-width,
+.itasks-toolbar > .itasks-wrap-width,
+.itasks-buttonbar > .itasks-exact-width,
+.itasks-buttonbar > .itasks-wrap-width,
+.itasks-cons > .itasks-exact-width,
+.itasks-cons > .itasks-wrap-width,
+.itasks-var-cons > .itasks-exact-width,
+.itasks-var-cons > .itasks-wrap-width,
+.itasks-listitem > .itasks-exact-width,
+.itasks-listitem > .itasks-wrap-width,
+.itasks-listitem-controls > .itasks-exact-width,
+.itasks-listitem-controls > .itasks-wrap-width {
+  flex: 0 0 auto;
+}
+.itasks-container.itasks-horizontal > .itasks-exact-width > .itasks-inner, .itasks-container.itasks-horizontal > .itasks-wrap-width > .itasks-inner,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width > .itasks-inner,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width > .itasks-inner,
+.itasks-form-item > .itasks-exact-width > .itasks-inner,
+.itasks-form-item > .itasks-wrap-width > .itasks-inner,
+.itasks-toolbar > .itasks-exact-width > .itasks-inner,
+.itasks-toolbar > .itasks-wrap-width > .itasks-inner,
+.itasks-buttonbar > .itasks-exact-width > .itasks-inner,
+.itasks-buttonbar > .itasks-wrap-width > .itasks-inner,
+.itasks-cons > .itasks-exact-width > .itasks-inner,
+.itasks-cons > .itasks-wrap-width > .itasks-inner,
+.itasks-var-cons > .itasks-exact-width > .itasks-inner,
+.itasks-var-cons > .itasks-wrap-width > .itasks-inner,
+.itasks-listitem > .itasks-exact-width > .itasks-inner,
+.itasks-listitem > .itasks-wrap-width > .itasks-inner,
+.itasks-listitem-controls > .itasks-exact-width > .itasks-inner,
+.itasks-listitem-controls > .itasks-wrap-width > .itasks-inner {
+  flex-basis: auto;
 }
 
 /* Container components with additional styling */

@@ -107,19 +107,25 @@ itasks.Component = {
 			height = me.attributes.height;
 
 		//Set width & height using attributes
-		if(width === 'flex') {
-			el.classList.add(me.cssPrefix + 'flex-width');
-		} else if (width === 'wrap') {
-			el.classList.add(me.cssPrefix + 'wrap-width');
-		} else {	
-			el.style.width = width + 'px';
+		if('width' in me.attributes) {
+			if(width === 'flex') {
+				el.classList.add(me.cssPrefix + 'flex-width');
+			} else if (width === 'wrap') {
+				el.classList.add(me.cssPrefix + 'wrap-width');
+			} else {
+				el.classList.add(me.cssPrefix + 'exact-width');
+				el.style.width = width + 'px';
+			}
 		}
-		if(height === 'flex') {
-			el.classList.add(me.cssPrefix + 'flex-height');
-		} else if (height === 'wrap') {
-			el.classList.add(me.cssPrefix + 'wrap-height');
-		} else {	
-			el.style.height = height + 'px';
+		if('height' in me.attributes) {
+			if(height === 'flex') {
+				el.classList.add(me.cssPrefix + 'flex-height');
+			} else if (height === 'wrap') {
+				el.classList.add(me.cssPrefix + 'wrap-height');
+			} else {
+				el.classList.add(me.cssPrefix + 'exact-height');
+				el.style.height = height + 'px';
+			}
 		}
     },
 	doEditEvent: function (taskId, editorId, value) {

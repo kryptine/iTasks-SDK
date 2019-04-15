@@ -490,6 +490,53 @@
 	border: 3px solid red;
 }
 
+/* Sizing the children of containers that have specific size classes assigned to them: */
+
+/* Sizing children of vertical containers */
+.#{$prefix}viewport,
+.#{$prefix}panel > .#{$prefix}inner,
+.#{$prefix}window > .#{$prefix}inner,
+.#{$prefix}tabitems,
+.#{$prefix}container {
+	& > .#{$prefix}flex-width {
+		align-self: stretch;
+	}
+	& > .#{$prefix}flex-height {
+		flex: 1;
+	}
+	& > .#{$prefix}exact-height,
+	& > .#{$prefix}wrap-height {
+		flex: 0 0 auto;
+		> .#{$prefix}inner {
+			flex-basis: auto;
+		}
+	}
+}	
+/* Sizing children of horizontal containers */
+.#{$prefix}container.#{$prefix}horizontal,
+.#{$prefix}panel.#{$prefix}horizontal > .#{$prefix}inner,
+.#{$prefix}form-item,
+.#{$prefix}toolbar,
+.#{$prefix}buttonbar,
+.#{$prefix}cons,
+.#{$prefix}var-cons,
+.#{$prefix}listitem,
+.#{$prefix}listitem-controls {
+	& > .#{$prefix}flex-width {
+		flex: 1;
+	}
+	& > .#{$prefix}flex-height {
+		align-self: stretch;
+	}
+	& > .#{$prefix}exact-width,
+	& > .#{$prefix}wrap-width {
+		flex: 0 0 auto;
+		> .#{$prefix}inner {
+			flex-basis: auto;
+		}
+	}
+}
+
 /* Container components with additional styling */
 .#{$prefix}container.#{$prefix}horizontal,
 .#{$prefix}panel.#{$prefix}horizontal {
