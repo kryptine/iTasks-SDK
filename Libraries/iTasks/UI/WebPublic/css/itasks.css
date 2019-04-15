@@ -877,7 +877,7 @@ div.itasks-exception {
   overflow: hidden;
   align-self: center;
   flex: 0;
-  flex-basis: content;
+  flex-basis: auto;
 }
 
 .itasks-panel.itasks-framed {

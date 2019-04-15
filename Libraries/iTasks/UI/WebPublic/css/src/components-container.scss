@@ -581,7 +581,7 @@
 	
 	align-self: center;
 	flex: 0; 
-	flex-basis: content;
+	flex-basis: auto;
 }
 
 .#{$prefix}panel.#{$prefix}framed {
