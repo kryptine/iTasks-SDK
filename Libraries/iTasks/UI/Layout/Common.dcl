@@ -108,6 +108,9 @@ instance tune ScrollContent Task
 :: AddCSSClass = AddCSSClass !String
 instance tune AddCSSClass Task
 
+:: CSSStyle = CSSStyle !String
+instance tune CSSStyle Task
+
 //Changing container types
 
 toContainer ::                                   LayoutRule

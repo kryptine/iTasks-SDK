@@ -312,6 +312,10 @@ instance tune AddCSSClass Task
 where
 	tune (AddCSSClass s) t = tune (ApplyLayout (addCSSClass s)) t
 
+instance tune CSSStyle Task
+where
+	tune (CSSStyle s) t = tune (ApplyAttribute "style" s) t
+
 instance tune ToWindow Task
 where
 	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
