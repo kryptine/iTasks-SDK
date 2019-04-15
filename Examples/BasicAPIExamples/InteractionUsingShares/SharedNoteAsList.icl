@@ -19,11 +19,9 @@ where
 		= 		updateSharedInformation ("Text","Edit text")  [noteEditor] state
 				-||-
 				updateSharedInformation ("Lines","Edit lines") [listEditor] state
-						<<@ ApplyLayout horizontal
+						<<@ ArrangeHorizontal
 		>>=		viewInformation "Result:" []
 		>>=		return
 
 	noteEditor = UpdateUsing id (const id) textArea
 	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
-
-	horizontal = setUIAttributes (directionAttr Horizontal)

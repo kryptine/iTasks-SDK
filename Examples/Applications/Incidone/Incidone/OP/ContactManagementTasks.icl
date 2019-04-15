@@ -183,7 +183,7 @@ manageContactCommunication contactNo
     = ((manageContactCommunicationMeans True contactNo) // <<@ AfterLayout (tweakUI fill)) //FIXME
        -&&-
        (viewContactCommunications contactNo) //<<@ AfterLayout (tweakUI fill)) //FIXME
-      ) <<@ ArrangeWithSideBar 0 LeftSide 200 True <<@ Title "Communication" <<@ Icon "communication"
+      ) <<@ ArrangeWithSideBar 0 LeftSide True <<@ Title "Communication" <<@ Icon "communication"
     @! ()
 where
     viewContactCommunications contactNo
@@ -259,7 +259,7 @@ where
                 Just taskId    = workOnActionItem taskId @! taskId
                 Nothing        = viewInformation () [] () @? const NoValue
                 )
-          ) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Actions")
+          ) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Actions")
 
 manageContactIncidents :: Workspace ContactNo -> Task ()
 manageContactIncidents ws contactNo
@@ -268,7 +268,7 @@ manageContactIncidents ws contactNo
         withSelection viewNoSelection viewIncidentDetails sel
         -&&-
         doAddRemoveOpen (add <<@ InWindow) (\c -> (remove c) <<@ InWindow) (\c -> doOrClose (open c)) ws sel
-    )	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
+    )	<<@ (ArrangeWithSideBar 1 RightSide True) <<@ (Icon "incidents") <<@ (Title "Incidents")
     @! ()
 where
     incidents   =   sdsFocus contactNo incidentsByContactDetails

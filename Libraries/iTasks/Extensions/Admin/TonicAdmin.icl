@@ -63,7 +63,7 @@ tonicStaticBrowser rs
                >&> withSelection noModuleSelection (
       \mn       -> getModule mn
   >>- \tm       -> tonicBrowseWithModule allbps rs navstack tm
-         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+         )) <<@ ArrangeWithSideBar 0 LeftSide True
          )) ) @! ()
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseFromDropdown id]
@@ -84,7 +84,7 @@ tonicBrowseWithModule allbps rs navstack tm
                                                    , bpr_taskName   = tt.tf_name
                                                    } tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
                (getTonicFunc tm tn)
-     )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+     )) <<@ ArrangeWithSideBar 0 LeftSide True
         @! ()
   where
   selectTask tm   = enterChoice "Select task" [ChooseFromDropdown id] (getTasks tm)
@@ -290,7 +290,7 @@ where
                                (Title "Active blueprint instances")
                                [ChooseFromGrid customView]
                                (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |*| queryShare))
-                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
+                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide True
   where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing

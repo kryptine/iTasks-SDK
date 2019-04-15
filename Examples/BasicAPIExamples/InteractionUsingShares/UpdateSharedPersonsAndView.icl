@@ -26,8 +26,6 @@ enterSharedPersons
 	\sharedList ->  updateSharedInformation "Modify the Shared List of Persons:" [] sharedList			// update that list
 					-||
 					viewSharedInformation "Current Content of this Shared List:" [] sharedList 	 		// while showing that list
-						<<@ ApplyLayout horizontal														// show both list next to each other (default is below)
+						<<@ ArrangeHorizontal															// show both list next to each other (default is below)
 	>>=				viewInformation "The List contains the following:" [] 								// show the final result
 	>>=				return																				// done
-where
-	horizontal = setUIAttributes (directionAttr Horizontal)
