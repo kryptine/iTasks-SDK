@@ -10,7 +10,7 @@ from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map, newMap
 
-from iTasks.UI.Editor.Modifiers import comapEditorValue, instance tune UIAttributes Editor
+from iTasks.UI.Editor.Modifiers import comapEditorValue, instance tune UIAttributes (Editor a)
 from iTasks.UI.Editor.Controls import htmlView
 from iTasks.UI.Definition import :: UIAttributes
 from Text.HTML import :: HtmlTag(ImgTag), :: HtmlAttr(SrcAttr,StyleAttr,AltAttr)

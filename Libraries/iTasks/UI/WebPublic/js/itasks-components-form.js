@@ -141,9 +141,9 @@ itasks.NumberField = {
 		width: 150
 	},
     initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'text';
+		var me = this,
+		    el = this.domEl;
+		el.type = 'number';
 		el.value = (me.attributes.value === undefined || me.attributes.value === null) ? '' : me.attributes.value;
 
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {

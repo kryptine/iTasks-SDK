@@ -21,7 +21,7 @@ from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes, :: Password, :: Username, workAs, :: Credentials{..}, users
 from iTasks.UI.Definition import :: Title(..), :: Hint(..)
-from iTasks.UI.Tune import @>>, <<@, class tune, instance tune Hint Task, instance tune Title Task
+from iTasks.UI.Tune import @>>, <<@, class tune, instance tune Hint (Task a), instance tune Title (Task a)
 from iTasks.SDS.Definition import class RWShared(..)
 from iTasks.WF.Tasks.Core import accWorld
 import iTasks.Internal.Distributed.Symbols

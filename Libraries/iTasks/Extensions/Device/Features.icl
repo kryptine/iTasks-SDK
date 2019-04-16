@@ -13,7 +13,7 @@ from iTasks.WF.Tasks.Interaction import :: UpdateOption, updateInformation
 from iTasks.WF.Combinators.Common import >>-
 from iTasks.WF.Combinators.Overloaded import instance Functor Task, instance TMonad Task, class TMonad(..), class TApplicative, instance TApplicative Task
 from iTasks.UI.Definition import :: Hint(..)
-from iTasks.UI.Tune import class tune(..), @>>, instance tune Hint Task
+from iTasks.UI.Tune import class tune(..), @>>, instance tune Hint (Task a)
 from Data.Functor import class Functor 
 
 import StdString
