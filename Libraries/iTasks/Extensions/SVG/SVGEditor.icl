@@ -24,8 +24,9 @@ import StdDebug
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
 class short a :: !a -> String
 instance short FontDef where short fontdef = "{FontDef | " <+++ getfontfamily fontdef <+++ "," <+++ getfontysize fontdef <+++ "}"
-str :: !String -> String
-str s = "\"" +++ s +++ "\""
+instance short String  where short str     = "\"" +++ str +++ "\""
+instance short Real    where short r       = toString r
+instance short (a,b) | short a & short b where short (a,b) = "(" <+++ short a <+++ "," <+++ short b <+++ ")"
 
 derive JSEncode ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
 derive JSDecode ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
@@ -237,7 +238,12 @@ where
       #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
       #! mask                 = {ServerSVGState | mask & fonts=font_spans, texts=text_spans}
       #! (set_attrs,mask,vst) = serverHandleModel svglet mask True vst
-      = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('Data.Map'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'Data.Map'.keys) ('Data.Map'.elems new_texts_metrics))) +++ "]")
+      = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ 
+                 join "," (map short ('Data.Map'.keys new_font_metrics)) +++ 
+                 "] ["                                                   +++ 
+                 join "," (map short ('Data.Map'.toAscList ('Data.Map'.unions (map snd ('Data.Map'.toAscList new_texts_metrics))))) +++ 
+                 "]"
+                )
         (Ok (attributesToUIChange set_attrs,mask),vst)
     serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old,fonts,texts} vst
 	  #! (attrs,mask,vst) = serverHandleModel svglet mask False vst
