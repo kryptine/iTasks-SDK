@@ -34,7 +34,7 @@ digits n = [toInt c - toInt '0' \\ c <-: toString n]
 digit :: Int -> Image Int
 digit n = overlay [(AtMiddleX,AtMiddleY)] []
              [ text font (toString n) <@< {fill = white}]
-             (Host (rect (textxspan font ("  " <+ n)) (px (h+m))))
+             (Host (rect (textxspan font (toString n) + px m) (px (h+m))))
 where
 	font = times h
 	h    = 100.0
