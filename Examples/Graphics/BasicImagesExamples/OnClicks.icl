@@ -6,7 +6,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.SDS
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdFunctions, StdInt, StdList, StdReal, StdTuple
+import StdFunctions, StdArray, StdInt, StdList, StdReal, StdTuple
 from   iTasks import instance Identifiable SDSLens, instance Modifiable SDSLens, instance Registrable SDSLens, instance Readable SDSLens, instance Writeable SDSLens
 
 //	shorthand definitions for the used fonts in these examples
@@ -75,11 +75,8 @@ on_click label sds
 count :: Who Toggles *TagSource -> Image Toggles
 count label toggles _
 	= margin (px 20.0) (
-		beside (repeat AtMiddleY) [] Nothing [] 
-		  [ overlay [(AtMiddleX,AtMiddleY)] [] 
-		       [ text big_font (toString n) <@< {fill = white} ]
-		       (Host (rect (textxspan big_font ("  " <+++ n)) (px (h + m))))
-		       <@< {onclick = toggleIncr, local = toggleOf label toggles}
+		beside (repeat AtMiddleY) [] Nothing [] (
+		  [ beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onclick = toggleIncr, local = toggleOf label toggles}
 		  , margin (px 10.0) (
 		       circle (h /. 5) 
 		           <@< {onclick     = const (toggle label), local = False}
@@ -88,7 +85,7 @@ count label toggles _
 		           <@< {fill        = yellow}
 		    )
 		  , margin (px 10.0) (text small_font (if (toggleOf label toggles) "local edits ON" "local edits OFF"))
-		  ] NoHost
+		  ]) NoHost
 	  )
 where
 	big_font   = times h
@@ -96,6 +93,14 @@ where
 	h          = 100.0
 	m          = 6.0
 	n          = toggles.Toggles.value_in_sds
+	
+	digits :: Int -> [Int]
+	digits n = [toInt c - toInt '0' \\ c <-: toString n]
+	
+	digit :: Int -> Image m
+	digit n = overlay [(AtMiddleX,AtMiddleY)] []
+	             [ text big_font (toString n) <@< {fill = white}]
+	             (Host (rect (textxspan big_font (toString n) + px m) (px (h+m))))
 
 /** edit_value sds = task:
 	@task allows the user to view and alter the Int value of the Toggles SDS.
