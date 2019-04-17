@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Editor
 
-import StdBool, StdMisc, StdList, StdTuple
+import StdArray, StdBool, StdMisc, StdList, StdTuple
 import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
 import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JS.Encoding
@@ -160,7 +160,7 @@ withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr 
                                         ,("saplDeps",JSONString saplDeps)
                                         ,("saplInit",JSONString saplInit)
                                         ]
-            = trace_n ("withClientSideInit editorLinker succeeded")
+            = trace_n ("withClientSideInit editorLinker succeeded [size saplDeps = " +++ toString (size saplDeps) +++ "; size saplInit = " +++ toString (size saplInit))
               (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
         (Error e,iworld)
             = trace_n ("withClientSideInit editorLinker failed with Error " +++ toString e)
