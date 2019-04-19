@@ -108,7 +108,7 @@ startMode executable
 	>>- \role = case role of
 			DomainServer domain -> startAuthEngine domain
 				>>| installWorkflows (myTasks True)
-				>>| loginAndManageWork "Service engineer application" Nothing
+				>>| loginAndManageWork "Service engineer application" Nothing Nothing False
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
 			_ -> viewInformation "Welcome" [] "Chose what this iTasks instance is."
 		             >>* [ OnAction (Action "Domain server") (always (domainServer))
@@ -127,7 +127,7 @@ where
 		>>= \domain -> set (DomainServer domain) serverRoleShare
 		>>| startAuthEngine domain
 		>>| installWorkflows (myTasks True)
-		>>| loginAndManageWork "Service engineer application" Nothing
+		>>| loginAndManageWork "Service engineer application" Nothing Nothing False
 
 loginRemote :: ![Workflow] -> Task ()
 loginRemote workflows

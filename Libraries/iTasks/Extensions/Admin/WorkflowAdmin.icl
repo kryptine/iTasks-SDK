@@ -96,10 +96,10 @@ allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <-
 
 instance Startable WorkflowCollection
 where
-	toStartable {WorkflowCollection|name,welcomeMessage,workflows} =
+	toStartable {WorkflowCollection|name,loginMessage,welcomeMessage,allowGuests,workflows} =
 		[onStartup (installWorkflows workflows)
 		,onStartup installDemoUsers
-		,onRequest "/" (loginAndManageWork name welcomeMessage)
+		,onRequest "/" (loginAndManageWork name loginMessage welcomeMessage allowGuests)
 		]
 
 installWorkflows :: ![Workflow] -> Task ()
@@ -115,41 +115,43 @@ installDemoUsers
 	=   try (get users) (\(StoreReadBuildVersionError _) -> return [])
 	>>- \us -> if (length us <= 1) (importDemoUsersFlow @! ()) (return ()) //No users, or just a single root user
 
-loginAndManageWork :: !String !(Maybe HtmlTag) -> Task ()
-loginAndManageWork name welcomeMessage
+loginAndManageWork :: !String !(Maybe HtmlTag) !(Maybe HtmlTag) !Bool -> Task ()
+loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
 	= forever
-		(((	viewTitle name welcomeMessage
+		(((	identifyApplication applicationName loginMessage
 			||-
 			(anyTask [
 	 				enterInformation ("Authenticated access","Enter your credentials and login") [] @ Just
 				>>* [OnAction (Action "Login")  (hasValue return)]
-				,
-					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
-					>>| (return Nothing)
+				:if allowGuests
+					[viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
+					 >>| (return Nothing)
+					]
+					[]
 				] <<@ ArrangeHorizontal)
 	 	   )  <<@ ApplyLayout layout
 		>>- browse) //Compact layout before login, full screen afterwards
-		) <<@ Title name
+		) <<@ Title applicationName
 where
 	browse (Just {Credentials|username,password})
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user manageWorkOfCurrentUser
+			Just user 	= workAs user (manageWorkOfCurrentUser welcomeMessage)
 			Nothing		= (viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
 	browse Nothing
-		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) manageWorkOfCurrentUser
+		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorkOfCurrentUser welcomeMessage)
 
-	viewTitle name welcomeMessage = viewInformation () [] html
+	identifyApplication name welcomeMessage = viewInformation () [] html
 	where
-		html = DivTag [] [H1Tag [] [Text name]:maybe [] (\msg -> [msg]) welcomeMessage]
-
-
+		html = DivTag [ClassAttr cssClass] [H1Tag [] [Text name]:maybe [] (\msg -> [msg]) welcomeMessage]
+		cssClass = "welcome-" +++ (toLowerCase $ replaceSubString " " "-" name)
+	
 	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
 
-manageWorkOfCurrentUser :: Task ()
-manageWorkOfCurrentUser
+manageWorkOfCurrentUser :: !(Maybe HtmlTag) -> Task ()
+manageWorkOfCurrentUser welcomeMessage
 	= 	((manageSession -||
-		  (chooseWhatToDo >&> withSelection
+		  (chooseWhatToDo welcomeMessage >&> withSelection
 			(viewInformation () [] "Welcome!")
 			(\wf -> unwrapWorkflowTask wf.Workflow.task)
 		  )
@@ -181,13 +183,13 @@ manageSession =
 where
 	view user	= "Welcome " +++ toString user
 
-chooseWhatToDo = updateChoiceWithShared (Title "Menu") [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
+chooseWhatToDo welcomeMessage = updateChoiceWithShared (Title "Menu") [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
 where
 	addManageWork wfs = [manageWorkWf:wfs]
-	manageWorkWf = transientWorkflow "My work" "Manage your worklist"  manageWork
+	manageWorkWf = transientWorkflow "My Tasks" "Manage your worklist"  (manageWork welcomeMessage)
 
-manageWork :: Task ()
-manageWork = parallel [(Embedded, manageList),(Embedded, const viewInstructions)] [] <<@ ApplyLayout layoutManageWork @! ()
+manageWork :: (Maybe HtmlTag) -> Task ()
+manageWork welcomeMessage = parallel [(Embedded, manageList):maybe [] (\html -> [(Embedded, const (viewWelcomeMessage html))]) welcomeMessage] [] <<@ ApplyLayout layoutManageWork @! ()
 where
 	manageList taskList
 		= get currentUser @ userRoles
@@ -216,27 +218,19 @@ where
 			layoutSubUIs (SelectByDepth 1) (setUIAttributes $ 'DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
 		]
 
-viewInstructions :: Task ()
-viewInstructions = viewInformation (Title "Welcome") [] instructions @! ()
-where
-	instructions = DivTag [] [H1Tag [] [Text "Welcome"],PTag [] (flatten (map (\t -> [Text t,BrTag []]) text))]
-	text = ["In this framework you can work on multiple tasks in a multi-user setting."
-		   ,"In the list above you can see the set of tasks that you can choose to work on."
-		   ,"You can add tasks to this list with the 'New' button. This will open a window with a collection of predefined tasks."
-		   ,"These tasks range from simple TODO items, to complex multi-user workflows."
-		   ]
-
+viewWelcomeMessage :: HtmlTag -> Task ()
+viewWelcomeMessage html = viewInformation (Title "Welcome") [] html @! ()
 	
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list
 	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ArrangeHorizontal
 	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
 		,OnAction ActionCancel (always (return ()))
-		] ) <<@ Title "New work"
+		] ) <<@ Title "New task..."
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedPersistentWorkflows (const []) <<@ Title "Workflow Catalogue"
+	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedPersistentWorkflows (const []) 
 	@? tvHd
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list

@@ -21,7 +21,7 @@ multiUserExample
 					-||-
 					viewInformation "and then Select \"new\" to create a new Task..." [] ""
 	>>|				installWorkflows [wf "Meeting date"]
-	>>|				loginAndManageWork "Meeting_4_3 Example" Nothing
+	>>|				loginAndManageWork "Meeting_4_3 Example" Nothing Nothing False
 where
 	mkUserAccount name
 		= {UserAccount| credentials = {Credentials| username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
