@@ -18,7 +18,7 @@ from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 import Text.HTML
 
 derive class iTask UI, UIType
-derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
+derive class iTask UISize, UIBound, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode 
 
 //SHOULD BE IN Text.GenJSON
@@ -63,74 +63,14 @@ widthAttr width = 'DM'.fromList [("width",encodeUI width)]
 heightAttr :: !UISize -> UIAttributes
 heightAttr height = 'DM'.fromList [("height",encodeUI height)]
 
-minSizeAttr :: !UIBound !UIBound -> UIAttributes
-minSizeAttr minWidth minHeight = 'DM'.fromList [("minWidth",encodeUI minWidth),("minHeight",encodeUI minHeight)]
-
-minWidthAttr :: !UIBound -> UIAttributes
-minWidthAttr minWidth = 'DM'.fromList [("minWidth",encodeUI minWidth)]
-
-minHeightAttr :: !UIBound -> UIAttributes
-minHeightAttr minHeight = 'DM'.fromList [("minHeight",encodeUI minHeight)]
-
-maxSizeAttr :: !UIBound !UIBound -> UIAttributes
-maxSizeAttr maxWidth maxHeight = 'DM'.fromList [("maxWidth",encodeUI maxWidth),("maxHeight",encodeUI maxHeight)]
-
-maxWidthAttr :: !UIBound -> UIAttributes
-maxWidthAttr maxWidth = 'DM'.fromList [("maxWidth",encodeUI maxWidth)]
-
-maxHeightAttr :: !UIBound -> UIAttributes
-maxHeightAttr maxHeight = 'DM'.fromList [("maxHeight",encodeUI maxHeight)]
-
-marginsAttr :: !Int !Int !Int !Int -> UIAttributes
-marginsAttr top right bottom left = 'DM'.fromList [("marginTop",JSONInt top),("marginRight",JSONInt right),("marginBottom",JSONInt bottom),("marginLeft",JSONInt left)]
-
-topMarginAttr :: !Int -> UIAttributes
-topMarginAttr top = 'DM'.fromList [("marginTop",JSONInt top)]
-
-rightMarginAttr :: !Int -> UIAttributes
-rightMarginAttr right = 'DM'.fromList [("marginRight",JSONInt right)]
-
-bottomMarginAttr :: !Int -> UIAttributes
-bottomMarginAttr bottom = 'DM'.fromList [("marginBottom",JSONInt bottom)]
-
-leftMarginAttr :: !Int -> UIAttributes
-leftMarginAttr left = 'DM'.fromList [("marginLeft",JSONInt left)]
-
-paddingAttr :: !Int !Int !Int !Int -> UIAttributes
-paddingAttr top right bottom left = 'DM'.fromList [("paddingTop",JSONInt top),("paddingRight",JSONInt right),("paddingBottom",JSONInt bottom),("paddingLeft",JSONInt left)]
-
-topPaddingAttr :: !Int -> UIAttributes
-topPaddingAttr top = 'DM'.fromList [("paddingTop",JSONInt top)]
-
-rightPaddingAttr :: !Int -> UIAttributes
-rightPaddingAttr right = 'DM'.fromList [("paddingRight",JSONInt right)]
-
-bottomPaddingAttr :: !Int -> UIAttributes
-bottomPaddingAttr bottom = 'DM'.fromList [("paddingBottom",JSONInt bottom)]
-
-leftPaddingAttr :: !Int -> UIAttributes
-leftPaddingAttr left = 'DM'.fromList [("paddingLeft",JSONInt left)]
-
 titleAttr :: !String -> UIAttributes
 titleAttr title = 'DM'.fromList [("title",JSONString title)]
-
-frameAttr :: !Bool -> UIAttributes
-frameAttr frame = 'DM'.fromList [("frame",JSONBool frame)]
 
 iconClsAttr :: !String -> UIAttributes
 iconClsAttr iconCls = 'DM'.fromList [("iconCls",JSONString iconCls)]
 
 tooltipAttr :: !String -> UIAttributes
 tooltipAttr tooltip = 'DM'.fromList [("tooltip",JSONString tooltip)]
-
-directionAttr :: !UIDirection -> UIAttributes
-directionAttr direction = 'DM'.fromList [("direction",encodeUI direction)]
-
-halignAttr :: !UIHAlign -> UIAttributes
-halignAttr align = 'DM'.fromList [("halign",encodeUI align)]
-
-valignAttr :: !UIVAlign -> UIAttributes
-valignAttr align = 'DM'.fromList [("valign",encodeUI align)]
 
 hposAttr :: !UIHAlign -> UIAttributes
 hposAttr pos = 'DM'.fromList [("hpos",encodeUI pos)]
@@ -195,8 +135,8 @@ labelAttr taskId = 'DM'.fromList [(LABEL_ATTRIBUTE,JSONString taskId)]
 styleAttr :: !String -> UIAttributes
 styleAttr style = 'DM'.fromList [("style",JSONString style)]
 
-classAttr :: !String -> UIAttributes
-classAttr cls = 'DM'.fromList [("class",JSONString cls)]
+classAttr :: ![String] -> UIAttributes
+classAttr cls = 'DM'.fromList [("class",JSONArray (map JSONString cls))]
 
 resizableAttr :: ![UISide] -> UIAttributes
 resizableAttr sides = 'DM'.fromList [("resizable",JSONArray (map encodeUI sides))]
@@ -314,11 +254,6 @@ where
 	toString UIDebug           = "Debug"
 
 	toString UIData            = "Data"
-
-instance encodeUI UISideSizes 
-where
-	encodeUI {top,right,bottom,left}
-		= JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)
 
 instance encodeUI UISize
 where

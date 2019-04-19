@@ -438,7 +438,7 @@ communicationItemTask (contactNo,mbP2000Template) status
         )
         //Manage list of communication attempts and initiate communications
         -&&- attemptCommunication contactNo
-        ) <<@ ArrangeWithSideBar 0 LeftSide 200 True) <<@ ArrangeWithSideBar 0 TopSide 50 True
+        ) <<@ ArrangeWithSideBar 0 LeftSide True) <<@ ArrangeWithHeader 0
     @! ()
 where
     attemptCommunication contactNo
@@ -730,7 +730,7 @@ addSubAction initContacts initIncidents list
 
 addPredefinedAction initContacts initIncidents list
     =   (enterChoiceWithShared (Title "Choose action") [/*ChooseFromTree groupCatalog*/] actionCatalog
-    >&> \mbSel -> configureAction mbSel) <<@ (ArrangeWithSideBar 0 LeftSide 300 True)
+    >&> \mbSel -> configureAction mbSel) <<@ (ArrangeWithSideBar 0 LeftSide True)
 where
     configureAction selSds = whileUnchanged selSds configTask
     where

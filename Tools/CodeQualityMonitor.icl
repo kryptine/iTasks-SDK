@@ -56,12 +56,12 @@ inspectCodeQuality
 		)
 where
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer) @! ()
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithHeader 0 <<@ ApplyLayout (setUIType UIContainer) @! ()
 
 runInteractiveTests :: Task ()
 runInteractiveTests
 	= (     editSelectionWithShared (Title "Select test") False (SelectInTree fileCollectionToTree selectTest) tests (const []) @? tvHd
-		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 where
 	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl") False)
 
@@ -96,7 +96,7 @@ runUnitTests = withShared 'DM'.newMap
 		   >&> withSelection (viewInformation "Select a test" [] ())
                              (viewTest results)
           )
-		@! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+		@! ()) <<@ ArrangeWithSideBar 0 LeftSide True
 where
 	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
 
@@ -109,7 +109,7 @@ where
 							>>- \res -> (upd ('DM'.put name res)) results
 						)
 					)]
-		) @! ()) <<@ ArrangeWithSideBar 1 RightSide 400 True
+		) @! ()) <<@ ArrangeWithSideBar 1 RightSide True
 
 	toTestReport results
 		= DivTag [] [setHtml res \\ res <- results | not (isEmpty results)]
@@ -139,7 +139,7 @@ checkExampleApplications = withShared 'DM'.newMap
 							>>- \res -> (upd ('DM'.put path res)) results
 						)
 					)]
-			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide True
 		)		
 where
 	examplesWithResults results = mapRead (\(res,examples) -> [(e,'DM'.get e res) \\e <- examples ]) (results |*| examples)
@@ -157,7 +157,7 @@ exploreCode
 		   >&> withSelection (viewInformation "Select a module" [] ())
                              viewModule 
           )
-		@! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+		@! ()) <<@ ArrangeWithSideBar 0 LeftSide True
 where
 	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
 

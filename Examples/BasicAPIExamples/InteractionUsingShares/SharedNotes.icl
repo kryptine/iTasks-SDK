@@ -20,10 +20,8 @@ sharedNotes
 					(	updateSharedInformation "Update shared note 1" [UpdateUsing id (const id) textArea] note	// an editor to update the shared string
 					 	-||-
 					 	updateSharedInformation "Update shared note 2"  [UpdateUsing id (const id) textArea] note	// and an other updating editor
-					 		<<@ ApplyLayout horizontal
+					 		<<@ ArrangeHorizontal 
 					 )
 		)
 	>>= viewInformation "Resulting string is:" [ViewUsing id textArea]
 	>>= return
-where
-	horizontal = setUIAttributes (directionAttr Horizontal)

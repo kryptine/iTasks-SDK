@@ -36,15 +36,15 @@ whileAuthenticated :: User [Entity]
                       (User -> [(String, User [Entity] -> Task ())])
                    -> Task ()
 whileAuthenticated user ents alwaysOnTasks tlist
-  =  controlDash -|| workOnTasks <<@ ApplyLayout (arrangeWithSideBar 0 TopSide 30 False)
+  =  controlDash -|| workOnTasks <<@ ApplyLayout (arrangeWithHeader 0)
   where
   controlDash :: Task ()
   controlDash
     = (allTasks [ viewInformation () [] ("Welcome " +++ toString user) @! ()
                 , viewNotifications
-                ] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+                ] <<@ ArrangeHorizontal
       >>* [OnAction (Action "Log out") (always (return ()))]
-      ) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+      ) <<@ ArrangeHorizontal
 
   workOnTasks :: Task ()
   workOnTasks = parallel [ (Embedded, \_ -> listview)
@@ -61,7 +61,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
 
 	layout = sequenceLayouts
 		[removeSubUIs (SelectByPath [1]) //Don't show the openAssignedTasks UI
- 		,arrangeWithSideBar 0 RightSide 300 True
+ 		,arrangeWithSideBar 0 RightSide True
 		,layoutSubUIs (SelectByPath [0]) (arrangeWithTabs True)
 	    ]
 

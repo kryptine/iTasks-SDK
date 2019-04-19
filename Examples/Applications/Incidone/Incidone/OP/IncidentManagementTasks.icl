@@ -62,7 +62,7 @@ manageIncidentContacts ws incidentNo
     @! ()
 where
 	contacts        = sdsFocus incidentNo contactsByIncident
-	manageContacts  = ((withShared Nothing (\sel -> (chooseFromList sel -||- chooseFromMap sel) <<@ (ArrangeWithSideBar 0 LeftSide 250 True))))
+	manageContacts  = ((withShared Nothing (\sel -> (chooseFromList sel -||- chooseFromMap sel) <<@ (ArrangeWithSideBar 0 LeftSide True))))
                     >^* [(OnAction (Action "/Add contact") (always (add <<@ InWindow @! ())))
                         ,(OnAction (Action "/Remove contact") (ifValue (\c -> c=:(Left _)) (\(Left c) -> (remove c <<@ InWindow @! ()))))
                         ,(OnAction (Action "/Update position") (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactPosition c <<@ InWindow @! ())))
@@ -108,13 +108,13 @@ where
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation () [] ()
             )
-        )) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Incident Actions") //FIXME
+        )) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Incident Actions") //FIXME
 
 manageIncidentWeather :: IncidentNo -> Task ()
 manageIncidentWeather incidentNo
     =   (get webLinksConfig
     >>- \webConfig -> case webConfig.weatherWidgets of
-        Just widgets = (viewWebWeather widgets ||- viewOrEdit (Title "Weather on scene") weather log) <<@ (ArrangeWithSideBar 0 RightSide 300 True)
+        Just widgets = (viewWebWeather widgets ||- viewOrEdit (Title "Weather on scene") weather log) <<@ (ArrangeWithSideBar 0 RightSide True)
         Nothing      = viewOrEdit (Title "Weather on scene") weather log
 
     ) <<@ Title "Weather" <<@ Icon "weather"
@@ -126,7 +126,7 @@ where
 manageIncidentLog :: IncidentNo -> Task ()
 manageIncidentLog incidentNo
     =     addMessages incidentNo
-    ||-   viewIncidentLog incidentNo <<@ ArrangeWithSideBar 0 TopSide 100 False <<@ Title "Log" <<@ Icon "Log"
+    ||-   viewIncidentLog incidentNo <<@ ArrangeWithHeader 0 <<@ Title "Log" <<@ Icon "Log"
     @! ()
 where
     viewIncidentLog :: IncidentNo -> Task [LogEntry]

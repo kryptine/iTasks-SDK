@@ -1,11 +1,5 @@
 itasks.Container = {
-	cssCls: 'container',
-	initDOMEl: function() {
-		var me = this;
-		if(me.baseCls) {
-			me.domEl.classList.add(me.baseCls);
-		}
-	}
+	cssCls: 'container'
 };
 
 itasks.Panel = {
@@ -13,11 +7,6 @@ itasks.Panel = {
 	initDOMEl: function() {
 		var me = this,
 			isTab = (me.parentCmp && me.parentCmp.type == 'TabSet');
-
-		//Add top sizer
-		if(me.attributes.resizable && me.attributes.resizable.includes('top')) { 
-			me.domEl.append(me.createSizer());
-		}
 
 		//Create header
 		if(me.attributes.title && !isTab) {
@@ -32,17 +21,12 @@ itasks.Panel = {
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
 
-		//Add bottom sizer
-		if(me.attributes.resizable && me.attributes.resizable.includes('bottom')) { 
-			me.domEl.append(me.createSizer());
-		}
-
-		if(me.frame) {
-			me.domEl.classList.add(me.cssPrefix + 'framed');
-		}
-		if(me.baseCls) {
-			me.domEl.classList.add(me.attributes.baseCls);
-		}
+		//Add sizers
+		if(me.attributes.resizable) {
+			for(var i = 0; i < me.attributes.resizable.length; i++) {
+				me.domEl.append(me.createSizer(me.attributes.resizable[i]));
+			}
+		}	
 
 		//Fullscreenable
 		if(me.attributes.fullscreenable){
@@ -86,22 +70,30 @@ itasks.Panel = {
 			me.domEl.appendChild(fullscreener);
 		}
 	},
-	createSizer: function() {
+	createSizer: function(side) {
 	
 		var me = this,
 		    el = document.createElement('div');
 
-		el.classList.add(me.cssPrefix + 'vsizer');
+		el.classList.add(me.cssPrefix + 'sizer-' + side);
 		el.addEventListener('mousedown', function init (e){
 			
-			var startPos = e.clientY;
-			var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
-			
+			if(side == 'top' || side == 'bottom') {
+				var startPos = e.clientY;
+				var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
+			} else {
+				var startPos = e.clientX;
+				var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('width').slice(0,-2));
+			}
+			//Disable flexing
+			me.domEl.style.flex = '0 0 auto';
+
 			var resize = function resize(ev) {
-				if (me.attributes.resizable.includes('bottom')) {
-					me.domEl.style['height'] = (startSize + (ev.clientY - startPos)) + 'px';
-				} else {
-					me.domEl.style['height'] = (startSize + (startPos - ev.clientY)) + 'px';
+				switch(side) {	
+					case 'bottom': me.domEl.style['height'] = (startSize + (ev.clientY - startPos)) + 'px'; break;
+					case 'top': me.domEl.style['height'] = (startSize + (startPos - ev.clientY)) + 'px'; break;
+					case 'right': me.domEl.style['width'] = (startSize + (ev.clientX - startPos)) + 'px'; break;
+					case 'left': me.domEl.style['width'] = (startSize + (startPos - ev.clientX)) + 'px'; break;
 				}
 			};
 
@@ -299,8 +291,8 @@ itasks.TabSet = {
 }
 
 itasks.Window = {
+	cssCls: 'window',
 	attributes: {
-    	marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
 		movable: true,
 		resizable: true,
 		windowType: 'floating',
@@ -398,25 +390,11 @@ itasks.Window = {
     }
 };
 itasks.ToolBar  = {
-	cssCls: 'toolbar',
-	attributes: {
-		height: 'wrap',
-		width: 'flex',
-		direction: 'horizontal',
-		halign: 'left',
-		padding: '2 2 2 2'
-	},
+	cssCls: 'toolbar'
 };
 
 itasks.ButtonBar  = {
-	cssCls: 'buttonbar',
-	attributes: {
-		height: 'wrap',
-		width: 'flex',
-		direction: 'horizontal',
-		halign: 'right',
-		padding: '2 2 2 0'
-	}
+	cssCls: 'buttonbar'
 };
 itasks.List = {
 	cssCls: 'list'
@@ -430,10 +408,6 @@ itasks.Debug = {
 
 itasks.Menu = {
 	cssCls: 'menu',
-	attributes: {
-		height: 'wrap',
-		width: 'wrap'
-	},
     initDOMEl: function() {
 		var me = this;	
 
