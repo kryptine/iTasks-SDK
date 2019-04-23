@@ -8,9 +8,6 @@ import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
-derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge
-derive JSDecode TraxSt, User, Trax, TraxTile, TileEdge
-
 :: RenderMode = ViewMode | PlayMode
 
 updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
