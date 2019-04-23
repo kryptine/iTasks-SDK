@@ -356,8 +356,15 @@ where
 
 cast_value_from_js :: !a -> JSVal
 cast_value_from_js x = case cast_value_from_js` x of
-	JSArray arr -> JSArray {cast_value_from_js x \\ x <-: arr} // TODO exploit uniqueness
+	JSArray arr -> JSArray (overwrite_values (size arr-1) (cast arr))
 	v           -> v
+where
+	overwrite_values :: !Int !*{!JSVal} -> .{!JSVal}
+	overwrite_values -1 arr = arr
+	overwrite_values i arr
+	# (v,arr) = arr![i]
+	# arr & [i] = cast_value_from_js v
+	= overwrite_values (i-1) arr
 
 cast_value_from_js` :: !a -> JSVal
 cast_value_from_js` _ = code {
