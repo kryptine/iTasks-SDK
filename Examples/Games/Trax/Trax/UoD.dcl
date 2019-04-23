@@ -40,9 +40,9 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 
 :: TileEdge                             // an edge is either at:
 	= North	                            //    the north side of a tile, or at
-	| East                              //    the east side of a tile, or at
+	| East                              //    the east  side of a tile, or at
 	| South                             //    the south side of a tile, or at
-	| West                              //    the west side of a tile
+	| West                              //    the west  side of a tile
 derive   gFDomain TileEdge
 derive   gLexOrd  TileEdge
 instance ==       TileEdge
@@ -88,7 +88,6 @@ derive   gDefault   Trax
 derive   gEq        Trax
 instance ==         Trax
 instance zero       Trax
-
 
 class tiles a :: !a -> [(Coordinate,TraxTile)]
 
@@ -182,7 +181,6 @@ winning_lines :: !Trax -> [(LineColor,Line)]
 */
 mandatory_moves :: !Trax !Coordinate -> Trax
 
-
 :: TraxSt
  = { trax   :: !Trax              // the current set of placed tiles
    , names  :: ![User]            // the current two players
@@ -190,7 +188,26 @@ mandatory_moves :: !Trax !Coordinate -> Trax
    , choice :: !Maybe Coordinate
    }
 
-game_over :: TraxSt -> Bool
-start_with_this :: TraxTile TraxSt -> TraxSt
-setcell :: Coordinate TraxSt -> TraxSt
-settile :: Coordinate TraxTile TraxSt -> TraxSt
+/** game_over @st:
+		returns True only if the given configuration in @st.trax contains one or more
+		lines that connect opposite board edges, or one or more closed loops.
+*/
+game_over :: !TraxSt -> Bool
+
+/** start_with_this @tile @st = @st`:
+		@st` has @tile added to @st.trax, assuming that @st.trax is empty; 
+		@st` toggles @st.turn, allowed the other player to put a tile.
+*/
+start_with_this :: !TraxTile !TraxSt -> TraxSt
+
+/** setcell @choice @st:
+		sets @st.choice to (Just @choice).
+*/
+setcell :: !Coordinate !TraxSt -> TraxSt
+
+/** settile @c @t @st = @st`:
+		@st` has tile @t added to @st.trax on coordinate @c.
+		In addition, all the mandatory moves have been played as well.
+		The turn is given to the other player.
+*/
+settile :: !Coordinate !TraxTile !TraxSt -> TraxSt

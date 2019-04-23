@@ -2,7 +2,7 @@ implementation module Trax.UI
 
 import StdBool, StdList
 from   StdFunc import const, flip, id
-import Data.List
+from   Data.List import lookup
 import iTasks.WF.Tasks.Interaction
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD

@@ -21,6 +21,7 @@ module Trax
 import Trax.UoD
 import Trax.Tasks
 import MultiUser.Tasks
+import iTasks.Engine
 
 Start :: *World -> *World
 Start world
