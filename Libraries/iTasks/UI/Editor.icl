@@ -152,8 +152,8 @@ withClientSideInit ::
 	!((JSObj ()) *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
-withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
+withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case trace_n ("withClientSideInit genUI of task " +++ taskId +++ " started") (genUI attr dp val vst) of
+    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case trace_n ("withClientSideInit editorLinker of task " +++ taskId +++ " started") (editorLinker initUI iworld) of
         (Ok (saplDeps, saplInit),iworld)
 			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
                                         ,("editorId",JSONString (editorId dp))

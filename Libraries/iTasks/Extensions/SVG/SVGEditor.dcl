@@ -11,4 +11,4 @@ import iTasks.UI.JS.Encoding
 	, updModel    :: m v -> m                    // When the view is updated (using the interactive image), update the model
 	}
 
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | iTask, JSEncode{|*|}, JSDecode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|}, JSEncode{|*|}, JSDecode{|*|} s
