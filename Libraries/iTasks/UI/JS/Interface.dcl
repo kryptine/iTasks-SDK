@@ -12,7 +12,8 @@ from Text.GenJSON import :: JSONNode
 :: JSObj :== JSVal
 
 generic gToJS a :: !a -> JSVal
-derive gToJS Int, Bool, String, Real, JSVal, Maybe, [], JSONNode
+derive gToJS Int, Bool, String, Real
+derive gToJS JSVal, Maybe, [], (,), (,,), (,,,), (,,,,), JSONNode
 derive gToJS PAIR, FIELD of {gfd_name}, RECORD
 toJS x :== gToJS{|*|} x
 

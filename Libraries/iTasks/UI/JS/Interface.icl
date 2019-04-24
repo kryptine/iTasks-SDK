@@ -167,6 +167,10 @@ gToJS{|Maybe|} fx v = case v of
 	Nothing -> JSNull
 	Just x  -> fx x
 gToJS{|[]|} fx xs = JSArray {fx x \\ x <- xs}
+gToJS{|(,)|} fa fb (a,b) = JSArray {fa a,fb b}
+gToJS{|(,,)|} fa fb fc (a,b,c) = JSArray {fa a,fb b,fc c}
+gToJS{|(,,,)|} fa fb fc fd (a,b,c,d) = JSArray {fa a,fb b,fc c,fd d}
+gToJS{|(,,,,)|} fa fb fc fd fe (a,b,c,d,e) = JSArray {fa a,fb b,fc c,fd d,fe e}
 gToJS{|JSONNode|} n = case n of
 	JSONNull -> JSNull
 	JSONBool b -> JSBool b
