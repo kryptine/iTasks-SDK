@@ -38,8 +38,8 @@ answerPhoneCall communicationNo
     >>| connectInboundPhoneCall communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
-          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
-                                                            <<@ ArrangeWithSideBar 0 TopSide 60 False
+          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
+                                                            <<@ ArrangeWithHeader 0
                                                             <<@ Title ("Answer phone call")
                                                             /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
@@ -51,8 +51,8 @@ initiatePhoneCall communicationNo
     >>| connectOutboundPhoneCall communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
-          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
-                                                            <<@ ArrangeWithSideBar 0 TopSide 60 False
+          manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
+                                                            <<@ ArrangeWithHeader 0
                                                             <<@ Title ("Make phone call")
                                                             /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
@@ -64,8 +64,8 @@ answerRadioCall communicationNo
     >>| updateRadioCallMeta communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
-          manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
-                                                            <<@ ArrangeWithSideBar 0 TopSide 60 False
+          manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
+                                                            <<@ ArrangeWithHeader 0
                                                             <<@ Title ("Answer radio call")
                                                             /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
@@ -77,8 +77,8 @@ initiateRadioCall communicationNo
     >>| updateRadioCallMeta communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
-          manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
-                                                            <<@ ArrangeWithSideBar 0 TopSide 60 False
+          manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
+                                                            <<@ ArrangeWithHeader 0
                                                             <<@ Title "Initiate radio call"
                                                             /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
@@ -91,7 +91,7 @@ composeEmailMessage communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitEmailMessage
           -&&-
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
-                                                    <<@ ArrangeWithSideBar 0 TopSide 60 False
+                                                    <<@ ArrangeWithHeader 0
                                                     <<@ Title "Compose E-mail"
                                                     /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600) ) */ //FIXME
     @! communicationNo
@@ -106,7 +106,7 @@ composeP2000Message communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitP2000Message
           -&&-
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
-                                                    <<@ ArrangeWithSideBar 0 TopSide 60 False
+                                                    <<@ ArrangeWithHeader 0
                                                     <<@ Title "Compose P2000 message"
                                                     /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @! communicationNo

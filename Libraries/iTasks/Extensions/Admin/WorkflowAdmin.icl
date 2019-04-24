@@ -118,7 +118,7 @@ loginAndManageWork welcome
 				,
 					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
 					>>| (return Nothing)
-				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
+				] <<@ ArrangeHorizontal)
 	 	   )  <<@ ApplyLayout layout
 		>>- browse) //Compact layout before login, full screen afterwards
 		) <<@ ApplyLayout (setUIAttributes (titleAttr welcome))
@@ -145,7 +145,7 @@ manageWorkOfCurrentUser
 where
 	layout = sequenceLayouts
 		[unwrapUI //Get rid of the step
-		,arrangeWithSideBar 0 TopSide 50 False
+		,arrangeWithHeader 0
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
 		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
 		//Use maximal screen space
@@ -156,9 +156,9 @@ where
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
-		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
+		,addCSSClass "manage-work-header"
 		]
-	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide 150 True, layoutSubUIs (SelectByPath [1]) unwrapUI]
+	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide True, layoutSubUIs (SelectByPath [1]) unwrapUI]
 
 manageSession :: Task ()
 manageSession =
@@ -176,7 +176,6 @@ where
 manageWork :: Task ()
 manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
-
 	manageList taskList
 		= get currentUser @ userRoles
 		>>- \roles ->
@@ -188,7 +187,7 @@ where
 	worklist roles = if (isMember "admin" roles) allWork  myWork
 	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
 	where
-		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
+		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList <<@ InWindow <<@ AddCSSClass "new-work-window")) taskList @! () ))
 		open = OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
 		delete = OnAction (Action "Delete") (ifValue (\x -> snd x || isMember "admin" roles) (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
 
@@ -197,16 +196,16 @@ where
 
 	layoutManageWork = sequenceLayouts
 		//Split the screen space
-		[ arrangeWithSideBar 0 TopSide 200 True
+		[ arrangeWithSideBar 0 TopSide True
 		  //Layout all dynamically added tasks as tabs
-		, layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
+		, layoutSubUIs (SelectByPath [1]) (arrangeWithTabs True)
 		, layoutSubUIs (SelectByPath [1]) $
 			layoutSubUIs (SelectByDepth 1) (setUIAttributes $ 'DM'.put "fullscreenable" (JSONBool True) 'DM'.newMap)
 		]
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list
-	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ArrangeHorizontal
 	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
 		,OnAction ActionCancel (always (return ()))
 		] ) <<@ Title "New work"
@@ -328,9 +327,10 @@ where
 
 removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a
 removeWhenStable task slist
-    =   task
+    =   (task
     >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]
-    @?  const NoValue
+    @?  const NoValue)
+	<<@ ApplyLayout unwrapUI
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional
