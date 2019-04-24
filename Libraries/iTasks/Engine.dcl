@@ -63,6 +63,7 @@ instance Startable (a,b) | Startable a & Startable b
 	, appVersion    :: String
 	, serverPort    :: Int
 	, serverUrl     :: String
+	, allowedHosts  :: [String] // Only allow connections from these hosts (default ["127.0.0.1"])
 	, keepaliveTime :: Timespec
 	, sessionTime   :: Timespec
 	, persistTasks  :: Bool

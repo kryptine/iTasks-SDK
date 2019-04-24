@@ -133,8 +133,12 @@ httpServer :: !Int !Timespec ![WebService r w] (sds () r w) -> ConnectionTask | 
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect, onDestroy=onDestroy} sds
 where
-    onConnect connId host r iworld=:{IWorld|world,clock}
-        = (Ok (NTIdle host clock),Nothing,[],False,{IWorld|iworld & world = world})
+    onConnect connId host r iworld=:{IWorld|world,clock,options={allowedHosts}}
+		| allowedHosts =: [] || isMember host allowedHosts
+			= (Ok (NTIdle host clock),Nothing,[],False,{IWorld|iworld & world = world})
+		| otherwise
+			//Close the connection immediately if the remote host is not in the whitelist
+			= (Ok (NTIdle host clock),Nothing,[],True,{IWorld|iworld & world = world})
 
     onData data connState=:(NTProcessingRequest request localState) r env
         //Select handler based on request path

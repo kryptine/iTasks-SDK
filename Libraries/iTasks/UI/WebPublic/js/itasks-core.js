@@ -17,12 +17,7 @@ itasks.Component = {
 	cssPrefix: 'itasks-',
 	cssCls: 'component',
 
-	attributes: {
-		width: 'flex',
-		height: 'flex',
-		direction: 'vertical'
-	},
-
+	attributes: {},
 	parentCmp: null,
 	children: [],
 
@@ -72,16 +67,19 @@ itasks.Component = {
 			me.domEl.style = me.attributes['style'];
 		}
 		if(me.attributes['class']) {
-			me.domEl.classList.add(me.attributes['class']);
+			if(Array.isArray(me.attributes['class'])) {
+				var len = me.attributes['class'].length;
+				for(var i = 0; i < len; i++) {
+					me.domEl.classList.add(me.attributes['class'][i]);
+				}
+			} else {
+				me.domEl.classList.add(me.attributes['class']);
+			}
 		}
 		//Custom initialization after the dom element has been rendered
 		me.initDOMEl();
-		//Size the element
+		//Size the element if explicit sizes are given
 		me.initDOMElSize();
-		//Set margins and alignment
-		me.initDOMElMargins();
-		me.initContainerEl();
-
 		//Add the the child renderings 
 		me.children.forEach(function(child) {
 			if(child.domEl) {
@@ -95,136 +93,30 @@ itasks.Component = {
 		var me = this,
 			el = me.domEl,
 			width = me.attributes.width,
-			height = me.attributes.height,
-			direction = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical';
+			height = me.attributes.height;
 
-		//Set width
-		if(width === 'flex') {
-			if(direction == 'horizontal') {
-				el.style.flex = 1;
-				el.style.webkitFlex = 1;
+		//Set width & height using attributes
+		if('width' in me.attributes) {
+			if(width === 'flex') {
+				el.classList.add(me.cssPrefix + 'flex-width');
+			} else if (width === 'wrap') {
+				el.classList.add(me.cssPrefix + 'wrap-width');
 			} else {
-				el.style.alignSelf = 'stretch';
-				el.style.webkitAlignSelf = 'stretch';
+				el.classList.add(me.cssPrefix + 'exact-width');
+				el.style.width = width + 'px';
 			}
-		} else if (width === 'wrap') {
-			if(direction == 'horizontal') {
-				el.classList.add(me.cssPrefix + 'wrapping-horizontal');
-            }
-        } else {
-			el.style.width = width + 'px';
-			el.style.minWidth = width + 'px';
-			me.containerEl.style.overflowX = 'auto';
-        }
-		//Set height
-		if(height === 'flex') {
-			if(direction == 'vertical') {
-				el.style.flex = 1;
-				el.style.webkitFlex = 1;
+		}
+		if('height' in me.attributes) {
+			if(height === 'flex') {
+				el.classList.add(me.cssPrefix + 'flex-height');
+			} else if (height === 'wrap') {
+				el.classList.add(me.cssPrefix + 'wrap-height');
 			} else {
-				el.style.alignSelf = 'stretch';
-				el.style.webkitAlignSelf = 'stretch';
+				el.classList.add(me.cssPrefix + 'exact-height');
+				el.style.height = height + 'px';
 			}
-		} else if (height === 'wrap') {
-			if(direction == 'vertical') {
-				el.classList.add(me.cssPrefix + 'wrapping-vertical');
-			}
-		} else {
-			el.style.height = height + 'px';
-			el.style.minHeight = height + 'px';
-			me.containerEl.style.overflowY = 'auto';
 		}
     },
-	initDOMElMargins: function() {
-		var me = this,
-			el = me.domEl,
-            width = me.attributes.width,
-            height = me.attributes.height;
-
-		if(!me.parentCmp) { //Do not set margins on the root component, let the embedding page handle that
-			return;
-		}
-		var parentDirection = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical',
-            parentVAlign = (me.parentCmp && me.parentCmp.attributes.valign) || 'top',
-            parentHAlign = (me.parentCmp && me.parentCmp.attributes.halign) || 'left',
-			curIdx = me.parentCmp.findChild(me),
-			lastIdx = me.parentCmp.children.length - 1,
-			isFirst = (curIdx == 0),
-			isLast = (curIdx == lastIdx);
-
-        //Set left and right margins as specified
-		if('marginLeft' in me.attributes) { el.style.marginLeft = me.attributes.marginLeft + 'px'; }
-		if('marginRight' in me.attributes) { el.style.marginRight = me.attributes.marginRight + 'px' ; }
-	
-		//Because vertical borders 'collapse' into each other, we never set the
-		//bottom-margin, but set top-margin's that also include the bottom margin of
-		//the previous element
-		if(parentDirection == 'vertical' && !isFirst) {
-			//The first element never sets a top-margin. Its top-margin is added to the parent's padding
-			//and its bottom margin is added to the next elements top-margin 
-			el.style.marginTop = ((me.attributes.marginTop || 0) + (me.parentCmp.children[curIdx - 1].attributes.marginBottom || 0)) + 'px';
-		}
-
-		//Set margins to auto based on alignment of parent
-        if(parentDirection == 'vertical') {
-			if(width !== 'flex') {
-				switch(parentHAlign) {
-					case 'left': el.style.marginRight = 'auto'; break;
-					case 'center': el.style.marginRight = 'auto'; el.style.marginLeft = 'auto'; break;
-					case 'right': el.style.marginLeft = 'auto'; break;
-				}
-			}
-            //If this element is the first, maybe also adjust top margin;
-            if(curIdx === 0 && (parentVAlign == 'middle' || parentVAlign == 'bottom')) {
-				el.style.marginTop = 'auto';
-			}
-			//If this element is the last, maybe also adjust bottom margin;
-			if(curIdx === lastIdx && (parentVAlign == 'middle' || 'top')) {
-				el.style.marginBottom = 'auto';
-			}
-		} else {
-			if(height !== 'flex') {
-				switch(parentVAlign) {
-					case 'top': el.style.marginBottom = 'auto'; break;
-					case 'middle': el.style.marginBottom = 'auto'; el.style.marginTop = 'auto'; break;
-					case 'bottom': el.style.marginTop = 'auto'; break;
-				}
-			}
-			//If this element is the first, maybe also adjust left margin;
-			if(curIdx === 0 && (parentHAlign == 'center' || parentHAlign == 'right')) {
-                el.style.marginLeft = 'auto';
-            }
-            //If this element is the last, maybe also adjust right margin;
-            if(curIdx === lastIdx && (parentHAlign == 'center' || parentHAlign == 'left')) {
-                el.style.marginRight = 'auto';
-			}
-		}
-	},
-	initContainerEl: function() {
-		var me = this,
-            el = me.containerEl,
-            horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
-			paddingTop, paddingBottom;
-	
-		if(me.container === false) {
-			return;
-		}
-
-        el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
-
-		//Set padding
-		if(me.attributes.paddingRight) { el.style.paddingRight = me.attributes.paddingRight + 'px' ; }
-		if(me.attributes.paddingLeft) { el.style.paddingLeft = me.attributes.paddingLeft + 'px' ; }
-
-		paddingTop = me.attributes.paddingTop || 0;			
-		paddingBottom = me.attributes.paddingBottom || 0;
-		if(me.children.length > 0) {
-			paddingTop += (me.children[0].attributes.marginBottom || 0);
-			paddingBottom += (me.children[me.children.length - 1].attributes.marginTop || 0);
-		}
-		el.style.paddingTop = paddingTop + 'px';
-		el.style.paddingBottom = paddingBottom + 'px';
-	},
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this;
 		if(me.parentCmp) {
@@ -448,6 +340,9 @@ itasks.Loader = {
 			l = document.createElement('div');
 			l.classList.add(me.cssPrefix + 'loader-spinner');
 		me.domEl.appendChild(l);
+		//Temporary
+		me.domEl.classList.add(me.cssPrefix + 'flex-width');
+		me.domEl.classList.add(me.cssPrefix + 'flex-height');
 		if(me.attributes.taskId){
 			me.doEditEvent(me.attributes.taskId, me.attributes.editorId, true);
 		}
@@ -457,6 +352,11 @@ itasks.ExceptionView = {
 	cssCls: 'exception',
 	container: false,
 	initDOMEl: function() {
+
+		//Temporary
+		this.domEl.classList.add(this.cssPrefix + 'flex-width');
+		this.domEl.classList.add(this.cssPrefix + 'flex-height');
+
 		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
 	}
 };

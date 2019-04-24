@@ -108,7 +108,7 @@ where
             catchAll (
                 viewSharedInformation (Title ("Schema of"+++ table)) [] (sdsFocus (db,table) sqlTableDefinition) @! ()
             ) (\e -> viewInformation () [] e @! ())
-        ) <<@ (ArrangeWithSideBar 0 LeftSide 300 True)
+        ) <<@ (ArrangeWithSideBar 0 LeftSide True)
     where
         //group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
 
@@ -143,7 +143,7 @@ where
     manageExistingUsers
         =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity
         >&> withSelection viewNoSelection manageContactAccess
-        )<<@ ArrangeWithSideBar 0 LeftSide 200 True
+        )<<@ ArrangeWithSideBar 0 LeftSide True
 
 	viewNoSelection = viewInformation "Select a user" [] ()
     addUser
