@@ -2,11 +2,9 @@ module Transformations
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdList
-import StdFunctions
+import StdFunctions, StdList
 
 //	shorthand definitions for the used fonts in these examples
 lucida			= normalFontDef "Lucida Console"
@@ -31,11 +29,11 @@ transformed_images model tags
 	       [above (repeat AtMiddleX) [] Nothing [] [transform img, txt (line +++ " img")] NoHost \\ (transform,line) <- transformations] NoHost
 	  )
 where
-//	img             = text (times 64.0) "F"
-	img				= polyline [(px  0.0,px 0.0),(px  7.5,px 12.5),(px 15.0,px  0.0),(px 22.5,px 12.5)
+	img             = text (times 64.0) "F"
+/*	img				= polyline [(px  0.0,px 0.0),(px  7.5,px 12.5),(px 15.0,px  0.0),(px 22.5,px 12.5)
 	                           ,(px 30.0,px 0.0),(px 25.0,px 70.0),(px  5.0,px 70.0),(px  0.0,px  0.0)
 	                           ]
-	txt s			= text (lucida 10.0) s
+*/	txt s			= text (lucida 10.0) s
 	transformations	= [(id,                        "id")
 	                  ,(fit (px 60.0) (px 70.0),   "fit (px 60.0) (px 70.0)")
 	                  ,(fitx   (px  60.0),         "fitx (px 60.0)")

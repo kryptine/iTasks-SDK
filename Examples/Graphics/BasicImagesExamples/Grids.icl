@@ -2,12 +2,10 @@ module Grids
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdArray, StdEnum, StdList, StdTuple
-from   StdFunc import id, o, const, seqList, :: St(..)
+import StdFunctions, StdList
 import Text
 
 //	shorthand definitions for the used fonts in these examples

@@ -6,9 +6,8 @@ import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.SDS
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdInt, StdReal, StdTuple
-from   StdList import repeat
-from   StdFunc import id
+import StdFunctions, StdArray, StdInt, StdList, StdReal, StdTuple
+from   iTasks import instance Identifiable SDSLens, instance Modifiable SDSLens, instance Registrable SDSLens, instance Readable SDSLens, instance Writeable SDSLens
 
 //	shorthand definitions for the used fonts in these examples
 times			= normalFontDef "Times New Roman"
@@ -26,6 +25,7 @@ Start world
 :: Toggles = {value_in_sds :: Int, update_a_locally :: Bool, update_b_locally :: Bool}
 derive class iTask Toggles
 derive JSEncode Toggles
+derive JSDecode Toggles
 
 :: Who = A | B
 derive class iTask Who
@@ -59,13 +59,12 @@ on_clicks
 	by clicking on the rendering. If the corresponding Bool value of @who is True, then these edits are local,
 	and if it is False, then these edits are shared.
 */
-on_click :: Who (Shared Toggles) -> Task Toggles
+on_click :: Who (sds () Toggles Toggles) -> Task Toggles | RWShared sds
 on_click label sds
 	= updateSharedInformation ("On Click " <+++ label)
 	                          [UpdateUsing id (\_ v = v) (fromSVGEditor
                                                           { initView    = id
                                                           , renderImage = const (count label)
-                                                          , updView     = \m _ = m
                                                           , updModel    = \_ v = v
                                                           })] sds
 
@@ -76,11 +75,8 @@ on_click label sds
 count :: Who Toggles *TagSource -> Image Toggles
 count label toggles _
 	= margin (px 20.0) (
-		beside (repeat AtMiddleY) [] Nothing [] 
-		  [ overlay [(AtMiddleX,AtMiddleY)] [] 
-		       [ text big_font (toString n) <@< {fill = white} ]
-		       (Host (rect (textxspan big_font ("  " <+++ n)) (px (h + m))))
-		       <@< {onclick = toggleIncr, local = toggleOf label toggles}
+		beside (repeat AtMiddleY) [] Nothing [] (
+		  [ beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onclick = toggleIncr, local = toggleOf label toggles}
 		  , margin (px 10.0) (
 		       circle (h /. 5) 
 		           <@< {onclick     = const (toggle label), local = False}
@@ -89,7 +85,7 @@ count label toggles _
 		           <@< {fill        = yellow}
 		    )
 		  , margin (px 10.0) (text small_font (if (toggleOf label toggles) "local edits ON" "local edits OFF"))
-		  ] NoHost
+		  ]) NoHost
 	  )
 where
 	big_font   = times h
@@ -97,10 +93,18 @@ where
 	h          = 100.0
 	m          = 6.0
 	n          = toggles.Toggles.value_in_sds
+	
+	digits :: Int -> [Int]
+	digits n = [toInt c - toInt '0' \\ c <-: toString n]
+	
+	digit :: Int -> Image m
+	digit n = overlay [(AtMiddleX,AtMiddleY)] []
+	             [ text big_font (toString n) <@< {fill = white}]
+	             (Host (rect (textxspan big_font (toString n) + px m) (px (h+m))))
 
 /** edit_value sds = task:
 	@task allows the user to view and alter the Int value of the Toggles SDS.
 */
-edit_value :: (Shared Toggles) -> Task Toggles
+edit_value :: (sds () Toggles Toggles) -> Task Toggles | RWShared sds
 edit_value sds
 	= updateSharedInformation "Current value in SDS" [UpdateAs (\t = t.Toggles.value_in_sds) (\t v = {Toggles | t & value_in_sds=v})] sds

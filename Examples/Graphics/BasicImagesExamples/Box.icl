@@ -2,12 +2,9 @@ module Box
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdReal
-from   StdFunctions import id, const
+import StdFunctions
 
 //	shorthand definitions for the used colours in these examples
 none			= toSVGColor "none"

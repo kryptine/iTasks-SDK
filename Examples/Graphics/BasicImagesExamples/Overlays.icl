@@ -2,12 +2,10 @@ module Overlays
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
 import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
-import StdList
-from   StdFunc import id
+import StdFunc, StdList
 import Text
 
 //	shorthand definitions for the used fonts in these examples

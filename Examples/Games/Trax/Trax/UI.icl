@@ -2,13 +2,10 @@ implementation module Trax.UI
 
 import StdBool, StdList
 from   StdFunc import const, flip, id
-import Data.List
+from   Data.List import lookup
 import iTasks.WF.Tasks.Interaction
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
-
-derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge
-derive JSDecode TraxSt, User, Trax, TraxTile, TileEdge
 
 :: RenderMode = ViewMode | PlayMode
 
@@ -42,7 +39,7 @@ where
 
 board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
-| nr_of_tiles trax == zero
+| no_of_tiles trax == zero
 	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] [] []
 								   [  tileImage d tile <@< {onclick = const (start_with_this tile), local = False}
 								   \\ tile <- gFDomain{|*|}
@@ -54,7 +51,7 @@ board it_is_my_turn d st=:{trax}
 							              Just tile = tileImage d tile
 							       \\ row <- [miny - 1 .. maxy + 1]
 							        , col <- [minx - 1 .. maxx + 1]
-							        , let coord = /*fromTuple*/ (col,row)
+							        , let coord = fromTuple (col,row)
 							       ] NoHost
 where
 	((minx,maxx),(miny,maxy))	= bounds trax

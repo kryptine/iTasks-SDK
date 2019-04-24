@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Editor
 
-import StdBool, StdMisc, StdList, StdTuple
+import StdArray, StdBool, StdMisc, StdList, StdTuple
 import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
 import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JS.Encoding
@@ -152,15 +152,15 @@ withClientSideInit ::
 	!((JSObj ()) *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
-withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
+withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case trace_n ("withClientSideInit genUI of task " +++ taskId +++ " started") (genUI attr dp val vst) of
+    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case trace_n ("withClientSideInit editorLinker of task " +++ taskId +++ " started") (editorLinker initUI iworld) of
         (Ok (saplDeps, saplInit),iworld)
 			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
                                         ,("editorId",JSONString (editorId dp))
                                         ,("saplDeps",JSONString saplDeps)
                                         ,("saplInit",JSONString saplInit)
                                         ]
-            = trace_n ("withClientSideInit editorLinker succeeded")
+            = trace_n ("withClientSideInit editorLinker succeeded [size saplDeps = " +++ toString (size saplDeps) +++ "; size saplInit = " +++ toString (size saplInit))
               (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
         (Error e,iworld)
             = trace_n ("withClientSideInit editorLinker failed with Error " +++ toString e)
