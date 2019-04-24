@@ -13,6 +13,8 @@ body {
 .summary-bar {
     color: #fff;
 	background: #004584 url('summary-bar.png') top left no-repeat;
+	padding: 2px 2px 2px 250px;
+	flex-direction: row;
 }
 .icon-incidents {
 	background-image: url('icons/incident.png');

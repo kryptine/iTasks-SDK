@@ -10,7 +10,7 @@ playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
 	(allTasks [managePerspective m, manageMapObjects m])
 	-&&-
 	manipulateMap m
-	) <<@ ArrangeWithSideBar 0 LeftSide 600 True @! ()
+	) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 
 manipulateMap :: (Shared sds LeafletMap) -> Task () | RWShared sds
 manipulateMap m = updateSharedInformation () [] m

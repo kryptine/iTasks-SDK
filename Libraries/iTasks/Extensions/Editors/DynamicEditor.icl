@@ -28,7 +28,7 @@ import Data.Functor
 tunedDynamicConsEditor :: !DynamicConsOption !DynamicCons -> DynamicCons
 tunedDynamicConsEditor HideIfOnlyChoice cons = {cons & showIfOnlyChoice = False}
 tunedDynamicConsEditor UseAsDefault     cons = {cons & useAsDefault = True}
-tunedDynamicConsEditor LayoutVertical   cons = {cons & uiAttributes = 'Map'.union (directionAttr Vertical) cons.uiAttributes}
+tunedDynamicConsEditor LayoutVertical   cons = {cons & uiAttributes = 'Map'.union (classAttr ["itasks-vertical"]) cons.uiAttributes}
 
 functionCons :: !String !String !a -> DynamicCons | TC a
 functionCons consId label func = functionConsDyn consId label (dynamic func)

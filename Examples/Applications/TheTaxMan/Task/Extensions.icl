@@ -13,7 +13,7 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
 where
   crud
     =  ( enterChoiceWithShared descr [ChooseFromGrid id:choiceOpts] (mapRead toList sh)
- 	>&^ viewSharedInformation (Title "Selected") []) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide 350 True)
+ 	>&^ viewSharedInformation (Title "Selected") []) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide True)
     >>* [ OnAction (Action "New")    (always   newItem)
         , OnAction (Action "Edit")   (hasValue editItem)
         , OnAction (Action "Delete") (hasValue deleteItem)
