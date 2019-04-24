@@ -9,13 +9,16 @@ from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenLexOrd, Control.GenMap, Text.GenPrint
+import iTasks.UI.JS.Encoding
 import Text
 
 lookup1 x = fromJust o (lookup x)
 
-derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
+derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 derive gMap Maybe
 
+derive   JSEncode   TraxTile
+derive   JSDecode   TraxTile
 derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
@@ -64,54 +67,58 @@ instance ~ TraxTile where ~ tile = lookup1 tile [(horizontal,vertical  )
 	                                        ,(southeast, northwest )
 	                                        ]
 
-derive gFDomain TileEdge
-derive gLexOrd  TileEdge
-instance ==     TileEdge where == e1 e2 = e1 === e2
-instance <      TileEdge where <  e1 e2 = (e1 =?= e2) === LT
-instance ~      TileEdge where ~  e     = case e of
-                                         North = South
-                                         South = North
-                                         West  = East
-                                         East  = West
+derive   JSEncode  TileEdge
+derive   JSDecode  TileEdge
+derive   gFDomain  TileEdge
+derive   gLexOrd   TileEdge
+instance ==        TileEdge where == e1 e2 = e1 === e2
+instance <         TileEdge where <  e1 e2 = (e1 =?= e2) === LT
+instance ~         TileEdge where ~  e     = case e of
+                                              North = South
+                                              South = North
+                                              West  = East
+                                              East  = West
 
-derive gFDomain LineColor
-instance ==     LineColor where == c1 c2 = c1 === c2
-instance ~      LineColor where ~ RedLine    = WhiteLine
-                                ~ WhiteLine  = RedLine
+derive   gFDomain  LineColor
+instance ==        LineColor where == c1 c2 = c1 === c2
+instance ~         LineColor where ~ RedLine    = WhiteLine
+                                   ~ WhiteLine  = RedLine
 
-//derive   gLexOrd   Coordinate
+derive   JSEncode  Coordinate
+derive   JSDecode  Coordinate
+derive   gLexOrd   Coordinate
 instance ==        Coordinate where == c1 c2 = c1 === c2
 instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero      Coordinate where zero     = (zero,zero)//{col=zero, row=zero}
-//derive   gPrint    Coordinate
+instance zero      Coordinate where zero     = {col=zero, row=zero}//(zero,zero)
+derive   gPrint    Coordinate
 
 instance toString  Coordinate where toString c = printToString c
-//instance fromTuple Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
-//instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
+instance fromTuple Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
+instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
 
 col :: !Coordinate -> Int
-//col coordinate = coordinate.col
-col (col,_) = col
+col coordinate = coordinate.col
+//col (col,_) = col
 
 row :: !Coordinate -> Int
-//row coordinate = coordinate.row
-row (_,row) = row
+row coordinate = coordinate.row
+//row (_,row) = row
 
 north :: !Coordinate -> Coordinate
-//north coordinate = {coordinate & row = coordinate.row-1}
-north (col,row) = (col, row-1)
+north coordinate = {coordinate & row = coordinate.row-1}
+//north (col,row) = (col, row-1)
 
 south :: !Coordinate -> Coordinate
-//south coordinate = {coordinate & row = coordinate.row+1}
-south (col,row) = (col, row+1)
+south coordinate = {coordinate & row = coordinate.row+1}
+//south (col,row) = (col, row+1)
 
 west :: !Coordinate -> Coordinate
-//west coordinate = {coordinate & col = coordinate.col-1}
-west (col,row) = (col-1, row)
+west coordinate = {coordinate & col = coordinate.col-1}
+//west (col,row) = (col-1, row)
 
 east :: !Coordinate -> Coordinate
-//east coordinate = {coordinate & col = coordinate.col+1}
-east (col,row) = (col+1, row)
+east coordinate = {coordinate & col = coordinate.col+1}
+//east (col,row) = (col+1, row)
 
 go :: !TileEdge -> Coordinate -> Coordinate
 go North = north
@@ -120,6 +127,11 @@ go South = south
 go West  = west
 
 
+:: Trax								    // actually, Trax ought to be opaque
+ = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
+   }
+derive   JSEncode   Trax
+derive   JSDecode   Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
@@ -140,13 +152,13 @@ instance tiles TraxSt where tiles {trax} = tiles trax
 
 minimum_winning_line_length :== 8	// the minimum length of a winning line
 
-nr_of_tiles :: !Trax -> Int
-nr_of_tiles trax
+no_of_tiles :: !Trax -> Int
+no_of_tiles trax
 	= length trax.tiles
 
 bounds :: !Trax -> (!(!Int,!Int), !(!Int,!Int))
 bounds trax
-| nr_of_tiles trax > 0 = ((minList cols,maxList cols), (minList rows,maxList rows))
+| no_of_tiles trax > 0 = ((minList cols,maxList cols), (minList rows,maxList rows))
 | otherwise            = abort "Trax.UoD.bounds: partial function is applied to empty set of tiles.\n"
 where
 	coords             = map fst trax.tiles
@@ -155,14 +167,14 @@ where
 
 dimension :: !Trax -> (!Int,!Int)
 dimension trax
-| nr_of_tiles trax > 0        = (maxx - minx + 1, maxy - miny + 1)
+| no_of_tiles trax > 0        = (maxx - minx + 1, maxy - miny + 1)
 | otherwise                   = abort "Trax.UoD.dimension: partial function is applied to empty set of tiles.\n"
 where
 	((minx,maxx),(miny,maxy)) = bounds trax
 
 add_tile :: !Coordinate !TraxTile !Trax -> Trax
 add_tile coordinate tile trax
-| nr_of_tiles trax == 0 ||
+| no_of_tiles trax == 0 ||
   isMember coordinate (free_coordinates trax) && linecolors_match (linecolors trax coordinate) (tilecolors tile)
 	= {trax & tiles = [(coordinate,tile) : trax.tiles]}
 | otherwise
@@ -304,12 +316,12 @@ perspective colour tile = if (colour == RedLine) tile (~tile)
 
 winning_lines :: !Trax -> [(LineColor,Line)]
 winning_lines trax
-| nr_of_tiles trax == 0 = []
+| no_of_tiles trax == 0 = []
 | otherwise             = winning_lines_at trax West ++ winning_lines_at trax North
 
 /** winning_lines_at @trax @edge = @lines:
        returns all winning @lines that start at @edge in @trax.
-       It is assumed that (nr_of_tiles @trax <> 0).
+       It is assumed that (no_of_tiles @trax <> 0).
 */
 winning_lines_at :: !Trax !TileEdge -> [(LineColor,Line)]
 winning_lines_at trax edge
@@ -352,6 +364,10 @@ mandatory_moves trax coordinate
 where
 	move :: !Trax !Coordinate -> Trax
 	move trax filler = add_tile filler (hd (possible_tiles (linecolors trax filler))) trax
+
+
+derive JSEncode TraxSt, User
+derive JSDecode TraxSt, User
 
 game_over :: !TraxSt -> Bool
 game_over st=:{trax}

@@ -7,13 +7,16 @@ from   StdClass import class zero, class ~
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenEq, Data.GenLexOrd, Control.GenMap
+import iTasks.UI.JS.Encoding
 
-derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
+derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 
 :: TraxTile                             // a tile connects two edges:
 	= { end1 :: !TileEdge               //    the red line at one end and
 	  , end2 :: !TileEdge               //    the red line at the other end
 	  }
+derive   JSEncode   TraxTile
+derive   JSDecode   TraxTile
 derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
@@ -43,30 +46,32 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 	| East                              //    the east  side of a tile, or at
 	| South                             //    the south side of a tile, or at
 	| West                              //    the west  side of a tile
-derive   gFDomain TileEdge
-derive   gLexOrd  TileEdge
-instance ==       TileEdge
-instance <        TileEdge
-instance ~        TileEdge
+derive   JSEncode  TileEdge
+derive   JSDecode  TileEdge
+derive   gFDomain  TileEdge
+derive   gLexOrd   TileEdge
+instance ==        TileEdge
+instance <         TileEdge
+instance ~         TileEdge
 
 :: LineColor                            // a line color is either:
 	= RedLine                           //    red, or
 	| WhiteLine                         //    white
-derive   gFDomain LineColor
-instance ==       LineColor
-instance ~        LineColor
+derive   gFDomain  LineColor
+instance ==        LineColor
+instance ~         LineColor
 
-:: Coordinate :== (Int,Int)				// debugging: use tuple instead of record
-/*
 :: Coordinate                           // a coordinate consists of:
  = { col :: !Int                        //   a column-coordinate
    , row :: !Int                        //   a row-coordinate
-   }*/
+   }
+derive   JSEncode  Coordinate
+derive   JSDecode  Coordinate
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate
-//instance fromTuple Int Int Coordinate
-//instance toTuple   Int Int Coordinate
+instance fromTuple Int Int Coordinate
+instance toTuple   Int Int Coordinate
 
 /** col @{col} = col.
 */
@@ -77,9 +82,9 @@ col :: !Coordinate -> Int
 row :: !Coordinate -> Int
 
 
-:: Trax								    // actually, Trax ought to be opaque
- = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
-   }
+:: Trax
+derive   JSEncode   Trax
+derive   JSDecode   Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
@@ -97,27 +102,28 @@ class tiles a :: !a -> [(Coordinate,TraxTile)]
 instance tiles Trax
 instance tiles TraxSt
 
-/** nr_of_tiles @trax = @nr_of_tiles:
-        returns the current number of tiles (@nr_of_tiles) in @trax.
+/** no_of_tiles @trax:
+        returns the current number of tiles in @trax.
 */
-nr_of_tiles :: !Trax -> Int
+no_of_tiles :: !Trax -> Int
 
 /** bounds @trax = ((@minx,@maxx),(@miny,@maxy)):
         returns the mimimum x-coordinate @minx and minimum y-coordinate @miny
         and the maximum x-coordinate @maxx and maximum y-coordinate @maxy of @trax.
-        It is assumed that (nr_of_tiles @trax > 0).
+        It is assumed that (no_of_tiles @trax > 0).
 */
 bounds :: !Trax -> (!(!Int,!Int), !(!Int,!Int))
 
 /** dimension @trax = (@nr_of_cols,@nr_of_rows):
        returns the @nr_of_cols and @nr_of_rows of the collection of @trax.
-       It is assumed that (nr_of_tiles @trax > 0).
+       It is assumed that (no_of_tiles @trax > 0).
 */
 dimension :: !Trax -> (!Int,!Int)
 
 /** add_tile @coordinate @tile @trax = @trax`:
-        only if (tile_at @trax @coordinate) = Nothing and linecolors_match (linecolors @trax @coordinate) (tilecolors @tile)
-        then (@coordinate,@tile) is added to @trax, resulting in @trax`.
+        only if (tile_at @trax @coordinate) = Nothing and the line colors of @tile match with the
+        line endings of the neighbouring tiles of @coordinate in @trax, then (@coordinate,@tile) 
+        is added to @trax, resulting in @trax`.
         In any other case, @trax` = @trax.
 */
 add_tile :: !Coordinate !TraxTile !Trax -> Trax
@@ -187,6 +193,9 @@ mandatory_moves :: !Trax !Coordinate -> Trax
    , turn   :: !Bool
    , choice :: !Maybe Coordinate
    }
+
+derive JSEncode TraxSt, User
+derive JSDecode TraxSt, User
 
 /** game_over @st:
 		returns True only if the given configuration in @st.trax contains one or more
