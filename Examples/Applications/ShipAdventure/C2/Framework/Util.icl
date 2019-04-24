@@ -117,30 +117,30 @@ doTasksSequentially [t:ts] = t >>| doTasksSequentially ts
 allTabs :: [Task a] -> (Task [a]) | iTask a
 allTabs ts = allTasks ts  	<<@ ArrangeWithTabs True
 
-allSideBar :: Int UISide Int [Task a] -> (Task [a]) | iTask a
-allSideBar b place size ts
-	= allTasks ts <<@ (ArrangeWithSideBar b place size True)
+allSideBar :: Int UISide [Task a] -> (Task [a]) | iTask a
+allSideBar b place ts
+	= allTasks ts <<@ (ArrangeWithSideBar b place True)
 
 c2view :: (Task a) (Task ()) [Task c] [Task d] -> Task () | iTask a  & iTask c & iTask d
 c2view main top left right
-  = allSideBar 0 TopSide 30
+  = allSideBar 0 TopSide
                 [ top
                 , splitscreenview main left right
                 ] @! ()
 
 splitscreenview  main left right
-  = allSideBar 1 RightSide 300
+  = allSideBar 1 RightSide
                 [ innersplitscreenview main left
                 , sidebar right
                 ] @! ()
 
 innersplitscreenview  main left
-  = allSideBar 0 LeftSide 25
+  = allSideBar 0 LeftSide
               [ sidebar left
               , main @! ()
               ] @! ()
 
-sidebar ts = allSideBar 0 TopSide 25 ts @! ()
+sidebar ts = allSideBar 0 TopSide ts @! ()
 
 chats ::  SimpleSDSLens [ChatMessage]
 chats = sharedStore "chats" []

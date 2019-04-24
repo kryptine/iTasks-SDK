@@ -29,7 +29,7 @@ viewSelectedCitizen :: Task ()
 viewSelectedCitizen
 	=				(enterChoiceWithShared () [ChooseFromGrid (\{Citizen|name,ssn} -> "" <+++ name <+++ " (" <+++ ssn <+++ ")") ] citizens
 	>&> 			withSelection (viewInformation () [] "Select a citizen")
-						(\citizen -> viewCitizenInformation citizen.Citizen.ssn defaultValue) )<<@ ApplyLayout (arrangeWithSideBar 0 LeftSide 200 True)
+						(\citizen -> viewCitizenInformation citizen.Citizen.ssn defaultValue) )<<@ ApplyLayout (arrangeWithSideBar 0 LeftSide True)
 
 viewCitizenInformation :: SSN Date -> Task ()
 viewCitizenInformation ssn date

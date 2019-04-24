@@ -12,7 +12,7 @@ wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 
 viewVideoWallContent :: Task WallContent
 viewVideoWallContent
-    = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) //<<@ AfterLayout plainLayoutFinal //FIXME
+    = (header ||- content) <<@ (ArrangeWithHeader 0) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
         = viewSharedInformation () [ViewAs view] (currentTime |*| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
@@ -39,7 +39,7 @@ viewWallOverview perspective
        (get standardMapLayers
         >>- \baseLayers ->
         viewSharedInformation () [ViewAs (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
-      ) <<@ ArrangeWithSideBar 0 LeftSide 300 False
+      ) <<@ ArrangeWithSideBar 0 LeftSide False
 where
     toMap perspective baseLayers contacts
         = toLeafletMap {ContactMap|perspective=perspective,layers=baseLayers++[{title="Contacts",def=CMMarkersLayer [contactGeoToMapMarker False False c \\ c=:{ContactGeo|position=Just _} <- contacts]}]}
@@ -55,8 +55,8 @@ viewWallContactSummary contactNo
 	= withHeader viewContactTitle
       ((viewDetails
        -&&-
-        ((viewPosition -&&- viewCommunication ) <<@ArrangeWithSideBar 1 RightSide 350 False)
-       ) <<@ArrangeWithSideBar 0 LeftSide 250 False)
+        ((viewPosition -&&- viewCommunication ) <<@ArrangeWithSideBar 1 RightSide False)
+       ) <<@ArrangeWithSideBar 0 LeftSide False)
 where
     contact = sdsFocus contactNo contactByNo
 

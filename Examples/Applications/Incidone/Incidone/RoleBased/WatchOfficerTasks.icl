@@ -52,7 +52,7 @@ browseIncidents ws
             ]
     )
 	(	withSelection viewNoSelection viewIncidentDetails
-	)	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
+	)	<<@ (ArrangeWithSideBar 1 RightSide True) <<@ (Icon "incidents") <<@ (Title "Incidents")
     @! ()
 where
 	selectIncident
@@ -74,7 +74,7 @@ browseContacts ws
             ]
     )
 	(   withSelection viewNoSelection viewDetails
-	)	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "contacts") <<@ (Title "Contacts")
+	)	<<@ (ArrangeWithSideBar 1 RightSide True) <<@ (Icon "contacts") <<@ (Title "Contacts")
     @! ()
 where
     viewDetails (Left contactNo)    = viewContactDetails contactNo
@@ -109,7 +109,7 @@ where
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation () [] ()
             )
-        ) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Actions")
+        ) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Actions")
 
 
 

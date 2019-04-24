@@ -7,7 +7,7 @@ import Text.HTML
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
-    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False)
+    = (header ||- selectContent) <<@ (ArrangeWithHeader 0)
     @! ()
 where
     header
@@ -15,7 +15,7 @@ where
 
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
     selectContent
-        = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide 300 False)
+        = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide False)
 
     switchContent = enterChoice (Title "Choose Content") [ChooseFromList bigLabel] contentOptions
     contentOptions
