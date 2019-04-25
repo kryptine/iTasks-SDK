@@ -279,8 +279,8 @@ where
 (.=) sel v w
 # v = toJS v
 = case set_js (toString sel) (toString v) of
-	True -> w
-	False -> abort_with_node v
+	True  -> w
+	False -> abort_with_node (sel,v)
 
 instance toJSArgs Int where toJSArgs i = [toJS i]
 instance toJSArgs Bool where toJSArgs b = [toJS b]
@@ -312,7 +312,7 @@ where toJSArgs (a,b,c,d,e,f) = [toJS a, toJS b, toJS c, toJS d, toJS e, toJS f]
 (.$) f args w
 # args = toJSArgs args
 = case eval_js_with_return_value (call args) of
-	JSUnused -> abort_with_node args
+	JSUnused -> abort_with_node (f,args)
 	result   -> (result, w)
 where
 	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
@@ -322,7 +322,7 @@ where
 # args = toJSArgs args
 = case eval_js (call args) of
 	True  -> w
-	False -> abort_with_node args
+	False -> abort_with_node (f,args)
 where
 	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
 
