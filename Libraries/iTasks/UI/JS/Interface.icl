@@ -33,6 +33,8 @@ import Text.GenJSON
 	| JSTempPair !JSVal !JSVal
 	| JSTempField !String !JSVal
 
+	| JSUnused // used as always-False pattern match; see comments on abort_with_node.
+
 :: JSObjectElement =
 	{ key :: !String
 	, val :: !JSVal
@@ -41,36 +43,28 @@ import Text.GenJSON
 // TODO optimise this by first computing the size
 instance toString JSVal
 where
-	toString v = case v of
-		JSInt i -> toString i
-		JSBool b -> if b "true" "false"
-		JSString s -> "'"+++escape_js_string s+++"'"
-		JSReal r -> toString r
-
-		JSVar v -> v
-		JSNull -> "null"
-		JSUndefined -> "undefined"
-		JSTypeOf v -> "typeof "+++toString v
-
-		JSObject elems -> foldl (+++) "{" [key+++":"+++toString val+++"," \\ {key,val} <-: elems] +++ "}"
-		JSArray elems -> foldl (+++) "[" [toString v+++"," \\ v <-: elems] +++ "]"
-
-		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
-		JSSelPath obj path -> toString obj+++"."+++path
-
-		// `abort v` here ensures that v remains a reachable node until the
-		// computation of the string has finished. This is needed, because we
-		// need to be able to find all JSRef nodes in the garbage collector to
-		// clean the JS heap, and gc may be triggered during computation of
-		// this string after `i` has been moved to the B-stack or disappeared.
-		JSRef i -> let s = "ABC.js["+++toString i+++"]" in if (size s<0) (abort v) s
-		JSCleanRef i -> "ABC.ap("+++toString i+++")"
+	toString v = let s = toS v in if (size s<0) (abort_with_node v) s
 	where
-		abort :: a -> b
-		abort _ = code {
-			print "iTasks.UI.JS.Interface: should not happen\n"
-			halt
-		}
+		toS :: !JSVal -> String
+		toS v = case v of
+			JSInt i -> toString i
+			JSBool b -> if b "true" "false"
+			JSString s -> "'"+++escape_js_string s+++"'"
+			JSReal r -> toString r
+
+			JSVar v -> v
+			JSNull -> "null"
+			JSUndefined -> "undefined"
+			JSTypeOf v -> "typeof "+++toS v
+
+			JSObject elems -> foldl (+++) "{" [key+++":"+++toS val+++"," \\ {key,val} <-: elems] +++ "}"
+			JSArray elems -> foldl (+++) "[" [toS v+++"," \\ v <-: elems] +++ "]"
+
+			JSSel obj attr -> toS obj+++"["+++toS attr+++"]"
+			JSSelPath obj path -> toS obj+++"."+++path
+
+			JSRef i -> "ABC.js["+++toString i+++"]"
+			JSCleanRef i -> "ABC.ap("+++toString i+++")"
 
 escape_js_string :: !String -> String
 escape_js_string s
@@ -112,7 +106,7 @@ jsMakeCleanReference x = share x
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
 	JSCleanRef i -> (Just (fetch i), w)
-	_            -> (Nothing, w)
+	_            -> if (1==1) (Nothing, w) (abort_with_node v)
 where
 	fetch :: !Int -> a
 	fetch _ = code {
@@ -257,7 +251,9 @@ where
 # (done,js) = try_local_computation js
 | done
 	= (js,w)
-	= (eval_js_with_return_value (toString js), w)
+	= case eval_js_with_return_value (toString js) of
+		JSUnused -> abort_with_node js
+		result   -> (result, w)
 where
 	try_local_computation :: !JSVal -> (!Bool, !JSVal)
 	try_local_computation v = case v of
@@ -280,8 +276,11 @@ where
 		_            -> (False,v)
 
 (.=) infixl 1 :: !JSVal !b !*JSWorld -> *JSWorld | gToJS{|*|} b
-(.=) sel v w = case set_js (toString sel) (toString (toJS v)) of
+(.=) sel v w
+# v = toJS v
+= case set_js (toString sel) (toString v) of
 	True -> w
+	False -> abort_with_node v
 
 instance toJSArgs Int where toJSArgs i = [toJS i]
 instance toJSArgs Bool where toJSArgs b = [toJS b]
@@ -310,24 +309,36 @@ instance toJSArgs (a,b,c,d,e,f) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & g
 where toJSArgs (a,b,c,d,e,f) = [toJS a, toJS b, toJS c, toJS d, toJS e, toJS f]
 
 (.$) infixl 2 :: !JSFun !b !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs b
-(.$) f args w = (eval_js_with_return_value call, w)
+(.$) f args w
+# args = toJSArgs args
+= case eval_js_with_return_value (call args) of
+	JSUnused -> abort_with_node args
+	result   -> (result, w)
 where
-	call = toString f+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
+	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
 
 (.$!) infixl 2 :: !JSFun !b !*JSWorld -> *JSWorld | toJSArgs b
-(.$!) f args w = case eval_js call of
-	True -> w
+(.$!) f args w
+# args = toJSArgs args
+= case eval_js (call args) of
+	True  -> w
+	False -> abort_with_node args
 where
-	call = toString f+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
+	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
 
 jsNew :: !String !a !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs a
-jsNew cons args w = (eval_js_with_return_value call, w)
+jsNew cons args w
+# args = toJSArgs args
+= case eval_js_with_return_value (call args) of
+	JSUnused -> abort_with_node args
+	result   -> (result, w)
 where
-	call = "new "+++cons+++"("+++join "," [toString a \\ a <- toJSArgs args]+++")"
+	call args = "new "+++cons+++"("+++join "," [toString a \\ a <- args]+++")"
 
 jsDelete :: !JSVal !*JSWorld -> *JSWorld
 jsDelete v w = case eval_js ("delete "+++toString v) of
-	True -> w
+	True  -> w
+	False -> abort_with_node v
 
 jsEmptyObject :: !*JSWorld -> *(!JSVal, !*JSWorld)
 jsEmptyObject w = (eval_js_with_return_value "{}", w)
@@ -396,7 +407,8 @@ where
 
 addJSFromUrl :: !String !(Maybe JSFun) !*JSWorld -> *JSWorld
 addJSFromUrl js mbCallback w = case add_js js callback of
-	True -> w
+	True  -> w
+	False -> abort_with_node mbCallback
 where
 	callback = case mbCallback of
 		Just cb -> toString cb
@@ -411,7 +423,8 @@ where
 
 jsTrace :: !a .b -> .b | toString a
 jsTrace s x = case eval_js ("console.log('"+++toString s+++"')") of
-	True -> x
+	True  -> x
+	False -> abort_with_node s // just in case it is a JSVal
 
 set_js :: !String !String -> Bool
 set_js var val = code {
@@ -448,3 +461,14 @@ cast :: !.a -> .b
 cast _ = code {
 	no_op
 }
+
+// This function is meant to be called with a (node containing) JSVal(s) as its
+// argument, and then ensures that a references to that value(s) remain
+// reachable by the garbage collector. This is needed when a JSVal is converted
+// to a string and then sent to JavaScript. If it contains a JSRef, the
+// reference must not be garbage collected, but computing the string to send to
+// JavaScript may trigger a garbage collection after the JSRef has been
+// visited. This function, when used properly, makes sure that the JSRef stays
+// in memory until after the call to JavaScript.
+abort_with_node :: !a -> .b
+abort_with_node _ = abort "abort_with_node\n"
