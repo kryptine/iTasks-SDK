@@ -60,8 +60,7 @@ const ABC={
 		ABC.interpreter.instance.exports.set_hp_free(
 			ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8);
 
-		var index=ABC.shared_clean_values.length;
-		ABC.shared_clean_values.push(ABC.memory_array[unused_semispace/4]);
+		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4]);
 
 		return SharedCleanValue(index);
 	},
@@ -69,7 +68,25 @@ const ABC={
 	interpret: null,
 
 	js: [], // javascript objects accessible from Clean
+
 	shared_clean_values: [], // pointers to the Clean heap
+	empty_shared_clean_values: [], // empty indexes in the above array
+	share_clean_value: function(ref) {
+		if (ABC.empty_shared_clean_values.length > 0) {
+			var i=ABC.empty_shared_clean_values.pop();
+			if (ABC.shared_clean_values[i]!=null)
+				throw 'internal error in ABC.share_clean_value';
+			ABC.shared_clean_values[i]=ref;
+			return i;
+		} else {
+			ABC.shared_clean_values.push(ref);
+			return ABC.shared_clean_values.length-1;
+		}
+	},
+	clear_shared_clean_value: function(ref) {
+		ABC.shared_clean_values[ref]=null;
+		ABC.empty_shared_clean_values.push(ref);
+	},
 
 	ap: function (index) { // create a JavaScript closure to call the interpreter
 		var f=function () {
@@ -234,9 +251,11 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		{ clean: {
 			memory: ABC.memory,
 			has_host_reference: function (index) {
-				if (ABC.shared_clean_values.length>index && ABC.shared_clean_values[index]!=null)
-					return ABC.shared_clean_values[index];
-				return 0;
+				if (index>=ABC.shared_clean_values.length)
+					return 0;
+				if (ABC.shared_clean_values[index]==null)
+					return -1;
+				return ABC.shared_clean_values[index];
 			},
 			update_host_reference: function (index, new_location) {
 				ABC.shared_clean_values[index]=new_location;
@@ -270,13 +289,28 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					switch (arg) {
 						case 0: /* evaluation finished */
 							return 0;
-						case 1: /* iTasks.UI.JS.Interface: eval_js */
+						case 1: /* iTasks.UI.JS.Interface: set_js */
+							var v=ABC.get_clean_string(ABC.memory_array[asp/4]);
+							var x=ABC.get_clean_string(ABC.memory_array[asp/4-2]);
+							if (ABC_DEBUG)
+								console.log(v,'.=',x);
+							try {
+								var ref=eval(v+'.shared_clean_value_index');
+								if (typeof ref != 'undefined') {
+									if (ABC_DEBUG)
+										console.log('removing old reference to Clean',ref);
+									ABC.clear_shared_clean_value(ref);
+								}
+							} catch (e) {}
+							Function(v+'='+x)();
+							break;
+						case 2: /* iTasks.UI.JS.Interface: eval_js */
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							Function(string)();
 							break;
-						case 2: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
+						case 3: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							if (ABC_DEBUG)
 								console.log('eval',string);
@@ -285,15 +319,14 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.interpreter.instance.exports.set_hp(copied.hp);
 							ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
-						case 3: /* iTasks.UI.JS.Interface: share */
-							ABC.memory_array[bsp/4]=ABC.shared_clean_values.length;
-							ABC.shared_clean_values.push(ABC.memory_array[asp/4]);
+						case 4: /* iTasks.UI.JS.Interface: share */
+							ABC.memory_array[bsp/4]=ABC.share_clean_value(ABC.memory_array[asp/4]);
 							break;
-						case 4: /* iTasks.UI.JS.Interface: fetch */
+						case 5: /* iTasks.UI.JS.Interface: fetch */
 							var index=ABC.memory_array[bsp/4];
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[index];
 							break;
-						case 5: /* iTasks.UI.JS.Interface: deserialize */
+						case 6: /* iTasks.UI.JS.Interface: deserialize */
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							var shared_clean_value=ABC.deserialize(string);
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index];

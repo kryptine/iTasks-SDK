@@ -72,7 +72,7 @@ where
 	fetch :: !Int -> a
 	fetch _ = code {
 		create
-		instruction 4
+		instruction 5
 		pop_b 1
 	}
 
@@ -235,7 +235,7 @@ where
 		_            -> (False,v)
 
 (.=) infixl 1 :: !JSVal !b !*JSWorld -> *JSWorld | gToJS{|*|} b
-(.=) sel v w = case eval_js (toString sel+++"="+++toString (toJS v)) of
+(.=) sel v w = case set_js (toString sel) (toString (toJS v)) of
 	True -> w
 
 instance toJSArgs Int where toJSArgs i = [toJS i]
@@ -310,7 +310,7 @@ jsDeserializeGraph s w = (deserialize s, w)
 where
 	deserialize :: !String -> .a
 	deserialize _ = code {
-		instruction 5
+		instruction 6
 	}
 
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld
@@ -343,9 +343,16 @@ jsTrace :: !a .b -> .b | toString a
 jsTrace s x = case eval_js ("console.log('"+++toString s+++"')") of
 	True -> x
 
+set_js :: !String !String -> Bool
+set_js var val = code {
+	instruction 1
+	pop_a 2
+	pushB TRUE
+}
+
 eval_js :: !String -> Bool
 eval_js s = code {
-	instruction 1
+	instruction 2
 	pop_a 1
 	pushB TRUE
 }
@@ -355,7 +362,7 @@ eval_js_with_return_value s = cast_value_from_js (eval s)
 where
 	eval :: !String -> a
 	eval _ = code {
-		instruction 2
+		instruction 3
 	}
 
 cast_value_from_js :: !a -> JSVal
@@ -457,7 +464,7 @@ where
 	get_shared_value_index :: !a -> Int
 	get_shared_value_index _ = code {
 		pushI 0 | to return the result
-		instruction 3
+		instruction 4
 		pop_a 1
 	}
 
