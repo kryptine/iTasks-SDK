@@ -114,17 +114,17 @@ const ABC={
 		return f;
 	},
 
-	copy_js_to_clean: function (values, store_ptrs, hp, hp_free, wrap_array) {
-		// TODO check if garbage collection is needed
+	_copy_js_to_clean: function (values, store_ptrs, hp, hp_free) {
 		for (var i=0; i<values.length; i++) {
 			if (values[i]===null) {
 				ABC.memory_array[store_ptrs/4]=ABC.addresses.JSNull-10;
 			} else if (typeof values[i]=='undefined') {
 				ABC.memory_array[store_ptrs/4]=ABC.addresses.JSUndefined-10;
 			} else if (typeof values[i]=='number') {
-				// TODO use small integers
 				ABC.memory_array[store_ptrs/4]=hp;
 				if (Number.isInteger(values[i])) {
+					if (values[i]>2**31)
+						console.warn('Copying value',values[i],'>2^31 to Clean; truncating!');
 					ABC.memory_array[hp/4]=ABC.addresses.JSInt;
 					ABC.memory_array[hp/4+1]=0;
 					ABC.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
@@ -185,7 +185,7 @@ const ABC={
 				ABC.memory_array[hp/4+5]=0;
 				hp+=24;
 				hp_free-=3+values[i].length;;
-				var copied=ABC.copy_js_to_clean(values[i], hp, hp+8*values[i].length, hp_free, false);
+				var copied=ABC._copy_js_to_clean(values[i], hp, hp+8*values[i].length, hp_free);
 				hp=copied.hp;
 				hp_free=copied.hp_free;
 			} else if ('shared_clean_value_index' in values[i]) {
@@ -212,14 +212,56 @@ const ABC={
 			store_ptrs+=8;
 		}
 
-		if (hp_free<0)
-			throw ('hp_free was '+hp_free+' after copy_js_to_clean');
-
 		return {
 			store_ptrs: store_ptrs,
 			hp: hp,
 			hp_free: hp_free,
 		};
+	},
+	copied_node_size: function (value) {
+		if (value===null)
+			return 0;
+		else if (typeof value=='undefined')
+			return 0;
+		else if (typeof value=='number')
+			return 2;
+		else if (typeof value=='boolean')
+			return 2;
+		else if (typeof value=='string')
+			return 2+2+((value.length+7)>>3);
+		else if (Array.isArray(value)) {
+			var size=2+3+value.length;
+			for (var i=0; i<value.length; i++)
+				size+=ABC.copied_node_size(value[i]);
+			return size;
+		} else if ('shared_clean_value_index' in value)
+			return 2;
+		else if (typeof value=='object')
+			return 2;
+		else {
+			console.log(value);
+			throw 'Could not pass the above value to Clean';
+		}
+	},
+	copy_js_to_clean: function (value, store_ptrs, hp, hp_free) {
+		var node_size=ABC.copied_node_size(value);
+		if (node_size>hp_free) {
+			console.warn('gc from js');
+			ABC.util.instance.exports.gc();
+			hp=ABC.interpreter.instance.exports.get_hp();
+			hp_free=ABC.interpreter.instance.exports.get_hp_free();
+			if (node_size>hp_free) {
+				console.error('not enough memory to copy',value);
+				throw 'out of memory';
+			}
+		}
+
+		var result=ABC._copy_js_to_clean([value], store_ptrs, hp, hp_free);
+
+		if (hp_free-result.hp_free!=node_size)
+			console.warn('copied_node_size: expected',node_size,'; got',hp_free-result.hp_free,'for',value);
+
+		return result;
 	},
 
 	get_clean_string: function (hp_ptr) {
@@ -354,7 +396,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
-							var copied=ABC.copy_js_to_clean([result], asp, hp, hp_free, false);
+							var copied=ABC.copy_js_to_clean(result, asp, hp, hp_free);
 							ABC.interpreter.instance.exports.set_hp(copied.hp);
 							ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
@@ -523,8 +565,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		ABC.memory_array[asp/4+2]=hp;
 		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index];
 
-		const copied=ABC.copy_js_to_clean([args], asp+8, hp, hp_free, true);
-		asp+=16;
+		ABC.interpreter.instance.exports.set_asp(asp+16);
+		const copied=ABC.copy_js_to_clean(args, asp+8, hp, hp_free);
 		hp=copied.hp;
 		hp_free=copied.hp_free;
 
@@ -534,7 +576,6 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 
 		const old_pc=ABC.interpreter.instance.exports.get_pc();
 		ABC.interpreter.instance.exports.set_pc(100*8); // jmp_ap2
-		ABC.interpreter.instance.exports.set_asp(asp);
 		ABC.interpreter.instance.exports.set_csp(csp);
 		ABC.interpreter.instance.exports.set_hp(hp);
 		ABC.interpreter.instance.exports.set_hp_free(hp_free);
