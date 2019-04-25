@@ -39,6 +39,8 @@ from Data.Set import :: Set, newSet
 from iTasks.SDS.Definition import :: SDSParallel
 from iTasks.SDS.Combinators.Common import toReadOnly
 
+from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
+
 createIWorld :: !EngineOptions !*World -> *IWorld
 createIWorld options world
 	# (ts=:{tv_nsec=seed}, world)	= nsTime world
@@ -58,6 +60,7 @@ createIWorld options world
       ,memoryShares         = 'DM'.newMap
       ,readCache            = 'DM'.newMap
       ,writeCache           = 'DM'.newMap
+	  ,abcInterpreterEnv    = Nothing
 	  ,shutdown				= Nothing
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap

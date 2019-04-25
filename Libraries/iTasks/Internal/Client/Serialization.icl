@@ -13,13 +13,14 @@ import iTasks.Internal.IWorld
 import iTasks.UI.Editor
 
 serialize_for_client :: f !*IWorld -> *(!MaybeErrorString String, !*IWorld)
-serialize_for_client f iworld=:{world,options}
-# (graph,world) = serialize_for_prelinked_interpretation f options.byteCodePath options.appPath world
+serialize_for_client f iworld=:{abcInterpreterEnv=Just e}
+	= (Ok (serialize_for_prelinked_interpretation f e), iworld)
+serialize_for_client f iworld=:{abcInterpreterEnv=Nothing,world,options}
+# (env,world) = prepare_prelinked_interpretation options.byteCodePath world
 # iworld & world = world
-# graph = case graph of
-	Nothing -> Error "Failed to serialize graph"
-	Just g  -> Ok g
-= (graph, iworld)
+= case env of
+	Nothing -> (Error "Failed to parse bytecode, is ByteCode set in the project file?", iworld)
+	Just e  -> serialize_for_client f {iworld & abcInterpreterEnv=Just e}
 
 serialize_in_vst :: f !*VSt -> *(!String, !*VSt)
 serialize_in_vst f vst=:{iworld}

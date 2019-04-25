@@ -24,6 +24,8 @@ from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 from System.Signal import :: SigHandler
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
+from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
+
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: *IWorld =
@@ -38,6 +40,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
 	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
 	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+	, abcInterpreterEnv     :: !Maybe PrelinkedInterpretationEnvironment        // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
 	, ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
