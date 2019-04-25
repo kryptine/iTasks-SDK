@@ -212,6 +212,10 @@ function __entier(a){
     return Math.floor(Sapl.feval(a));
 }
 
+function _inf(){
+    return Infinity;
+}
+
 // ----------------------------------------------------------------
 // Arrays
 
