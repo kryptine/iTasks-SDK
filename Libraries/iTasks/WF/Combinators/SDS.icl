@@ -69,9 +69,8 @@ withTaskId (Task eval) = Task eval`
         (ExceptionResult te, iworld) -> (ExceptionResult te, iworld)
         (DestroyedResult, iworld) -> (DestroyedResult, iworld)
 
-import StdMisc
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
-withTemporaryDirectory taskfun = undef
+withTemporaryDirectory taskfun = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{options={appVersion,tempDirPath}}
 		# tmpDir 			= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
