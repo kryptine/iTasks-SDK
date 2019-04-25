@@ -44,7 +44,7 @@ where
 	toString v = case v of
 		JSInt i -> toString i
 		JSBool b -> if b "true" "false"
-		JSString s -> "'"+++s+++"'" // TODO escape
+		JSString s -> "'"+++escape_js_string s+++"'"
 		JSReal r -> toString r
 
 		JSVar v -> v
@@ -60,6 +60,40 @@ where
 
 		JSRef i -> "ABC.js["+++toString i+++"]"
 		JSCleanRef i -> "ABC.ap("+++toString i+++")"
+
+escape_js_string :: !String -> String
+escape_js_string s
+# escaped_len = escaped_size (size s-1) s 0
+| escaped_len == size s
+	= s
+	= copy_chars s 0 (createArray escaped_len '\0') 0
+where
+	escaped_size :: !Int !String !Int -> Int
+	escaped_size -1 s n = n
+	escaped_size i s n
+	| s.[i] < '\x20' = escaped_size (i-1) s (n+4)
+	| s.[i] == '\''  = escaped_size (i-1) s (n+2)
+	| otherwise      = escaped_size (i-1) s (n+1)
+
+	copy_chars :: !{#Char} !Int !*{#Char} !Int -> .{#Char}
+	copy_chars src si dst di
+	| si >= size src = dst
+	# c = src.[si]
+	| c < '\x20'
+		# c = toInt c
+		# dst = {dst & [di]='\\', [di+1]='x', [di+2]=hex (c>>4), [di+3]=hex (c bitand 0x0f)}
+		= copy_chars src (si+1) dst (di+4)
+	| c == '\''
+		# dst = {dst & [di]='\\', [di+1]='\''}
+		= copy_chars src (si+1) dst (di+2)
+	| otherwise
+		# dst = {dst & [di]=c}
+		= copy_chars src (si+1) dst (di+1)
+	where
+		hex i = hex_chars.[i]
+
+hex_chars :: {#Char}
+hex_chars =: "0123456789abcdef"
 
 jsMakeCleanReference :: a -> JSVal
 jsMakeCleanReference x = share x
