@@ -19,7 +19,7 @@ const ABC={
 	code_offset: undefined,
 
 	stack_size: (512<<10)*2,
-	hp_size: 2<<20,
+	hp_size: 2<<22,
 
 	util: undefined,
 	interpreter: undefined,

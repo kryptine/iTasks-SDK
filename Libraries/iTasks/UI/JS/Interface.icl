@@ -268,7 +268,6 @@ where
 		JSSel (JSArray xs) (JSInt i)
 			| 0<=i && i<size xs -> try_local_computation xs.[i]
 			| otherwise         -> (True,JSUndefined)
-		// TODO add a case for JSObject and JSString?
 
 		JSRef _      -> (True,v)
 		JSCleanRef _ -> (True,v)
