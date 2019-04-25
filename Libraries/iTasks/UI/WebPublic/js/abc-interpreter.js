@@ -9,6 +9,8 @@ function SharedCleanValue(index) {
 }
 
 const ABC={
+	initialized: false,
+
 	prog: undefined,
 	memory: undefined,
 	memory_array: undefined,
@@ -68,6 +70,7 @@ const ABC={
 	interpret: null,
 
 	js: [], // javascript objects accessible from Clean
+	// TODO: add an empty_js_values like empty_shared_clean_values
 
 	shared_clean_values: [], // pointers to the Clean heap
 	empty_shared_clean_values: [], // empty indexes in the above array
@@ -100,35 +103,22 @@ const ABC={
 	},
 
 	copy_js_to_clean: function (values, store_ptrs, hp, hp_free, wrap_array) {
+		// TODO check if garbage collection is needed
 		for (var i=0; i<values.length; i++) {
 			if (values[i]===null) {
-				ABC.memory_array[store_ptrs/4]=hp;
-				ABC.memory_array[hp/4]=26*8+2; // INT
-				ABC.memory_array[hp/4+1]=0;
-				ABC.memory_array[hp/4+2]=0;
-				ABC.memory_array[hp/4+3]=1<<30;
-				hp+=16;
-				hp_free-=2;
+				ABC.memory_array[store_ptrs/4]=ABC.addresses.JSNull-10;
 			} else if (typeof values[i]=='undefined') {
-				ABC.memory_array[store_ptrs/4]=hp;
-				ABC.memory_array[hp/4]=26*8+2; // INT
-				ABC.memory_array[hp/4+1]=0;
-				ABC.memory_array[hp/4+2]=1;
-				ABC.memory_array[hp/4+3]=1<<30;
-				hp+=16;
-				hp_free-=2;
+				ABC.memory_array[store_ptrs/4]=ABC.addresses.JSUndefined-10;
 			} else if (typeof values[i]=='number') {
 				// TODO use small integers
-				// TODO check garbage collection
+				ABC.memory_array[store_ptrs/4]=hp;
 				if (Number.isInteger(values[i])) {
-					ABC.memory_array[store_ptrs/4]=hp;
-					ABC.memory_array[hp/4]=26*8+2; // INT
+					ABC.memory_array[hp/4]=ABC.addresses.JSInt;
 					ABC.memory_array[hp/4+1]=0;
 					ABC.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
 					ABC.memory_array[hp/4+3]=0;
 				} else {
-					ABC.memory_array[store_ptrs/4]=hp;
-					ABC.memory_array[hp/4]=21*8+2; // REAL
+					ABC.memory_array[hp/4]=ABC.addresses.JSReal;
 					ABC.memory_array[hp/4+1]=0;
 					const float_array=new Float64Array(ABC.memory_array.buffer, hp+8);
 					float_array[0]=values[i];
@@ -137,7 +127,7 @@ const ABC={
 				hp_free-=2;
 			} else if (typeof values[i]=='boolean') {
 				ABC.memory_array[store_ptrs/4]=hp;
-				ABC.memory_array[hp/4]=11*8+2; // BOOL
+				ABC.memory_array[hp/4]=ABC.addresses.JSBool;
 				ABC.memory_array[hp/4+1]=0;
 				ABC.memory_array[hp/4+2]=values[i] ? 1 : 0;
 				ABC.memory_array[hp/4+3]=0;
@@ -145,6 +135,12 @@ const ABC={
 				hp_free-=2;
 			} else if (typeof values[i]=='string') {
 				ABC.memory_array[store_ptrs/4]=hp;
+				ABC.memory_array[hp/4]=ABC.addresses.JSString;
+				ABC.memory_array[hp/4+1]=0;
+				ABC.memory_array[hp/4+2]=hp+16;
+				ABC.memory_array[hp/4+3]=0;
+				hp+=16;
+				hp_free-=2;
 				ABC.memory_array[hp/4]=6*8+2; // _STRING_
 				ABC.memory_array[hp/4+1]=0;
 				ABC.memory_array[hp/4+2]=values[i].length;
@@ -159,14 +155,16 @@ const ABC={
 				hp_free-=2+((values[i].length+7)>>3);
 			} else if (Array.isArray(values[i])) {
 				ABC.memory_array[store_ptrs/4]=hp;
-				if (wrap_array) {
-					ABC.memory_array[hp/4]=2;
-					ABC.memory_array[hp/4+1]=0;
-					ABC.memory_array[hp/4+2]=hp+16;
-					ABC.memory_array[hp/4+3]=0;
-					hp+=16;
-					hp_free-=2;
-				}
+				// On the first run, we don't have the JSArray address yet, so we use
+				// the dummy 2 to ensure that jsr_eval won't try to evaluate it. The
+				// array elements are unwrapped immediately, so the constructor does
+				// not matter (apart from the fact that the HNF bit is set).
+				ABC.memory_array[hp/4]=ABC.initialized ? ABC.addresses.JSArray : 2;
+				ABC.memory_array[hp/4+1]=0;
+				ABC.memory_array[hp/4+2]=hp+16;
+				ABC.memory_array[hp/4+3]=0;
+				hp+=16;
+				hp_free-=2;
 				ABC.memory_array[hp/4]=1*8+2; // _ARRAY_
 				ABC.memory_array[hp/4+1]=0;
 				ABC.memory_array[hp/4+2]=values[i].length;
@@ -180,18 +178,17 @@ const ABC={
 				hp_free=copied.hp_free;
 			} else if ('shared_clean_value_index' in values[i]) {
 				ABC.memory_array[store_ptrs/4]=hp;
-				ABC.memory_array[hp/4]=661*8+2; // DOMNode type
+				ABC.memory_array[hp/4]=ABC.addresses.JSCleanRef;
 				ABC.memory_array[hp/4+1]=0;
-				ABC.memory_array[hp/4+2]=(values[i].shared_clean_value_index<<1)+1;
+				ABC.memory_array[hp/4+2]=values[i].shared_clean_value_index;
 				ABC.memory_array[hp/4+3]=0;
 				hp+=16;
 				hp_free-=2;
 			} else if (typeof values[i]=='object') {
-				// TODO: check if garbage collection is needed
 				ABC.memory_array[store_ptrs/4]=hp;
-				ABC.memory_array[hp/4]=661*8+2; // DOMNode type
+				ABC.memory_array[hp/4]=ABC.addresses.JSRef;
 				ABC.memory_array[hp/4+1]=0;
-				ABC.memory_array[hp/4+2]=ABC.js.length<<1;
+				ABC.memory_array[hp/4+2]=ABC.js.length;
 				ABC.memory_array[hp/4+3]=0;
 				ABC.js.push(values[i]);
 				hp+=16;
@@ -203,6 +200,9 @@ const ABC={
 
 			store_ptrs+=8;
 		}
+
+		if (hp_free<0)
+			throw ('hp_free was '+hp_free+' after copy_js_to_clean');
 
 		return {
 			store_ptrs: store_ptrs,
@@ -219,6 +219,8 @@ const ABC={
 			string+=String.fromCharCode(string_buffer[i]);
 		return string;
 	},
+
+	addresses: {},
 };
 
 ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
@@ -250,6 +252,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		fetch('js/abc-interpreter-util.wasm'),
 		{ clean: {
 			memory: ABC.memory,
+
 			has_host_reference: function (index) {
 				if (index>=ABC.shared_clean_values.length)
 					return 0;
@@ -260,6 +263,28 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 			update_host_reference: function (index, new_location) {
 				ABC.shared_clean_values[index]=new_location;
 			},
+
+			gc_start: function() {
+				ABC.active_js=[];
+			},
+			js_ref_found: function(ref) {
+				ABC.active_js[ref]=true;
+			},
+			gc_end: function() {
+				// NB: we cannot reorder ABC.js, because garbage collection may be
+				// triggered while computing a string to send to JavaScript which can
+				// then contain illegal references. See the comments on toString for
+				// JSRef in iTasks.UI.JS.Interface.
+				for (var i=0; i<ABC.js.length; i++)
+					if (typeof ABC.active_js[i]=='undefined')
+						delete ABC.js[i];
+				delete ABC.active_js;
+			},
+
+			get_asp: () => ABC.interpreter.instance.exports.get_asp(),
+			set_hp: hp => ABC.interpreter.instance.exports.set_hp(hp),
+			set_hp_free: free => ABC.interpreter.instance.exports.set_hp_free(free),
+
 			debug: function(what,a,b,c) {
 				if (!ABC_DEBUG)
 					return;
@@ -330,6 +355,20 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							var shared_clean_value=ABC.deserialize(string);
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index];
+							break;
+						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */
+							var array=ABC.memory_array[asp/4]+24;
+							ABC.addresses.JSInt=      ABC.memory_array[ABC.memory_array[array/4]/4];
+							ABC.addresses.JSBool=     ABC.memory_array[ABC.memory_array[array/4+2]/4];
+							ABC.addresses.JSString=   ABC.memory_array[ABC.memory_array[array/4+4]/4];
+							ABC.addresses.JSReal=     ABC.memory_array[ABC.memory_array[array/4+6]/4];
+							ABC.addresses.JSNull=     ABC.memory_array[ABC.memory_array[array/4+8]/4];
+							ABC.addresses.JSUndefined=ABC.memory_array[ABC.memory_array[array/4+10]/4];
+							ABC.addresses.JSArray=    ABC.memory_array[ABC.memory_array[array/4+12]/4];
+							ABC.addresses.JSRef=      ABC.memory_array[ABC.memory_array[array/4+14]/4];
+							ABC.addresses.JSCleanRef= ABC.memory_array[ABC.memory_array[array/4+16]/4];
+							ABC.util.instance.exports.set_js_ref_constructor(ABC.addresses.JSRef);
+							ABC.initialized=true;
 							break;
 						case 10: /* iTasks.UI.JS.Interface: add CSS */
 							var url=ABC.get_clean_string(ABC.memory_array[asp/4]);

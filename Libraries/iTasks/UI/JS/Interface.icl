@@ -58,8 +58,19 @@ where
 		JSSel obj attr -> toString obj+++"["+++toString attr+++"]"
 		JSSelPath obj path -> toString obj+++"."+++path
 
-		JSRef i -> "ABC.js["+++toString i+++"]"
+		// `abort v` here ensures that v remains a reachable node until the
+		// computation of the string has finished. This is needed, because we
+		// need to be able to find all JSRef nodes in the garbage collector to
+		// clean the JS heap, and gc may be triggered during computation of
+		// this string after `i` has been moved to the B-stack or disappeared.
+		JSRef i -> let s = "ABC.js["+++toString i+++"]" in if (size s<0) (abort v) s
 		JSCleanRef i -> "ABC.ap("+++toString i+++")"
+	where
+		abort :: a -> b
+		abort _ = code {
+			print "iTasks.UI.JS.Interface: should not happen\n"
+			halt
+		}
 
 escape_js_string :: !String -> String
 escape_js_string s
@@ -325,19 +336,44 @@ jsGlobal :: !String -> JSVal
 jsGlobal s = JSVar s
 
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun, !*JSWorld)
-jsWrapFun f world = (cast (share casting_f), world)
-where
-	casting_f :: !{!a} !*JSWorld -> *JSWorld
-	casting_f args w = f {cast_value_from_js a \\ a <-: args} w
+jsWrapFun f world = (cast (share \(JSArray args) w -> f args w), world)
 
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
-wrapInitUIFunction f = \args
-	| size args<>1
-		-> abort ("failed to get iTasks component from JavaScript (args.size="+++toString (size args)+++")\n")
-		-> case cast_value_from_js args.[0] of
-			r=:(JSRef _)
-				-> f r
-				-> abort "failed to get iTasks component from JavaScript\n"
+wrapInitUIFunction f = cast init
+where
+	init :: !{!JSVal} !*JSWorld -> *JSWorld
+	init args w
+	# is_initialized = get_arg args.[1] <> 1
+	| not is_initialized && init val = abort "internal error in wrapInitUIFunction\n"
+	# js_ref = JSRef (get_arg args.[0])
+	= f js_ref w
+	where
+		// This function ensures that the client knows the addresses of some
+		// of the constructors which it needs to know.
+		init :: !{!JSVal} -> Bool
+		init _ = code {
+			instruction 7
+			pop_a 1
+			pushB FALSE
+		}
+
+		val :: {!JSVal}
+		val =
+			{ JSInt 0
+			, JSBool True
+			, JSString ""
+			, JSReal 0.0
+			, JSNull
+			, JSUndefined
+			, JSArray {}
+			, JSRef 0
+			, JSCleanRef 0
+			}
+
+		get_arg :: !a -> Int
+		get_arg _ = code {
+			repl_r_args 0 1
+		}
 
 jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
 jsDeserializeGraph s w = (deserialize s, w)
@@ -392,104 +428,10 @@ eval_js s = code {
 }
 
 eval_js_with_return_value :: !String -> JSVal
-eval_js_with_return_value s = cast_value_from_js (eval s)
-where
-	eval :: !String -> a
-	eval _ = code {
-		instruction 3
-	}
-
-cast_value_from_js :: !a -> JSVal
-cast_value_from_js x = case cast_value_from_js` x of
-	JSArray arr -> JSArray (overwrite_values (size arr-1) (cast arr))
-	v           -> v
-where
-	overwrite_values :: !Int !*{!JSVal} -> .{!JSVal}
-	overwrite_values -1 arr = arr
-	overwrite_values i arr
-	# (v,arr) = arr![i]
-	# arr & [i] = cast_value_from_js v
-	= overwrite_values (i-1) arr
-
-cast_value_from_js` :: !a -> JSVal
-cast_value_from_js` _ = code {
-	eq_desc dINT 0 0
-	jmp_true return_int
-	eq_desc BOOL 0 0
-	jmp_true return_bool
-	eq_desc _STRING_ 0 0
-	jmp_true return_string
-	pushD_a 0
-	pushI 5290 | 661*8+2; DOMNode (bcprelink.c)
-	eqI
-	jmp_true return_ref
-	eq_desc REAL 0 0
-	jmp_true return_real
-	eq_desc _ARRAY_ 0 0
-	jmp_true return_array
-	print "cast_value_from_js: return type unknown:\n"
-	.d 1 0
-	jsr _print_graph
-	.o 0 0
-	halt
-:return_int
-	repl_r_args 0 1
-	push_b 0
-	pushI 4611686018427387904 | 1<<62; null
-	eqI
-	jmp_true return_null
-	push_b 0
-	pushI 4611686018427387905 | 1<<62+1; undefined
-	eqI
-	jmp_true return_undefined
-	fill_r e_iTasks.UI.JS.Interface_kJSInt 0 1 0 0 0
-	pop_b 1
-	jmp return
-:return_null
-	fillh e_iTasks.UI.JS.Interface_dJSNull 0 0
-	pop_b 1
-	jmp return
-:return_undefined
-	fillh e_iTasks.UI.JS.Interface_dJSUndefined 0 0
-	pop_b 1
-	jmp return
-:return_bool
-	repl_r_args 0 1
-	fill_r e_iTasks.UI.JS.Interface_kJSBool 0 1 0 0 0
-	pop_b 1
-	jmp return
-:return_real
-	repl_r_args 0 1
-	fill_r e_iTasks.UI.JS.Interface_kJSReal 0 1 0 0 0
-	pop_b 1
-	jmp return
-:return_string
-	fill_r e_iTasks.UI.JS.Interface_kJSString 1 0 1 0 0
+eval_js_with_return_value s = code {
+	instruction 3
+	fill_a 0 1
 	pop_a 1
-	jmp return
-:return_array
-	fill_r e_iTasks.UI.JS.Interface_kJSArray 1 0 1 0 0
-	pop_a 1
-	jmp return
-:return_ref
-	pushI 1 | for shiftr%
-	repl_r_args 0 1
-	push_b 0
-	pushI 1
-	and%
-	pushI 1
-	eqI
-	jmp_true return_clean_ref
-	shiftr%
-	fill_r e_iTasks.UI.JS.Interface_kJSRef 0 1 0 0 0
-	pop_b 1
-	jmp return
-:return_clean_ref
-	shiftr%
-	fill_r e_iTasks.UI.JS.Interface_kJSCleanRef 0 1 0 0 0
-	pop_b 1
-	jmp return
-:return
 }
 
 share :: !a -> JSVal
