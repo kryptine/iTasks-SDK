@@ -70,7 +70,19 @@ const ABC={
 	interpret: null,
 
 	js: [], // javascript objects accessible from Clean
-	// TODO: add an empty_js_values like empty_shared_clean_values
+	empty_js_values: [], // empty indexes in the above array
+	share_js_value: function(obj) {
+		if (ABC.empty_js_values.length > 0) {
+			var i=ABC.empty_js_values.pop();
+			if (ABC.js[i]!=undefined)
+				throw 'internal error in ABC.share_js_value';
+			ABC.js[i]=obj;
+			return i;
+		} else {
+			ABC.js.push(obj);
+			return ABC.js.length-1;
+		}
+	},
 
 	shared_clean_values: [], // pointers to the Clean heap
 	empty_shared_clean_values: [], // empty indexes in the above array
@@ -188,9 +200,8 @@ const ABC={
 				ABC.memory_array[store_ptrs/4]=hp;
 				ABC.memory_array[hp/4]=ABC.addresses.JSRef;
 				ABC.memory_array[hp/4+1]=0;
-				ABC.memory_array[hp/4+2]=ABC.js.length;
+				ABC.memory_array[hp/4+2]=ABC.share_js_value(values[i]);
 				ABC.memory_array[hp/4+3]=0;
-				ABC.js.push(values[i]);
 				hp+=16;
 				hp_free-=2;
 			} else {
@@ -271,13 +282,16 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				ABC.active_js[ref]=true;
 			},
 			gc_end: function() {
+				ABC.empty_js_values=[];
 				// NB: we cannot reorder ABC.js, because garbage collection may be
 				// triggered while computing a string to send to JavaScript which can
-				// then contain illegal references. See the comments on toString for
-				// JSRef in iTasks.UI.JS.Interface.
-				for (var i=0; i<ABC.js.length; i++)
-					if (typeof ABC.active_js[i]=='undefined')
+				// then contain illegal references.
+				for (var i=0; i<ABC.js.length; i++) {
+					if (typeof ABC.active_js[i]=='undefined') {
 						delete ABC.js[i];
+						ABC.empty_js_values.push(i);
+					}
+				}
 				delete ABC.active_js;
 			},
 
