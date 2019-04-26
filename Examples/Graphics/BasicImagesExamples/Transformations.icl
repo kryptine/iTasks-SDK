@@ -12,12 +12,11 @@ times			= normalFontDef "Times New Roman"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Transformations"
-		[ViewUsing id (fromSVGEditor
-			{ initView    = id
-			, renderImage = const transformed_images
-			, updModel    = \_ v = v
-			})] 0) world
+	= doTasks (viewInformation "Transformations" [ViewUsing id (fromSVGEditor
+																	{ initView    = id
+																	, renderImage = const transformed_images
+																	, updModel    = \_ v = v
+																	})] 0) world
 
 /**	transformed_images model tags = image:
 	@image shows all possible transformations on (composite) Image-s.

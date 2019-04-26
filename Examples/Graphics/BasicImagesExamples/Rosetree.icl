@@ -14,12 +14,11 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Rose tree"
-		[ViewUsing id (fromSVGEditor
-			{ initView    = id
-			, renderImage = const roses
-			, updModel    = \_ v = v
-			})] 0) world
+	= doTasks (viewInformation "Rose tree" [ViewUsing id (fromSVGEditor
+															{ initView    = id
+															, renderImage = const roses
+															, updModel    = \_ v = v
+															})] 0) world
 
 
 /** roses model tags = image:
