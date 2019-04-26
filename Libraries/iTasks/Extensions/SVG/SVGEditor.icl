@@ -329,7 +329,8 @@ clientInitDOMEl svglet me args world
   #! (model, world) = decodeOnClient model world
   #! world          = jsPutCleanVal JS_ATTR_VIEW  (svglet.initView model) me world
   #! world          = jsPutCleanVal JS_ATTR_MODEL model me world
-  #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet ClientNeedsSVG))) world //TODO: Should not really print+parse here
+  #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet ClientNeedsSVG))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
+//#! (json,  world) = encodeOnClient ClientNeedsSVG world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
   #! (cidJS, world) = .? (me .# "attributes.taskId")   world
   #! (editId,world) = .? (me .# "attributes.editorId") world
   #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
@@ -381,7 +382,8 @@ where
 	  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
 	  #! world                  = jsPutCleanVal JS_ATTR_FONT_SPANS font_spans me world // Store the cached font spans
 	  #! world                  = jsPutCleanVal JS_ATTR_TEXT_SPANS text_spans me world // Store the cached text width spans
-	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here
+	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
+	//#! (json,          world) = encodeOnClient (ClientHasNewTextMetrics new_font_spans new_text_spans) world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
 	  #! (cidJS,         world) = .? (me .# "attributes.taskId")   world
 	  #! (editId,        world) = .? (me .# "attributes.editorId") world
 	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
@@ -599,7 +601,9 @@ where
 	      | local									// the new model value is rendered entirely local on client
 	        = (jsNull,clientHandleModel svglet me model view world)
 	      | otherwise           					// the new model value is rendered on the server
-	      #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewModel model)))) world //TODO: Should not really print+parse here
+          #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewModel model)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
+		//#! (json,  world) = encodeOnClient (ClientHasNewModel model) world                                    //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
+	      #! world = jsTrace "After" world
 	      #! (editId,world) = .? (me .# "attributes.editorId") world
 	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	      = (jsNull, world)							// rendering is completed by clientHandleAttributeChange
