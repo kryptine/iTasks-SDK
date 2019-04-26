@@ -5,7 +5,7 @@ definition module iTasks.UI.Editor
 */
 
 from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange, :: TaskId
-from iTasks.UI.JS.Interface import :: JSWorld, :: JSVal
+from iTasks.UI.JavaScript import :: JSWorld, :: JSVal
 
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Generic.Defaults import generic gDefault

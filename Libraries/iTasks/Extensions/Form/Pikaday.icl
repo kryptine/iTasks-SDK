@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.Form.Pikaday
 
 import StdEnv
 import iTasks, Data.Func
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
 import iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Controls
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM

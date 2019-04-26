@@ -1,4 +1,4 @@
-implementation module iTasks.UI.JS.Interface
+implementation module iTasks.UI.JavaScript
 
 import StdEnv
 import StdGeneric

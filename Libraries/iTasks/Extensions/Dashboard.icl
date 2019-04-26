@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Dashboard
 import iTasks
-import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.JS.Interface
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.JavaScript
 import qualified Data.Map as DM, Data.Error
 import Text.HTML, StdMisc, StdArray, Data.Func
 

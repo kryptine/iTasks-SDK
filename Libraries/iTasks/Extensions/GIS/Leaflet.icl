@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.GIS.Leaflet
 
 import iTasks
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
 import StdMisc, Data.Tuple, Data.Error, Data.Func, Text, Data.Functor
 import qualified Data.Map as DM
 from Text.HTML import instance toString HtmlTag

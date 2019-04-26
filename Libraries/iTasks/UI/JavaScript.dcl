@@ -1,4 +1,4 @@
-definition module iTasks.UI.JS.Interface
+definition module iTasks.UI.JavaScript
 
 import StdGeneric
 from StdMaybe import :: Maybe
