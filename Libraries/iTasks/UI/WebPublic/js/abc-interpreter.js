@@ -62,7 +62,7 @@ const ABC={
 		ABC.interpreter.instance.exports.set_hp_free(
 			ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8);
 
-		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4]);
+		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4], {shared_clean_values:null}); // TODO link to the right component
 
 		return SharedCleanValue(index);
 	},
@@ -86,19 +86,34 @@ const ABC={
 
 	shared_clean_values: [], // pointers to the Clean heap
 	empty_shared_clean_values: [], // empty indexes in the above array
-	share_clean_value: function(ref) {
+	share_clean_value: function(ref, component) {
+		if (typeof component.shared_clean_values=='undefined')
+			throw 'could not attach shared Clean value to an iTasks component';
+		if (component.shared_clean_values==null)
+			component.shared_clean_values=new Set();
+
+		var record={ref: ref, component: component};
+		var i=null;
+
 		if (ABC.empty_shared_clean_values.length > 0) {
-			var i=ABC.empty_shared_clean_values.pop();
+			i=ABC.empty_shared_clean_values.pop();
 			if (ABC.shared_clean_values[i]!=null)
 				throw 'internal error in ABC.share_clean_value';
-			ABC.shared_clean_values[i]=ref;
-			return i;
+			ABC.shared_clean_values[i]=record;
 		} else {
-			ABC.shared_clean_values.push(ref);
-			return ABC.shared_clean_values.length-1;
+			i=ABC.shared_clean_values.length;
+			ABC.shared_clean_values.push(record);
 		}
+
+		component.shared_clean_values.add(i);
+
+		return i;
 	},
-	clear_shared_clean_value: function(ref) {
+	clear_shared_clean_value: function(ref, update_component=true) {
+		var component=ABC.shared_clean_values[ref].component;
+		if (update_component && typeof component.shared_clean_values!='undefined')
+			component.shared_clean_values.delete(ref);
+
 		ABC.shared_clean_values[ref]=null;
 		ABC.empty_shared_clean_values.push(ref);
 	},
@@ -311,10 +326,10 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					return 0;
 				if (ABC.shared_clean_values[index]==null)
 					return -1;
-				return ABC.shared_clean_values[index];
+				return ABC.shared_clean_values[index].ref;
 			},
 			update_host_reference: function (index, new_location) {
-				ABC.shared_clean_values[index]=new_location;
+				ABC.shared_clean_values[index].ref=new_location;
 			},
 
 			gc_start: function() {
@@ -348,7 +363,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					case 0: console.log('loop',a,'/',b,'; hp at',c); break;
 					case 1: console.log('desc',a); break;
 					case 2: console.log('hnf, arity',a); break;
-					case 3: console.log('thunk, arity',a); break;
+					case 3: console.log('thunk, arities',a,b,c); break;
 				}
 			}
 		}}
@@ -401,23 +416,18 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
 						case 4: /* iTasks.UI.JS.Interface: share */
-							var index=ABC.share_clean_value(ABC.memory_array[asp/4]);
 							var attach_to=ABC.memory_array[bsp/4];
-							if (typeof ABC.js[attach_to].shared_clean_values=='undefined')
-								throw 'could not attach shared Clean value to an iTasks component';
-							if (ABC.js[attach_to].shared_clean_values==null)
-								ABC.js[attach_to].shared_clean_values=[];
-							ABC.js[attach_to].shared_clean_values.push(index);
+							var index=ABC.share_clean_value(ABC.memory_array[asp/4],ABC.js[attach_to]);
 							ABC.memory_array[bsp/4]=index;
 							break;
 						case 5: /* iTasks.UI.JS.Interface: fetch */
 							var index=ABC.memory_array[bsp/4];
-							ABC.memory_array[asp/4]=ABC.shared_clean_values[index];
+							ABC.memory_array[asp/4]=ABC.shared_clean_values[index].ref;
 							break;
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							var shared_clean_value=ABC.deserialize(string);
-							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index];
+							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index].ref;
 							break;
 						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */
 							var array=ABC.memory_array[asp/4]+24;
@@ -570,7 +580,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 
 		ABC.memory_array[asp/4]=(31+17*2)*8; // JSWorld: INT 17
 		ABC.memory_array[asp/4+2]=hp;
-		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index];
+		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index].ref;
 
 		ABC.interpreter.instance.exports.set_asp(asp+16);
 		const copied=ABC.copy_js_to_clean(args, asp+8, hp, hp_free);

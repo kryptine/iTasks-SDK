@@ -244,10 +244,13 @@ itasks.Component = {
 	shared_clean_values: null,
 	_beforeRemove: function() {
 		this.beforeRemove();
+
 		if (this.shared_clean_values!=null) {
-			this.shared_clean_values.forEach(ABC.clear_shared_clean_value); // garbage collect any remaining values shared with wasm
-			this.shared_clean_values=null;
+			// garbage collect any remaining values shared with wasm
+			this.shared_clean_values.forEach(ref => ABC.clear_shared_clean_value(ref,false));
+			this.shared_clean_values.clear();
 		}
+
 		this.children.forEach(child => child._beforeRemove());
 	},
 	setAttribute: function(name,value) {
