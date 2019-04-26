@@ -80,7 +80,7 @@ where
 		# value             = jsValToString value
 		# (taskId,world)    = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# (_,world)         = (me .# "doEditEvent" .$ (taskId, editorId, toString (toJSON value))) world
+		# (_,world)         = (me .# "doEditEvent" .$ (taskId, editorId, toJSON value)) world
 		= world
 
 	onKeyup me args world
