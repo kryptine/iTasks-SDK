@@ -67,11 +67,11 @@ where
 	initUI me world
 	// Set attributes
 	# world                       = (me .# "clickCount" .= 0) world
-	# world                       = (me .# "dragState" .= jsMakeCleanReference initDragState) world
+	# world                       = (me .# "dragState" .= jsMakeCleanReference initDragState me) world
 	// Set methods
-	# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+	# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) me world
 	# world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
-	# (jsInitDOMEl,world)         = jsWrapFun (initDOMEl me) world
+	# (jsInitDOMEl,world)         = jsWrapFun (initDOMEl me) me world
 	# world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
 	= world
 	where
@@ -144,8 +144,8 @@ onNewState me svglet=:{initView,renderImage} s world
   #! (cidJS,world)                 = me .# "attributes.taskId" .? world
   #! (Just cid)                    = jsValToString cidJS
   #! v                             = initView s
-  #! world                         = (me .# "view"  .= jsMakeCleanReference v) world // Store the view value on the component
-  #! world                         = (me .# "model" .= jsMakeCleanReference s) world // Store the view value on the component
+  #! world                         = (me .# "view"  .= jsMakeCleanReference v me) world // Store the view value on the component
+  #! world                         = (me .# "model" .= jsMakeCleanReference s me) world // Store the view value on the component
   #! (font_spans,text_spans,world) = loadCachedTextSpans world
   #! image`                        = renderImage s v (imgTagSource cid)
   #! (img,{ImgTables | imgEventhandlers=es,imgNewFonts=new_fonts,imgNewTexts=new_txts,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags})
@@ -298,8 +298,8 @@ registerEventhandlers me svglet cid svg es tags world
   #! (svgRoot,world)     = domEl .# "firstChild" .? world
   #! idMap               = invertToMapSet (fmap (mkUniqId cid) tags)
 // all draggable elements share a common mousemove and mouseup event:
-  #! (cbMove, world)     = jsWrapFun (doMouseDragMove me svglet svgRoot) world
-  #! (cbUp,   world)     = jsWrapFun (doMouseDragUp me svglet svgRoot idMap) world
+  #! (cbMove, world)     = jsWrapFun (doMouseDragMove me svglet svgRoot) me world
+  #! (cbUp,   world)     = jsWrapFun (doMouseDragUp me svglet svgRoot idMap) me world
   #! (_,      world)     = (svgRoot `addEventListener` ("mousemove", cbMove, True)) world
   #! (_,      world)     = (svgRoot `addEventListener` ("mouseup",   cbUp,   True)) world
 // register all individual event handlers:
@@ -327,7 +327,7 @@ where
 actuallyRegister :: !JSVal !(SVGEditor s v) !JSObj !String !String !(v -> v) !Bool! *JSWorld -> *JSWorld | JSONEncode{|*|} s
 actuallyRegister me svglet svg elemId evt sttf local world
   #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-  #! (cb,  world) = jsWrapFun (doImageEvent me svglet svg elemId sttf local) world
+  #! (cb,  world) = jsWrapFun (doImageEvent me svglet svg elemId sttf local) me world
   #! (_,   world) = (elem `addEventListener` (evt, cb, True)) world
   = world
 
@@ -339,8 +339,8 @@ doImageEvent me svglet svg elemId sttf local _ world
 // Update the view & the model
   #! view             = sttf view
   #! model            = svglet.SVGEditor.updModel model view
-  #! world            = (me .# "view"  .= jsMakeCleanReference view) world
-  #! world            = (me .# "model" .= jsMakeCleanReference model) world
+  #! world            = (me .# "view"  .= jsMakeCleanReference view me) world
+  #! world            = (me .# "model" .= jsMakeCleanReference model me) world
 // If not local, fire an itasks edit event 
   | local
 // Don't trigger an event, just re-render
@@ -355,7 +355,7 @@ doImageEvent me svglet svg elemId sttf local _ world
 registerNClick :: !JSVal !(SVGEditor s v) !JSObj !String !(Int v -> v) !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 registerNClick me svglet svg elemId sttf local world
   #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-  #! (cb,  world) = jsWrapFun (mkNClickCB me svglet svg elemId sttf local) world
+  #! (cb,  world) = jsWrapFun (mkNClickCB me svglet svg elemId sttf local) me world
   #! (_,   world) = (elem `addEventListener` ("click", cb, False)) world
   = world
 
@@ -366,7 +366,7 @@ mkNClickCB me svglet svg elemId sttf local args world
   #! (to,world)      = me .# "clickTimeOut" .? world
   #! world           = if (jsIsUndefined to || jsIsNull to) world ((jsGlobal "clearTimeout" .$! to) world)
 // Register a callback for the click after a small timeout
-  #! (cb,world)      = jsWrapFun (doNClickEvent me svglet svg elemId sttf local) world
+  #! (cb,world)      = jsWrapFun (doNClickEvent me svglet svg elemId sttf local) me world
   #! (to,world)  	 =  (jsGlobal "setTimeout" .$ (cb, CLICK_DELAY)) world
   #! world           = (me .# "clickTimeOut" .= to) world
 // Increase click counter, so we can determine how many times the element was clicked when the timeout passes
@@ -386,7 +386,7 @@ doNClickEvent me svglet svg elemId sttf local args world
 registerDraggable :: !JSVal !(SVGEditor s v) !JSObj !String !(SVGDragFun v) !*JSWorld -> *JSWorld
 registerDraggable me svglet svg elemId f world
   #! (elem,  world) = (svg .# "getElementById" .$ elemId) world
-  #! (cbDown,world) = jsWrapFun (doMouseDragDown me svglet svg f elemId elem) world
+  #! (cbDown,world) = jsWrapFun (doMouseDragDown me svglet svg f elemId elem) me world
   #! (_,     world) = (elem `addEventListener` ("mousedown", cbDown, True)) world
   = world
 
@@ -414,7 +414,7 @@ doMouseDragDown me svglet svgRoot sttf elemId elem args world
                                   , svgGrabPointX   = ds.SVGDragState.svgTrueCoordsX - e
                                   , svgGrabPointY   = ds.SVGDragState.svgTrueCoordsY - f
                              }
-  #!                world  = (me .# "dragState" .= jsMakeCleanReference ds) world
+  #!                world  = (me .# "dragState" .= jsMakeCleanReference ds me) world
   = world
 
 doMouseDragMove :: !JSVal !(SVGEditor s v) !JSObj !{!JSVal} !*JSWorld -> *JSWorld
@@ -428,7 +428,7 @@ doMouseDragMove me svglet svgRoot args world
  	                   | ds & svgTrueCoordsX = newTrueCoordsX
  	                        , svgTrueCoordsY = newTrueCoordsY
  	                   }
-    #! world         = (me .# "dragState" .= jsMakeCleanReference ds) world
+    #! world         = (me .# "dragState" .= jsMakeCleanReference ds me) world
     = world
   #! dragTarget      = fromJust ds.SVGDragState.svgDragTarget
   #! (domEl,  world) = me .# "domEl" .? world
@@ -444,7 +444,7 @@ doMouseDragMove me svglet svgRoot args world
                       | ds & svgTrueCoordsX = newTrueCoordsX
                            , svgTrueCoordsY = newTrueCoordsY
                       }
-  #! world          = (me .# "dragState" .= jsMakeCleanReference ds) world
+  #! world          = (me .# "dragState" .= jsMakeCleanReference ds me) world
   = world
 
 doMouseDragUp :: !JSVal !(SVGEditor s v) !JSObj !(Map String (Set ImageTag)) !{!JSVal} !*JSWorld -> *JSWorld
@@ -456,7 +456,7 @@ doMouseDragUp me svglet svgRoot idMap args world
                          | ds & svgMousePos   = MouseUp
                               , svgDragTarget = Nothing
                          }
-    #! world           = (me .# "dragState" .= jsMakeCleanReference ds) world
+    #! world           = (me .# "dragState" .= jsMakeCleanReference ds me) world
   	= world
   #! (evtTarget,world) = evt .# "target" .? world
   #! dragTarget        = fromJust ds.SVGDragState.svgDragTarget
@@ -473,9 +473,9 @@ doMouseDragUp me svglet svgRoot idMap args world
                          | ds & svgMousePos   = MouseUp
                               , svgDragTarget = Nothing
                          }
-  #! world             = (me .# "view" .= jsMakeCleanReference view) world
-  #! world             = (me .# "model" .= jsMakeCleanReference model) world
-  #! world             = (me .# "dragState" .= jsMakeCleanReference ds) world
+  #! world             = (me .# "view" .= jsMakeCleanReference view me) world
+  #! world             = (me .# "model" .= jsMakeCleanReference model me) world
+  #! world             = (me .# "dragState" .= jsMakeCleanReference ds me) world
   = world
 
 firstIdentifiableParentId :: !JSObj !*JSWorld -> *(!String, !*JSWorld)

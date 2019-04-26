@@ -24,21 +24,21 @@ where
 		//Load css
 		# world      = addCSSFromUrl PIKADAY_CSS_URL world
 		//Defer further action till after the field is created...
-		# (cb,world) = jsWrapFun (initDOMEl me) world
+		# (cb,world) = jsWrapFun (initDOMEl me) me world
 		# world      = (me .# "initDOMEl" .= cb) world
-		# (cb,world) = jsWrapFun (beforeRemove me) world
+		# (cb,world) = jsWrapFun (beforeRemove me) me world
 		# world      = (me .# "beforeRemove" .= cb) world
 		= world
 
 	beforeRemove me args = snd o (me .# "picker" .# "destroy" .$ ())
 
 	initDOMEl me args world
-		# (cb,world) = jsWrapFun (initDOMEl` me) world
+		# (cb,world) = jsWrapFun (initDOMEl` me) me world
 		# world      = addJSFromUrl MOMENT_JS_URL (Just cb) world
 		= world
 
 	initDOMEl` me args world
-		# (cb,world) = jsWrapFun (initDOMEl`` me) world
+		# (cb,world) = jsWrapFun (initDOMEl`` me) me world
 		# world      = addJSFromUrl PIKADAY_JS_URL (Just cb) world
 		= world
 
@@ -48,8 +48,8 @@ where
 		# (domEl,world)     = me .# "domEl" .? world
 		# world             = (domEl .# "value" .= value) world
 		//Create onselect/keyup
-		# (onSelectCb,world) = jsWrapFun (onSelect me) world
-		# (onKeyupCb,world)  = jsWrapFun (onKeyup me) world
+		# (onSelectCb,world) = jsWrapFun (onSelect me) me world
+		# (onKeyupCb,world)  = jsWrapFun (onKeyup me) me world
 		# (cfg,world)        = jsEmptyObject world
 		# world              = (cfg .# "field" .= domEl) world
 		# world              = (cfg .# "format" .= "YYYY-MM-DD") world
@@ -59,7 +59,7 @@ where
 		# (picker,world)     = jsNew "Pikaday" cfg world
 		# world              = (me .# "picker" .= picker) world
 		//Handle attribute changes
-		# (cb,world)         = jsWrapFun (onAttributeChange picker me) world
+		# (cb,world)         = jsWrapFun (onAttributeChange picker me) me world
 		# world              = (me .# "onAttributeChange" .= cb) world
 		//React to selects
 		= world

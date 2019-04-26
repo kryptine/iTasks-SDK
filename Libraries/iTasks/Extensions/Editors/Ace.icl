@@ -53,10 +53,10 @@ where
 	initUI me world
 		//Setup UI component
 		# world      = ((me .# "domTag") .= "pre") world
-		# (cb,world) = jsWrapFun (onAttributeChange me) world
+		# (cb,world) = jsWrapFun (onAttributeChange me) me world
 		# world      = ((me .# "onAttributeChange") .= cb) world
 		//Load Ace javascript
-		# (cb,world) = jsWrapFun (\_ -> initUI` me) world
+		# (cb,world) = jsWrapFun (\_ -> initUI` me) me world
 		# world      = addJSFromUrl ACE_JS_URL (Just cb) world
 		= world
 
@@ -87,11 +87,11 @@ where
 		# (selattr,world)     = me .# "attributes.selection" .? world
 		# world = if (jsIsNull selattr) world (snd (((selection .# "setSelectionRange") .$ value) world))
 		//Add event listeners
-		# (cb,world)     = jsWrapFun (\_ -> onChange editor me) world
+		# (cb,world)     = jsWrapFun (\_ -> onChange editor me) me world
 		# (_,world)      = ((editor .# "on") .$ ("change",cb)) world
-		# (cb,world)     = jsWrapFun (\_ -> onCursorChange selection me) world
+		# (cb,world)     = jsWrapFun (\_ -> onCursorChange selection me) me world
 		# (_,world)      = ((selection .# "on") .$ ("changeCursor",cb)) world
-		# (cb,world)     = jsWrapFun (\_ -> onSelectionChange selection me) world
+		# (cb,world)     = jsWrapFun (\_ -> onSelectionChange selection me) me world
 		# (_,world)      = ((selection .# "on") .$ ("changeSelection",cb)) world
 		= world
 

@@ -206,7 +206,7 @@ itasks.Component = {
 	removeChild: function(idx = 0) {
 		var me = this, child = me.children[idx];
 
-		child.beforeRemove();
+		child._beforeRemove();
 		me.beforeChildRemove(idx,child);
 
 		if(me.initialized && child.domEl) {
@@ -236,10 +236,19 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
+	/* beforeRemove can be overwritten to add a handler for 'destroy' events.
+	 * _beforeRemove is internal and should not be overwritten.
+	 */
 	beforeRemove: function() {
-		this.children.forEach(function (child){
-			child.beforeRemove();
-		});
+	},
+	shared_clean_values: null,
+	_beforeRemove: function() {
+		this.beforeRemove();
+		if (this.shared_clean_values!=null) {
+			this.shared_clean_values.forEach(ABC.clear_shared_clean_value); // garbage collect any remaining values shared with wasm
+			this.shared_clean_values=null;
+		}
+		this.children.forEach(child => child._beforeRemove());
 	},
 	setAttribute: function(name,value) {
 		var me = this;
@@ -459,6 +468,9 @@ itasks.Viewport = {
 		if(instanceNo) {
 			me.connection.detachTaskInstance(instanceNo);
 		}
+	},
+	_beforeRemove: function() {
+		this.beforeRemove();
 	}
 };
 
@@ -467,7 +479,8 @@ itasks.Viewport = {
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
 	init: function () { return this; },
-    beforeRemove: function() {}
+	beforeRemove: function() {},
+	_beforeRemove: function() {},
 };
 
 //Convenience function for concisely creating viewports

@@ -100,8 +100,8 @@ where
 hex_chars :: {#Char}
 hex_chars =: "0123456789abcdef"
 
-jsMakeCleanReference :: a -> JSVal
-jsMakeCleanReference x = share x
+jsMakeCleanReference :: a !JSVal -> JSVal
+jsMakeCleanReference x attach_to = share attach_to x
 
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
@@ -345,8 +345,8 @@ jsEmptyObject w = (eval_js_with_return_value "{}", w)
 jsGlobal :: !String -> JSVal
 jsGlobal s = JSVar s
 
-jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun, !*JSWorld)
-jsWrapFun f world = (cast (share \(JSArray args) w -> f args w), world)
+jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
+jsWrapFun f attach_to world = (cast (share attach_to \(JSArray args) w -> f args w), world)
 
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 wrapInitUIFunction f = cast init
@@ -446,12 +446,13 @@ eval_js_with_return_value s = code {
 	pop_a 1
 }
 
-share :: !a -> JSVal
-share x = JSCleanRef (get_shared_value_index x)
+share :: !JSVal !a -> JSVal
+share attach_to x = case attach_to of
+	JSRef r -> JSCleanRef (get_shared_value_index x r)
+	_       -> abort "when sharing a value from Clean to JS it must be linked to an iTasks component\n"
 where
-	get_shared_value_index :: !a -> Int
-	get_shared_value_index _ = code {
-		pushI 0 | to return the result
+	get_shared_value_index :: !a !Int -> Int
+	get_shared_value_index _ _ = code {
 		instruction 4
 		pop_a 1
 	}

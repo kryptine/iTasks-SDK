@@ -111,7 +111,7 @@ where
                           in uia UIData dataMap`
 
 	initUI me world
-		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
+		# (jsInitDOM,world) = jsWrapFun (initDOM me) me world
 		//Check if the leaflet library is loaded and either load it,
 		//and delay dom initialization or set the initDOM method to continue
 		//as soon as the component's DOM element is available
@@ -162,25 +162,25 @@ where
 		# (objects,world)   = me .# "children" .? world
 		# world             = createMapObjects viewMode me mapObj objects world
 		//Add event handlers
-		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world
+		# (cb,world)       = jsWrapFun (\a w -> onResize me w) me world
 		# world            = (me .# "onResize" .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onShow me w) world
+		# (cb,world)       = jsWrapFun (\a w -> onShow me w) me world
 		# world            = (me .# "onShow" .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world
+		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) me world
 		# world            = (me .# "onAttributeChange" .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert viewMode me a w) world
+		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert viewMode me a w) me world
 		# world            = (me .# "afterChildInsert" .= cb) world
-		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world
+		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) me world
 		# world            = (me .# "beforeChildRemove" .= cb) world
 		# world = case viewMode of
             True
 				= world
 			False
-				# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) me world
 				# world            = (mapObj .# "addEventListener" .$! ("dragend",cb)) world
-				# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) me world
 				# world            = (mapObj .# "addEventListener" .$! ("zoomend",cb)) world
-				# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) world
+				# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) me world
 				# world            = (mapObj .# "addEventListener" .$! ("click",cb)) world
 				= world
 		= world
@@ -388,7 +388,7 @@ where
         //Store marker ID, needed for related markers of windows
         # world               = (layer .# "markerId" .= markerId) world
 		//Set click handler
-		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (LeafletObjectID (jsValToString` "" markerId)) a w) world
+		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (LeafletObjectID (jsValToString` "" markerId)) a w) me world
         # world               = (layer .# "addEventListener" .$! ("click",cb)) world
         //Add to map
         # world               = (layer .# "addTo" .$! mapObj) world
@@ -497,7 +497,7 @@ where
 		# (isEditable,world)  = object .# "attributes.editable" .? world
 		| not $ jsValToBool` False isEditable = world
 		# (_, world)  = (layer .# "enableEdit" .$ ()) world
-		# (cb, world) = jsWrapFun (onEditing layer) world
+		# (cb, world) = jsWrapFun (onEditing layer) me world
 		# (_, world)  = (layer .# "addEventListener" .$ ("editable:vertex:dragend", cb)) world
 		# (_, world)  = (layer .# "addEventListener" .$ ("editable:vertex:new",     cb)) world
 		# (_, world)  = (layer .# "addEventListener" .$ ("editable:vertex:deleted", cb)) world
@@ -553,10 +553,10 @@ where
 				= world
 			False
                 # (windowId,world)   = object .# "attributes.windowId" .? world
-                # (onWRemove, world) = jsWrapFun (onWindowRemove me (LeafletObjectID (jsValToString` "" windowId))) world
+                # (onWRemove, world) = jsWrapFun (onWindowRemove me (LeafletObjectID (jsValToString` "" windowId))) me world
                 = (layer .# "_onWindowClose" .= onWRemove) world
         // inject function to handle window update
-        # (cb,world)         = jsWrapFun (onUIChange layer) world
+        # (cb,world)         = jsWrapFun (onUIChange layer) me world
         # world              = ((object .# "onUIChange") .= cb) world
         // add to map
         # world              = (layer .# "addTo" .$! mapObj) world

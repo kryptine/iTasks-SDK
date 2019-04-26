@@ -51,7 +51,7 @@ where
 
 	initUI me world
 		//Register listener for ui diffs from the server
-		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) me world
 		# world = (me .# "onAttributeChange" .= jsOnAttributeChange) world
 		= world
 

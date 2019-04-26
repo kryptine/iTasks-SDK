@@ -401,7 +401,14 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
 						case 4: /* iTasks.UI.JS.Interface: share */
-							ABC.memory_array[bsp/4]=ABC.share_clean_value(ABC.memory_array[asp/4]);
+							var index=ABC.share_clean_value(ABC.memory_array[asp/4]);
+							var attach_to=ABC.memory_array[bsp/4];
+							if (typeof ABC.js[attach_to].shared_clean_values=='undefined')
+								throw 'could not attach shared Clean value to an iTasks component';
+							if (ABC.js[attach_to].shared_clean_values==null)
+								ABC.js[attach_to].shared_clean_values=[];
+							ABC.js[attach_to].shared_clean_values.push(index);
+							ABC.memory_array[bsp/4]=index;
 							break;
 						case 5: /* iTasks.UI.JS.Interface: fetch */
 							var index=ABC.memory_array[bsp/4];

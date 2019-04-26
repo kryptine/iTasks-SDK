@@ -17,7 +17,7 @@ derive gToJS JSVal, Maybe, [], (,), (,,), (,,,), (,,,,), JSONNode
 derive gToJS PAIR, FIELD of {gfd_name}, RECORD
 toJS x :== gToJS{|*|} x
 
-jsMakeCleanReference :: a -> JSVal
+jsMakeCleanReference :: a !JSVal -> JSVal
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 
 jsTypeOf :: !JSVal -> JSVal
@@ -73,7 +73,7 @@ jsThis :== jsGlobal "this"
 jsWindow :== jsGlobal "window"
 jsDocument :== jsGlobal "document"
 
-jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !*JSWorld -> *(!JSFun, !*JSWorld)
+jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 
