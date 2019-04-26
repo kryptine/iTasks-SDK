@@ -8,12 +8,11 @@ import StdEnum, StdFunctions, StdReal
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Rotates"
-		[ViewUsing id (fromSVGEditor
-	    	{ initView    = id
-	        , renderImage = const rotates
-	        , updModel    = \_ v = v
-	        })] 0) world
+	= doTasks (viewInformation "Rotates" [ViewUsing id (fromSVGEditor
+												    	{ initView    = id
+												        , renderImage = const rotates
+												        , updModel    = \_ v = v
+												        })] 0) world
 
 /** rotates model tags = image:
 	@image displays a sequence of rotated rectangles

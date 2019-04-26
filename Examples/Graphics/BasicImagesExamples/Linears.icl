@@ -2,7 +2,6 @@ module Linears
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions, StdList
@@ -16,12 +15,11 @@ blue			= toSVGColor "blue"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Linears"
-		[ViewUsing id (fromSVGEditor
-			{ initView    = id
-			, renderImage = const linears
-			, updModel    = \_ v = v
-			})] 0) world
+	= doTasks (viewInformation "Linears" [ViewUsing id (fromSVGEditor
+														{ initView    = id
+														, renderImage = const linears
+														, updModel    = \_ v = v
+														})] 0) world
 
 /**	linears model tags = image:
 	@image shows all beside and above combinations.
@@ -36,7 +34,7 @@ linears model tags
 		              , above (repeat AtLeft) [] Nothing []
 		                  [ beside (repeat AtMiddleY) [] Nothing []
 		                       [ beside (repeat y_align) [] Nothing [] discs NoHost
-		                       , txt ("  " <+ y_align <+ "*")
+		                       , txt ("  " <+++ y_align <+++ "*")
 		                       ] NoHost
 		                  \\ y_align <- [AtTop,AtMiddleY,AtBottom]
 		                  ] NoHost
@@ -45,7 +43,7 @@ linears model tags
 		              [ txt "  above  " <@< {stroke = blue} <@< {fill = blue}
 		              , beside (repeat AtTop) [] Nothing []
 		                  [ above (repeat AtMiddleX) [] Nothing []
-		                       [ txt ("  " <+ x_align <+ "*")
+		                       [ txt ("  " <+++ x_align <+++ "*")
 		                       , above (repeat x_align) [] Nothing [] discs NoHost
 		                       ] NoHost
 		                  \\ x_align <- [AtLeft,AtMiddleX,AtRight]
@@ -78,6 +76,4 @@ where
 discs :: [Image m]
 discs = [circle (px 15.0 + px 8.0 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
 
-derive gPrint XAlign, YAlign
-instance toString XAlign where toString x = printToString x
-instance toString YAlign where toString x = printToString x
+derive gText XAlign, YAlign
