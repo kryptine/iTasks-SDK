@@ -40,7 +40,7 @@ const ABC={
 			console.log(ABC.log_buffer);
 	},
 
-	deserialize: function(string) {
+	deserialize: function (string, component) {
 		var array=new Int8Array(string.length);
 		for (var i in string)
 			array[i]=string.charCodeAt(i);
@@ -62,7 +62,7 @@ const ABC={
 		ABC.interpreter.instance.exports.set_hp_free(
 			ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8);
 
-		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4], {shared_clean_values:null}); // TODO link to the right component
+		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4], component);
 
 		return SharedCleanValue(index);
 	},
@@ -425,8 +425,9 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[index].ref;
 							break;
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
+							var attach_to=ABC.memory_array[bsp/4];
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							var shared_clean_value=ABC.deserialize(string);
+							var shared_clean_value=ABC.deserialize(string,ABC.js[attach_to]);
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index].ref;
 							break;
 						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */

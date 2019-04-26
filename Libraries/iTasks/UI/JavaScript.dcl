@@ -77,7 +77,7 @@ jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JS
 
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 
-jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph :: !String !JSVal !*JSWorld -> *(!.a, !*JSWorld)
 
 /**
  * Load external CSS stylesheet by its URL.

@@ -37,7 +37,7 @@ itasks.Component = {
 	initUI: function() {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
-			var initUI=ABC.deserialize(me.attributes.initUI);
+			var initUI=ABC.deserialize(me.attributes.initUI,me);
 			ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
 		}
 	},

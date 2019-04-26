@@ -89,7 +89,7 @@ where
 			= case jsValToString value of
 				Nothing -> world
 				Just graph
-					# (value,world) = (jsDeserializeGraph graph world)
+					# (value,world) = (jsDeserializeGraph graph me world)
 					-> onNewState me svglet value world
 	
 		onAttributeChange me {[0]=name,[1]=value} world
@@ -97,7 +97,7 @@ where
 				= case jsValToString value of
 					Nothing -> world
 					Just graph
-						# (value,world) = jsDeserializeGraph graph world
+						# (value,world) = jsDeserializeGraph graph me world
 						-> onNewState me svglet value world
 			| otherwise
 				= jsTrace "Unknown attribute change" world
