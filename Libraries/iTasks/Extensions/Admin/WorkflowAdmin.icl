@@ -98,7 +98,7 @@ instance Startable WorkflowCollection
 where
 	toStartable {WorkflowCollection|name,loginMessage,welcomeMessage,allowGuests,workflows} =
 		[onStartup (installWorkflows workflows)
-		,onStartup installDemoUsers
+		,onStartup importDemoUsersFlow
 		,onRequest "/" (loginAndManageWork name loginMessage welcomeMessage allowGuests)
 		]
 
@@ -109,11 +109,6 @@ installWorkflows iflows
 	>>- \flows -> case flows of
 		[]	= set iflows workflows @! ()
 		_	= return ()
-
-installDemoUsers :: Task ()
-installDemoUsers
-	=   try (get users) (\(StoreReadBuildVersionError _) -> return [])
-	>>- \us -> if (length us <= 1) (importDemoUsersFlow @! ()) (return ()) //No users, or just a single root user
 
 loginAndManageWork :: !String !(Maybe HtmlTag) !(Maybe HtmlTag) !Bool -> Task ()
 loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
