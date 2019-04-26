@@ -140,7 +140,7 @@ where
 	browseAuthenticated workflows {Credentials|username,password}
 		= remoteAuthenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user manageWorkOfCurrentUser
+			Just user 	= workAs user (manageWorkOfCurrentUser Nothing)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 
 Start :: *World -> *World
