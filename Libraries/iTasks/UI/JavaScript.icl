@@ -116,14 +116,16 @@ jsMakeCleanReference x attach_to = share attach_to x
 
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
-	JSCleanRef i -> (Just (fetch i), w)
+	JSCleanRef i -> case fetch i of
+		(val,True) -> (Just val, w)
 	_            -> if (1==1) (Nothing, w) (abort_with_node v)
 where
-	fetch :: !Int -> a
+	fetch :: !Int -> (!a, !Bool)
 	fetch _ = code {
 		create
 		instruction 5
 		pop_b 1
+		pushB TRUE
 	}
 
 jsTypeOf :: !JSVal -> JSVal
@@ -364,10 +366,12 @@ wrapInitUIFunction f = cast init
 where
 	init :: !{!JSVal} !*JSWorld -> *JSWorld
 	init args w
-	# is_initialized = get_arg args.[1] <> 1
-	| not is_initialized && init val = abort "internal error in wrapInitUIFunction\n"
-	# js_ref = JSRef (get_arg args.[0])
-	= f js_ref w
+	# (needs_init,ok) = get_arg args.[1]
+	| not ok = abort "internal error in wrapInitUIFunction\n"
+	| needs_init==1 && init val = abort "internal error in wrapInitUIFunction\n"
+	# (ref,ok) = get_arg args.[0]
+	| not ok = abort "internal error in wrapInitUIFunction\n"
+	= f (JSRef ref) w
 	where
 		// This function ensures that the client knows the addresses of some
 		// of the constructors which it needs to know.
@@ -391,8 +395,9 @@ where
 			, JSCleanRef 0
 			}
 
-		get_arg :: !a -> Int
+		get_arg :: !a -> (!Int,!Bool)
 		get_arg _ = code {
+			pushB TRUE
 			repl_r_args 0 1
 		}
 
