@@ -66,6 +66,17 @@ where
 			JSRef i -> "ABC.js["+++toString i+++"]"
 			JSCleanRef i -> "ABC.ap("+++toString i+++")"
 
+			_ -> missing_case v
+
+		missing_case :: !JSVal -> a
+		missing_case _ = code {
+			print "missing case in toString JSVal:\n"
+			.d 1 0
+			jsr _print_graph
+			.o 0 0
+			halt
+		}
+
 escape_js_string :: !String -> String
 escape_js_string s
 # escaped_len = escaped_size (size s-1) s 0

@@ -1,6 +1,7 @@
 "use strict";
 
 var ABC_DEBUG=false;
+var ABC_TRACE_LENGTH=50;
 
 function SharedCleanValue(index) {
 	return {
@@ -41,6 +42,15 @@ const ABC={
 	},
 
 	deserialize: function (string, component) {
+		var max_words_needed=string.length/8*4; // rough upper bound
+		if (ABC.interpreter.instance.exports.get_hp_free() < max_words_needed) {
+			console.warn('gc from js');
+			ABC.util.instance.exports.gc();
+
+			if (ABC.interpreter.instance.exports.get_hp_free() < max_words_needed)
+				throw 'not enough heap to deserialize: '+string;
+		}
+
 		var array=new Int8Array(string.length);
 		for (var i in string)
 			array[i]=string.charCodeAt(i);
@@ -49,7 +59,6 @@ const ABC={
 		for (var i=0; i<graph.length; i++)
 			ABC.memory_array[unused_semispace/4+i]=graph[i];
 
-		// TODO: maybe garbage collection is needed
 		var old_hp=ABC.interpreter.instance.exports.get_hp();
 		var new_hp=ABC.util.instance.exports.copy_from_string(
 			unused_semispace,
@@ -59,8 +68,12 @@ const ABC={
 			old_hp,
 			ABC.code_offset*8);
 		ABC.interpreter.instance.exports.set_hp(new_hp);
-		ABC.interpreter.instance.exports.set_hp_free(
-			ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8);
+
+		var new_hp_free=ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8;
+		if (ABC.interpreter.instance.exports.get_hp_free() < 0)
+			throw 'hp_free was '+new_hp_free+' after deserialize: '+string;
+
+		ABC.interpreter.instance.exports.set_hp_free(new_hp_free);
 
 		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4], component);
 
@@ -476,7 +489,19 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				if (abc_instructions[instr]=='instruction')
 					/* `instruction 0` ends the interpretation, so this is no error */
 					return;
-				throw ('illegal instruction '+instr+' ('+abc_instructions[instr]+') at address '+(addr/8-1));
+				var trace=['illegal instruction',instr,'('+abc_instructions[instr]+'); stack trace:\n','  {0}',addr/8-ABC.code_offset,'\n'];
+				var csp=ABC.interpreter.instance.exports.get_csp();
+				for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
+					var addr=ABC.memory_array[csp/4];
+					if (addr==0)
+						break;
+					trace.push('  {'+i+'}');
+					trace.push(addr/8-ABC.code_offset);
+					trace.push('\n');
+					csp-=8;
+				}
+				console.error.apply(null,trace);
+				throw 'illegal instruction';
 			},
 			out_of_memory: function () {
 				ABC.empty_log_buffer();
@@ -495,9 +520,9 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				ABC.log(String.fromCharCode(v));
 			},
 			print_int: function (high,low) {
-				if (high==0 && low>=0) {
+				if ((high==0 && low>=0) || (high==-1 && low<0)) {
 					ABC.log(low);
-				} else {
+				} else if (typeof BigInt!='undefined') {
 					var n=BigInt(high)*BigInt(2)**BigInt(32);
 					if (low<0) {
 						n+=BigInt(2)**BigInt(31);
@@ -505,6 +530,9 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					}
 					n+=BigInt(low);
 					ABC.log(n);
+				} else {
+					console.warn('ABC.log: truncating 64-bit integer because this browser has no BigInt');
+					ABC.log(low);
 				}
 			},
 			print_bool: function (v) {
@@ -603,4 +631,6 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		ABC.interpreter.instance.exports.set_pc(old_pc);
 		ABC.interpreter.instance.exports.set_asp(old_asp);
 	};
+
+	delete ABC.prog;
 });
