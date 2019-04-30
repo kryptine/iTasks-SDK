@@ -3,6 +3,21 @@
 var ABC_DEBUG=false;
 var ABC_TRACE_LENGTH=50;
 
+class ABCError extends Error {
+	constructor(desc,arg) {
+		super(desc);
+
+		switch (desc) {
+			case 'illegal instruction':
+				this.message+=' '+arg+' ('+abc_instructions[arg]+')';
+				break;
+			case 'unknown instruction':
+				this.message+=' '+arg;
+				break;
+		}
+	}
+}
+
 function SharedCleanValue(index) {
 	return {
 		shared_clean_value_index: index
@@ -70,7 +85,7 @@ const ABC={
 		ABC.interpreter.instance.exports.set_hp(new_hp);
 
 		var new_hp_free=ABC.interpreter.instance.exports.get_hp_free()-(new_hp-old_hp)/8;
-		if (ABC.interpreter.instance.exports.get_hp_free() < 0)
+		if (new_hp_free<0)
 			throw 'hp_free was '+new_hp_free+' after deserialize: '+string;
 
 		ABC.interpreter.instance.exports.set_hp_free(new_hp_free);
@@ -186,7 +201,7 @@ const ABC={
 				ABC.memory_array[hp/4+2]=values[i].length;
 				ABC.memory_array[hp/4+3]=0;
 				var array=new Int8Array(((values[i].length+3)>>2)<<2);
-				for (var j in values[i])
+				for (var j=0; j<values[i].length; j++)
 					array[j]=values[i].charCodeAt(j);
 				array=new Uint32Array(array.buffer);
 				for (var j=0; j<((values[i].length+3)>>2); j++)
@@ -241,7 +256,6 @@ const ABC={
 		}
 
 		return {
-			store_ptrs: store_ptrs,
 			hp: hp,
 			hp_free: hp_free,
 		};
@@ -280,7 +294,7 @@ const ABC={
 			hp_free=ABC.interpreter.instance.exports.get_hp_free();
 			if (node_size>hp_free) {
 				console.error('not enough memory to copy',value);
-				throw 'out of memory';
+				throw new ABCError('out of memory');
 			}
 		}
 
@@ -352,6 +366,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				ABC.active_js[ref]=true;
 			},
 			gc_end: function() {
+				if (ABC_DEBUG)
+					console.log(ABC.interpreter.instance.exports.get_hp_free(),'free words after gc');
 				ABC.empty_js_values=[];
 				// NB: we cannot reorder ABC.js, because garbage collection may be
 				// triggered while computing a string to send to JavaScript which can
@@ -478,7 +494,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							js.src=url;
 							break;
 						default:
-							throw ('unknown instruction '+arg);
+							throw new ABCError('unknown instruction',arg);
 					}
 					return pc+16;
 				}
@@ -489,28 +505,16 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				if (abc_instructions[instr]=='instruction')
 					/* `instruction 0` ends the interpretation, so this is no error */
 					return;
-				var trace=['illegal instruction',instr,'('+abc_instructions[instr]+'); stack trace:\n','  {0}',addr/8-ABC.code_offset,'\n'];
-				var csp=ABC.interpreter.instance.exports.get_csp();
-				for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
-					var addr=ABC.memory_array[csp/4];
-					if (addr==0)
-						break;
-					trace.push('  {'+i+'}');
-					trace.push(addr/8-ABC.code_offset);
-					trace.push('\n');
-					csp-=8;
-				}
-				console.error.apply(null,trace);
-				throw 'illegal instruction';
+				throw new ABCError('illegal instruction',instr);
 			},
 			out_of_memory: function () {
 				ABC.empty_log_buffer();
-				throw 'out of memory';
+				throw new ABCError('out of memory');
 			},
 			gc: util.instance.exports.gc,
 			halt: function (pc, hp_free, hp_size) {
 				ABC.empty_log_buffer();
-				throw ('halt at '+((pc/8)-ABC.code_offset));
+				throw new ABCError('halt');
 			},
 
 			memcpy: util.instance.exports.memcpy,
@@ -561,6 +565,16 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 			expR: Math.exp,
 			lnR: Math.log,
 			log10R: Math.log10,
+			RtoAC_words_needed: function(v) {
+				v=Number(0+v).toLocaleString(
+					['en-US'],
+					{
+						useGrouping: false,
+						maximumSignificantDigits: 15,
+					}
+				);
+				return 2+((v.length+7)>>3);
+			},
 			RtoAC: function (dest, v) {
 				v=Number(0+v).toLocaleString(
 					['en-US'],
@@ -626,7 +640,27 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		ABC.interpreter.instance.exports.set_hp(hp);
 		ABC.interpreter.instance.exports.set_hp_free(hp_free);
 
-		ABC.interpreter.instance.exports.interpret();
+		try {
+			ABC.interpreter.instance.exports.interpret();
+		} catch (e) {
+			if (e.constructor.name!='ABCError' &&
+					e.message!='memory access out of bounds')
+				throw e;
+
+			var trace=[e.message, '\n'];
+			trace.push('  {0}', ABC.interpreter.instance.exports.get_pc()/8-ABC.code_offset,'\n');
+			var csp=ABC.interpreter.instance.exports.get_csp();
+			for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
+				var addr=ABC.memory_array[csp/4];
+				if (addr==0)
+					break;
+				trace.push('  {'+i+'}',addr/8-ABC.code_offset,'\n');
+				csp-=8;
+			}
+			console.error.apply(null,trace);
+
+			throw e.toString();
+		}
 
 		ABC.interpreter.instance.exports.set_pc(old_pc);
 		ABC.interpreter.instance.exports.set_asp(old_asp);

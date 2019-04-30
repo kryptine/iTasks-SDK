@@ -106,10 +106,7 @@ where
 		# dst = {dst & [di]=c}
 		= copy_chars src (si+1) dst (di+1)
 	where
-		hex i = hex_chars.[i]
-
-hex_chars :: {#Char}
-hex_chars =: "0123456789abcdef"
+		hex i = "0123456789abcdef".[i]
 
 jsMakeCleanReference :: a !JSVal -> JSVal
 jsMakeCleanReference x attach_to = share attach_to x
@@ -297,7 +294,7 @@ where
 instance toJSArgs Int where toJSArgs i = [toJS i]
 instance toJSArgs Bool where toJSArgs b = [toJS b]
 instance toJSArgs String where toJSArgs s = [toJS s]
-instance toJSArgs JSVal where toJSArgs v = [cast v]
+instance toJSArgs JSVal where toJSArgs v = [v]
 instance toJSArgs (Maybe b) | gToJS{|*|} b
 where
 	toJSArgs v = case v of
@@ -359,10 +356,10 @@ jsGlobal :: !String -> JSVal
 jsGlobal s = JSVar s
 
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
-jsWrapFun f attach_to world = (cast (share attach_to \(JSArray args) w -> f args w), world)
+jsWrapFun f attach_to world = (share attach_to \(JSArray args) w -> f args w, world)
 
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
-wrapInitUIFunction f = cast init
+wrapInitUIFunction f = init
 where
 	init :: !{!JSVal} !*JSWorld -> *JSWorld
 	init args w
@@ -475,11 +472,6 @@ where
 		instruction 4
 		pop_a 1
 	}
-
-cast :: !.a -> .b
-cast _ = code {
-	no_op
-}
 
 // This function is meant to be called with a (node containing) JSVal(s) as its
 // argument, and then ensures that a references to that value(s) remain
