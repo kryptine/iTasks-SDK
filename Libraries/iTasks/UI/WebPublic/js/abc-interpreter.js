@@ -621,12 +621,14 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		var hp=ABC.interpreter.instance.exports.get_hp();
 		var hp_free=ABC.interpreter.instance.exports.get_hp_free();
 
-		ABC.memory_array[asp/4]=(31+17*2)*8; // JSWorld: INT 17
-		ABC.memory_array[asp/4+2]=hp;
-		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index].ref;
-
-		ABC.interpreter.instance.exports.set_asp(asp+16);
+		/* NB: the order here matters: copy_js_to_clean may trigger garbage
+		 * collection, so do that first, then set the rest of the arguments and
+		 * update asp. */
 		const copied=ABC.copy_js_to_clean(args, asp+8, hp, hp_free);
+		ABC.memory_array[asp/4]=(31+17*2)*8; // JSWorld: INT 17
+		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index].ref;
+		ABC.interpreter.instance.exports.set_asp(asp+16);
+
 		hp=copied.hp;
 		hp_free=copied.hp_free;
 
@@ -644,7 +646,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 			ABC.interpreter.instance.exports.interpret();
 		} catch (e) {
 			if (e.constructor.name!='ABCError' &&
-					e.message!='memory access out of bounds')
+					(e.fileName!='abc-interpreter.js' || e.lineNumber>700))
 				throw e;
 
 			var trace=[e.message, '\n'];
