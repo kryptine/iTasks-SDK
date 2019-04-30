@@ -15,6 +15,15 @@ import iTasks.Internal.Serialization
 import System.FilePath
 import StdTuple, StdFunc, StdArray, StdBool, StdChar, StdInt, StdString
 
+instance toString StoreReadError
+where
+    toString (StoreReadMissingError name)      = "Stored data not in store: " +++ name
+    toString (StoreReadDataError name)         = "Failed to read store data: " +++ name
+    toString (StoreReadTypeError name)         = "Stored data is of incorrect type: " +++ name
+    toString (StoreReadBuildVersionError name) = "Stored data contains functions from an older executable that can no longer be evaluated: " +++ name
+
+derive class iTask StoreReadError
+
 sharedDynamicStore :: !String !a -> SimpleSDSLens a | TC a
 sharedDynamicStore storeId defaultV
 	= mapReadWriteError (read, write) (Just reducer) (sharedStore storeId (dynamic defaultV))
@@ -48,6 +57,14 @@ where
   | InDynamicFile //When the data contains functions, dynamics or otherwise
 
 derive class iTask StorageType
+
+//Temporary memory storage
+memoryStore :: !StoreNamespace !(Maybe a) -> SDSSequence StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+memoryStore namespace defaultV = storeShare namespace False InMemory defaultV
+
+//Convenient derived store which checks version
+jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> SDSSequence StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+jsonFileStore namespace check reset defaultV = storeShare namespace True InJSONFile defaultV
 
 storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDSSequence String a a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare"

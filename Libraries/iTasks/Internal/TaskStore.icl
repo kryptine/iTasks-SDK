@@ -164,8 +164,6 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
 
-import StdDebug
-
 (`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
 (`b`) (Ok _, st)    f = f st
 (`b`) (Error e, st) _ = (Error e, st)
