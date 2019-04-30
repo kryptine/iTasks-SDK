@@ -106,7 +106,7 @@ where
 	genUI attr dp mode vst = case editModeValue mode of
 		Nothing = (Error "SVG editors cannot be used in enter mode.", vst)
 		Just val
-			# (s,vst) = serialize_in_vst val vst
+			# (s,vst) = serializeInVSt val vst
 			# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr (JSONString s), attr]
 			= (Ok (uia UIComponent attr, val), vst)
 
@@ -115,7 +115,7 @@ where
 	
 	onRefresh :: !DataPath !s !s !*VSt -> (!MaybeErrorString (!UIChange, !s), !*VSt) | gEq{|*|} s
 	onRefresh _ new old vst
-		# (s,vst) = serialize_in_vst new vst
+		# (s,vst) = serializeInVSt new vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "stateChange" (JSONString s)] []), new), vst)
 
 	valueFromState :: !s -> *Maybe s

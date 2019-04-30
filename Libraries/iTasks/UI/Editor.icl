@@ -152,7 +152,7 @@ withClientSideInit ::
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serialize_for_client (wrapInitUIFunction initUI) iworld of
+	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serializeForClient (wrapInitUIFunction initUI) iworld of
 		(Ok initUI,iworld)
 			# extraAttr = 'DM'.fromList
 				[("taskId",  JSONString taskId)
