@@ -400,6 +400,27 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 }).then(function(util){
 	ABC.util=util;
 
+	/* Compile the ABC interpreter with INTERPRETERGENWASM=-d so that debug_instr
+	 * is called. Play around a bit, then call ABC.read_matrix() in the console.
+	 * This gives an overview of the most frequent instruction pairs used, which
+	 * can be used to add specialized instructions to the ABC interpreter.
+	 */
+	ABC.instr_matrix={};
+	for (var i=0; i<abc_instructions.length; i++) {
+		ABC.instr_matrix[i]={};
+		for (var j=0; j<abc_instructions.length; j++)
+			ABC.instr_matrix[i][j]=0;
+	}
+	ABC.prev_instr=0;
+	ABC.read_matrix=function(){
+		var frequent_couples=[];
+		for (var i=0; i<abc_instructions.length; i++)
+			for (var j=0; j<abc_instructions.length; j++)
+				frequent_couples.push([abc_instructions[i],abc_instructions[j],ABC.instr_matrix[i][j]]);
+		frequent_couples.sort((a,b) => b[2]-a[2]);
+		console.log(frequent_couples);
+	}
+
 	const interpreter_imports={
 		clean: {
 			memory: ABC.memory,
@@ -407,6 +428,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 			debug_instr: function (addr, instr) {
 				if (ABC_DEBUG)
 					console.log(addr/8-ABC.code_offset,abc_instructions[instr]);
+				ABC.instr_matrix[ABC.prev_instr][instr]++;
+				ABC.prev_instr=instr;
 			},
 			handle_illegal_instr: function (pc, instr, asp, bsp, csp, hp, hp_free) {
 				if (abc_instructions[instr]=='instruction') {
