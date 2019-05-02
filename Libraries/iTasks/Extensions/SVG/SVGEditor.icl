@@ -3,7 +3,7 @@ implementation module iTasks.Extensions.SVG.SVGEditor
 import Graphics.Scalable.Internal.Image`
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JavaScript
-import iTasks.Internal.Client.Serialization
+import iTasks.Internal.Serialization
 
 import StdEnv
 

@@ -3,7 +3,7 @@ implementation module iTasks.UI.Editor
 import StdEnv
 import Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
-import iTasks.Internal.Client.Serialization
+import iTasks.Internal.Serialization
 import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JavaScript
 import qualified Data.Map as DM
 import Text, Text.GenJSON
