@@ -40,35 +40,178 @@ import Text.GenJSON
 	, val :: !JSVal
 	}
 
-// TODO optimise this by first computing the size
 instance toString JSVal
 where
 	toString v = let s = toS v in if (size s<0) (abort_with_node v) s
 	where
 		toS :: !JSVal -> String
-		toS v = case v of
-			JSInt i -> toString i
-			JSBool b -> if b "true" "false"
-			JSString s -> "'"+++escape_js_string s+++"'"
-			JSReal r -> toString r
+		toS v = fst (copy v (createArray (len v 0) '_') 0)
 
-			JSVar v -> v
-			JSNull -> "null"
-			JSUndefined -> "undefined"
-			JSTypeOf v -> "typeof "+++toS v
+		copy :: !JSVal !*{#Char} !Int -> (!.{#Char}, !Int)
+		copy v dest i = case v of
+			JSInt n
+				-> copy_chars (toString n) dest i
+			JSBool True
+				# dest & [i]='t',[i+1]='r',[i+2]='u',[i+3]='e'
+				-> (dest,i+4)
+			JSBool False
+				# dest & [i]='f',[i+1]='a',[i+2]='l',[i+3]='s',[i+4]='e'
+				-> (dest,i+5)
+			JSString s
+				# dest & [i] = '\''
+				# (dest,i) = copy_and_escape s 0 dest (i+1)
+				# dest & [i] = '\''
+				-> (dest,i+1)
+			JSReal r
+				-> copy_chars (toString r) dest i
 
-			JSObject elems -> foldl (+++) "{" [key+++":"+++toS val+++"," \\ {key,val} <-: elems] +++ "}"
-			JSArray elems -> foldl (+++) "[" [toS v+++"," \\ v <-: elems] +++ "]"
+			JSVar v
+				-> copy_chars v dest i
+			JSNull
+				# dest & [i]='n',[i+1]='u',[i+2]='l',[i+3]='l'
+				-> (dest,i+4)
+			JSUndefined
+				# dest & [i]='u',[i+1]='n',[i+2]='d',[i+3]='e',[i+4]='f',[i+5]='i',[i+6]='n',[i+7]='e',[i+8]='d'
+				-> (dest,i+9)
+			JSTypeOf v
+				# dest & [i]='t',[i+1]='y',[i+2]='p',[i+3]='e',[i+4]='o',[i+5]='f',[i+6]=' '
+				-> copy v dest (i+7)
 
-			JSSel obj attr -> toS obj+++"["+++toS attr+++"]"
-			JSSelPath obj path -> toS obj+++"."+++path
+			JSObject elems
+				# dest & [i]='{'
+				| size elems==0
+					# dest & [i+1]='}'
+					-> (dest,i+2)
+				# (dest,i) = copy_elems elems 0 dest (i+1)
+				# dest & [i]='}'
+				-> (dest,i+1)
+				with
+					copy_elems :: !{!JSObjectElement} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
+					copy_elems elems k dest i
+					# {key,val} = elems.[k]
+					# (dest,i) = copy_chars key dest i
+					# dest & [i]=':'
+					# (dest,i) = copy val dest (i+1)
+					| k+1>=size elems
+						= (dest,i)
+						= copy_elems elems (k+1) {dest & [i]=','} (i+1)
+			JSArray elems
+				# dest & [i]='['
+				| size elems==0
+					# dest & [i+1]=']'
+					-> (dest,i+2)
+				# (dest,i) = copy_elems elems 0 dest (i+1)
+				# dest & [i]=']'
+				-> (dest,i+1)
+				with
+					copy_elems :: !{!JSVal} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
+					copy_elems elems k dest i
+					# (dest,i) = copy elems.[k] dest i
+					| k+1>=size elems
+						= (dest,i)
+						= copy_elems elems (k+1) {dest & [i]=','} (i+1)
 
-			JSRef i -> "ABC.js["+++toString i+++"]"
-			JSCleanRef i -> "ABC.ap("+++toString i+++")"
+			JSSel obj attr
+				# (dest,i) = copy obj dest i
+				# dest & [i]='['
+				# (dest,i) = copy attr dest (i+1)
+				# dest & [i]=']'
+				-> (dest,i+1)
+			JSSelPath obj path
+				# (dest,i) = copy obj dest i
+				# dest & [i]='.'
+				-> copy_chars path dest (i+1)
+
+			JSRef n
+				# dest & [i]='A',[i+1]='B',[i+2]='C',[i+3]='.',[i+4]='j',[i+5]='s',[i+6]='['
+				# (dest,i) = copy_chars (toString n) dest (i+7)
+				# dest & [i]=']'
+				-> (dest,i+1)
+			JSCleanRef n
+				# dest & [i]='A',[i+1]='B',[i+2]='C',[i+3]='.',[i+4]='a',[i+5]='p',[i+6]='('
+				# (dest,i) = copy_chars (toString n) dest (i+7)
+				# dest & [i]=')'
+				-> (dest,i+1)
+		where
+			copy_chars :: !String !*{#Char} !Int -> (!.{#Char}, !Int)
+			copy_chars src dest i = (copy` src (sz-1) dest (i+sz-1), i+sz)
+			where
+				sz = size src
+
+				copy` :: !String !Int !*{#Char} !Int -> .{#Char}
+				copy` _   -1 dest _  = dest
+				copy` src si dest di = copy` src (si-1) {dest & [di]=src.[si]} (di-1)
+
+			copy_and_escape :: !String !Int !*{#Char} !Int -> (!.{#Char}, !Int)
+			copy_and_escape src si dest di
+			| si >= size src = (dest,di)
+			# c = src.[si]
+			| c < '\x20'
+				# c = toInt c
+				# dest = {dest & [di]='\\', [di+1]='x', [di+2]=hex (c>>4), [di+3]=hex (c bitand 0x0f)}
+				= copy_and_escape src (si+1) dest (di+4)
+			| c == '\''
+				# dest = {dest & [di]='\\', [di+1]='\''}
+				= copy_and_escape src (si+1) dest (di+2)
+			| otherwise
+				# dest = {dest & [di]=c}
+				= copy_and_escape src (si+1) dest (di+1)
+			where
+				hex i = "0123456789abcdef".[i]
+
+		len :: !JSVal !Int -> Int
+		len v l = case v of
+			JSInt i -> int_len i l
+			JSBool b -> if b 4 5 + l
+			JSString s -> escaped_size s (size s-1) (2+l)
+			where
+				escaped_size :: !String !Int !Int -> Int
+				escaped_size s -1 n = n
+				escaped_size s  i n
+				| s.[i] < '\x20' = escaped_size s (i-1) (n+4)
+				| s.[i] == '\''  = escaped_size s (i-1) (n+2)
+				| otherwise      = escaped_size s (i-1) (n+1)
+			JSReal r -> size (toString r) + l
+
+			JSVar v -> size v + l
+			JSNull -> 4+l
+			JSUndefined -> 9+l
+			JSTypeOf v -> len v (7+l)
+
+			JSObject elems
+			| size elems==0
+				-> 2+l
+				-> count_elems (size elems-1) (l+(2*size elems)+1)
+			where
+				count_elems :: !Int !Int -> Int
+				count_elems -1 l = l
+				count_elems  i l
+				# {key,val} = elems.[i]
+				= count_elems (i-1) (len val (l+size key))
+			JSArray elems
+			| size elems==0
+				-> 2+l
+				-> count_elems (size elems-1) (l+size elems+1)
+			where
+				count_elems :: !Int !Int -> Int
+				count_elems -1 l = l
+				count_elems  i l = count_elems (i-1) (len elems.[i] l)
+
+			JSSel obj attr -> len obj (len attr (l+2))
+			JSSelPath obj path -> len obj (l+1+size path)
+
+			JSRef i -> int_len i (8+l)
+			JSCleanRef i -> int_len i (8+l)
 
 			_ -> missing_case v
+		where
+			int_len :: !Int !Int -> Int
+			int_len i l
+			| i > 9 = int_len (i/10) (l+1)
+			| i < 0 = int_len (0-i) (l+1)
+			| otherwise = l+1
 
-		missing_case :: !JSVal -> a
+		missing_case :: !JSVal -> .a
 		missing_case _ = code {
 			print "missing case in toString JSVal:\n"
 			.d 1 0
@@ -76,37 +219,6 @@ where
 			.o 0 0
 			halt
 		}
-
-escape_js_string :: !String -> String
-escape_js_string s
-# escaped_len = escaped_size (size s-1) s 0
-| escaped_len == size s
-	= s
-	= copy_chars s 0 (createArray escaped_len '\0') 0
-where
-	escaped_size :: !Int !String !Int -> Int
-	escaped_size -1 s n = n
-	escaped_size i s n
-	| s.[i] < '\x20' = escaped_size (i-1) s (n+4)
-	| s.[i] == '\''  = escaped_size (i-1) s (n+2)
-	| otherwise      = escaped_size (i-1) s (n+1)
-
-	copy_chars :: !{#Char} !Int !*{#Char} !Int -> .{#Char}
-	copy_chars src si dst di
-	| si >= size src = dst
-	# c = src.[si]
-	| c < '\x20'
-		# c = toInt c
-		# dst = {dst & [di]='\\', [di+1]='x', [di+2]=hex (c>>4), [di+3]=hex (c bitand 0x0f)}
-		= copy_chars src (si+1) dst (di+4)
-	| c == '\''
-		# dst = {dst & [di]='\\', [di+1]='\''}
-		= copy_chars src (si+1) dst (di+2)
-	| otherwise
-		# dst = {dst & [di]=c}
-		= copy_chars src (si+1) dst (di+1)
-	where
-		hex i = "0123456789abcdef".[i]
 
 jsMakeCleanReference :: a !JSVal -> JSVal
 jsMakeCleanReference x attach_to = share attach_to x
