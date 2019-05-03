@@ -1,7 +1,8 @@
-@import 'css/WorkflowAdmin.css';
-
+.welcome-itasks-example-collection {
+	background: url('/itasks.png') no-repeat top center;
+	padding-top: 100px;
+}
 .welcome-itasks-example-collection > div {
-	background-color: #76a2d0;
 	max-width: 600px;
 	border-radius: 5px;
 	padding: 5px 10px;
@@ -9,5 +10,6 @@
 .welcome-itasks-example-collection h1 {
 	font-weight: normal;
 	font-size: 32pt;
-	color: #000;
+	color: #74a1d5;
 }
+
