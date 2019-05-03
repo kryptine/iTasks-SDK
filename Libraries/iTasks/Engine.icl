@@ -46,8 +46,6 @@ doTasksWithOptions initFun startable world
 	| mbOptions =:(Error _)      = show (fromError mbOptions) world
 	# options                    = fromOk mbOptions
 	# iworld                     = createIWorld options world
-	# (res,iworld)               = initJSCompilerState iworld
-	| res =:(Error _)            = show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
@@ -131,8 +129,8 @@ where
 			("Specify the folder containing the data stores\ndefault: " +++ defaults.storeDirPath)
 		, Option [] ["tempdir"] (ReqArg (\p->fmap \o->{o & tempDirPath=p}) "PATH")
 			("Specify the folder containing the temporary files\ndefault: " +++ defaults.tempDirPath)
-		, Option [] ["sapldir"] (ReqArg (\p->fmap \o->{o & saplDirPath=p}) "PATH")
-			("Specify the folder containing the sapl files\ndefault: " +++ defaults.saplDirPath)
+		, Option [] ["bytecodepath"] (ReqArg (\p->fmap \o->{o & byteCodePath=p}) "PATH")
+			("Specify the app's bytecode file\ndefault: " +++ defaults.byteCodePath)
 		, Option [] ["distributed"] (NoArg (fmap \o->{o & distributed=True}))
 			"Enable distributed mode (populate the symbols share)"
 		, Option ['s'] ["sdsPort"] (ReqArg (\p->fmap \o->{o & sdsPort=toInt p}) "SDSPORT")
@@ -218,7 +216,7 @@ defaultEngineOptions world
 		, webDirPath     = appDir </> appName +++ "-www"
 		, storeDirPath   = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath    = appDir </> appName +++ "-data" </> "tmp"
-		, saplDirPath    = appDir </> appName +++ "-sapl"
+		, byteCodePath   = appDir </> appName +++ ".bc"
 		}
 	= (options,world)
 

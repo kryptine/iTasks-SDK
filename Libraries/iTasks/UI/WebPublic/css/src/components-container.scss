@@ -14,6 +14,7 @@
 	@import "tooltip.scss";
 
     overflow: auto;
+	flex-basis: 0;
 }
 
 .#{$prefix}container {
@@ -313,14 +314,14 @@
 		display: flex;
 		flex-direction: column;
 	}
-	.#{$prefix}container.#{$prefix}tabitem, .#{$prefix}panel.#{$prefix}tabitem {
+	.#{$prefix}container.#{$prefix}tabitem, .#{$prefix}panel.#{$prefix}tabitem, .#{$prefix}viewport.#{$prefix}tabitem {
 		display: none;
 	}
 	.#{$prefix}panel.#{$prefix}tabitem.#{$prefix}selected {
 		display: grid;
 		border-top: 0;
 	}
-	.#{$prefix}container.#{$prefix}tabitem.#{$prefix}selected {
+	.#{$prefix}container.#{$prefix}tabitem.#{$prefix}selected, .#{$prefix}viewport.#{$prefix}tabitem.#{$prefix}selected {
 		display: flex;
 		border-top: 0;
 	}
@@ -502,7 +503,7 @@
 		align-self: stretch;
 	}
 	& > .#{$prefix}flex-height {
-		flex: 1;
+		flex-grow: 1;
 	}
 	& > .#{$prefix}exact-height,
 	& > .#{$prefix}wrap-height {
@@ -523,7 +524,7 @@
 .#{$prefix}listitem,
 .#{$prefix}listitem-controls {
 	& > .#{$prefix}flex-width {
-		flex: 1;
+		flex-grow: 1;
 	}
 	& > .#{$prefix}flex-height {
 		align-self: stretch;
@@ -605,13 +606,11 @@
 }
 .#{$prefix}sidebar-top > .#{$prefix}inner > .aside,
 .#{$prefix}sidebar-bottom > .#{$prefix}inner > .aside {
-	height: 30%;
 	flex: 0 0 30%;
 	align-self: stretch;
 }
 .#{$prefix}sidebar-right > .#{$prefix}inner > .aside,
 .#{$prefix}sidebar-left > .#{$prefix}inner > .aside {
-	width: 25%;
 	flex: 0 0 25%;
 	align-self: stretch;
 }

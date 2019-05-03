@@ -3,9 +3,12 @@ Global
 	ProjectRoot:	.
 	Target:	iTasks
 	Exec:	{Project}/main.exe
+	ByteCode:	{Project}/main.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
 		HeapSize:	524288000
 		StackSize:	10485760
@@ -25,7 +28,7 @@ Global
 			Stack:	False
 			Dynamics:	True
 			GenericFusion:	False
-			DescExL:	False
+			DescExL:	True
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -40,6 +43,9 @@ Global
 		ResourceSource:	
 		GenerateDLL:	False
 		ExportedNames:	
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 	Precompile:	

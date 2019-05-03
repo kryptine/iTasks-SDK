@@ -20,11 +20,6 @@ import qualified Data.Set as DS
 from   Graphics.Scalable.Image import class margin(..), instance margin (!Span,!Span), above, :: Host(..)
 import Graphics.Scalable.Types
 
-derive JSEncode Map2D, Section, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
-derive JSEncode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
-derive JSDecode Map2D, Section, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
-derive JSDecode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
-
 shipEditorTabs		:: Task ()
 shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
                                , editLayout          <<@ Title "Edit Ship"

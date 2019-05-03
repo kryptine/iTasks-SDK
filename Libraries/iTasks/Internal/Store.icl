@@ -7,11 +7,10 @@ import Data.Maybe, Data.Functor, Data.Error
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.GenJSON, iTasks.Internal.Serialization
 
-import iTasks.Internal.Client.JSStore
 import iTasks.Internal.SDS
 
 from iTasks.Engine import :: EngineOptions(..)
-from iTasks.Internal.IWorld		import :: IWorld {options,onClient,memoryShares,world}, :: Resource
+from iTasks.Internal.IWorld		import :: IWorld {options,memoryShares,world}, :: Resource
 from iTasks.Internal.Task		    import exception
 from iTasks.Internal.TaskState		import :: DeferredJSON(..)
 from iTasks.Internal.TaskEval import :: TaskTime
@@ -48,8 +47,6 @@ jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> SDSSequence StoreName
 jsonFileStore namespace check reset defaultV = storeShare namespace True InJSONFile defaultV
 
 deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
-deleteValue namespace delKey iworld=:{onClient=True}
-	= (Ok (), jsDeleteValue namespace delKey iworld)
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension

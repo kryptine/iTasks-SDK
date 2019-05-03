@@ -3,9 +3,12 @@ Global
 	ProjectRoot:	.
 	Target:	iTasks
 	Exec:	{Project}/BasicAPIExamples.exe
+	ByteCode:	{Project}/BasicAPIExamples.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
 		HeapSize:	167772160
 		StackSize:	1048576
@@ -24,7 +27,8 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
-			DescExL:    False
+			GenericFusion:	False
+			DescExL:    True
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -39,6 +43,9 @@ Global
 		ResourceSource:	
 		GenerateDLL:	False
 		ExportedNames:	
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 		Path:	{Project}/Ligretto

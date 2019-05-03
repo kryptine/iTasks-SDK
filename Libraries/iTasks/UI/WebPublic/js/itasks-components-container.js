@@ -81,9 +81,11 @@ itasks.Panel = {
 			if(side == 'top' || side == 'bottom') {
 				var startPos = e.clientY;
 				var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
+				me.domEl.style['height'] = startSize + 'px';
 			} else {
 				var startPos = e.clientX;
 				var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('width').slice(0,-2));
+				me.domEl.style['width'] = startSize + 'px';
 			}
 			//Disable flexing
 			me.domEl.style.flex = '0 0 auto';

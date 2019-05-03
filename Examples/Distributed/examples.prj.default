@@ -3,9 +3,12 @@ Global
 	ProjectRoot:	.
 	Target:	iTasks
 	Exec:	{Project}/examples
+	ByteCode:	{Project}/examples.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
 		HeapSize:	134217728
 		StackSize:	512000
@@ -39,6 +42,9 @@ Global
 		ResourceSource:
 		GenerateDLL:	False
 		ExportedNames:
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 	Precompile:

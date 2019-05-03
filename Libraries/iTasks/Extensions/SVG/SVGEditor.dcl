@@ -1,8 +1,9 @@
 definition module iTasks.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable.Image
+from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
+from iTasks.Internal.Generic.Visualization import :: TextFormat, generic gText
 from   iTasks.UI.Editor import :: Editor
-import iTasks.UI.JS.Encoding
 
 // An SVGEditor let's you specify an editor as an interactive SVG image (Graphics.Scalable.Image)
 :: SVGEditor m v =
@@ -11,4 +12,4 @@ import iTasks.UI.JS.Encoding
 	, updModel    :: m v -> m                    // When the view is updated (using the interactive image), update the model
 	}
 
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|}, JSEncode{|*|}, JSDecode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
