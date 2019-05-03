@@ -51,7 +51,6 @@ taskInstanceIndex :: SimpleSDSLens [TIMeta]
 
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
-//filteredInstanceIndex   :: SDSLens InstanceFilter (Map InstanceNo InstanceData) (Map InstanceNo InstanceData)
 
 //Filtered views on the instance index
 taskInstance            :: SDSLens InstanceNo InstanceData InstanceData

@@ -68,19 +68,12 @@ processEvents max iworld
 						= (Ok (),{IWorld|iworld & world = world})
 
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
-evalTaskInstance instanceNo event iworld = evalTaskInstance` instanceNo event False iworld
-
-destroyTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
-destroyTaskInstance instanceNo iworld = evalTaskInstance` instanceNo ResetEvent True iworld
-
-//Evaluate a single task instance
-evalTaskInstance` :: !InstanceNo !Event !Bool !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
-evalTaskInstance` instanceNo event destroy iworld
+evalTaskInstance instanceNo event iworld
 	# iworld            = mbResetUIState instanceNo event iworld
-	# (res,iworld)      = evalTaskInstance` instanceNo event iworld
+	# (res,iworld)      = evalTaskInstance` instanceNo event (event =: DestroyEvent) iworld
 	= (res,iworld)
 where
-	evalTaskInstance` instanceNo event iworld=:{clock,current}
+	evalTaskInstance` instanceNo event destroy iworld=:{clock,current}
 	# (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
 	# constants=:{InstanceConstants|type} = directResult (fromOk constants)
@@ -112,7 +105,7 @@ where
 										, nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} (if destroy (TCDestroy tree) tree) iworld
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
 	# tree                      = case newResult of
 		(ValueResult _ _ _ newTree)  = newTree
 		_                            = tree

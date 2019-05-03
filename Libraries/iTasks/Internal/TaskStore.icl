@@ -213,17 +213,19 @@ replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskT
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
-	# (mbe, iworld)   = destroyTaskInstance instanceNo iworld
-	| isError mbe = (Error $ exception $ fromError mbe, iworld)
 	//Delete in administration
 	# taskFilter = {defaultValue & includeSessions = True, includeDetached = True, includeStartup = True}
 	# (mbe,iworld)    = 'SDS'.modify (\is -> [i \\ i=:(no,_,_,_) <- is | no <> instanceNo])
 		(sdsFocus taskFilter filteredInstanceIndex) 'SDS'.EmptyContext iworld
 	| mbe =: (Error _) = (toME mbe,iworld)
+	//Remove all events from the queueeverything
 	# (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo]) taskEvents 'SDS'.EmptyContext iworld
 	| mbe =: (Error _) = (toME mbe,iworld)
+	# iworld = queueEvent instanceNo DestroyEvent iworld
+	//Queue a destroy event
 	| not persistTasks
 		= (Ok (),iworld)
+	//TODO: Move remove to Taskeval after a destroy
 	//Delete all states on disk
 	# (mbe,iworld)    = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
 	| mbe =: (Error _) = (toWE mbe,iworld)
@@ -242,8 +244,6 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	toWE (Error e) = (Error e)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
-//filteredInstanceIndex   :: SDSLens InstanceFilter (Map InstanceNo InstanceData) (Map InstanceNo InstanceData)
-import StdDebug
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
 filteredInstanceIndex
 	= sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify)
