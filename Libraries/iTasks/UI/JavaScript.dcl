@@ -127,7 +127,7 @@ instance .# Int // array access
  * - `Maybe a` uses the conversion for the underlying type for `Just`, otherwise `null`
  * - `()` relates to no arguments; tuples relates to lists of arguments
  */
-class toJSArgs a :: !a -> [JSVal]
+class toJSArgs a :: !a -> {!JSVal}
 instance toJSArgs Int, Bool, String, JSVal, (Maybe b) | gToJS{|*|} b, ()
 instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
 instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c

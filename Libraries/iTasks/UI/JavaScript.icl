@@ -20,9 +20,13 @@ import Text.GenJSON
 	| JSNull
 	| JSUndefined
 	| JSTypeOf !JSVal
+	| JSDelete !JSVal // actually a statement, not an expression
 
 	| JSObject !{!JSObjectElement}
 	| JSArray !{!JSVal}
+
+	| JSCall !JSVal !{!JSVal}
+	| JSNew !String !{!JSVal}
 
 	| JSSel !JSVal !JSVal // x[y]
 	| JSSelPath !JSVal !String // x.path1.path2...pathn
@@ -45,7 +49,7 @@ where
 	toString v = let s = toS v in if (size s<0) (abort_with_node v) s
 	where
 		toS :: !JSVal -> String
-		toS v = fst (copy v (createArray (len v 0) '_') 0)
+		toS v = fst (copy v (createArray (len v 0) '\0') 0)
 
 		copy :: !JSVal !*{#Char} !Int -> (!.{#Char}, !Int)
 		copy v dest i = case v of
@@ -76,6 +80,9 @@ where
 			JSTypeOf v
 				# dest & [i]='t',[i+1]='y',[i+2]='p',[i+3]='e',[i+4]='o',[i+5]='f',[i+6]=' '
 				-> copy v dest (i+7)
+			JSDelete v
+				# dest & [i]='d',[i+1]='e',[i+2]='l',[i+3]='e',[i+4]='t',[i+5]='e',[i+6]=' '
+				-> copy v dest (i+7)
 
 			JSObject elems
 				# dest & [i]='{'
@@ -100,16 +107,28 @@ where
 				| size elems==0
 					# dest & [i+1]=']'
 					-> (dest,i+2)
-				# (dest,i) = copy_elems elems 0 dest (i+1)
+				# (dest,i) = copy_with_commas elems 0 dest (i+1)
 				# dest & [i]=']'
 				-> (dest,i+1)
-				with
-					copy_elems :: !{!JSVal} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
-					copy_elems elems k dest i
-					# (dest,i) = copy elems.[k] dest i
-					| k+1>=size elems
-						= (dest,i)
-						= copy_elems elems (k+1) {dest & [i]=','} (i+1)
+			JSCall fun args
+				# (dest,i) = copy fun dest i
+				# dest & [i]='('
+				| size args==0
+					# dest & [i+1]=')'
+					-> (dest,i+2)
+				# (dest,i) = copy_with_commas args 0 dest (i+1)
+				# dest & [i]=')'
+				-> (dest,i+1)
+			JSNew cons args
+				# dest & [i]='n',[i+1]='e',[i+2]='w',[i+3]=' '
+				# (dest,i) = copy_chars cons dest (i+4)
+				# dest & [i]='('
+				| size args==0
+					# dest & [i+1]=')'
+					-> (dest,i+2)
+				# (dest,i) = copy_with_commas args 0 dest (i+1)
+				# dest & [i]=')'
+				-> (dest,i+1)
 
 			JSSel obj attr
 				# (dest,i) = copy obj dest i
@@ -159,6 +178,13 @@ where
 			where
 				hex i = "0123456789abcdef".[i]
 
+			copy_with_commas :: !{!JSVal} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
+			copy_with_commas elems k dest i
+			# (dest,i) = copy elems.[k] dest i
+			| k+1>=size elems
+				= (dest,i)
+				= copy_with_commas elems (k+1) {dest & [i]=','} (i+1)
+
 		len :: !JSVal !Int -> Int
 		len v l = case v of
 			JSInt i -> int_len i l
@@ -177,6 +203,7 @@ where
 			JSNull -> 4+l
 			JSUndefined -> 9+l
 			JSTypeOf v -> len v (7+l)
+			JSDelete v -> len v (7+l)
 
 			JSObject elems
 			| size elems==0
@@ -191,11 +218,15 @@ where
 			JSArray elems
 			| size elems==0
 				-> 2+l
-				-> count_elems (size elems-1) (l+size elems+1)
-			where
-				count_elems :: !Int !Int -> Int
-				count_elems -1 l = l
-				count_elems  i l = count_elems (i-1) (len elems.[i] l)
+				-> count_array elems (size elems-1) (size elems+1+l)
+			JSCall fun args
+			| size args==0
+				-> len fun (2+l)
+				-> count_array args (size args-1) (len fun (size args+1+l))
+			JSNew cons args
+			| size args==0
+				-> size cons+6+l
+				-> count_array args (size args-1) (size cons+5+size args+5+l)
 
 			JSSel obj attr -> len obj (len attr (l+2))
 			JSSelPath obj path -> len obj (l+1+size path)
@@ -210,6 +241,10 @@ where
 			| i > 9 = int_len (i/10) (l+1)
 			| i < 0 = int_len (0-i) (l+1)
 			| otherwise = l+1
+
+			count_array :: !{!JSVal} !Int !Int -> Int
+			count_array elems -1 l = l
+			count_array elems  i l = count_array elems (i-1) (len elems.[i] l)
 
 		missing_case :: !JSVal -> .a
 		missing_case _ = code {
@@ -403,61 +438,55 @@ where
 	True  -> w
 	False -> abort_with_node (sel,v)
 
-instance toJSArgs Int where toJSArgs i = [toJS i]
-instance toJSArgs Bool where toJSArgs b = [toJS b]
-instance toJSArgs String where toJSArgs s = [toJS s]
-instance toJSArgs JSVal where toJSArgs v = [v]
+instance toJSArgs Int where toJSArgs i = {toJS i}
+instance toJSArgs Bool where toJSArgs b = {toJS b}
+instance toJSArgs String where toJSArgs s = {toJS s}
+instance toJSArgs JSVal where toJSArgs v = {v}
 instance toJSArgs (Maybe b) | gToJS{|*|} b
 where
 	toJSArgs v = case v of
-		Just v  -> [toJS v]
-		Nothing -> [JSNull]
-instance toJSArgs () where toJSArgs _ = []
+		Just v  -> {toJS v}
+		Nothing -> {JSNull}
+instance toJSArgs () where toJSArgs _ = {}
 
 instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
-where toJSArgs (a,b) = [toJS a, toJS b]
+where toJSArgs (a,b) = {toJS a, toJS b}
 
 instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c
-where toJSArgs (a,b,c) = [toJS a, toJS b, toJS c]
+where toJSArgs (a,b,c) = {toJS a, toJS b, toJS c}
 
 instance toJSArgs (a,b,c,d) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d
-where toJSArgs (a,b,c,d) = [toJS a, toJS b, toJS c, toJS d]
+where toJSArgs (a,b,c,d) = {toJS a, toJS b, toJS c, toJS d}
 
 instance toJSArgs (a,b,c,d,e) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e
-where toJSArgs (a,b,c,d,e) = [toJS a, toJS b, toJS c, toJS d, toJS e]
+where toJSArgs (a,b,c,d,e) = {toJS a, toJS b, toJS c, toJS d, toJS e}
 
 instance toJSArgs (a,b,c,d,e,f) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d & gToJS{|*|} e & gToJS{|*|} f
-where toJSArgs (a,b,c,d,e,f) = [toJS a, toJS b, toJS c, toJS d, toJS e, toJS f]
+where toJSArgs (a,b,c,d,e,f) = {toJS a, toJS b, toJS c, toJS d, toJS e, toJS f}
 
 (.$) infixl 2 :: !JSFun !b !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs b
-(.$) f args w
-# args = toJSArgs args
-= case eval_js_with_return_value (call args) of
-	JSUnused -> abort_with_node (f,args)
+(.$) f args w = case eval_js_with_return_value (toString call) of
+	JSUnused -> abort_with_node call
 	result   -> (result, w)
 where
-	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
+	call = JSCall f (toJSArgs args)
 
 (.$!) infixl 2 :: !JSFun !b !*JSWorld -> *JSWorld | toJSArgs b
-(.$!) f args w
-# args = toJSArgs args
-= case eval_js (call args) of
+(.$!) f args w = case eval_js (toString call) of
 	True  -> w
-	False -> abort_with_node (f,args)
+	False -> abort_with_node call
 where
-	call args = toString f+++"("+++join "," [toString a \\ a <- args]+++")"
+	call = JSCall f (toJSArgs args)
 
 jsNew :: !String !a !*JSWorld -> *(!JSVal, !*JSWorld) | toJSArgs a
-jsNew cons args w
-# args = toJSArgs args
-= case eval_js_with_return_value (call args) of
-	JSUnused -> abort_with_node args
+jsNew cons args w = case eval_js_with_return_value (toString new) of
+	JSUnused -> abort_with_node new
 	result   -> (result, w)
 where
-	call args = "new "+++cons+++"("+++join "," [toString a \\ a <- args]+++")"
+	new = JSNew cons (toJSArgs args)
 
 jsDelete :: !JSVal !*JSWorld -> *JSWorld
-jsDelete v w = case eval_js ("delete "+++toString v) of
+jsDelete v w = case eval_js (toString (JSDelete v)) of
 	True  -> w
 	False -> abort_with_node v
 
@@ -549,7 +578,7 @@ where
 	}
 
 jsTrace :: !a .b -> .b | toString a
-jsTrace s x = case eval_js ("console.log('"+++toString s+++"')") of
+jsTrace s x = case eval_js (toString (JSCall (JSVar "console.log") {JSString (toString s)})) of
 	True  -> x
 	False -> abort_with_node s // just in case it is a JSVal
 
