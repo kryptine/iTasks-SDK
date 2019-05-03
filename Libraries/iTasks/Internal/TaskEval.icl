@@ -86,7 +86,9 @@ where
 	# constants=:{InstanceConstants|type} = directResult (fromOk constants)
 	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
-	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = directResult (fromOk oldReduct)
+	# oldReduct = directResult (fromOk oldReduct)
+	| oldReduct =: Nothing = exitWithException instanceNo "Task instance does not exist" iworld
+	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromJust oldReduct
 	# (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
 	# oldProgress=:{InstanceProgress|value,attachedTo} = directResult (fromOk oldProgress)
@@ -94,6 +96,7 @@ where
 	| value =: (Exception _)
 		# (Exception description) = value
 		= exitWithException instanceNo description iworld
+
 	//Eval instance
     # (currentSession,currentAttachment) = case (type,attachedTo) of
         (SessionInstance,_)                       = (Just instanceNo,[])
@@ -128,7 +131,7 @@ where
 		Ok _
 			//Store updated reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
-			# (_,iworld)                = (modify (\r -> {TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})
+			# (_,iworld)                = (modify (fmap (\r -> {TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
 												(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld)
 												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
 			//Store update value
@@ -136,7 +139,9 @@ where
 				ValueResult val _ _ _     = TIValue val
 				ExceptionResult (e,str)   = TIException e str
 				DestroyedResult           = TIValue NoValue
-			# (mbErr,iworld)            = if deleted (Ok WritingDone,iworld) ((write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld))
+			# (mbErr,iworld)            = if deleted
+				(Ok WritingDone,iworld)
+				((write (Just newValue) (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld))
 			= case mbErr of
 				Error (e,description) = exitWithException instanceNo description iworld
 				Ok _
@@ -159,7 +164,7 @@ where
 		# iworld = queueException instanceNo description iworld
 		= (Error description, iworld)
 
-	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
+	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}} = (nextTaskNo,iworld)
 
 	updateProgress now result progress
 		# attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation

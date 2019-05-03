@@ -66,6 +66,7 @@ jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> SDSSequence StoreName
 
 // Generic Store access
 storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDSSequence String a a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+mbStoreShare :: !String !Bool !StorageType -> (SDSSequence String (Maybe a) (Maybe a)) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 // Data blob storage access
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDSSequence String {#Char} {#Char}
@@ -75,3 +76,4 @@ remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | RWShared s
 remoteService :: (WebServiceShareOptions p r w) -> SDSRemoteService p r w
 
 debugShare :: String (sds p r w) -> SDSDebug p r w | RWShared sds
+

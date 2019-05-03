@@ -78,7 +78,21 @@ storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))
 	applicationOptions
-	(storageLocation defaultV)
+	(removeMaybe defaultV storageLocation)
+
+mbStoreShare :: !String !Bool !StorageType -> (SDSSequence String (Maybe a) (Maybe a)) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+mbStoreShare namespace versionSpecific prefType = sdsSequence "mbStoreShare"
+	(\key -> ())
+	//Compute the filepath in the store from the key
+	//And decide if the store should be memory-only or can use a persistent version
+	(\key {EngineOptions|appVersion,storeDirPath,persistTasks} ->
+		(storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key))
+		,if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType))
+	(\_ _ -> Right snd)
+	(SDSWriteConst (\_ _ -> Ok Nothing))
+	(SDSWriteConst (\_ w -> Ok (Just w)))
+	applicationOptions
+	storageLocation
 
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDSSequence String {#Char} {#Char}
 blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
@@ -90,28 +104,24 @@ blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 	applicationOptions
 	(removeMaybe defaultV fileShare)
 
-storageLocation :: !(Maybe a) -> SDSSelect (FilePath,StorageType) a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-storageLocation defaultV = sdsSelect "storageLocation" choice
-	(SDSNotifyConst (\_ _ -> const (const False))) (SDSNotifyConst (\_ _ -> const (const False)))
-	(memoryLoc defaultV) (fileLoc defaultV)
+storageLocation :: SDSSelect (FilePath,StorageType) (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+storageLocation = sdsSelect "storageLocation" choice
+	(SDSNotifyConst (\_ _ -> const (const False))) (SDSNotifyConst (\_ _ -> const (const False))) memoryShare fileLoc
 where
 	choice (path,InMemory) = (Left path)
 	choice (path,type)     = (Right (path,type))
 
-	fileLoc defaultV = sdsSelect "fileLoc" choice (SDSNotifyConst (\ _ _ -> const (const False))) (SDSNotifyConst (\_ _->const (const False)))
-		(jsonLoc defaultV) (graphLoc defaultV)
+	fileLoc = sdsSelect "fileLoc" choice (SDSNotifyConst (\ _ _ -> const (const False))) (SDSNotifyConst (\_ _->const (const False)))
+		jsonLoc graphLoc
 	where
 		choice (path,InJSONFile) = Left (addExtension path "json")
 		choice (path,_ )         = Right (addExtension path "bin")
 
-	memoryLoc :: !(Maybe a) -> SDSLens FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	memoryLoc defaultV = removeMaybe defaultV memoryShare
+	jsonLoc :: SDSCache FilePath (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+	jsonLoc = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) jsonFileShare
 
-	jsonLoc :: !(Maybe a) -> SDSLens FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	jsonLoc defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) jsonFileShare)
-
-	graphLoc :: !(Maybe a) -> SDSLens FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	graphLoc  defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) graphFileShare)
+	graphLoc :: SDSCache FilePath (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+	graphLoc = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) graphFileShare
 
 //Utility function to make sure we don't use names that escape the file path
 safeName :: !String -> String

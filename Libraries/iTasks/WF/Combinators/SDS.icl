@@ -17,7 +17,7 @@ from Data.Func import mapSt
 
 import StdTuple, StdArray, StdList, StdString
 import Text, Text.GenJSON
-import Data.Maybe, Data.Error
+import Data.Maybe, Data.Error, Data.Functor
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError
 import qualified Data.Map as DM
 
@@ -49,7 +49,7 @@ where
 		# (resa,iworld)
             = evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
         //Remove share from reduct
-        # (e,iworld) = modify ('DM'.del taskId) (sdsFocus instanceNo taskInstanceShares) EmptyContext iworld
+        # (e,iworld) = modify (fmap ('DM'.del taskId)) (sdsFocus instanceNo taskInstanceShares) EmptyContext iworld
         | isError e
             = (ExceptionResult (fromError e), iworld)
 		= (resa,iworld)

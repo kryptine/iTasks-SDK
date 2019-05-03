@@ -51,12 +51,19 @@ taskInstanceIndex :: SimpleSDSLens [TIMeta]
 
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
+//filteredInstanceIndex   :: SDSLens InstanceFilter (Map InstanceNo InstanceData) (Map InstanceNo InstanceData)
 
 //Filtered views on the instance index
 taskInstance            :: SDSLens InstanceNo InstanceData InstanceData
 taskInstanceConstants   :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
 taskInstanceAttributes  :: SDSLens InstanceNo TaskAttributes TaskAttributes
+
+// === Evaluation state of instances: ===
+taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIReduct)
+taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
+taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
+taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [ParallelTaskState])) (Maybe (Map TaskId [ParallelTaskState]))
 
 topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
@@ -68,17 +75,12 @@ allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 //When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
 taskEvents :: SimpleSDSLens (Queue (InstanceNo,Event))
 
-// === Evaluation state of instances: ===
-taskInstanceReduct      :: SDSLens InstanceNo TIReduct TIReduct
-taskInstanceValue       :: SDSLens InstanceNo TIValue TIValue
-taskInstanceShares      :: SDSLens InstanceNo (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
 //Filtered views on evaluation state of instances:
 
 //Shared source
 localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
-taskInstanceParallelTaskLists       :: SDSLens InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 
 //Private interface used during evaluation of parallel combinator

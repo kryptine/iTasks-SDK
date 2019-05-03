@@ -14,7 +14,7 @@ import iTasks.Internal.Tonic.Shares
 import iTasks.Internal.Client.Override
 import iTasks.Internal.AsyncSDS
 
-from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
+from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle, removeMaybe
 import iTasks.WF.Combinators.Common
 from iTasks.Internal.SDS import write, read, readRegister, modify
 
@@ -266,7 +266,7 @@ parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a
 parallel initTasks conts = Task eval
 where
     //Create initial task list
-    eval event evalOpts (TCInit taskId ts) iworld=:{IWorld|current}
+    eval event evalOpts (TCInit taskId ts) iworld
       //Create the states for the initial tasks
       = case initParallelTasks (setParallel taskId (extendCallTrace taskId evalOpts)) taskId 0 initTasks iworld of
           (Ok (taskList,embeddedTasks),iworld)
@@ -316,7 +316,7 @@ where
 		exceptionResult (ExceptionResult _) e = ExceptionResult e
 
     //Cleanup
-    eval event evalOpts ttree=:(TCDestroy (TCParallel taskId ts taskTrees _)) iworld=:{current}
+    eval event evalOpts ttree=:(TCDestroy (TCParallel taskId ts taskTrees _)) iworld
 		= destroyParallelTasks taskId ('DM'.fromList taskTrees) iworld
 
     //Fallback
@@ -530,7 +530,7 @@ where
 
 //Retrieve result of detached parallel task
 evalDetachedParallelTask listId taskTrees event evalOpts {ParallelTaskState|taskId=taskId=:(TaskId instanceNo _),detached=True} iworld
-    = case readRegister listId (sdsFocus instanceNo taskInstanceValue) iworld of
+    = case readRegister listId (sdsFocus instanceNo (removeMaybe Nothing taskInstanceValue)) iworld of
         (Error e,iworld)
             = (Error e,iworld)
         (Ok (ReadingDone (TIException dyn msg)),iworld)
@@ -557,7 +557,7 @@ destroyParallelTasks listId=:(TaskId instanceNo _) taskTrees iworld
 			//1. Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
 			# (result,exceptions,iworld) = foldl (destroyParallelTask listId taskTrees) (DestroyedResult,[],iworld) taskStates
 			//2. Remove the (shared) tasklist
-			# (exceptions,iworld) = case modify (\m -> 'DM'.del listId m)
+			# (exceptions,iworld) = case modify (fmap (\m -> 'DM'.del listId m))
 			                             (sdsFocus instanceNo taskInstanceParallelTaskLists) EmptyContext iworld of
 				(Ok (ModifyingDone _),iworld) = (exceptions,iworld)
 				(Error e,iworld) = ([e:exceptions],iworld)
@@ -594,7 +594,7 @@ destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId taskTrees iworl
 	// 2. Remove the task tree
 	# taskTrees = 'DM'.del taskId taskTrees
 	// 3. Remove the task evaluation function
-	# (errs,iworld) = case modify (\(r=:{TIReduct|tasks}) -> {TIReduct|r & tasks = 'DM'.del taskId tasks})
+	# (errs,iworld) = case modify (fmap (\(r=:{TIReduct|tasks}) -> {TIReduct|r & tasks = 'DM'.del taskId tasks}))
 	                              (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld of
 		(Error e,iworld) = ([e:errs],iworld)
 		(Ok (ModifyingDone _),iworld) = (errs,iworld)
