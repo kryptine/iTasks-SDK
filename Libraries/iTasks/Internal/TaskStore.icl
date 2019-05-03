@@ -213,35 +213,19 @@ replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskT
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
-	//Delete in administration
+	//Delete in index
 	# taskFilter = {defaultValue & includeSessions = True, includeDetached = True, includeStartup = True}
 	# (mbe,iworld)    = 'SDS'.modify (\is -> [i \\ i=:(no,_,_,_) <- is | no <> instanceNo])
 		(sdsFocus taskFilter filteredInstanceIndex) 'SDS'.EmptyContext iworld
 	| mbe =: (Error _) = (toME mbe,iworld)
-	//Remove all events from the queueeverything
-	# (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo]) taskEvents 'SDS'.EmptyContext iworld
-	| mbe =: (Error _) = (toME mbe,iworld)
+	//Remove all edit/action/edit events from the queue
+	# iworld = clearEvents instanceNo iworld
+	//Queue a final destroy event
 	# iworld = queueEvent instanceNo DestroyEvent iworld
-	//Queue a destroy event
-	| not persistTasks
-		= (Ok (),iworld)
-	//TODO: Move remove to Taskeval after a destroy
-	//Delete all states on disk
-	# (mbe,iworld)    = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-	| mbe =: (Error _) = (toWE mbe,iworld)
-	# (mbe,iworld)    = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-	| mbe =: (Error _) = (toWE mbe,iworld)
-	# (mbe,iworld)    = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceShares) 'SDS'.EmptyContext iworld
-	| mbe =: (Error _) = (toWE mbe,iworld)
-	# (mbe,iworld)    = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceParallelTaskLists) 'SDS'.EmptyContext iworld
-	| mbe =: (Error _) = (toWE mbe,iworld)
 	= (Ok (),iworld)
   where
 	toME (Ok ('SDS'.ModifyingDone _)) = Ok ()
 	toME (Error e) = (Error e)
-
-	toWE (Ok ('SDS'.WritingDone)) = Ok ()
-	toWE (Error e) = (Error e)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
