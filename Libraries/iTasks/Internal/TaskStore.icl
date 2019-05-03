@@ -52,8 +52,8 @@ rawInstanceOutput    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.ne
 
 rawInstanceReduct    = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 rawInstanceValue     = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceShares    = mbStoreShare NS_TASK_INSTANCES True InDynamicFile //(Just 'DM'.newMap)
-rawInstanceParallels = mbStoreShare NS_TASK_INSTANCES True InDynamicFile //(Just 'DM'.newMap)
+rawInstanceShares    = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceParallels = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 
 //Master instance index
 taskInstanceIndex :: SimpleSDSLens [TIMeta]

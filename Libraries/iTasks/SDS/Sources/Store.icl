@@ -118,10 +118,10 @@ where
 		choice (path,_ )         = Right (addExtension path "bin")
 
 	jsonLoc :: SDSCache FilePath (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	jsonLoc = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) jsonFileShare
+	jsonLoc = sdsCache (\_ _ _ w -> (Just w,WriteNow)) jsonFileShare
 
 	graphLoc :: SDSCache FilePath (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	graphLoc = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) graphFileShare
+	graphLoc = sdsCache (\_ _ _ w -> (Just w,WriteNow)) graphFileShare
 
 //Utility function to make sure we don't use names that escape the file path
 safeName :: !String -> String
