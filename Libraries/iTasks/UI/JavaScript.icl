@@ -225,7 +225,7 @@ where
 			JSNew cons args
 			| size args==0
 				-> size cons+6+l
-				-> count_array args (size args-1) (size cons+5+size args+5+l)
+				-> count_array args (size args-1) (size cons+5+size args+l)
 
 			JSSel obj attr -> len obj (len attr (l+2))
 			JSSelPath obj path -> len obj (l+1+size path)
