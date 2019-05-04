@@ -5,7 +5,6 @@ import StdGeneric
 import StdOverloadedList
 
 import Data.Maybe
-import Text
 import Text.GenJSON
 
 :: *JSWorld = JSWorld
