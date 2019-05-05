@@ -1,5 +1,6 @@
 definition module iTasks.Extensions.SVG.SVGEditor
 
+from Data.GenEq import generic gEq
 import Graphics.Scalable.Image
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization import :: TextFormat, generic gText

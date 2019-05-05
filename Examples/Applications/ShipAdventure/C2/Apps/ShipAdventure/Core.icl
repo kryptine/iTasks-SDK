@@ -2,7 +2,6 @@ implementation module C2.Apps.ShipAdventure.Core
 
 import iTasks.Extensions.DateTime
 from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
-import iTasks.UI.JS.Encoding
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import Data.Map.GenJSON

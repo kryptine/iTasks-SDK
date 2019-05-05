@@ -5,7 +5,6 @@ implementation module C2.Apps.ShipAdventure.Types
 import iTasks.Internal.Tonic
 import iTasks.Extensions.Admin.TonicAdmin
 from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
-import iTasks.UI.JS.Encoding
 import qualified Data.List as DL
 from Data.Func import mapSt
 import StdArray

@@ -1,7 +1,6 @@
 implementation module C2.Apps.ShipAdventure.Editor
 
 from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
-import iTasks.UI.JS.Encoding
 import iTasks.Extensions.JSONFile
 import iTasks.Internal.IWorld
 import iTasks.UI.Layout, iTasks.UI.Definition

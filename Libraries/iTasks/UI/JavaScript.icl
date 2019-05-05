@@ -21,7 +21,7 @@ import Text.GenJSON
 	| JSTypeOf !JSVal
 	| JSDelete !JSVal // actually a statement, not an expression
 
-	| JSObject !{!JSObjectElement}
+	| JSObject !{#JSObjectElement}
 	| JSArray !{!JSVal}
 
 	| JSCall !JSVal !{!JSVal}
@@ -92,7 +92,7 @@ where
 				# dest & [i]='}'
 				-> (dest,i+1)
 				with
-					copy_elems :: !{!JSObjectElement} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
+					copy_elems :: !{#JSObjectElement} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
 					copy_elems elems k dest i
 					# {key,val} = elems.[k]
 					# (dest,i) = copy_chars key dest i

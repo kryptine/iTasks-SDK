@@ -29,6 +29,7 @@ from Graphics.Scalable.Image import :: XYAlign(..), :: StrokeAttr(..), :: LineEn
 from Graphics.Scalable.Image import :: GridDimension(..), :: StrokeWidthAttr(..), :: OnClickAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
 from Graphics.Scalable.Image import class *.(..), class /.(..)
 import Graphics.Scalable.Internal.Image`
+import Graphics.Scalable.Internal.Types
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Tonic.Pretty
