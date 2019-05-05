@@ -65,7 +65,7 @@ where
 	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
 		-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 	//Destroy
-	eval _ _ _ _ event evalOpts tt=:(TCDestroy _) iworld
+	eval _ _ _ _ DestroyEvent evalOpts tt iworld
 		= interactDestroy tt iworld
 	//Await
 	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld
@@ -84,7 +84,7 @@ interactR prompt shared handlers editor = Task (eval prompt shared handlers edit
 where
 	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 	//Destroy
-	eval _ _ _ _ event evalOpts tt=:(TCDestroy _) iworld
+	eval _ _ _ _ DestroyEvent evalOpts tt iworld
 		= interactDestroy tt iworld
 	//Await
 	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld

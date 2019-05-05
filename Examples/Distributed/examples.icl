@@ -108,7 +108,7 @@ startMode executable
 	>>- \role = case role of
 			DomainServer domain -> startAuthEngine domain
 				>>| installWorkflows (myTasks True)
-				>>| loginAndManageWork "Service engineer application"
+				>>| loginAndManageWork "Service engineer application" Nothing Nothing False
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
 			_ -> viewInformation "Welcome" [] "Chose what this iTasks instance is."
 		             >>* [ OnAction (Action "Domain server") (always (domainServer))
@@ -127,7 +127,7 @@ where
 		>>= \domain -> set (DomainServer domain) serverRoleShare
 		>>| startAuthEngine domain
 		>>| installWorkflows (myTasks True)
-		>>| loginAndManageWork "Service engineer application"
+		>>| loginAndManageWork "Service engineer application" Nothing Nothing False
 
 loginRemote :: ![Workflow] -> Task ()
 loginRemote workflows
@@ -140,7 +140,7 @@ where
 	browseAuthenticated workflows {Credentials|username,password}
 		= remoteAuthenticateUser username password
 		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user manageWorkOfCurrentUser
+			Just user 	= workAs user (manageWorkOfCurrentUser Nothing)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 
 Start :: *World -> *World

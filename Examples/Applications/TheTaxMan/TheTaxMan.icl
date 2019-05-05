@@ -9,7 +9,7 @@ import iTasks.UI.Definition, iTasks.Extensions.Admin.UserAdmin
 Start :: *World -> *World
 Start world = doTasks
 	[onStartup (installWorkflows workflows)
-	,onRequest "/" (loginAndManageWork "The Taxman")
+	,onRequest "/" (loginAndManageWork "The Taxman" Nothing Nothing True)
 	] world
 
 workflows :: [Workflow]
