@@ -424,6 +424,10 @@ where
 		JSSel (JSArray xs) (JSInt i)
 			| 0<=i && i<size xs -> try_local_computation xs.[i]
 			| otherwise         -> (True,JSUndefined)
+		JSSel (JSArray xs) (JSString "length")
+		             -> (True,JSInt (size xs))
+		JSSelPath (JSArray xs) "length"
+		             -> (True,JSInt (size xs))
 
 		JSRef _      -> (True,v)
 		JSCleanRef _ -> (True,v)
