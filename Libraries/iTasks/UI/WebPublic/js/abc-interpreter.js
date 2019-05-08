@@ -239,7 +239,7 @@ const ABC={
 				ABC.memory_array[hp/4+3]=0;
 				hp+=16;
 				hp_free-=2;
-			} else if (typeof values[i]=='object') {
+			} else if (typeof values[i]=='object' || typeof values[i]=='function') {
 				ABC.memory_array[store_ptrs/4]=hp;
 				ABC.memory_array[hp/4]=ABC.addresses.JSRef;
 				ABC.memory_array[hp/4+1]=0;
@@ -247,9 +247,8 @@ const ABC={
 				ABC.memory_array[hp/4+3]=0;
 				hp+=16;
 				hp_free-=2;
-			} else {
-				console.log(values[i]);
-				throw 'Could not pass the above value to Clean';
+			} else { // should be handled by copied_node_size
+				throw new ABCError('internal in copy_js_to_clean');
 			}
 
 			store_ptrs+=8;
@@ -278,11 +277,11 @@ const ABC={
 			return size;
 		} else if ('shared_clean_value_index' in value)
 			return 2;
-		else if (typeof value=='object')
+		else if (typeof value=='object' || typeof value=='function')
 			return 2;
 		else {
-			console.log(value);
-			throw 'Could not pass the above value to Clean';
+			console.error('Cannot pass this JavaScript value to Clean:',value);
+			throw new ABCError('missing case in copy_js_to_clean');
 		}
 	},
 	copy_js_to_clean: function (value, store_ptrs, hp, hp_free) {
