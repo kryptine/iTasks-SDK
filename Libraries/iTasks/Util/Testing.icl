@@ -3,14 +3,13 @@ implementation module iTasks.Util.Testing
 import iTasks, StdFile, StdMisc
 import iTasks.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Definition
-import iTasks.Extensions.Editors.Ace
 import iTasks.Internal.Serialization
 import Text, Text.HTML, Text.GenPrint, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
-from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options} 
+from iTasks.Internal.IWorld import createIWorld, destroyIWorld, ::IWorld{options}
 from iTasks.Internal.TaskStore import createSessionTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
@@ -115,10 +114,6 @@ where
 	test world
 		# (options,world) = defaultEngineOptions world
 		# iworld = createIWorld {options & autoLayout = False} world
-		//Initialize JS compiler support
-		# (res,iworld) = initJSCompilerState iworld
-		| res =:(Error _)
-			= (Failed (Just Crashed),destroyIWorld iworld)
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level

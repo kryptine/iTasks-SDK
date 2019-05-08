@@ -5,13 +5,13 @@ import iTasks.UI.Definition
 import iTasks.SDS.Definition
 
 import iTasks.Engine
+import iTasks.Internal.DynamicUtil
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import iTasks.Internal.Tonic.Shares
-import iTasks.Internal.Client.Override
 import iTasks.Internal.AsyncSDS
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle, removeMaybe
@@ -481,15 +481,15 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
 				}
 			}
 		//Evaluate new branches with a reset event
-        # (result,iworld) = evala (if newBranch ResetEvent event)
+		# (result,iworld) = evala (if newBranch ResetEvent event)
 			(setParallel listId (extendCallTrace taskId evalOpts)) tree iworld
 		//Tonic hook
-        # iworld = if (evalOpts.tonicOpts.captureParallel
-				   		&& evalOpts.tonicOpts.currBlueprintExprId <> []
-				   		&& evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
-				      		(storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId
+		# iworld = if (evalOpts.tonicOpts.captureParallel
+						&& evalOpts.tonicOpts.currBlueprintExprId <> []
+						&& evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
+							(storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId
 								evalOpts.tonicOpts.currBlueprintTaskId taskId iworld)
-                      		iworld
+							iworld
         = case result of
             //If an exception occured, check if we can handle it at this level
             ExceptionResult e

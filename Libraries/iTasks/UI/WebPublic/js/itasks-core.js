@@ -26,7 +26,7 @@ itasks.Component = {
 	init: function() {
 		var me = this;
 		me.lastFire = 0;
-		me.initSaplCustomization();
+		me.initUI();
 		me.initComponent();
 		me.initChildren();
 		me.renderComponent();
@@ -34,22 +34,11 @@ itasks.Component = {
 		me.initialized = true;
 		return me;
 	},
-	initSaplCustomization: function() { //When necessary, apply customizatons for Check if some of the component's methods are custom defined using sapl/js
-		var me = this, fun, evalfun;
-		//Initialize linked sapl functions 
-		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
-			if(typeof SAPL_DEBUG !== 'undefined' && SAPL_DEBUG) {
-				console.log("BEGIN SAPL DEBUG");
-				console.log(me.attributes.saplDeps);
-				console.log("END SAPL DEBUG");
-			} else {
-				me.evalJs(me.attributes.saplDeps);
-        	}
-			me.replaceJsDynamicUnify();
-		}
-		//Decode and evaluate the sapl initialization function
-		if(me.attributes.saplInit !=null && me.attributes.saplInit!= '') {
-			Sapl.feval([me.evalJsVal(me.attributes.saplInit),[___wrapJS(me),"JSWorld"]]);
+	initUI: function() {
+		var me=this;
+		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
+			var initUI=ABC.deserialize(me.attributes.initUI,me);
+			ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
@@ -217,7 +206,7 @@ itasks.Component = {
 	removeChild: function(idx = 0) {
 		var me = this, child = me.children[idx];
 
-		child.beforeRemove();
+		child._beforeRemove();
 		me.beforeChildRemove(idx,child);
 
 		if(me.initialized && child.domEl) {
@@ -247,10 +236,22 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
+	/* beforeRemove can be overwritten to add a handler for 'destroy' events.
+	 * _beforeRemove is internal and should not be overwritten.
+	 */
 	beforeRemove: function() {
-		this.children.forEach(function (child){
-			child.beforeRemove();
-		});
+	},
+	shared_clean_values: null,
+	_beforeRemove: function() {
+		this.beforeRemove();
+
+		if (this.shared_clean_values!=null) {
+			// garbage collect any remaining values shared with wasm
+			this.shared_clean_values.forEach(ref => ABC.clear_shared_clean_value(ref,false));
+			this.shared_clean_values.clear();
+		}
+
+		this.children.forEach(child => child._beforeRemove());
 	},
 	setAttribute: function(name,value) {
 		var me = this;
@@ -470,6 +471,9 @@ itasks.Viewport = {
 		if(instanceNo) {
 			me.connection.detachTaskInstance(instanceNo);
 		}
+	},
+	_beforeRemove: function() {
+		this.beforeRemove();
 	}
 };
 
@@ -478,7 +482,8 @@ itasks.Viewport = {
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
 	init: function () { return this; },
-    beforeRemove: function() {}
+	beforeRemove: function() {},
+	_beforeRemove: function() {},
 };
 
 //Convenience function for concisely creating viewports

@@ -35,30 +35,11 @@ import Data.Func, Data.Tuple, Data.List, iTasks.SDS.Definition
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 
 from Data.Set import :: Set, newSet
-from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt, :: LoaderState, :: FuncTypeMap, :: LineType
-from Sapl.Linker.SaplLinkerShared import :: SkipSet
-from Sapl.Target.Flavour import :: Flavour, toFlavour
-from Sapl.Target.CleanFlavour import cleanFlavour
-from Sapl.SaplParser import :: ParserState
 
 from iTasks.SDS.Definition import :: SDSParallel
 from iTasks.SDS.Combinators.Common import toReadOnly
-//The following modules are excluded by the SAPL -> Javascript compiler
-//because they contain functions implemented in ABC code that cannot
-//be compiled to javascript anyway. Handwritten Javascript overrides need
-//to be provided for them.
-JS_COMPILER_EXCLUDES :==
-	["iTasks.Internal.Client.Override"
-	,"dynamic_string"
-	,"graph_to_string_with_descriptors"
-	,"graph_to_sapl_string"
-	,"Text.Encodings.Base64"
-	,"Sapl.LazyLinker"
-	,"Sapl.Target.JS.CodeGeneratorJS"
-	,"System.Pointer"
-	,"System.File"
-	,"System.Directory"
-	]
+
+from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
 
 createIWorld :: !EngineOptions !*World -> *IWorld
 createIWorld options world
@@ -79,7 +60,7 @@ createIWorld options world
       ,memoryShares         = 'DM'.newMap
       ,readCache            = 'DM'.newMap
       ,writeCache           = 'DM'.newMap
-	  ,jsCompilerState		= Nothing
+	  ,abcInterpreterEnv    = Nothing
 	  ,shutdown				= Nothing
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
@@ -90,12 +71,6 @@ createIWorld options world
       ,random               = genRandInt seed
       ,onClient				= False
 	  }
-
-initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
-initJSCompilerState iworld=:{IWorld|world,options={EngineOptions|saplDirPath}}
-	# ((lst, ftmap, _), world)  = generateLoaderState [saplDirPath] [] JS_COMPILER_EXCLUDES world
-    # jsCompilerState = { loaderState = lst, functionMap = ftmap, flavour = cleanFlavour, parserState = Nothing, skipMap = 'DM'.newMap}
-    = (Ok (), {iworld & jsCompilerState = Just jsCompilerState, world = world})
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)

@@ -32,14 +32,6 @@ derive gText Set
 derive JSONEncode Set
 derive JSONDecode Set
 
-derive JSEncode Map2D, Coord2D, Map, IntMap, Dir, User, Section, Borders, Border, MapAction, Object, Actor
-derive JSEncode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
-derive JSEncode Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
-derive JSDecode Map2D, Coord2D, Map, IntMap, Dir, User, Section, Borders, Border, MapAction, Object, Actor
-derive JSDecode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
-derive JSDecode Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
-
-
 // std overloading instances
 
 //instance == Object      where (==) o1 o2 = o1 === o2

@@ -1,9 +1,10 @@
 implementation module iTasks.UI.Editor
 
-import StdBool, StdMisc, StdList, StdTuple
-import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
+import StdEnv
+import Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
-import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JS.Encoding
+import iTasks.Internal.Serialization
+import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JavaScript
 import qualified Data.Map as DM
 import Text, Text.GenJSON
 import Data.GenEq
@@ -12,18 +13,18 @@ derive JSONEncode EditState, LeafState, EditMode
 derive JSONDecode EditState, LeafState, EditMode
 derive gEq        EditState, LeafState
 
-leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSDecode{|*|} edit & JSONEncode{|*|}, JSONDecode{|*|} st
+leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
 leafEditorToEditor leafEditor = leafEditorToEditor_ JSONEncode{|*|} JSONDecode{|*|} leafEditor
 
 leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (!Maybe st, ![JSONNode])) !(LeafEditor edit st a)
-                    -> Editor a | JSDecode{|*|} edit
+                    -> Editor a | JSONDecode{|*|} edit
 leafEditorToEditor_ jsonEncode jsonDecode leafEditor =
 	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	genUI attr dp val vst = mapRes False $ leafEditor.LeafEditor.genUI attr dp val vst
 
 	onEdit dp (tp, jsone) (LeafState {state}) vst = case fromJSON` state of
-		Just st = case decodeOnServer jsone of
+		Just st = case fromJSON jsone of
 			Just e = mapRes True $ leafEditor.LeafEditor.onEdit dp (tp, e) st vst
 			_      = (Error ("Invalid edit event for leaf editor: " +++ toString jsone), vst)
 		_       = (Error "Corrupt internal state in leaf editor", vst)
@@ -147,18 +148,18 @@ isCompound (AnnotatedState _ childSt) = isCompound childSt
 isCompound (CompoundState _ _)        = True
 
 withClientSideInit ::
-	!((JSObj ()) *JSWorld -> *JSWorld)
+	!(JSVal *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
-        (Ok (saplDeps, saplInit),iworld)
-			# extraAttr = 'DM'.fromList [("taskId",  JSONString taskId)
-                                        ,("editorId",JSONString (editorId dp))
-                                        ,("saplDeps",JSONString saplDeps)
-                                        ,("saplInit",JSONString saplInit)
-                                        ]
-            = (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
-        (Error e,iworld)
-            = (Error e, {VSt|vst & iworld = iworld})
-    (Error e,vst) = (Error e,vst)
+	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serializeForClient (wrapInitUIFunction initUI) iworld of
+		(Ok initUI,iworld)
+			# extraAttr = 'DM'.fromList
+				[("taskId",  JSONString taskId)
+				,("editorId",JSONString (editorId dp))
+				,("initUI",  JSONString initUI)
+				]
+			-> (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
+		(Error e,iworld)
+			-> (Error e, {VSt|vst & iworld = iworld})
+	e -> e
