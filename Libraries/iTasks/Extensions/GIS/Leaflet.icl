@@ -4,7 +4,8 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
 import StdMisc, Data.Tuple, Data.Error, Data.Func, Text, Data.Functor
 import qualified Data.Map as DM
-from Text.HTML import instance toString HtmlTag
+from Text.HTML import instance toString HtmlTag, instance toString SVGElt
+from Text.Encodings.Base64 import base64Encode
 from iTasks.UI.Editor.Common import diffChildren, :: ChildUpdate (..)
 import StdArray
 
@@ -62,6 +63,12 @@ leafletObjectIdOf (Window w)    = w.windowId
 	| UpdatePolygon   ![LeafletLatLng]
 	| UpdateCircle    !LeafletLatLng !Real
 	| UpdateRectangle !LeafletBounds
+
+svgIconURL :: !SVGElt !(!Int,!Int) -> String
+svgIconURL svgelt (width,height) = "data:image/svg+xml;base64," +++ base64Encode svg
+where
+    svg = concat ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
+		, toString width, "\" height=\"", toString height, "\">", toString svgelt, "</svg>"]
 
 openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
