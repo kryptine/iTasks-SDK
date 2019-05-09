@@ -324,28 +324,6 @@ itasks.Component = {
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
-	/* Utility methods */
-	evalJs: function(js) {
-		var h = document.getElementsByTagName("head")[0],
-			s = document.createElement("script");
-		s.type = "text/javascript";
-		s.appendChild(document.createTextNode(js));
-		h.appendChild(s);
-		h.removeChild(s);
-		return null;
-	},
-	evalJsVal: function(js) {
-		var out;
- 		eval("out = " + js + ";");
-        return out;
-	},
-	replaceJsDynamicUnify: function() {
-		//Make sure that the dynamics unification is specialized for javavascript functions
-		if(typeof ___SystemDynamic__unify === "function" && ___SystemDynamic__unify != _gen_unify){
-			_orig_unify_fun = ___SystemDynamic__unify;
-			___SystemDynamic__unify = _gen_unify;
-		}
-	}
 };
 itasks.Loader = {
 	cssCls: 'loader',

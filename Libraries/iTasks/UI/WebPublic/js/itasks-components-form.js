@@ -427,7 +427,7 @@ itasks.Icon = {
 		me.currentIcon = me.attributes.iconCls;
 
 		if(me.attributes.tooltip) {
-			el.setAttribute('tooltip',me.attributes.tooltip);
+			el.tooltip=me.attributes.tooltip;
 		}
     },
 	onAttributeChange: function(name,value) {
@@ -440,7 +440,7 @@ itasks.Icon = {
 				el.classList.add(me.currentIcon);
 				break;
 			case 'tooltip':
-				el.setAttribute('tooltip',value);
+				el.tooltip=value;
 				break;
 		}
 	}
