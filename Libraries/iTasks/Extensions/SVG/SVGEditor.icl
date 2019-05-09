@@ -605,7 +605,6 @@ where
 	      | otherwise           					// the new model value is rendered on the server
           #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewModel model)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 		//#! (json,  world) = encodeOnClient (ClientHasNewModel model) world                                    //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
-	      #! world = jsTrace "After" world
 	      #! (editId,world) = me .# "attributes.editorId" .? world
 	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	      = world							// rendering is completed by clientHandleAttributeChange
@@ -622,7 +621,6 @@ where
 	//	client side entire rendering of model value:
 		clientHandleModel :: !(SVGEditor s v) !JSVal !s !v !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
-		  #! world                  = jsTrace "clientHandleModel" world
 		  #! (taskId,world)         = clientGetTaskId me world
 		  #! (Just font_spans,world) = jsGetCleanReference (me .# JS_ATTR_FONT_SPANS) world                 // Load the cached font spans
 		  #! (Just text_spans,world) = jsGetCleanReference (me .# JS_ATTR_TEXT_SPANS) world                 // Load the cached text width spans
