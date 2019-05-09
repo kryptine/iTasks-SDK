@@ -24,8 +24,8 @@ Global
 		Profile
 			Memory:	False
 			MemoryMinimumHeapSize:	0
-			Time:	True
-			Stack:	True
+			Time:	False
+			Stack:	False
 			Dynamics:	True
 			GenericFusion:	False
 			DescExL:	True
