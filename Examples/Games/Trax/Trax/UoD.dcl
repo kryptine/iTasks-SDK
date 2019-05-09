@@ -7,7 +7,6 @@ from   StdClass import class zero, class ~
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenEq, Data.GenLexOrd, Control.GenMap
-import iTasks.UI.JS.Encoding
 
 derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 
@@ -15,8 +14,6 @@ derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 	= { end1 :: !TileEdge               //    the red line at one end and
 	  , end2 :: !TileEdge               //    the red line at the other end
 	  }
-derive   JSEncode   TraxTile
-derive   JSDecode   TraxTile
 derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
@@ -46,8 +43,6 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 	| East                              //    the east  side of a tile, or at
 	| South                             //    the south side of a tile, or at
 	| West                              //    the west  side of a tile
-derive   JSEncode  TileEdge
-derive   JSDecode  TileEdge
 derive   gFDomain  TileEdge
 derive   gLexOrd   TileEdge
 instance ==        TileEdge
@@ -65,8 +60,6 @@ instance ~         LineColor
  = { col :: !Int                        //   a column-coordinate
    , row :: !Int                        //   a row-coordinate
    }
-derive   JSEncode  Coordinate
-derive   JSDecode  Coordinate
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate
@@ -83,8 +76,6 @@ row :: !Coordinate -> Int
 
 
 :: Trax
-derive   JSEncode   Trax
-derive   JSDecode   Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
@@ -193,9 +184,6 @@ mandatory_moves :: !Trax !Coordinate -> Trax
    , turn   :: !Bool
    , choice :: !Maybe Coordinate
    }
-
-derive JSEncode TraxSt, User
-derive JSDecode TraxSt, User
 
 /** game_over @st:
 		returns True only if the given configuration in @st.trax contains one or more

@@ -9,7 +9,6 @@ from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenLexOrd, Control.GenMap, Text.GenPrint
-import iTasks.UI.JS.Encoding
 import Text
 
 lookup1 x = fromJust o (lookup x)
@@ -17,8 +16,6 @@ lookup1 x = fromJust o (lookup x)
 derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 derive gMap Maybe
 
-derive   JSEncode   TraxTile
-derive   JSDecode   TraxTile
 derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
@@ -67,8 +64,6 @@ instance ~ TraxTile where ~ tile = lookup1 tile [(horizontal,vertical  )
 	                                        ,(southeast, northwest )
 	                                        ]
 
-derive   JSEncode  TileEdge
-derive   JSDecode  TileEdge
 derive   gFDomain  TileEdge
 derive   gLexOrd   TileEdge
 instance ==        TileEdge where == e1 e2 = e1 === e2
@@ -84,8 +79,6 @@ instance ==        LineColor where == c1 c2 = c1 === c2
 instance ~         LineColor where ~ RedLine    = WhiteLine
                                    ~ WhiteLine  = RedLine
 
-derive   JSEncode  Coordinate
-derive   JSDecode  Coordinate
 derive   gLexOrd   Coordinate
 instance ==        Coordinate where == c1 c2 = c1 === c2
 instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
@@ -130,8 +123,6 @@ go West  = west
 :: Trax								    // actually, Trax ought to be opaque
  = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
-derive   JSEncode   Trax
-derive   JSDecode   Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
@@ -364,10 +355,6 @@ mandatory_moves trax coordinate
 where
 	move :: !Trax !Coordinate -> Trax
 	move trax filler = add_tile filler (hd (possible_tiles (linecolors trax filler))) trax
-
-
-derive JSEncode TraxSt, User
-derive JSDecode TraxSt, User
 
 game_over :: !TraxSt -> Bool
 game_over st=:{trax}
