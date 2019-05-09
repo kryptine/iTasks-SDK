@@ -52,9 +52,9 @@ where
 
 	initUI me world
 		//Setup UI component
-		# world      = ((me .# "domTag") .= "pre") world
+		# world      = (me .# "domTag" .= "pre") world
 		# (cb,world) = jsWrapFun (onAttributeChange me) me world
-		# world      = ((me .# "onAttributeChange") .= cb) world
+		# world      = (me .# "onAttributeChange" .= cb) world
 		//Load Ace javascript
 		# (cb,world) = jsWrapFun (\_ -> initUI` me) me world
 		# world      = addJSFromUrl ACE_JS_URL (Just cb) world
@@ -63,36 +63,32 @@ where
 	initUI` me world
 		//Create Ace editor linked to domEl
 		# (domEl,world)     = me .# "domEl" .? world
-		# (editor,world)    = jsNew "ace.edit" domEl world
-		# (session,world)   = ((editor .# "getSession") .$ ()) world
-		# (selection,world) = ((session.# "getSelection") .$ ()) world
-		# world             = ((me .# "editor") .= editor) world
+		# world             = (domEl .# "style.width" .= "100%") world
+		# world             = (domEl .# "style.height" .= "100%") world
+		# (editor,world)    = (jsGlobal "ace.edit" .$ domEl) world
+		# (session,world)   = (editor .# "getSession" .$ ()) world
+		# (selection,world) = (session.# "getSelection" .$ ()) world
+		# world             = (me .# "editor" .= editor) world
 		//Set options
-		# (readOnly,world)  = me .# "attributes.disabled" .? world
-		# (_,world)         = ((editor .# "setReadOnly") .$ readOnly) world
-		# (theme,world)     = me .# "attributes.theme" .? world
-		# (_,world)         = ((editor .# "setTheme") .$ theme) world
-		# (mode,world)      = me .# "attributes.mode" .? world
-		# (_,world)         = ((session .# "setMode") .$ mode) world
+		# (_,world)         = (editor .# "setReadOnly" .$ me .# "attributes.disabled") world
+		# (_,world)         = (editor .# "setTheme" .$ me .# "attributes.theme") world
+		# (_,world)         = (session .# "setMode" .$ me .# "attributes.mode") world
 		//Initialize state based on attributes
-		# (lines,world)     = me .# "attributes.lines" .? world
-		# (value,world)     = ((lines.# "join") .$ "\n") world
-		# (_,world)         = ((editor .# "setValue") .$ value) world
+		# (lines,world)     = jsValToList` (me .# "attributes.lines") (jsValToString` "") world
+		# value             = join "\n" lines
+		# (_,world)         = (editor .# "setValue" .$ value) world
 		//Set initial cursor position
-		# (cursor,world)    = me .# "attributes.cursor" .? world
-		# (row,world)       = cursor .# 0 .? world
-		# (col,world)       = cursor .# 1 .? world
-		# (_,world)       	= ((editor .# "navigateTo") .$ (row,col)) world
+		# (_,world)       	= (editor .# "navigateTo" .$ (me .# "attributes.cursor[0]", me .# "attributes.cursor[1]")) world
 		//Potentially set initial selection
 		# (selattr,world)     = me .# "attributes.selection" .? world
-		# world = if (jsIsNull selattr) world (snd (((selection .# "setSelectionRange") .$ value) world))
+		# world = if (jsIsNull selattr) world ((selection .# "setSelectionRange" .$! value) world)
 		//Add event listeners
 		# (cb,world)     = jsWrapFun (\_ -> onChange editor me) me world
-		# (_,world)      = ((editor .# "on") .$ ("change",cb)) world
+		# (_,world)      = (editor .# "on" .$ ("change",cb)) world
 		# (cb,world)     = jsWrapFun (\_ -> onCursorChange selection me) me world
-		# (_,world)      = ((selection .# "on") .$ ("changeCursor",cb)) world
+		# (_,world)      = (selection .# "on" .$ ("changeCursor",cb)) world
 		# (cb,world)     = jsWrapFun (\_ -> onSelectionChange selection me) me world
-		# (_,world)      = ((selection .# "on") .$ ("changeSelection",cb)) world
+		# (_,world)      = (selection .# "on" .$ ("changeSelection",cb)) world
 		= world
 
 	onAttributeChange me {[0]=name,[1]=value} world
@@ -128,27 +124,30 @@ where
 		# (noEvents,world)  = me .# "noEvents" .? world
 		| (not (jsIsUndefined noEvents)) && jsValToBool` True noEvents
 			= world
-		# (value,world)  = ((editor .# "getValue") .$ ()) world
+		# (value,world)  = (editor .# "getValue" .$ ()) world
+		# (Just value) = jsValToString value
 		# (taskId,world)  = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("lines",value))) world
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,toJSON ("lines",value))) world
 		= world
 
 	onCursorChange selection me world
 		# (cursor,world)  = ((selection.# "getCursor") .$ ()) world
 		# (row,world) = cursor .# "row" .? world
 		# (column,world) = cursor .# "column" .? world
+		# (Just row) = jsValToInt row
+		# (Just column) = jsValToInt column
 		# (taskId,world)  = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("cursor",row,column))) world
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,toJSON ("cursor",row,column))) world
 		= world
 
 	onSelectionChange selection me world
 		# (taskId,world)  = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# (empty,world)  = ((selection .# "isEmpty") .$ ()) world
+		# (empty,world)  = (selection .# "isEmpty" .$ ()) world
 		| jsValToBool` True empty
-			# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("selection",JSONNull))) world
+			# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,toJSON ("selection",JSONNull))) world
 			= world
 		| otherwise
 			# (range,world)  = ((selection.# "getRange") .$ ()) world
@@ -158,14 +157,18 @@ where
 			# (scol,world)   = start .# "column" .? world
 			# (erow,world)   = end .# "row" .? world
 			# (ecol,world)   = end .# "column" .? world
-			# (_,world)      = ((me .# "doEditEvent") .$ (taskId,editorId,("selection",(srow,scol),(erow,ecol)))) world
+			# (Just srow)    = jsValToInt srow
+			# (Just scol)    = jsValToInt scol
+			# (Just erow)    = jsValToInt erow
+			# (Just ecol)    = jsValToInt ecol
+			# (_,world)      = ((me .# "doEditEvent") .$ (taskId,editorId,toJSON ("selection",(srow,scol),(erow,ecol)))) world
 			= world
 
 	onEdit dp ([], [JSONString "lines", JSONString text]) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & lines = split "\n" text})), vst)
 	onEdit dp ([], [JSONString "cursor",JSONInt row,JSONInt col]) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & cursor = (row,col)})),vst)
-	onEdit dp ([], [JSONString "selection",JSONArray [JSONString "JSONNull"]]) (o, s) vst
+	onEdit dp ([], [JSONString "selection",JSONNull]) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & selection = Nothing})), vst)
 	onEdit dp ([],[JSONString "selection",JSONArray [JSONInt srow,JSONInt scol],JSONArray [JSONInt erow,JSONInt ecol]]) (o,s) vst
 		# selection = {AceRange|start=(srow,scol),end=(erow,ecol)}

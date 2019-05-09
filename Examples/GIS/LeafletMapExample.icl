@@ -3,7 +3,7 @@ import iTasks
 import iTasks.Extensions.GIS.Leaflet
 import iTasks.Extensions.GIS.LeafletNavalIcons
 import iTasks.UI.Definition
-import Data.List
+import Data.List, Text.HTML
 
 playWithMaps :: Task ()
 playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
@@ -38,6 +38,7 @@ where
 			,("Polygon from current markers",addMarkerConnectingPolygon m)
 			,("Circle at cursor position",addCircleAtCursor m)
 			,("Rectangle around current perspective",addRectangleAroundCurrentPerspective m)
+			,("Some window",addWindow m)
 			]
 
 	addRandomMarker m
@@ -92,5 +93,16 @@ where
 	where
 		withRectangleAroundCurrentPerspective Nothing objects = objects
 		withRectangleAroundCurrentPerspective (Just bounds) objects = objects ++ [Rectangle {rectangleId = LeafletObjectID "RECT_PERSPECTIVE", bounds = bounds, editable = True, style = []}]
+
+	addWindow m
+		= upd (\l=:{LeafletMap|objects} -> {LeafletMap| l & objects = [Window window:objects]}) m
+	where
+		window =
+			{ windowId       = LeafletObjectID "WINDOW"
+			, initPosition   = {x = 100, y = 100}
+			, title          = "Test Window"
+			, content        = H1Tag [] [Text "This is test content!"]
+			, relatedMarkers = [(LeafletObjectID "home", [])]
+			}
 
 Start world = doTasks playWithMaps world

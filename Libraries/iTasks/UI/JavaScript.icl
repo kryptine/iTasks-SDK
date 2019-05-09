@@ -329,29 +329,29 @@ jsValToReal` r v = fromMaybe r (jsValToReal v)
 
 jsValToList :: !JSVal !(JSVal -> Maybe a) !*JSWorld -> *(!Maybe [a], !*JSWorld)
 jsValToList arr get w
-# (len,w) = arr .# "length" .? w
+# (len,w) = arr .# "length" .? w // get length before array is evaluated
+# (arr,w) = arr .? w // copy array to Clean
 = case jsValToInt len of
 	Nothing  -> (Nothing,w)
-	Just len -> get_elements [] (len-1) w
+	Just len -> get_elements arr [] (len-1) w
 where
-	get_elements xs -1 w = (Just xs,w)
-	get_elements xs i w
+	get_elements arr xs -1 w = (Just xs,w)
+	get_elements arr xs i w
 	# (x,w) = arr .# i .? w
 	= case get x of
 		Nothing -> (Nothing,w)
-		Just x  -> get_elements [x:xs] (i-1) w
+		Just x  -> get_elements arr [x:xs] (i-1) w
 
 jsValToList` :: !JSVal !(JSVal -> a) !*JSWorld -> *(![a], !*JSWorld)
 jsValToList` arr get w
-# (len,w) = arr .# "length" .? w
-= case jsValToInt len of
-	Nothing  -> ([],w)
-	Just len -> get_elements [] (len-1) w
+# (len,w) = arr .# "length" .? w // get length before array is evaluated
+# (arr,w) = arr .? w // copy array to Clean
+= get_elements arr [] (jsValToInt` 0 len - 1) w
 where
-	get_elements xs -1 w = (xs,w)
-	get_elements xs i w
+	get_elements arr xs -1 w = (xs,w)
+	get_elements arr xs i w
 	# (x,w) = arr .# i .? w
-	= get_elements [get x:xs] (i-1) w
+	= get_elements arr [get x:xs] (i-1) w
 
 gToJS{|Int|} i = JSInt i
 gToJS{|Bool|} b = JSBool b
@@ -424,6 +424,10 @@ where
 		JSSel (JSArray xs) (JSInt i)
 			| 0<=i && i<size xs -> try_local_computation xs.[i]
 			| otherwise         -> (True,JSUndefined)
+		JSSel (JSArray xs) (JSString "length")
+		             -> (True,JSInt (size xs))
+		JSSelPath (JSArray xs) "length"
+		             -> (True,JSInt (size xs))
 
 		JSRef _      -> (True,v)
 		JSCleanRef _ -> (True,v)

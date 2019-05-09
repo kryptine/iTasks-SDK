@@ -291,27 +291,29 @@ itasks.Component = {
 			});
 		}
 		//Handle child changes
-		childChanges.forEach(function(change) {
-			var idx = change[0];
-			switch(change[1]) {
-				case 'change':
-					if(idx >= 0 && idx < me.children.length) {
-						me.children[idx].onUIChange(change[2]);
-					} else {
-						console.log("UNKNOWN CHILD",idx,me.children.length,change);
-					}
-					break;
-				case 'insert':
-					me.insertChild(idx,change[2]);
-					break;
-				case 'remove':
-					me.removeChild(idx);
-					break;
-				case 'move':
-					me.moveChild(idx,change[2]);
-					break;
-			}
-		});
+		if (childChanges instanceof Array) {
+			childChanges.forEach(function(change) {
+				var idx = change[0];
+				switch(change[1]) {
+					case 'change':
+						if(idx >= 0 && idx < me.children.length) {
+							me.children[idx].onUIChange(change[2]);
+						} else {
+							console.log("UNKNOWN CHILD",idx,me.children.length,change);
+						}
+						break;
+					case 'insert':
+						me.insertChild(idx,change[2]);
+						break;
+					case 'remove':
+						me.removeChild(idx);
+						break;
+					case 'move':
+						me.moveChild(idx,change[2]);
+						break;
+				}
+			});
+		}
 	},
 	onShow: function() {
 		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
@@ -322,28 +324,6 @@ itasks.Component = {
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
-	/* Utility methods */
-	evalJs: function(js) {
-		var h = document.getElementsByTagName("head")[0],
-			s = document.createElement("script");
-		s.type = "text/javascript";
-		s.appendChild(document.createTextNode(js));
-		h.appendChild(s);
-		h.removeChild(s);
-		return null;
-	},
-	evalJsVal: function(js) {
-		var out;
- 		eval("out = " + js + ";");
-        return out;
-	},
-	replaceJsDynamicUnify: function() {
-		//Make sure that the dynamics unification is specialized for javavascript functions
-		if(typeof ___SystemDynamic__unify === "function" && ___SystemDynamic__unify != _gen_unify){
-			_orig_unify_fun = ___SystemDynamic__unify;
-			___SystemDynamic__unify = _gen_unify;
-		}
-	}
 };
 itasks.Loader = {
 	cssCls: 'loader',
@@ -448,12 +428,12 @@ itasks.Viewport = {
 			if(change.type == 'replace' && change.definition.attributes.title) {
 				document.title = change.definition.attributes.title;
 			}
-			if(change.type == 'change' && change.attributes.length > 0) {
+			if(change.type == 'change' && change.attributes instanceof Array) {
 				change.attributes.forEach(function(change) {
 					if(change.name == 'title') {
 						document.title = change.value;
 					}
-            	});
+				});
 			}
 		}
 	},

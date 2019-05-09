@@ -29,23 +29,6 @@ import iTasks.SDS.Combinators.Common
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Data.GenEq import generic gEq
 
-instance toString StoreReadError
-where
-    toString (StoreReadMissingError name)      = "Stored data not in store: " +++ name
-    toString (StoreReadDataError name)         = "Failed to read store data: " +++ name
-    toString (StoreReadTypeError name)         = "Stored data is of incorrect type: " +++ name
-    toString (StoreReadBuildVersionError name) = "Stored data contains functions from an older executable that can no longer be evaluated: " +++ name
-
-derive class iTask StoreReadError
-
-//Temporary memory storage
-memoryStore :: !StoreNamespace !(Maybe a) -> SDSSequence StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-memoryStore namespace defaultV = storeShare namespace False InMemory defaultV
-
-//Convenient derived store which checks version
-jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> SDSSequence StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-jsonFileStore namespace check reset defaultV = storeShare namespace True InJSONFile defaultV
-
 deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where

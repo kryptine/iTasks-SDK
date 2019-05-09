@@ -88,7 +88,7 @@ where
 		# (editorId,world) = me .# "attributes.editorId" .? world
 		# (value,world)    = me .# "domEl.value" .? world
 		# value            = jsValToString value
-		# world            = (me .# "doEditEvent" .$! (taskId, editorId, toString (toJSON value))) world
+		# world            = (me .# "doEditEvent" .$! (taskId, editorId, toJSON value)) world
 		= world
 
 	onEdit dp (tp,e) _ vst = (Ok (ChangeUI [SetAttribute "value" (JSONString (fromMaybe "" e))] [], e),vst)
