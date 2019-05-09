@@ -291,27 +291,29 @@ itasks.Component = {
 			});
 		}
 		//Handle child changes
-		childChanges.forEach(function(change) {
-			var idx = change[0];
-			switch(change[1]) {
-				case 'change':
-					if(idx >= 0 && idx < me.children.length) {
-						me.children[idx].onUIChange(change[2]);
-					} else {
-						console.log("UNKNOWN CHILD",idx,me.children.length,change);
-					}
-					break;
-				case 'insert':
-					me.insertChild(idx,change[2]);
-					break;
-				case 'remove':
-					me.removeChild(idx);
-					break;
-				case 'move':
-					me.moveChild(idx,change[2]);
-					break;
-			}
-		});
+		if (childChanges instanceof Array) {
+			childChanges.forEach(function(change) {
+				var idx = change[0];
+				switch(change[1]) {
+					case 'change':
+						if(idx >= 0 && idx < me.children.length) {
+							me.children[idx].onUIChange(change[2]);
+						} else {
+							console.log("UNKNOWN CHILD",idx,me.children.length,change);
+						}
+						break;
+					case 'insert':
+						me.insertChild(idx,change[2]);
+						break;
+					case 'remove':
+						me.removeChild(idx);
+						break;
+					case 'move':
+						me.moveChild(idx,change[2]);
+						break;
+				}
+			});
+		}
 	},
 	onShow: function() {
 		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
@@ -448,12 +450,12 @@ itasks.Viewport = {
 			if(change.type == 'replace' && change.definition.attributes.title) {
 				document.title = change.definition.attributes.title;
 			}
-			if(change.type == 'change' && change.attributes.length > 0) {
+			if(change.type == 'change' && change.attributes instanceof Array) {
 				change.attributes.forEach(function(change) {
 					if(change.name == 'title') {
 						document.title = change.value;
 					}
-            	});
+				});
 			}
 		}
 	},

@@ -197,8 +197,10 @@ instance encodeUI UI
 where
 	encodeUI (UI type attr items) = JSONObject (typeField ++ attrFields ++ childrenField)
 	where
-		typeField     = [("type",JSONString (toString type))]
-		attrFields    = [("attributes",JSONObject ('DM'.toList attr))]
+		typeField = [("type",JSONString (toString type))]
+		attrFields = case attr of
+			'DM'.Tip = []
+			_        = [("attributes",JSONObject ('DM'.toList attr))]
 		childrenField = case items of
 			[]    = []
 			_     = [("children",JSONArray (map encodeUI items))]
@@ -375,12 +377,16 @@ encodeUIChange (ReplaceUI def)
 		,("definition",encodeUI def)
 		]
 encodeUIChange (ChangeUI attributes children)
-	= JSONObject
-		[("type",JSONString "change")
-		,("attributes", JSONArray (map encodeAttrChange attributes))
-		,("children",JSONArray (map encodeChildChange children))
-		]
+	= JSONObject fields
 where
+	fields = [("type",JSONString "change"):attributesField]
+	attributesField = case attributes of
+		[] -> childrenField
+		_  -> [("attributes",JSONArray [encodeAttrChange a \\ a <- attributes]):childrenField]
+	childrenField = case children of
+		[] -> []
+		_  -> [("children",JSONArray [encodeChildChange c \\ c <- children])]
+
 	encodeAttrChange (SetAttribute name value) = JSONObject [("name",JSONString name),("value",value)]
 	encodeAttrChange (DelAttribute name) = JSONObject [("name",JSONString name),("value",JSONNull)]
 
@@ -388,4 +394,3 @@ where
 	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
 	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
 	encodeChildChange (i,MoveChild ni)      = JSONArray [JSONInt i,JSONString "move",JSONInt ni]
-
