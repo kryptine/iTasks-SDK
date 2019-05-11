@@ -20,6 +20,14 @@ gDefault{|AceOptions|} = {AceOptions|theme = ACE_DEFAULT_THEME, mode = ACE_DEFAU
 derive JSONEncode AceOptions
 derive JSONDecode AceOptions
 
+:: EditEvent
+	= EditValue !String
+	| EditCursor !Int !Int
+	| EditSelection !(Maybe ((Int,Int), (Int,Int)))
+
+derive JSONEncode EditEvent
+derive JSONDecode EditEvent
+
 aceTextArea :: Editor String
 aceTextArea = surjectEditorValue toAce fromAce aceEditor
 where
@@ -176,16 +184,16 @@ where
 			, toJSON (EditSelection (Just ((srow,scol), (erow,ecol))))
 			)) world
 
-	onEdit dp ([], [JSONString "lines", JSONString text]) (o, s) vst
+	onEdit dp ([], EditValue text) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & lines = split "\n" text})), vst)
-	onEdit dp ([], [JSONString "cursor",JSONInt row,JSONInt col]) (o, s) vst
+	onEdit dp ([], EditCursor row col) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & cursor = (row,col)})),vst)
-	onEdit dp ([], [JSONString "selection",JSONNull]) (o, s) vst
+	onEdit dp ([], EditSelection Nothing) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & selection = Nothing})), vst)
-	onEdit dp ([],[JSONString "selection",JSONArray [JSONInt srow,JSONInt scol],JSONArray [JSONInt erow,JSONInt ecol]]) (o,s) vst
+	onEdit dp ([], EditSelection (Just ((srow,scol),(erow,ecol)))) (o,s) vst
 		# selection = {AceRange|start=(srow,scol),end=(erow,ecol)}
 		= (Ok (NoChange, (o,{AceState|s & selection = Just selection})), vst)
-	onEdit _ (_, e) _ vst = (Error $ "Invalid event for Ace editor: " +++ toString (toJSON e), vst)
+	onEdit _ (_, _) _ vst = (Error $ "Invalid event for Ace editor", vst)
 
 	onRefresh dp r=:(_,rs) (_,vs) vst
 		// Determine which parts changed
