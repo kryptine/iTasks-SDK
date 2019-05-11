@@ -4,7 +4,7 @@ import iTasks
 import iTasks.UI.Editor, iTasks.UI.Editor.Modifiers, iTasks.UI.Definition
 import iTasks.UI.JavaScript
 import qualified Data.Map as DM
-import Text, Data.Func, StdArray
+import Data.Func, StdArray
 
 ACE_JS_URL :== "/ace/src-noconflict/ace.js"
 ACE_DEFAULT_THEME :== "ace/theme/chrome"
@@ -31,10 +31,10 @@ derive JSONDecode EditEvent
 aceTextArea :: Editor String
 aceTextArea = surjectEditorValue toAce fromAce aceEditor
 where
-	aceState = {AceState|lines = [],cursor = (0,0), selection = Nothing, disabled=False}
-	toAce s Nothing = (defaultValue, {AceState|aceState & lines = split "\n" s})
-	toAce s (Just (opts,state)) = (opts,{AceState|state & lines = split "\n" s})
-	fromAce (_,{AceState|lines}) _ = join "\n" lines
+	aceState = {AceState|value="",cursor=(0,0),selection=Nothing,disabled=False}
+	toAce s Nothing = (defaultValue, {AceState|aceState & value=s})
+	toAce s (Just (opts,state)) = (opts, {AceState|state & value=s})
+	fromAce (_,{AceState|value}) _ = value
 
 aceEditor :: Editor (!AceOptions,!AceState)
 aceEditor = leafEditorToEditor
@@ -49,7 +49,7 @@ where
 		# (options,state) = fromMaybe gDefault{|*|} $ editModeValue mode
 		//Set both state and options as attributes
 		# aceAttr = 'DM'.fromList
-			[("lines",JSONArray (map JSONString state.AceState.lines))
+			[("value",JSONString state.AceState.value)
 			,("cursor", toJSON state.AceState.cursor)
 			,("selection", maybe JSONNull encodeRange state.AceState.selection)
 			,("disabled",JSONBool state.AceState.disabled)
@@ -84,14 +84,12 @@ where
 		# world             = (editor .# "setTheme" .$! me .# "attributes.theme") world
 		# world             = (session .# "setMode" .$! me .# "attributes.mode") world
 		//Initialize state based on attributes
-		# (lines,world)     = jsValToList` (me .# "attributes.lines") (jsValToString` "") world
-		# value             = join "\n" lines
-		# world             = (editor .# "setValue" .$! value) world
+		# world             = (editor .# "setValue" .$! me .# "attributes.value") world
 		//Set initial cursor position
 		# world             = (editor .# "navigateTo" .$! (me .# "attributes.cursor[0]", me .# "attributes.cursor[1]")) world
 		//Potentially set initial selection
 		# (selattr,world)     = me .# "attributes.selection" .? world
-		# world = if (jsIsNull selattr) world ((selection .# "setSelectionRange" .$! value) world)
+		# world = if (jsIsNull selattr) world ((selection .# "setSelectionRange" .$! me .# "attributes.value") world)
 		//Add event listeners
 		# (cb,world)     = jsWrapFun (\_ -> onChange editor me) me world
 		# world          = (editor .# "on" .$! ("change",cb)) world
@@ -104,9 +102,8 @@ where
 	onAttributeChange me {[0]=name,[1]=value} world
 	# editor = me .# "editor"
 	= case jsValToString name of
-		Just "lines"
+		Just "value"
 			# world           = (me .# "noEvents" .= True) world
-			# (value,world)   = (value .# "join" .$ "\n") world
 			# world           = (editor .# "setValue" .$! (value,1)) world
 			# world           = (me .# "noEvents" .= False) world
 			= world
@@ -185,7 +182,7 @@ where
 			)) world
 
 	onEdit dp ([], EditValue text) (o, s) vst
-		= (Ok (NoChange, (o,{AceState|s & lines = split "\n" text})), vst)
+		= (Ok (NoChange, (o,{AceState|s & value = text})), vst)
 	onEdit dp ([], EditCursor row col) (o, s) vst
 		= (Ok (NoChange, (o,{AceState|s & cursor = (row,col)})),vst)
 	onEdit dp ([], EditSelection Nothing) (o, s) vst
@@ -197,8 +194,8 @@ where
 
 	onRefresh dp r=:(_,rs) (_,vs) vst
 		// Determine which parts changed
-		# lineChange = if (rs.AceState.lines === vs.AceState.lines)
-						[] [SetAttribute "lines" (JSONArray (map JSONString rs.AceState.lines))]
+		# lineChange = if (rs.AceState.value === vs.AceState.value)
+						[] [SetAttribute "value" (JSONString rs.AceState.value)]
 		# cursorChange = if (rs.AceState.cursor === vs.AceState.cursor) 
 						[] [SetAttribute "cursor" (toJSON rs.AceState.cursor)]
 		# selectionChange = if (rs.AceState.selection === vs.AceState.selection) 
