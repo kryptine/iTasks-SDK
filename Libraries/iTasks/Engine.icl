@@ -45,7 +45,9 @@ doTasksWithOptions initFun startable world
 	# mbOptions                  = initFun cli options
 	| mbOptions =:(Error _)      = show (fromError mbOptions) world
 	# options                    = fromOk mbOptions
-	# iworld                     = createIWorld options world
+	# mbIWorld                   = createIWorld options world
+	| mbIWorld =: Left _         = let (Left (err, world)) = mbIWorld in show [err] world
+	# iworld                     = let (Right iworld`) = mbIWorld in iworld`
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
@@ -197,7 +199,7 @@ defaultEngineOptions world
 	# (appPath,world)    = determineAppPath world
 	# (appVersion,world) = determineAppVersion appPath world
 	# appDir             = takeDirectory appPath
-	# appName            = (dropExtension o dropDirectory) appPath
+	# appName            = (if (takeExtension appPath == "exe") dropExtension id o dropDirectory) appPath
 	# options =
 		{ appName        = appName
 		, appPath        = appPath

@@ -113,7 +113,9 @@ testTaskOutput name task events exp comparison = {UnitTest|name=name,test=test}
 where
 	test world
 		# (options,world) = defaultEngineOptions world
-		# iworld = createIWorld {options & autoLayout = False} world
+		# mbIworld = createIWorld {options & autoLayout = False} world
+		| mbIworld =: Left _ = let (Left (_, world)) = mbIworld in (Failed (Just Crashed), world)
+		# iworld = let (Right iworld) = mbIworld in iworld
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level

@@ -116,15 +116,15 @@ mapEditMode f (View x)   = View   $ f x
 derive bimap EditMode
 
 withVSt :: !TaskId !.(*VSt -> (!a, !*VSt)) !*IWorld -> (!a, !*IWorld)
-withVSt taskId f iworld
+withVSt taskId f iworld=:{IWorld| abcInterpreterEnv}
 	# (x, vst) = f { VSt
 	               | taskId            = toString taskId
 	               , optional          = False
 	               , selectedConsIndex = -1
 	               , pathInEditMode    = abort "VSt.dataPathInEditMode should be set by OBJECT instance of gEditor"
-	               , iworld            = iworld
+	               , abcInterpreterEnv = abcInterpreterEnv
 	               }
-	= (x, vst.iworld)
+	= (x, iworld)
 
 newLeafState :: EditState
 newLeafState = LeafState {LeafState|touched=False,state=JSONNull}
@@ -151,15 +151,13 @@ withClientSideInit ::
 	!(JSVal *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(!MaybeErrorString (!UI, !st), !*VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
-withClientSideInit initUI genUI attr dp val vst=:{VSt|taskId} = case genUI attr dp val vst of
-	(Ok (UI type attr items,mask),vst=:{VSt|iworld}) -> case serializeForClient (wrapInitUIFunction initUI) iworld of
-		(Ok initUI,iworld)
-			# extraAttr = 'DM'.fromList
-				[("taskId",  JSONString taskId)
-				,("editorId",JSONString (editorId dp))
-				,("initUI",  JSONString initUI)
-				]
-			-> (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
-		(Error e,iworld)
-			-> (Error e, {VSt|vst & iworld = iworld})
-	e -> e
+withClientSideInit initUI genUI attr dp val vst=:{VSt| taskId} = case genUI attr dp val vst of
+	(Ok (UI type attr items,mask),vst)
+		# (initUI, vst) = serializeForClient (wrapInitUIFunction initUI) vst
+		# extraAttr = 'DM'.fromList
+			[("taskId",  JSONString taskId)
+			,("editorId",JSONString (editorId dp))
+			,("initUI",  JSONString initUI)
+			]
+		= (Ok (UI type ('DM'.union extraAttr attr) items,mask), vst)
+	e = e

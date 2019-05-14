@@ -26,12 +26,6 @@ dynamicJSONDecode	:: !JSONNode -> Maybe a
  * WebAssembly interpreter. The values are serialized using GraphCopy after
  * which the descriptors are replaced by the descriptors of the client.
  * @param The expression to serialize.
- * @result `Error` if the bytecode could not be loaded (which may happen due to
- *   incorrect project settings); otherwise a serialized string.
+ * @result The serialized string.
  */
-serializeForClient :: f !*IWorld -> *(!MaybeErrorString String, !*IWorld)
-
-/**
- * Like `serializeForClient`, but in a `VSt`.
- */
-serializeInVSt :: f !*VSt -> *(!String, !*VSt)
+serializeForClient :: f !*VSt -> *(!String, !*VSt)
