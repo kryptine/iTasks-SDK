@@ -605,7 +605,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 	const csp=asp+ABC.stack_size/2;
 	const hp=bsp+8;
 
-	ABC.util.instance.exports.setup_gc(hp, ABC.hp_size, asp, 98*8);
+	ABC.util.instance.exports.setup_gc(hp, ABC.hp_size, asp, 97*8);
 
 	ABC.interpreter.instance.exports.set_asp(asp);
 	ABC.interpreter.instance.exports.set_bsp(bsp);
