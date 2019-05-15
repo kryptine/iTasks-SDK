@@ -90,7 +90,7 @@ stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultVal
 				excs
 					# (_, world) = fclose (stderr <<< join "\n" excs <<< "\n") iworld.world
 					= {IWorld | iworld & world=world, shutdown=Just 1}
-			# iworld = if (isNothing iworld.shutdown && all isStable index)
+			# iworld = if (isNothing iworld.shutdown && all isStable (filter (not o isSystem) index))
 				{IWorld | iworld & shutdown=Just 0}
 				iworld
 			= (Ok (), iworld)
@@ -99,8 +99,9 @@ stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultVal
 		(Error e, iworld)  = (Error e, iworld)
 where
 	isStable (_, _, Nothing, _) = False
-	isStable (_, _, Just {InstanceProgress|value}, attributes)
-		| member "system" (fromMaybe newMap attributes) = True
-		= value =: Stable
+	isStable (_, _, Just {InstanceProgress|value}, attributes) = value =: Stable
+
+	isSystem (_, _, Just {InstanceProgress|value}, attributes) = member "system" (fromMaybe newMap attributes)
+	isSystem _ = False
 	
 	exceptions instances = [e\\(_, _, Just {InstanceProgress|value=Exception e}, _)<-instances]
