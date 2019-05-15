@@ -75,7 +75,9 @@ where
 		# domEl             = me .# "domEl"
 		# world             = (domEl .# "style.width" .= "100%") world
 		# world             = (domEl .# "style.height" .= "100%") world
+		# world             = (domEl .# "style.margin" .= 0) world
 		# (editor,world)    = (jsGlobal "ace.edit" .$ domEl) world
+		# world             = (editor .# "setAutoScrollEditorIntoView" .$! True) world // fit window after resize
 		# (session,world)   = (editor .# "getSession" .$ ()) world
 		# (selection,world) = (session.# "getSelection" .$ ()) world
 		# world             = (me .# "editor" .= editor) world
