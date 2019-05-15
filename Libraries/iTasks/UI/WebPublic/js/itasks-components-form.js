@@ -337,7 +337,7 @@ itasks.Slider = {
 	}
 };
 itasks.Button = {
-	domTag: 'a',
+	domTag: 'button',
 	cssCls: 'button',
 	attributes: {
 		height: 'wrap',
@@ -348,7 +348,6 @@ itasks.Button = {
 		var me = this,
 			el = me.domEl;
 
-		el.href = '#';
 		if(me.attributes.iconCls) {
 			me.icon = document.createElement('div');
 			me.icon.classList.add(me.cssPrefix + 'button-icon');

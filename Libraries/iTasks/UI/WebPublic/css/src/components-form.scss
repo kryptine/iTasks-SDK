@@ -23,23 +23,28 @@
     flex-shrink: 0;
 
     &:hover {
-        border-color: darken($button-base-color,20%);
+        border-color: darken($button-base-color,40%);
+    }
+
+    &:active {
+        background: lighten($button-base-color,20%);
     }
 }
 .#{$prefix}button-label {
     margin: 0 4px;
     height: 16px;
+    cursor: default;
 }
 .#{$prefix}button-icon {
     width: 16px;
     height: 16px;
 }
 .#{$prefix}button-disabled {
-    color: lighten($button-text-color,15%);
-    background: linear-gradient(lighten($button-base-color,20%), darken($button-base-color,10%));
+    color: lighten($button-text-color,35%);
+    background: linear-gradient(lighten($button-base-color,20%), darken($button-base-color,20%));
 }
 .#{$prefix}button-disabled:hover {
-    border-color: darken($button-base-color,20%);
+    border-color: darken($button-base-color,40%);
 }
 .#{$prefix}button-disabled .#{$prefix}button-icon {
     opacity: 0.5;
