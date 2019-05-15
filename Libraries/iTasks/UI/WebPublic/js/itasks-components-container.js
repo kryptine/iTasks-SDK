@@ -77,7 +77,9 @@ itasks.Panel = {
 
 		el.classList.add(me.cssPrefix + 'sizer-' + side);
 		el.addEventListener('mousedown', function init (e){
-			
+			function preventDefault(e) { e.preventDefault(); }
+			window.addEventListener('selectstart', preventDefault);
+
 			if(side == 'top' || side == 'bottom') {
 				var startPos = e.clientY;
 				var startSize = parseInt(window.getComputedStyle(me.domEl).getPropertyValue('height').slice(0,-2));
@@ -101,6 +103,7 @@ itasks.Panel = {
 
 			window.addEventListener('mousemove', resize, false);
 			window.addEventListener('mouseup', function stop(e){
+					window.removeEventListener('selectstart', preventDefault);
 					window.removeEventListener('mousemove', resize, false);
 					window.removeEventListener('mouseup', stop, false);
 				}, false);
