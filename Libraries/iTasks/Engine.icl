@@ -58,14 +58,15 @@ where
     webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks {distributed, sdsPort}
 		//If distributed, start sds service task
-		=  (if distributed [startTask (sdsServiceTask sdsPort)] [])
-		++ [startTask flushWritesWhenIdle
+		=  (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
+		++ [systemTask (startTask flushWritesWhenIdle)
 		//If there no webtasks, stop when stable, otherwise cleanup old sessions
-		   ,startTask if (webTasks =: []) stopOnStable removeOutdatedSessions
+		   ,systemTask (startTask if (webTasks =: []) stopOnStable removeOutdatedSessions)
 		//Start all startup tasks
 		   :[t \\ StartupTask t <- toStartable startable]]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
+	systemTask t = {StartupTask|t&attributes='DM'.put "system" "yes" t.StartupTask.attributes}
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
