@@ -939,12 +939,16 @@ div.itasks-exception {
   flex-shrink: 0;
 }
 .itasks-button:hover {
-  border-color: #bbbbbb;
+  border-color: #888888;
+}
+.itasks-button:active {
+  background: white;
 }
 
 .itasks-button-label {
   margin: 0 4px;
   height: 16px;
+  cursor: default;
 }
 
 .itasks-button-icon {
@@ -953,12 +957,12 @@ div.itasks-exception {
 }
 
 .itasks-button-disabled {
-  color: #262626;
-  background: linear-gradient(white, #d5d5d5);
+  color: #595959;
+  background: linear-gradient(white, #bbbbbb);
 }
 
 .itasks-button-disabled:hover {
-  border-color: #bbbbbb;
+  border-color: #888888;
 }
 
 .itasks-button-disabled .itasks-button-icon {
