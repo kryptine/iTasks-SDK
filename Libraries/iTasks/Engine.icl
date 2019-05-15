@@ -46,8 +46,10 @@ doTasksWithOptions initFun startable world
 	| mbOptions =:(Error _)      = show (fromError mbOptions) world
 	# options                    = fromOk mbOptions
 	# mbIWorld                   = createIWorld options world
-	| mbIWorld =: Left _         = let (Left (err, world)) = mbIWorld in show [err] world
-	# iworld                     = let (Right iworld`) = mbIWorld in iworld`
+	| mbIWorld =: Left _
+		# (Left (err, world)) = mbIWorld
+		= show [err] (setReturnCode 1 world)
+	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
