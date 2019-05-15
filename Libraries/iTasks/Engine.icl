@@ -43,7 +43,7 @@ doTasksWithOptions initFun startable world
 	# (cli,world)                = getCommandLine world
 	# (options,world)            = defaultEngineOptions world
 	# mbOptions                  = initFun cli options
-	| mbOptions =:(Error _)      = show (fromError mbOptions) world
+	| mbOptions =:(Error _)      = show (fromError mbOptions) (setReturnCode 1 world)
 	# options                    = fromOk mbOptions
 	# mbIWorld                   = createIWorld options world
 	| mbIWorld =: Left _
@@ -51,7 +51,7 @@ doTasksWithOptions initFun startable world
 		= show [err] (setReturnCode 1 world)
 	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
-	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
+	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
