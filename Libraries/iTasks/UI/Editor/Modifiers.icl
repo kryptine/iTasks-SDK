@@ -161,11 +161,12 @@ where
 				= (Ok (mergeUIChanges change attrChange, st), vst)
 		_ = (Ok (change, st), vst)
 
-surjectEditorValue :: !(a -> b) !(b (Maybe a) -> a) !(Editor b) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
-surjectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState} = editorModifierWithStateToEditor
-	{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+surjectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
+	= editorModifierWithStateToEditor
+		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
-	genUI attr dp mode vst = case editorGenUI attr dp (mapEditMode tof mode) vst of
+	genUI attr dp mode vst = case editorGenUI attr dp (mapEditMode (\a -> tof a Nothing) mode) vst of
 		(Error e,vst)     = (Error e,vst)
 		//Track value of the 'outer' editor
 		(Ok (ui, st),vst) = (Ok (ui, editModeValue mode, st), vst)
@@ -174,7 +175,7 @@ where
 		(Error e,        vst) = (Error e, vst)
 		(Ok (change, st),vst) = (Ok (change, updatedState mbOldA st, st), vst)
 
-	onRefresh dp newA _ st vst = case editorOnRefresh dp (tof newA) st vst of
+	onRefresh dp newA _ st vst = case editorOnRefresh dp (tof newA (editorValueFromState st)) st vst of
 		(Error e,         vst) = (Error e, vst)
 		(Ok (change, st), vst) = (Ok (change, updatedState (Just newA) st, st), vst)
 

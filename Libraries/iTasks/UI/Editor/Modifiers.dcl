@@ -62,7 +62,7 @@ injectEditorValue :: !(a -> b) !(b -> MaybeErrorString a) !(Editor b) -> Editor 
 /**
 * Map the value of an editor to another domain which is 'smaller' than the original domain
 */
-surjectEditorValue :: !(a -> b) !(b (Maybe a) -> a) !(Editor b) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
 
 /**
 * Map the value of an editor to another domain, without mapping changes in the editor back
