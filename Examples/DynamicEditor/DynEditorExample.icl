@@ -1,5 +1,79 @@
 module DynEditorExample
 
+import Data.Func
+import iTasks, iTasks.Extensions.Editors.DynamicEditor
+
+Start world = doTasks editTask world
+
+editTask =
+	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>= \expr ->
+	case evalExpr $ toValue taskEditor expr of
+		Val value = viewInformation () [] value
+	@! ()
+/*enterTask =
+	enterInformation      () [EnterUsing id $ dynamicEditor tEditor] ^&>
+	viewSharedInformation () [ViewAs $ fmap $ toValue tEditor]      >>= \taskExpr ->
+	interpret (toValue tEditor te) >>= viewInformation "result = " [] */
+
+:: TaskExpr = ViewInformation | Apply TaskExpr Expr
+:: Expr = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
+/**
+ * Dynamically typed value with `iTask` dictionary.
+ */
+:: Value = E.a: Val a & iTask a
+:: Typed a b =: Typed a
+
+derive class iTask TaskExpr, Expr, Typed
+
+taskEditor :: DynamicEditor x | TC x
+taskEditor = DynamicEditor conses
+where
+	conses =
+		[ // This cons is used to provide untyped `Expr` values.
+		  DynamicCons $
+			functionConsDyn "Expr" "(enter expression)" (dynamic \(Typed expr) -> expr :: A.a: (Typed Expr a) -> Expr)
+		  <<@@@ HideIfOnlyChoice
+		, DynamicConsGroup "Values"
+			[ functionConsDyn "int"   "enter integer:"
+				(dynamic \i -> Typed (Int i)  :: Int  -> Typed Expr Int)
+			, functionConsDyn "bool"  "enter boolean:"
+				(dynamic \b -> Typed (Bool b) :: Bool -> Typed Expr Bool)
+			, functionConsDyn "tuple" "enter tuple:"
+				(	dynamic \(Typed a) (Typed b) -> Typed (Tuple a b) ::
+					A.a b: (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
+				)
+			, functionConsDyn "fst"   "fst"
+				(dynamic \(Typed (Tuple a _)) -> Typed a :: A.a b: (Typed Expr (a, b)) -> Typed Expr a)
+			, functionConsDyn "snd"   "snd"
+				(dynamic \(Typed (Tuple _ b)) -> Typed b :: A.a b: (Typed Expr (a, b)) -> Typed Expr b)
+			, functionConsDyn "=="    "=="
+				(	dynamic \(Typed a) (Typed b) -> Typed (Eq a b) ::
+					A.a b: (Typed Expr a) (Typed Expr b) -> Typed Expr Bool
+				)
+			, customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
+			, customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
+			]
+		]
+
+	intEditor :: Editor Int
+	intEditor = gEditor{|*|}
+
+	boolEditor :: Editor Bool
+	boolEditor = gEditor{|*|}
+
+//evalTaskExpr :: TaskExpr -> Task Dynamic
+//evalTaskExpr ViewInformationk
+
+evalExpr :: Expr -> Value
+evalExpr (Int i)  = Val i
+evalExpr (Bool b) = Val b
+evalExpr (Tuple fstExpr sndExpr) = case (evalExpr fstExpr, evalExpr sndExpr) of
+	(Val fstVal, Val sndVal) = Val (fstVal, sndVal)
+evalExpr (Eq expr1 expr2) = case (evalExpr expr1, evalExpr expr2) of
+	(Val value1, Val value2) = case dynamic (value1, value2) of
+		((equalsValue1, value2) :: (a -> Bool, a)) = Val $ equalsValue1 value2
+
+/*
 import Data.Func, Data.Functor, Data.Maybe
 import iTasks, iTasks.UI.Editor.Modifiers
 import iTasks.Extensions.Editors.DynamicEditor
@@ -171,4 +245,4 @@ where
     intLit i = TypedExpr (IntLit i)
 
     realLit :: Real -> TypedExpr Real
-    realLit r = TypedExpr (RealLit r)
+    realLit r = TypedExpr (RealLit r)*/
