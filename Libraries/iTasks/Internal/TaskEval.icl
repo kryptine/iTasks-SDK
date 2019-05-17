@@ -1,7 +1,5 @@
 implementation module iTasks.Internal.TaskEval
 
-import StdDebug, StdMisc
-
 import StdList, StdBool, StdTuple, StdMisc, StdString
 import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.GenJSON
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.SDS, iTasks.Internal.AsyncSDS
