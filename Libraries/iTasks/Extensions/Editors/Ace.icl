@@ -21,11 +21,12 @@ derive JSONEncode AceOptions
 derive JSONDecode AceOptions
 
 aceTextArea :: Editor String
-aceTextArea = bijectEditorValue toAce fromAce aceEditor
+aceTextArea = surjectEditorValue toAce fromAce aceEditor
 where
 	aceState = {AceState|lines = [],cursor = (0,0), selection = Nothing, disabled=False}
-	toAce s = (defaultValue, {AceState|aceState & lines = split "\n" s})
-	fromAce (_,{AceState|lines}) = join "\n" lines
+	toAce s Nothing = (defaultValue, {AceState|aceState & lines = split "\n" s})
+	toAce s (Just (opts,state)) = (opts,{AceState|state & lines = split "\n" s})
+	fromAce (_,{AceState|lines}) _ = join "\n" lines
 
 aceEditor :: Editor (!AceOptions,!AceState)
 aceEditor = leafEditorToEditor
