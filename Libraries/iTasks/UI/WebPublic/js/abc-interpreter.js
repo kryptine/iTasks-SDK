@@ -315,6 +315,19 @@ const ABC={
 	},
 
 	addresses: {},
+
+	get_trace: function() {
+		var trace=['  {0}',ABC.interpreter.instance.exports.get_pc()/8-ABC.code_offset,'\n'];
+		var csp=ABC.interpreter.instance.exports.get_csp();
+		for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
+			var addr=ABC.memory_array[csp/4];
+			if (addr==0)
+				break;
+			trace.push('  {'+i+'}',addr/8-ABC.code_offset,'\n');
+			csp-=8;
+		}
+		return trace;
+	},
 };
 
 ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
@@ -651,16 +664,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					(e.fileName!='abc-interpreter.js' || e.lineNumber>700))
 				throw e;
 
-			var trace=[e.message, '\n'];
-			trace.push('  {0}', ABC.interpreter.instance.exports.get_pc()/8-ABC.code_offset,'\n');
-			var csp=ABC.interpreter.instance.exports.get_csp();
-			for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
-				var addr=ABC.memory_array[csp/4];
-				if (addr==0)
-					break;
-				trace.push('  {'+i+'}',addr/8-ABC.code_offset,'\n');
-				csp-=8;
-			}
+			var trace=[e.message, '\n'].concat(ABC.get_trace());
 			console.error.apply(null,trace);
 
 			throw e.toString();
