@@ -342,9 +342,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		}
 	})(ABC.prog);
 
-	return WebAssembly.instantiateStreaming(
-		fetch('js/abc-interpreter-util.wasm'),
-		{ clean: {
+	const util_imports={
+		clean: {
 			memory: ABC.memory,
 
 			has_host_reference: function (index) {
@@ -394,8 +393,12 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					case 3: console.log('thunk, arities',a,b,c); break;
 				}
 			}
-		}}
-	);
+		}
+	};
+
+	return fetch('js/abc-interpreter-util.wasm')
+		.then(response => response.arrayBuffer())
+		.then(buffer => instantiate(buffer, util_imports));
 }).then(function(util){
 	ABC.util=util;
 
@@ -594,9 +597,9 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		}
 	};
 
-	return WebAssembly.instantiateStreaming(
-		fetch('js/abc-interpreter.wasm'),
-		interpreter_imports);
+	return fetch('js/abc-interpreter.wasm')
+		.then(response => response.arrayBuffer())
+		.then(bytes => WebAssembly.instantiate(bytes, interpreter_imports));
 }).then(function(intp){
 	ABC.interpreter=intp;
 
