@@ -1,5 +1,6 @@
 module DynEditorExample
 
+import StdEnv
 import Data.Func
 import iTasks, iTasks.Extensions.Editors.DynamicEditor
 
@@ -8,12 +9,7 @@ Start world = doTasks editTask world
 editTask =
 	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>= \expr ->
 	case evalExpr $ toValue taskEditor expr of
-		Val value = viewInformation () [] value
-	@! ()
-/*enterTask =
-	enterInformation      () [EnterUsing id $ dynamicEditor tEditor] ^&>
-	viewSharedInformation () [ViewAs $ fmap $ toValue tEditor]      >>= \taskExpr ->
-	interpret (toValue tEditor te) >>= viewInformation "result = " [] */
+		Val value = viewInformation () [] value @! ()
 
 :: TaskExpr = ViewInformation | Apply TaskExpr Expr
 :: Expr = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
@@ -48,7 +44,7 @@ where
 				(dynamic \(Typed (Tuple _ b)) -> Typed b :: A.a b: (Typed Expr (a, b)) -> Typed Expr b)
 			, functionConsDyn "=="    "=="
 				(	dynamic \(Typed a) (Typed b) -> Typed (Eq a b) ::
-					A.a b: (Typed Expr a) (Typed Expr b) -> Typed Expr Bool
+					A.a: (Typed Expr a) (Typed Expr a) -> Typed Expr Bool
 				)
 			, customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
 			, customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
@@ -70,7 +66,7 @@ evalExpr (Bool b) = Val b
 evalExpr (Tuple fstExpr sndExpr) = case (evalExpr fstExpr, evalExpr sndExpr) of
 	(Val fstVal, Val sndVal) = Val (fstVal, sndVal)
 evalExpr (Eq expr1 expr2) = case (evalExpr expr1, evalExpr expr2) of
-	(Val value1, Val value2) = case dynamic (value1, value2) of
+	(Val value1, Val value2) = case dynamic ((===) value1, value2) of
 		((equalsValue1, value2) :: (a -> Bool, a)) = Val $ equalsValue1 value2
 
 /*
