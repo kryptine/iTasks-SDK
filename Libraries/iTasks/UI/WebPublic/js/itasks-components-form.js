@@ -337,7 +337,7 @@ itasks.Slider = {
 	}
 };
 itasks.Button = {
-	domTag: 'a',
+	domTag: 'button',
 	cssCls: 'button',
 	attributes: {
 		height: 'wrap',
@@ -348,7 +348,6 @@ itasks.Button = {
 		var me = this,
 			el = me.domEl;
 
-		el.href = '#';
 		if(me.attributes.iconCls) {
 			me.icon = document.createElement('div');
 			me.icon.classList.add(me.cssPrefix + 'button-icon');
@@ -427,7 +426,7 @@ itasks.Icon = {
 		me.currentIcon = me.attributes.iconCls;
 
 		if(me.attributes.tooltip) {
-			el.setAttribute('tooltip',me.attributes.tooltip);
+			el.tooltip=me.attributes.tooltip;
 		}
     },
 	onAttributeChange: function(name,value) {
@@ -440,7 +439,7 @@ itasks.Icon = {
 				el.classList.add(me.currentIcon);
 				break;
 			case 'tooltip':
-				el.setAttribute('tooltip',value);
+				el.tooltip=value;
 				break;
 		}
 	}

@@ -3,9 +3,12 @@ Global
 	ProjectRoot:	.
 	Target:	iTasks
 	Exec:	{Project}/TheTaxMan.exe
+	ByteCode:	{Project}/TheTaxMan.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
 		HeapSize:	167772160
 		StackSize:	1048576
@@ -24,7 +27,7 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
-			DescExL:    False
+			DescExL:    True
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -39,6 +42,9 @@ Global
 		ResourceSource:	
 		GenerateDLL:	False
 		ExportedNames:	
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 	Precompile:	

@@ -5,15 +5,11 @@
 	<title></title>
 
 	<link rel="stylesheet" href="/css/itasks.css" type="text/css" >
+	<link rel="stylesheet" href="/css/itasks-modules.css" type="text/css" >
 
-	<!-- Sapl dependencies -->
-	<script type="text/javascript" src="/js/sapl-utils.js"></script>
-	<script type="text/javascript" src="/js/sapl-builtin.js"></script>
-	<script type="text/javascript" src="/js/sapl-dynamic.js"></script>
-	<script type="text/javascript" src="/js/sapl-itasks.js"></script>
-	<script type="text/javascript" src="/js/sapl-rt.js"></script>
-	<script type="text/javascript" src="/js/sapl-support.js"></script>
-	<script type="text/javascript" src="/js/sapl-debug.js"></script>
+	<!-- ABC interpreter -->
+	<script type="text/javascript" src="/js/abc-instructions.js"></script>
+	<script type="text/javascript" src="/js/abc-interpreter.js"></script>
 
 	<!-- iTasks framework -->
 	<script type="text/javascript" src="/js/itasks-core.js"></script>
@@ -22,12 +18,13 @@
 	<script type="text/javascript" src="/js/itasks-components-display.js"></script>
 	<script type="text/javascript" src="/js/itasks-components-selection.js"></script>
 	<script type="text/javascript" src="/js/itasks-components-container.js"></script>
-	<script type="text/javascript" src="/js/itasks-js-interface.js"></script>
 
 	<!-- load iTasks viewport -->
 	<script type="text/javascript">
 	window.onload = function() {
-		itasks.viewport({syncTitle: true}, document.body);
+		ABC.loading_promise.finally(function(){
+			itasks.viewport({syncTitle: true}, document.body);
+		});
 	};
 	</script>
 </head>

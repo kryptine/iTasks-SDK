@@ -517,10 +517,13 @@ where
 	lostFun _ _        s env = (Nothing, env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-	handleStaticResourceRequest req iworld=:{IWorld|options={webDirPath},world}
-		# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
-									(webDirPath +++ filePath "/index.html")
-									(webDirPath +++ filePath req.HTTPRequest.req_path)
+	handleStaticResourceRequest req iworld=:{IWorld|options={webDirPath,byteCodePath},world}
+		# filename = case isMember req.HTTPRequest.req_path taskPaths of //Check if one of the published tasks is requested, then serve bootstrap page
+			True
+				-> webDirPath +++ filePath "/index.html"
+				-> if (req.HTTPRequest.req_path=="/js/app.pbc")
+					((byteCodePath % (0,size byteCodePath-3)) +++ "pbc")
+					(webDirPath +++ filePath req.HTTPRequest.req_path)
 
 		# type			   = mimeType filename
        	# (mbInfo,world) = getFileInfo filename world

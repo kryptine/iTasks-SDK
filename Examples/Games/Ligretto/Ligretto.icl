@@ -4,23 +4,29 @@ module Ligretto
 	When creating a project, include the following paths:
 	(i)  {Application}\Examples\iTasks\Games\
 	(ii) {Application}\Examples\iTasks\Graphics\
-
-	To run the example playing as two persons, do the following:
-	(a) first log in as root / root
-	(b) select the 'Manage users' task
-	(c) import a user community
-	(d) logout
-	(e) login as the key player who is going to invite 1, 2, or 3 players
-	(f) select the 'Ligretto' task
-	(g) select 1, 2, or 3 users to play Ligretto with
-	(h) open the newly created task
-	(i) in other browser( tab)s, login as the invited player(s) and open the task received from the key player
-	(j) have fun
 */
 
 import Ligretto.Tasks
-import MultiUser.Tasks
+import iTasks.Extensions.Admin.WorkflowAdmin, Text.HTML
 
 Start :: *World -> *World
-Start world
-	= startMultiUserTasks [ workflow "Ligretto" "Play Ligretto" play_Ligretto ] [] world
+Start world = doTasks
+	{WorkflowCollection
+	|name = "Ligretto"
+	,workflows = [ workflow "Host Ligretto" "Host a Ligretto game" play_Ligretto ]
+	,loginMessage = Just loginMessage
+	,welcomeMessage = Nothing
+	,allowGuests = False
+	} world
+where
+	loginMessage = DivTag []
+		[Text "This example implements a simplified version of the card game Ligretto.", BrTag []
+		,Text "To play the game do the following:"
+		,OlTag []
+			[LiTag [] [Text "Log in as a demo user for example 'alice' (password alice), 'bob' (password bob) or 'carol' (password carol)"]
+			,LiTag [] [Text "Choose New -> 'Host Ligretto' -> 'Create task'"]
+			,LiTag [] [Text "Open the task in the task list and invite other players"]
+			,LiTag [] [Text "The others can also log in and will find the game waiting for them in their task list."]
+			,LiTag [] [Text "Have fun"]
+			]
+		]

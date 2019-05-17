@@ -3,14 +3,10 @@ implementation module Ligretto.UI
 import StdBool, StdEnum, StdList
 from   StdFunc import id, const
 import Data.GenEq
-import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
 import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
-
-derive JSEncode GameSt, Player, Color, Hand, Card, SideUp
-derive JSDecode GameSt, Player, Color, Hand, Card, SideUp
 
 ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
 ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor

@@ -25,7 +25,7 @@ Global
 			Stack:	False
 			Dynamics:	True
 			GenericFusion:	False
-			DescExL:	False
+			DescExL:	True
 		Output
 			Output:	NoConsole
 			Font:	Monaco

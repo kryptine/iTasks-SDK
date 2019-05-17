@@ -149,6 +149,7 @@ div.itasks-exception {
   text-align: left;
   font-weight: normal;
   overflow: auto;
+  flex-basis: 0;
 }
 *.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
   font-size: 9pt;
@@ -569,14 +570,14 @@ div.itasks-exception {
   display: flex;
   flex-direction: column;
 }
-.itasks-tabset .itasks-container.itasks-tabitem, .itasks-tabset .itasks-panel.itasks-tabitem {
+.itasks-tabset .itasks-container.itasks-tabitem, .itasks-tabset .itasks-panel.itasks-tabitem, .itasks-tabset .itasks-viewport.itasks-tabitem {
   display: none;
 }
 .itasks-tabset .itasks-panel.itasks-tabitem.itasks-selected {
   display: grid;
   border-top: 0;
 }
-.itasks-tabset .itasks-container.itasks-tabitem.itasks-selected {
+.itasks-tabset .itasks-container.itasks-tabitem.itasks-selected, .itasks-tabset .itasks-viewport.itasks-tabitem.itasks-selected {
   display: flex;
   border-top: 0;
 }
@@ -743,7 +744,7 @@ div.itasks-exception {
 .itasks-window > .itasks-inner > .itasks-flex-height,
 .itasks-tabitems > .itasks-flex-height,
 .itasks-container > .itasks-flex-height {
-  flex: 1;
+  flex-grow: 1;
 }
 .itasks-viewport > .itasks-exact-height, .itasks-viewport > .itasks-wrap-height,
 .itasks-panel > .itasks-inner > .itasks-exact-height,
@@ -778,7 +779,7 @@ div.itasks-exception {
 .itasks-var-cons > .itasks-flex-width,
 .itasks-listitem > .itasks-flex-width,
 .itasks-listitem-controls > .itasks-flex-width {
-  flex: 1;
+  flex-grow: 1;
 }
 .itasks-container.itasks-horizontal > .itasks-flex-height,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-height,
@@ -902,14 +903,12 @@ div.itasks-exception {
 
 .itasks-sidebar-top > .itasks-inner > .aside,
 .itasks-sidebar-bottom > .itasks-inner > .aside {
-  height: 30%;
   flex: 0 0 30%;
   align-self: stretch;
 }
 
 .itasks-sidebar-right > .itasks-inner > .aside,
 .itasks-sidebar-left > .itasks-inner > .aside {
-  width: 25%;
   flex: 0 0 25%;
   align-self: stretch;
 }
@@ -940,12 +939,16 @@ div.itasks-exception {
   flex-shrink: 0;
 }
 .itasks-button:hover {
-  border-color: #bbbbbb;
+  border-color: #888888;
+}
+.itasks-button:active {
+  background: white;
 }
 
 .itasks-button-label {
   margin: 0 4px;
   height: 16px;
+  cursor: default;
 }
 
 .itasks-button-icon {
@@ -954,12 +957,12 @@ div.itasks-exception {
 }
 
 .itasks-button-disabled {
-  color: #262626;
-  background: linear-gradient(white, #d5d5d5);
+  color: #595959;
+  background: linear-gradient(white, #bbbbbb);
 }
 
 .itasks-button-disabled:hover {
-  border-color: #bbbbbb;
+  border-color: #888888;
 }
 
 .itasks-button-disabled .itasks-button-icon {

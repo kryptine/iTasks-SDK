@@ -6,6 +6,7 @@ from Data.Maybe				import :: Maybe
 from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from Data.Queue             import :: Queue
+from Data.Either            import :: Either
 from StdFile			                import class FileSystem, class FileEnv
 from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
@@ -22,11 +23,9 @@ from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel, clas
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from System.Signal import :: SigHandler
-from Sapl.Linker.LazyLinker import :: LoaderState
-from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
-from Sapl.Target.Flavour import :: Flavour
-from Sapl.SaplParser import :: ParserState
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
+
+from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
@@ -42,7 +41,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
 	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
 	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
-	, jsCompilerState 		:: !Maybe JSCompilerState 					        // Sapl to Javascript compiler state
+	, abcInterpreterEnv     :: !PrelinkedInterpretationEnvironment              // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
 	, ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
@@ -55,14 +54,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, resources             :: *[*Resource]
 	, onClient				:: !Bool									// "False" on the server, "True" on the client
 	, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
-	}
-
-:: JSCompilerState =
-	{ loaderState 			:: !LoaderState							// State of the lazy loader
-	, functionMap 			:: !FuncTypeMap 						// Function name -> source code mapping
- 	, flavour 				:: !Flavour 							// Clean flavour for JS compilation
-	, parserState 			:: !Maybe ParserState 					// Some information collected by the parser for the code generator
-	, skipMap 				:: !Map InstanceNo (Set String) 		// Per client information of the names of the already generated functions
 	}
 
 :: TaskEvalState =
@@ -115,15 +106,9 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 * @param The engine options
 * @param The world
 *
-* @return An initialized iworld
+* @result An initialized iworld or world together with an error string on failure
 */
-createIWorld :: !EngineOptions !*World -> *IWorld
-
-/**
-* Initialize the SAPL->JS compiler state
-*
-*/
-initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
+createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 
 /**
 * Destroys the iworld state
