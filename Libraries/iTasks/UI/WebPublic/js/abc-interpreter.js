@@ -398,7 +398,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 
 	return fetch('js/abc-interpreter-util.wasm')
 		.then(response => response.arrayBuffer())
-		.then(buffer => instantiate(buffer, util_imports));
+		.then(buffer => WebAssembly.instantiate(buffer, util_imports));
 }).then(function(util){
 	ABC.util=util;
 
