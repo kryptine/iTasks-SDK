@@ -7,6 +7,7 @@ import iTasks.Internal.Store, iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.UI.Layout
 import iTasks.Internal.SDSService
 import iTasks.Internal.Util
+import iTasks.Internal.EngineTasks
 
 from iTasks.WF.Combinators.Core import :: SharedTaskList
 from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -65,6 +66,7 @@ processEvents max iworld
 					(Error msg,iworld=:{IWorld|world})
 						= (Ok (),{IWorld|iworld & world = world})
 
+derive gText InstanceType
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
 	# iworld            = mbResetUIState instanceNo event iworld
@@ -141,6 +143,9 @@ where
 								NoChange = (Ok value,iworld)
 								change   = (Ok value, queueUIChange instanceNo change iworld)
 						ExceptionResult (e,description)
+							# iworld = if (type =: StartupInstance)
+								(printStdErr description {iworld & shutdown=Just 1})
+								 iworld
 							= exitWithException instanceNo description iworld
 						DestroyedResult
 							= (Ok NoValue, iworld)
