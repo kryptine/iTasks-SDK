@@ -2,6 +2,7 @@ module DynEditorExample
 
 import StdEnv
 import Data.Func
+import Text
 import iTasks, iTasks.Extensions.Editors.DynamicEditor
 
 Start world = doTasks editTask world
@@ -9,14 +10,25 @@ Start world = doTasks editTask world
 editTask =
 	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>= \expr ->
 	case evalExpr $ toValue taskEditor expr of
-		Val value = viewInformation () [] value @! ()
+		Val value = viewInformation () [] (toString value) @! ()
 
 :: TaskExpr = ViewInformation | Apply TaskExpr Expr
 :: Expr = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
 /**
- * Dynamically typed value with `iTask` dictionary.
+ * Dynamically typed value with required dictionaries.
  */
-:: Value = E.a: Val a & iTask a
+:: Value = E.a: Val a & TC, ==, toString a
+
+instance == Value where
+	== (Val x) (Val y) = case dynamic ((==) x, y) of
+		((equalsX, y) :: (a -> Bool, a)) = equalsX y
+
+instance toString Value where
+	toString (Val v) = toString v
+
+instance toString (a, b) | toString a & toString b where
+	toString (x, y) = concat ["(", toString x, ", ", toString y, ")"]
+
 :: Typed a b =: Typed a
 
 derive class iTask TaskExpr, Expr, Typed
@@ -64,9 +76,15 @@ evalExpr :: Expr -> Value
 evalExpr (Int i)  = Val i
 evalExpr (Bool b) = Val b
 evalExpr (Tuple fstExpr sndExpr) = case (evalExpr fstExpr, evalExpr sndExpr) of
-	(Val fstVal, Val sndVal) = Val (fstVal, sndVal)
+	(fstVal, sndVal) = Val (fstVal, sndVal)
+evalExpr (Fst expr) = case evalExpr expr of
+	Val tuple = case dynamic tuple of
+		((x, _) :: (Value, Value)) = x
+evalExpr (Snd expr) = case evalExpr expr of
+	Val tuple = case dynamic tuple of
+		((_, y) :: (Value, Value)) = y
 evalExpr (Eq expr1 expr2) = case (evalExpr expr1, evalExpr expr2) of
-	(Val value1, Val value2) = case dynamic ((===) value1, value2) of
+	(Val value1, Val value2) = case dynamic ((==) value1, value2) of
 		((equalsValue1, value2) :: (a -> Bool, a)) = Val $ equalsValue1 value2
 
 /*
