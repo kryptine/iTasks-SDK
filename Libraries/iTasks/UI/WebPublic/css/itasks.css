@@ -241,11 +241,11 @@ div.itasks-exception {
 *.itasks-viewport .icon-fullscreen {
   background-image: url("/css/icons/fullscreen.png") !important;
 }
-*.itasks-viewport [tooltip] {
+*.itasks-viewport [data-tooltip] {
   position: relative;
   display: inline-block;
 }
-*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
+*.itasks-viewport [data-tooltip]:before, *.itasks-viewport [data-tooltip]:after {
   position: absolute;
   transform: translate3d(0, 0, 0);
   visibility: hidden;
@@ -254,19 +254,19 @@ div.itasks-exception {
   pointer-events: none;
   transition: 0.3s ease;
 }
-*.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:focus:before, *.itasks-viewport [tooltip]:focus:after {
+*.itasks-viewport [data-tooltip]:hover:before, *.itasks-viewport [data-tooltip]:hover:after, *.itasks-viewport [data-tooltip]:focus:before, *.itasks-viewport [data-tooltip]:focus:after {
   visibility: visible;
   opacity: 1;
 }
-*.itasks-viewport [tooltip]:before {
+*.itasks-viewport [data-tooltip]:before {
   content: "";
   position: absolute;
   background: transparent;
   border: 6px solid transparent;
   z-index: 1000001;
 }
-*.itasks-viewport [tooltip]:after {
-  content: attr(tooltip);
+*.itasks-viewport [data-tooltip]:after {
+  content: attr(data-tooltip);
   background: #ccc;
   color: #000;
   padding: 8px 10px;
@@ -275,19 +275,19 @@ div.itasks-exception {
   white-space: nowrap;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
 }
-*.itasks-viewport [tooltip]:before {
+*.itasks-viewport [data-tooltip]:before {
   border-left-color: #ccc;
   margin-right: -12px;
   margin-bottom: -6px;
 }
-*.itasks-viewport [tooltip]:after {
+*.itasks-viewport [data-tooltip]:after {
   margin-bottom: -14px;
 }
-*.itasks-viewport [tooltip]:before, *.itasks-viewport [tooltip]:after {
+*.itasks-viewport [data-tooltip]:before, *.itasks-viewport [data-tooltip]:after {
   right: 100%;
   bottom: 50%;
 }
-*.itasks-viewport [tooltip]:hover:after, *.itasks-viewport [tooltip]:hover:before, *.itasks-viewport [tooltip]:focus:after, *.itasks-viewport [tooltip]:focus:before {
+*.itasks-viewport [data-tooltip]:hover:after, *.itasks-viewport [data-tooltip]:hover:before, *.itasks-viewport [data-tooltip]:focus:after, *.itasks-viewport [data-tooltip]:focus:before {
   transform: translateX(-8px);
 }
 
