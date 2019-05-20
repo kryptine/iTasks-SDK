@@ -426,9 +426,9 @@ itasks.Icon = {
 		me.currentIcon = me.attributes.iconCls;
 
 		if(me.attributes.tooltip) {
-			el.tooltip=me.attributes.tooltip;
+			el.dataset.tooltip=me.attributes.tooltip;
 		}
-    },
+	},
 	onAttributeChange: function(name,value) {
 		var me = this,
 			el = me.domEl;
@@ -439,9 +439,8 @@ itasks.Icon = {
 				el.classList.add(me.currentIcon);
 				break;
 			case 'tooltip':
-				el.tooltip=value;
+				el.dataset.tooltip=value;
 				break;
 		}
 	}
 };
-
