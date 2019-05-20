@@ -256,16 +256,21 @@ where
 
 	onBeforeChildRemove me args world
 		# (layer,world)     = args.[1] .# "layer" .? world
-        // for windows, based on control class
-        # (removeMethod, world) = layer .# "remove" .? world
-        | not (jsIsUndefined removeMethod) = (layer .# "remove" .$! ()) world
-        // for all other objects
+		//If there is an attached popup remove it first
+		# world = removePopup layer world
+		// for windows, based on control class
+		# (removeMethod, world) = layer .# "remove" .? world
+		| not (jsIsUndefined removeMethod) = (layer .# "remove" .$! ()) world
+		// for all other objects
 		# (mapObj,world)    = me .# "map" .? world
-        # world             = (mapObj.# "removeLayer" .$! layer) world
-        # (popup, world)    = layer .# "myPopup" .? world
-        | jsIsUndefined popup = world
-        # world             = (mapObj.# "removeLayer" .$! popup) world
-        = world
+		# world             = (mapObj.# "removeLayer" .$! layer) world
+		= world
+	where
+		removePopup layer world
+			# (popup, world)    = layer .# "myPopup" .? world
+			| jsIsUndefined popup = world
+			# (mapObj,world)    = me .# "map" .? world
+			= (mapObj.# "removeLayer" .$! popup) world
 
     onWindowRemove me windowId _ world
         // remove children from iTasks component
