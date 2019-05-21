@@ -24,12 +24,9 @@ Start world
 
 :: Toggles = {value_in_sds :: Int, update_a_locally :: Bool, update_b_locally :: Bool}
 derive class iTask Toggles
-derive JSEncode Toggles
-derive JSDecode Toggles
 
 :: Who = A | B
 derive class iTask Who
-derive JSEncode Who
 
 toggleOf :: Who Toggles -> Bool
 toggleOf A t = t.Toggles.update_a_locally

@@ -168,8 +168,8 @@ where
 				# c = toInt c
 				# dest = {dest & [di]='\\', [di+1]='x', [di+2]=hex (c>>4), [di+3]=hex (c bitand 0x0f)}
 				= copy_and_escape src (si+1) dest (di+4)
-			| c == '\''
-				# dest = {dest & [di]='\\', [di+1]='\''}
+			| c == '\'' || c == '\\'
+				# dest = {dest & [di]='\\', [di+1]=c}
 				= copy_and_escape src (si+1) dest (di+2)
 			| otherwise
 				# dest = {dest & [di]=c}
@@ -193,9 +193,11 @@ where
 				escaped_size :: !String !Int !Int -> Int
 				escaped_size s -1 n = n
 				escaped_size s  i n
-				| s.[i] < '\x20' = escaped_size s (i-1) (n+4)
-				| s.[i] == '\''  = escaped_size s (i-1) (n+2)
-				| otherwise      = escaped_size s (i-1) (n+1)
+				| s.[i] < '\x20'
+					= escaped_size s (i-1) (n+4)
+				| s.[i] == '\'' || s.[i] == '\\'
+					= escaped_size s (i-1) (n+2)
+					= escaped_size s (i-1) (n+1)
 			JSReal r -> size (toString r) + l
 
 			JSVar v -> size v + l
