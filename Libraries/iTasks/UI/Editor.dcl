@@ -4,6 +4,7 @@ definition module iTasks.UI.Editor
 * the interact core task uses these editors to generate and update the user interface
 */
 
+from ABC.Interpreter      import :: PrelinkedInterpretationEnvironment
 from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange, :: TaskId
 from iTasks.UI.JavaScript import :: JSWorld, :: JSVal
 
@@ -129,9 +130,9 @@ derive bimap EditMode
 :: *VSt =
 	{ taskId			:: !String   //* The id of the task the visualisation belongs to
 	, optional			:: !Bool     //* Create optional form fields
-	, iworld			:: !*IWorld	 //* The iworld, used for example if external tools are needed to create editors
 	, selectedConsIndex	:: !Int      //* Index of the selected constructor in an OBJECT
 	, pathInEditMode    :: [Bool]    //* Path of LEFT/RIGHT choices used when UI is generated in edit mode
+	, abcInterpreterEnv :: !PrelinkedInterpretationEnvironment //* Used to serialize expressions for the client
 	}
 
 withVSt :: !TaskId !.(*VSt -> (!a, !*VSt)) !*IWorld -> (!a, !*IWorld)

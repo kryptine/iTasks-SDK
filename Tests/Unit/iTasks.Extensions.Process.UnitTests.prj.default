@@ -1,13 +1,16 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Target:	StdEnv
+	Target:	iTasks
 	Exec:	{Project}*iTasks.Extensions.Process.UnitTests
+	ByteCode:	{Project}*iTasks.Extensions.Process.UnitTests.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
-		HeapSize:	2097152
+		HeapSize:	16777216
 		StackSize:	512000
 		ExtraMemory:	8192
 		IntialHeapSize:	204800
@@ -40,6 +43,9 @@ Global
 		ResourceSource:	
 		GenerateDLL:	False
 		ExportedNames:	
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 		Path:	{Project}*..*..*Libraries

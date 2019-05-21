@@ -435,7 +435,7 @@ where
 						  *(!.ioChannels, !*IWorld)
 					   -> *IWorld
 	taskStateException mbTaskState instanceNo ioStates closeIO (ioChannels, iworld)
-		# iworld = iShow ["Exception in TaskServer: taskStateException: " +++ fromError mbTaskState] iworld
+		# iworld = iShow ["Exception in TaskServer: taskStateException: " <+++ fromError mbTaskState <+++ " " <+++ instanceNo] iworld
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = put taskId (IOException (fromError mbTaskState)) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
@@ -447,7 +447,7 @@ where
 					*(!.ioChannels, !*IWorld)
 					-> *IWorld
 	sdsException mbSdsErr instanceNo ioStates closeIO (ioChannels, iworld)
-		# iworld = iShow ["Exception in TaskServer: sdsException: " +++ snd (fromError mbSdsErr)] iworld
+		# iworld = iShow ["Exception in TaskServer: sdsException: " <+++ snd (fromError mbSdsErr) <+++ " " <+++ instanceNo] iworld
 		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
 		# ioStates = put taskId (IOException (snd (fromError mbSdsErr))) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})

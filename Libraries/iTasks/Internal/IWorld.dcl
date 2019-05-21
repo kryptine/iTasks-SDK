@@ -6,6 +6,7 @@ from Data.Maybe				import :: Maybe
 from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from Data.Queue             import :: Queue
+from Data.Either            import :: Either
 from StdFile			                import class FileSystem, class FileEnv
 from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
@@ -40,7 +41,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
 	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
 	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
-	, abcInterpreterEnv     :: !Maybe PrelinkedInterpretationEnvironment        // Used to serialize expressions for the client
+	, abcInterpreterEnv     :: !PrelinkedInterpretationEnvironment              // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
 	, ioStates              :: !IOStates                                        // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
@@ -105,9 +106,9 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 * @param The engine options
 * @param The world
 *
-* @return An initialized iworld
+* @result An initialized iworld or world together with an error string on failure
 */
-createIWorld :: !EngineOptions !*World -> *IWorld
+createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 
 /**
 * Destroys the iworld state

@@ -43,25 +43,30 @@ doTasksWithOptions initFun startable world
 	# (cli,world)                = getCommandLine world
 	# (options,world)            = defaultEngineOptions world
 	# mbOptions                  = initFun cli options
-	| mbOptions =:(Error _)      = show (fromError mbOptions) world
+	| mbOptions =:(Error _)      = show (fromError mbOptions) (setReturnCode 1 world)
 	# options                    = fromOk mbOptions
-	# iworld                     = createIWorld options world
+	# mbIWorld                   = createIWorld options world
+	| mbIWorld =: Left _
+		# (Left (err, world)) = mbIWorld
+		= show [err] (setReturnCode 1 world)
+	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
-	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (destroyIWorld iworld)
+	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
     webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks {distributed, sdsPort}
 		//If distributed, start sds service task
-		=  (if distributed [startTask (sdsServiceTask sdsPort)] [])
-		++ [startTask flushWritesWhenIdle
+		=  (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
+		++ [systemTask (startTask flushWritesWhenIdle)
 		//If there no webtasks, stop when stable, otherwise cleanup old sessions
-		   ,startTask if (webTasks =: []) stopOnStable removeOutdatedSessions
+		   ,systemTask (startTask if (webTasks =: []) stopOnStable removeOutdatedSessions)
 		//Start all startup tasks
 		   :[t \\ StartupTask t <- toStartable startable]]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
+	systemTask t = {StartupTask|t&attributes='DM'.put "system" "yes" t.StartupTask.attributes}
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
@@ -197,7 +202,7 @@ defaultEngineOptions world
 	# (appPath,world)    = determineAppPath world
 	# (appVersion,world) = determineAppVersion appPath world
 	# appDir             = takeDirectory appPath
-	# appName            = (dropExtension o dropDirectory) appPath
+	# appName            = (if (takeExtension appPath == "exe") dropExtension id o dropDirectory) appPath
 	# options =
 		{ appName        = appName
 		, appPath        = appPath

@@ -315,6 +315,19 @@ const ABC={
 	},
 
 	addresses: {},
+
+	get_trace: function() {
+		var trace=['  {0}',ABC.interpreter.instance.exports.get_pc()/8-ABC.code_offset,'\n'];
+		var csp=ABC.interpreter.instance.exports.get_csp();
+		for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
+			var addr=ABC.memory_array[csp/4];
+			if (addr==0)
+				break;
+			trace.push('  {'+i+'}',addr/8-ABC.code_offset,'\n');
+			csp-=8;
+		}
+		return trace;
+	},
 };
 
 ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
@@ -342,9 +355,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		}
 	})(ABC.prog);
 
-	return WebAssembly.instantiateStreaming(
-		fetch('js/abc-interpreter-util.wasm'),
-		{ clean: {
+	const util_imports={
+		clean: {
 			memory: ABC.memory,
 
 			has_host_reference: function (index) {
@@ -394,8 +406,12 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					case 3: console.log('thunk, arities',a,b,c); break;
 				}
 			}
-		}}
-	);
+		}
+	};
+
+	return fetch('js/abc-interpreter-util.wasm')
+		.then(response => response.arrayBuffer())
+		.then(buffer => WebAssembly.instantiate(buffer, util_imports));
 }).then(function(util){
 	ABC.util=util;
 
@@ -594,9 +610,9 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		}
 	};
 
-	return WebAssembly.instantiateStreaming(
-		fetch('js/abc-interpreter.wasm'),
-		interpreter_imports);
+	return fetch('js/abc-interpreter.wasm')
+		.then(response => response.arrayBuffer())
+		.then(bytes => WebAssembly.instantiate(bytes, interpreter_imports));
 }).then(function(intp){
 	ABC.interpreter=intp;
 
@@ -605,7 +621,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 	const csp=asp+ABC.stack_size/2;
 	const hp=bsp+8;
 
-	ABC.util.instance.exports.setup_gc(hp, ABC.hp_size, asp, 98*8);
+	ABC.util.instance.exports.setup_gc(hp, ABC.hp_size, asp, 97*8);
 
 	ABC.interpreter.instance.exports.set_asp(asp);
 	ABC.interpreter.instance.exports.set_bsp(bsp);
@@ -648,16 +664,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 					(e.fileName!='abc-interpreter.js' || e.lineNumber>700))
 				throw e;
 
-			var trace=[e.message, '\n'];
-			trace.push('  {0}', ABC.interpreter.instance.exports.get_pc()/8-ABC.code_offset,'\n');
-			var csp=ABC.interpreter.instance.exports.get_csp();
-			for (var i=1; i<=ABC_TRACE_LENGTH; i++) {
-				var addr=ABC.memory_array[csp/4];
-				if (addr==0)
-					break;
-				trace.push('  {'+i+'}',addr/8-ABC.code_offset,'\n');
-				csp-=8;
-			}
+			var trace=[e.message, '\n'].concat(ABC.get_trace());
 			console.error.apply(null,trace);
 
 			throw e.toString();

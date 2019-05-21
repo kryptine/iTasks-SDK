@@ -21,6 +21,7 @@ from StdFunc import const, o, seqList, :: St
 from StdMisc import abort
 from StdOrdList import sortBy
 
+from ABC.Interpreter import prepare_prelinked_interpretation
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
 import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.GenJSON, Data.Error, Math.Random
@@ -41,36 +42,41 @@ from iTasks.SDS.Combinators.Common import toReadOnly
 
 from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
 
-createIWorld :: !EngineOptions !*World -> *IWorld
+createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 createIWorld options world
-	# (ts=:{tv_nsec=seed}, world)	= nsTime world
-	= {IWorld
-	  |options = options 
-      ,clock = ts
-      ,current =
-	    {TaskEvalState
-        |taskTime				= 0
-	    ,taskInstance		    = 0
-        ,sessionInstance        = Nothing
-        ,attachmentChain        = []
-	    ,nextTaskNo			    = 0
-        }
-      ,sdsNotifyRequests    = 'DM'.newMap
-      ,sdsNotifyReqsByTask  = 'DM'.newMap
-      ,memoryShares         = 'DM'.newMap
-      ,readCache            = 'DM'.newMap
-      ,writeCache           = 'DM'.newMap
-	  ,abcInterpreterEnv    = Nothing
-	  ,shutdown				= Nothing
-      ,ioTasks              = {done = [], todo = []}
-      ,ioStates             = 'DM'.newMap
-      ,sdsEvalStates		= 'DM'.newMap
-	  ,world				= world
-	  ,signalHandlers		= []
-      ,resources            = []
-      ,random               = genRandInt seed
-      ,onClient				= False
-	  }
+	# (ts=:{tv_nsec=seed}, world) = nsTime world
+	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.byteCodePath world
+	= case mbAbcEnv of
+		Just abcEnv = Right
+			{IWorld
+			|options = options
+			,clock = ts
+			,current =
+				{TaskEvalState
+				|taskTime				= 0
+				,taskInstance		    = 0
+				,sessionInstance        = Nothing
+				,attachmentChain        = []
+				,nextTaskNo			    = 0
+				}
+			,sdsNotifyRequests    = 'DM'.newMap
+			,sdsNotifyReqsByTask  = 'DM'.newMap
+			,memoryShares         = 'DM'.newMap
+			,readCache            = 'DM'.newMap
+			,writeCache           = 'DM'.newMap
+			,abcInterpreterEnv    = abcEnv
+			,shutdown             = Nothing
+			,ioTasks              = {done = [], todo = []}
+			,ioStates             = 'DM'.newMap
+			,sdsEvalStates        = 'DM'.newMap
+			,world                = world
+			,signalHandlers       = []
+			,resources            = []
+			,random               = genRandInt seed
+			,onClient             = False
+			}
+		Nothing =
+			Left ("Failed to parse bytecode, is ByteCode set in the project file?", world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)

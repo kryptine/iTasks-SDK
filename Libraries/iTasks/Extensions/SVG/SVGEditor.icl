@@ -118,7 +118,7 @@ derive JSONDecode ClientToServerMsg, Map
 
 toUIAttributes :: !(ServerToClientAttr s) !*VSt -> (!UIAttributes, !*VSt)
 toUIAttributes attr vst
-  # (attr,vst) = serializeInVSt attr vst
+  # (attr,vst) = serializeForClient attr vst
   = ('Data.Map'.fromList [(JS_ATTR_SVG,JSONString attr)], vst)
 
 fromUIAttributes :: !String !JSVal !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
@@ -200,7 +200,7 @@ where
 	  = case editModeValue mode of
 	      Nothing    = (Error "Error in module SVGEditor (fromSVGEditor/initServerSideUI): SVG editors cannot be used in Enter EditMode.",world)
 	      Just model
-	          #! (serializedModel,world) = serializeInVSt model world
+	          #! (serializedModel,world) = serializeForClient model world
 	          = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
 	                   (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (JSONString serializedModel)) (sizeAttr FlexSize FlexSize))),initServerSVGState model),world)
 
@@ -248,7 +248,7 @@ where
 	  #! (attrs,mask,vst) = serverHandleModel svglet mask False vst
 	  = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
 	    (Ok (attributesToUIChange attrs,mask),vst)
-	
+
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
 	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gEq{|*|} s

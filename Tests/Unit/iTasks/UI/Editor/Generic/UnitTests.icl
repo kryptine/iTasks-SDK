@@ -1,5 +1,6 @@
 module iTasks.UI.Editor.Generic.UnitTests
 
+import Data.Either
 import iTasks.UI.Editor.Generic
 import iTasks.Util.Testing
 import qualified Data.Map as DM
@@ -189,18 +190,22 @@ where
 
 tupleEditorTests = []
 
-genUIWrapper datapath mode editor world	
+genUIWrapper datapath mode editor world
 	# (options,world) = defaultEngineOptions world 
-	# iworld = createIWorld options world
-	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],iworld=iworld}
-	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.genUI emptyAttr datapath (mapEditMode id mode) vst
-	= (res,world)
+	# mbIworld = createIWorld options world
+	| mbIworld =: Left _ = let (Left (err, world)) = mbIworld in (Error err, world)
+	# iworld = let (Right iworld) = mbIworld in iworld
+	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],abcInterpreterEnv=iworld.IWorld.abcInterpreterEnv}
+	# (res, _) = editor.Editor.genUI emptyAttr datapath (mapEditMode id mode) vst
+	= (res,iworld.world)
 
 onEditWrapper datapath edit state editor world
 	# (options,world) = defaultEngineOptions world 
-	# iworld = createIWorld options world
-	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],iworld=iworld}
-	# (res,{VSt|iworld={IWorld|world}}) = editor.Editor.onEdit datapath edit state vst
-	= (res,world)
+	# mbIworld = createIWorld options world
+	| mbIworld =: Left _ = let (Left (err, world)) = mbIworld in (Error err, world)
+	# iworld = let (Right iworld) = mbIworld in iworld
+	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],abcInterpreterEnv=iworld.IWorld.abcInterpreterEnv}
+	# (res, _) = editor.Editor.onEdit datapath edit state vst
+	= (res,iworld.world)
 
 Start w = runUnitTests tests w

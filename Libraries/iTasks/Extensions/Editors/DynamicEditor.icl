@@ -172,7 +172,6 @@ where
 			((dynamicCompoundEditor $ editor p).CompoundEditor.onEdit dp event mbSt childSts vst)
 
 	onRefresh dp (p, new) st=:(p`, mbSt) childSts vst
-		| p === p` = (Ok (NoChange, st, childSts), vst) // HACK: only refresh on parameter change
 		= appFst
 			(fmap $ appSnd3 \st -> (p, st))
 			((dynamicCompoundEditor $ editor p).CompoundEditor.onRefresh dp new mbSt childSts vst)
@@ -346,7 +345,13 @@ where
                   )
 	// TODO: how to get UI attributes?
 	// TODO: fine-grained replacement
-    onRefresh dp new _ _ vst = appFst (fmap $ appFst3 ReplaceUI) $ genUI 'Map'.newMap dp (Update new) vst
+    onRefresh dp new st childSts vst
+		| isNotChanged (valueFromState st childSts) new = (Ok (NoChange, st, childSts), vst)
+		= appFst (fmap $ appFst3 ReplaceUI) $ genUI 'Map'.newMap dp (Update new) vst
+	where
+		isNotChanged (Just (DynamicEditorValue consId val)) (DynamicEditorValue consId` val`) =
+			consId == consId` && val === val`
+		isNotChanged _ _ = False
 
     // TODO: accept ID or index
     genChildEditors :: !DataPath !DynamicConsId !(EditMode DEVal) !*VSt
