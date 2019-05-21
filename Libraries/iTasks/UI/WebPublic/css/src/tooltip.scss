@@ -1,8 +1,8 @@
-[tooltip] {
+[data-tooltip] {
         position: relative;
         display: inline-block;
 }
-[tooltip]:before, [tooltip]:after {
+[data-tooltip]:before, [data-tooltip]:after {
     position: absolute;
     transform: translate3d(0, 0, 0);
     visibility: hidden;
@@ -11,19 +11,19 @@
     pointer-events: none;
     transition: 0.3s ease;
 }
-[tooltip]:hover:before, [tooltip]:hover:after, [tooltip]:focus:before, [tooltip]:focus:after {
+[data-tooltip]:hover:before, [data-tooltip]:hover:after, [data-tooltip]:focus:before, [data-tooltip]:focus:after {
     visibility: visible;
     opacity: 1;
 }
-[tooltip]:before {
+[data-tooltip]:before {
     content: '';
     position: absolute;
     background: transparent;
     border: 6px solid transparent;
     z-index: 1000001;
 }
-[tooltip]:after {
-    content: attr(tooltip);
+[data-tooltip]:after {
+    content: attr(data-tooltip);
     background: #ccc;
     color: #000;
     padding: 8px 10px;
@@ -32,18 +32,18 @@
     white-space: nowrap;
     box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
 }
-[tooltip]:before {
+[data-tooltip]:before {
   border-left-color: #ccc;
   margin-right: -12px;
   margin-bottom: -6px;
 }
-[tooltip]:after {
+[data-tooltip]:after {
   margin-bottom: -14px;
 }
-[tooltip]:before, [tooltip]:after {
+[data-tooltip]:before, [data-tooltip]:after {
   right: 100%;
   bottom: 50%;
 }
-[tooltip]:hover:after, [tooltip]:hover:before, [tooltip]:focus:after, [tooltip]:focus:before {
+[data-tooltip]:hover:after, [data-tooltip]:hover:before, [data-tooltip]:focus:after, [data-tooltip]:focus:before {
   transform: translateX(-8px);
 }
