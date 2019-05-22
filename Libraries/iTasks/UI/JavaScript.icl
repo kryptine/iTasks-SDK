@@ -273,7 +273,7 @@ where
 		pushB TRUE
 	}
 
-jsFreeCleanReference :: !JSVal !*JSWorld -> !*JSWorld
+jsFreeCleanReference :: !JSVal !*JSWorld -> *JSWorld
 jsFreeCleanReference (JSCleanRef ref) w = case eval_js clear of
 	True -> w
 where
@@ -550,15 +550,12 @@ where
 			repl_r_args 0 1
 		}
 
-jsDeserializeGraph :: !String !JSVal !*JSWorld -> *(!.a, !*JSWorld)
-jsDeserializeGraph s attach_to w = case attach_to of
-	JSRef r -> (deserialize s r, w)
-	_       -> abort "when deserializing a Clean value it must be linked to an iTasks component\n"
+jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph s w = (deserialize s, w)
 where
-	deserialize :: !String !Int -> .a
-	deserialize _ _ = code {
+	deserialize :: !String -> .a
+	deserialize _ = code {
 		instruction 6
-		pop_b 1
 	}
 
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld

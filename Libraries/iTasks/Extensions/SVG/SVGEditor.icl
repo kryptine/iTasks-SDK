@@ -134,9 +134,9 @@ toUIAttributes attr vst
   # (attr,vst) = serializeForClient attr vst
   = ('Data.Map'.fromList [(JS_ATTR_SVG,JSONString attr)], vst)
 
-fromUIAttributes :: !String !JSVal !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
-fromUIAttributes json me world
-  = jsDeserializeGraph json me world
+fromUIAttributes :: !String !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
+fromUIAttributes json world
+  = jsDeserializeGraph json world
 
 
 //	the server side state:
@@ -344,7 +344,7 @@ clientGetTaskId me world
 clientInitDOMEl :: !(SVGEditor s v) !JSVal !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 clientInitDOMEl svglet me args world
   #! (model, world) = me .# "attributes.value" .? world
-  #! (model, world) = jsDeserializeGraph (jsValToString` "" model) me world
+  #! (model, world) = jsDeserializeGraph (jsValToString` "" model) world
   #! (jsView,world) = jsMakeCleanReference (svglet.initView model) me world
   #! (jsModel,world)= jsMakeCleanReference model me world
   #! world          = (me .# JS_ATTR_VIEW  .= jsView) world
@@ -366,7 +366,7 @@ clientHandleAttributeChange :: !(SVGEditor s v) !JSVal !{!JSVal} !*JSWorld -> *J
 clientHandleAttributeChange svglet me args world
   = case svg_or_text of
       Just json
-        #! (request,world) = fromUIAttributes (jsValToString` "" json) me world
+        #! (request,world) = fromUIAttributes (jsValToString` "" json) world
         = case request of
             (ServerNeedsTextMetrics new_fonts new_texts)
               = jsTrace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")

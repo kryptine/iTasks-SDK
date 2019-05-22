@@ -473,7 +473,6 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[index].ref;
 							break;
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
-							var attach_to=ABC.memory_array[bsp/4];
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
 							ABC.memory_array[asp/4]=ABC.deserialize(string);
 							break;
