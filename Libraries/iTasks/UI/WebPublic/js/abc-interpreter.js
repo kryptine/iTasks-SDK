@@ -75,7 +75,7 @@ const ABC={
 		}
 	},
 
-	deserialize: function (string, component) {
+	deserialize: function (string) {
 		var max_words_needed=string.length/8*4; // rough upper bound
 		ABC.require_hp(max_words_needed);
 
@@ -103,9 +103,7 @@ const ABC={
 
 		ABC.interpreter.instance.exports.set_hp_free(new_hp_free);
 
-		var index=ABC.share_clean_value(ABC.memory_array[unused_semispace/4], component);
-
-		return SharedCleanValue(index);
+		return ABC.memory_array[unused_semispace/4];
 	},
 
 	interpret: null,
@@ -477,8 +475,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
 							var attach_to=ABC.memory_array[bsp/4];
 							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							var shared_clean_value=ABC.deserialize(string,ABC.js[attach_to]);
-							ABC.memory_array[asp/4]=ABC.shared_clean_values[shared_clean_value.shared_clean_value_index].ref;
+							ABC.memory_array[asp/4]=ABC.deserialize(string);
 							break;
 						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */
 							var array=ABC.memory_array[asp/4]+24;
