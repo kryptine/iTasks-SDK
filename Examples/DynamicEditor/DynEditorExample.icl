@@ -11,14 +11,22 @@ editTask =
 	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>=
 	evalTaskConstExpr o toValue taskEditor
 
-:: TaskConstExpr = Apply TaskFuncExpr Expr
+:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type
 :: TaskFuncExpr  = ViewInformation
 :: Expr          = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
 :: Value         = VInt Int | VBool Bool | VTuple Value Value
-
-:: Typed a b =: Typed a
+:: Type          = E.a: Type (a -> Value) & iTask a
+:: Typed a b     =: Typed a
 
 derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed
+
+// instances are never used
+gDefault{|Type|} = undef
+gEq{|Type|} _ _ = undef
+JSONEncode{|Type|} _ _ = undef
+JSONDecode{|Type|} _ _ = undef
+gText{|Type|} _ _ = undef
+gEditor{|Type|} = undef
 
 taskEditor :: DynamicEditor x | TC x
 taskEditor = DynamicEditor conses
@@ -36,9 +44,14 @@ where
 				)
 			]
 		, DynamicConsGroup "Editors"
-			[ functionConsDyn "ViewInformation" "view information"
+			[ functionConsDyn "EnterInformation" "enter information"
+				(	dynamic \(Typed type) -> Typed (EnterInformation type) ::
+					A.a: (Typed Type a) -> Typed TaskConstExpr (Task a)
+				)
+			, functionConsDyn "ViewInformation" "view information"
 				(dynamic Typed ViewInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
 			]
+		// ordinary (non-task) expressions
 		, DynamicCons $ functionConsDyn "int"   "enter integer:"
 			(dynamic \i -> Typed (Int i)  :: Int  -> Typed Expr Int)
 		, DynamicCons $ functionConsDyn "bool"  "enter boolean:"
@@ -57,6 +70,16 @@ where
 			)
 		, DynamicCons $ customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
 		, DynamicCons $ customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
+		// type specifications for enterInformation
+		, DynamicCons $ functionConsDyn "Type.Int"   "Int"   (dynamic Typed (Type VInt)  :: Typed Type Int)
+		, DynamicCons $ functionConsDyn "Type.Bool"  "Bool"  (dynamic Typed (Type VBool) :: Typed Type Bool)
+		, DynamicCons $ functionConsDyn "Type.Tuple" "Tuple"
+			(	dynamic
+					\(Typed (Type toValue1)) (Typed (Type toValue2)) ->
+						Typed (Type \(x, y) -> VTuple (toValue1 x) (toValue2 y))
+				::
+					A.a b: (Typed Type a) (Typed Type b) -> Typed Type (a, b)
+			)
 		]
 
 	intEditor :: Editor Int
@@ -67,6 +90,7 @@ where
 
 evalTaskConstExpr :: TaskConstExpr -> Task Value
 evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
+evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
 evalTaskFuncExpr ViewInformation value = viewInformation () [] value
