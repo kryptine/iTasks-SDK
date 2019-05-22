@@ -256,8 +256,8 @@ where
 			halt
 		}
 
-jsMakeCleanReference :: a !JSVal -> JSVal
-jsMakeCleanReference x attach_to = share attach_to x
+jsMakeCleanReference :: a !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
+jsMakeCleanReference x attach_to w = (share attach_to x, w)
 
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
@@ -272,6 +272,12 @@ where
 		pop_b 1
 		pushB TRUE
 	}
+
+jsFreeCleanReference :: !JSVal !*JSWorld -> *JSWorld
+jsFreeCleanReference (JSCleanRef ref) w = case eval_js clear of
+	True -> w
+where
+	clear = "ABC.clear_shared_clean_value("+++toString ref+++",true)"
 
 jsTypeOf :: !JSVal -> JSVal
 jsTypeOf v = JSTypeOf v
@@ -544,15 +550,12 @@ where
 			repl_r_args 0 1
 		}
 
-jsDeserializeGraph :: !String !JSVal !*JSWorld -> *(!.a, !*JSWorld)
-jsDeserializeGraph s attach_to w = case attach_to of
-	JSRef r -> (deserialize s r, w)
-	_       -> abort "when deserializing a Clean value it must be linked to an iTasks component\n"
+jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph s w = (deserialize s, w)
 where
-	deserialize :: !String !Int -> .a
-	deserialize _ _ = code {
+	deserialize :: !String -> .a
+	deserialize _ = code {
 		instruction 6
-		pop_b 1
 	}
 
 addCSSFromUrl :: !String !*JSWorld -> *JSWorld
