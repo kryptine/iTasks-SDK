@@ -63,7 +63,7 @@ const ABC={
 			ABC.util.instance.exports.gc();
 
 			if (ABC.interpreter.instance.exports.get_hp_free() < max_words_needed)
-				throw 'not enough heap to deserialize: '+string;
+				throw new ABCError('not enough heap to deserialize ('+max_words_needed+' needed): '+string);
 		}
 
 		var array=new Int8Array(string.length);

@@ -41,7 +41,7 @@ toJS x :== gToJS{|*|} x
  * @param A reference to an iTasks component.
  * @result A JavaScript reference to the Clean value.
  */
-jsMakeCleanReference :: a !JSVal -> JSVal
+jsMakeCleanReference :: a !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
 
 /**
  * Retrieve a Clean value from the JavaScript heap. The value must have been

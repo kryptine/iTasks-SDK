@@ -214,15 +214,18 @@ where
 	initClientSideUI svglet me world
 	// Set attributes
       #! world                       = (me .# "clickCount" .= 0) world
-	  #! world                       = (me .# "dragState" .= jsMakeCleanReference initDragState me) world
+	  #! (jsDragState,world)         = jsMakeCleanReference initDragState me world
+	  #! world                       = (me .# "dragState" .= jsDragState) world
 	// Set methods	
 	  #! (jsOnAttributeChange,world) = jsWrapFun (clientHandleAttributeChange svglet me) me world
 	  #! world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
 	  #! (jsInitDOMEl,world)         = jsWrapFun (clientInitDOMEl svglet me) me world
 	  #! world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
 	// Initialize caches
-	  #! world                       = (me .# JS_ATTR_FONT_SPANS .= jsMakeCleanReference 'Data.Map'.newMap me) world   // initialize font spans cache
-	  #! world                       = (me .# JS_ATTR_TEXT_SPANS .= jsMakeCleanReference 'Data.Map'.newMap me) world   // initialize text-widths cache
+	  #! (jsFontSpans,world)         = jsMakeCleanReference 'Data.Map'.newMap me world
+	  #! (jsTextSpans,world)         = jsMakeCleanReference 'Data.Map'.newMap me world
+	  #! world                       = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world   // initialize font spans cache
+	  #! world                       = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world   // initialize text-widths cache
 	  = jsTrace "initClientSideUI" world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
@@ -329,8 +332,10 @@ clientInitDOMEl :: !(SVGEditor s v) !JSVal !{!JSVal} !*JSWorld -> *JSWorld | JSO
 clientInitDOMEl svglet me args world
   #! (model, world) = me .# "attributes.value" .? world
   #! (model, world) = jsDeserializeGraph (jsValToString` "" model) me world
-  #! world          = (me .# JS_ATTR_VIEW  .= jsMakeCleanReference (svglet.initView model) me) world
-  #! world          = (me .# JS_ATTR_MODEL .= jsMakeCleanReference model me) world
+  #! (jsView,world) = jsMakeCleanReference (svglet.initView model) me world
+  #! (jsModel,world)= jsMakeCleanReference model me world
+  #! world          = (me .# JS_ATTR_VIEW  .= jsView) world
+  #! world          = (me .# JS_ATTR_MODEL .= jsModel) world
   #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet ClientNeedsSVG))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 //#! (json,  world) = encodeOnClient ClientNeedsSVG world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
   #! (cidJS, world) = me .# "attributes.taskId".? world
@@ -360,8 +365,10 @@ clientHandleAttributeChange svglet me args world
                   Nothing  = jsTrace ("clientHandleAttributeChange reacts to ServerHasSVG without new model")
                              world
                   Just model
-                    #! world     = (me .# JS_ATTR_VIEW  .= jsMakeCleanReference (svglet.initView model) me) world
-                    #! world     = (me .# JS_ATTR_MODEL .= jsMakeCleanReference model me) world
+                    #! (jsView,world)  = jsMakeCleanReference (svglet.initView model) me world
+                    #! (jsModel,world) = jsMakeCleanReference model me world
+                    #! world     = (me .# JS_ATTR_VIEW  .= jsView) world
+                    #! world     = (me .# JS_ATTR_MODEL .= jsModel) world
                     = jsTrace ("clientHandleAttributeChange reacts to ServerHasSVG with new model")
                       world
       _ = jsTrace ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
@@ -382,8 +389,10 @@ where
 	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                  // Get missing text width spans
 	  #! font_spans             = 'Data.Map'.union new_font_spans font_spans                 // Add missing font spans to cached font spans
 	  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
-	  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsMakeCleanReference font_spans me) world // Store the cached font spans
-	  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsMakeCleanReference text_spans me) world // Store the cached text width spans
+	  #! (jsFontSpans,world)    = jsMakeCleanReference font_spans me world
+	  #! (jsTextSpans,world)    = jsMakeCleanReference text_spans me world
+	  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world // Store the cached font spans
+	  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world // Store the cached text width spans
 	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 	//#! (json,          world) = encodeOnClient (ClientHasNewTextMetrics new_font_spans new_text_spans) world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
 	  #! (cidJS,         world) = me .# "attributes.taskId" .? world
@@ -598,8 +607,10 @@ where
 	   // Update the view & the model
 	      #! view           = applyImgEventhandler f cb_data view
 	      #! model          = updModel model view
-	      #! world          = (me .# JS_ATTR_VIEW  .= jsMakeCleanReference view me)  world
-	      #! world          = (me .# JS_ATTR_MODEL .= jsMakeCleanReference model me) world
+	      #! (jsView,world) = jsMakeCleanReference view me world
+	      #! (jsModel,world)= jsMakeCleanReference model me world
+	      #! world          = (me .# JS_ATTR_VIEW  .= jsView)  world
+	      #! world          = (me .# JS_ATTR_MODEL .= jsModel) world
 	      | local									// the new model value is rendered entirely local on client
 	        = clientHandleModel svglet me model view world
 	      | otherwise           					// the new model value is rendered on the server
@@ -631,8 +642,10 @@ where
 		  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                       // Get missing text width spans
 		  #! font_spans             = 'Data.Map'.union          new_font_spans font_spans             // Add missing font spans to cached font spans
 		  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans       // Add missing text width spans to cached text width spans
-		  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsMakeCleanReference font_spans me) world
-		  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsMakeCleanReference text_spans me) world
+		  #! (jsFontSpans,world)    = jsMakeCleanReference font_spans me world
+		  #! (jsTextSpans,world)    = jsMakeCleanReference text_spans me world
+		  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world
+		  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world
 		  = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
 		      Error error           = abort error
 		      Ok (img,masks,markers,paths,spans,grids)
@@ -673,7 +686,8 @@ where
 	                                  , svgGrabPointX   = ds.SVGDragState.svgTrueCoordsX - e
 	                                  , svgGrabPointY   = ds.SVGDragState.svgTrueCoordsY - f
 	                             }
-	        #!          world  = (me .# "dragState" .= jsMakeCleanReference ds me) world
+	        #! (jsDs,   world) = jsMakeCleanReference ds me world
+	        #!          world  = (me .# "dragState" .= jsDs) world
 	        = world
 	      _ = world   // this code should never be reached
 	
@@ -690,7 +704,8 @@ where
 	 	                   | ds & svgTrueCoordsX = newTrueCoordsX
 	 	                        , svgTrueCoordsY = newTrueCoordsY
 	 	                   }
-	    #! world         = (me .# "dragState" .= jsMakeCleanReference ds me) world
+	    #! (jsDs, world) = jsMakeCleanReference ds me world
+	    #! world         = (me .# "dragState" .= jsDs) world
 	    = world
 	  #! dragTarget      = fromJust ds.SVGDragState.svgDragTarget
 	// Append the dragTarget to the root of the SVG element for two reasons:
@@ -704,7 +719,8 @@ where
 	                      | ds & svgTrueCoordsX = newTrueCoordsX
 	                           , svgTrueCoordsY = newTrueCoordsY
 	                      }
-	  #! world          = (me .# "dragState" .= jsMakeCleanReference ds me) world
+	  #! (jsDs, world)  = jsMakeCleanReference ds me world
+	  #! world          = (me .# "dragState" .= jsDs) world
 	  = world
 	
 	doMouseDragUp :: !(SVGEditor s v) !JSVal !JSObj !(Map String (Set ImageTag)) !{!JSVal} !*JSWorld -> *JSWorld
@@ -718,7 +734,8 @@ where
 	                         | ds & svgMousePos   = MouseUp
 	                              , svgDragTarget = Nothing
 	                         }
-	    #! world           = (me .# "dragState" .= jsMakeCleanReference ds me) world
+	    #! (jsDs, world)   = jsMakeCleanReference ds me world
+	    #! world           = (me .# "dragState" .= jsDs) world
 	    = world
 	  #! (evtTarget,world) = evt .# "target" .? world
 	  #! dragTarget        = fromJust ds.SVGDragState.svgDragTarget
@@ -735,9 +752,12 @@ where
 	                         | ds & svgMousePos   = MouseUp
 	                              , svgDragTarget = Nothing
 	                         }
-	  #! world             = (me .# JS_ATTR_VIEW  .= jsMakeCleanReference view me)  world
-	  #! world             = (me .# JS_ATTR_MODEL .= jsMakeCleanReference model me) world
-	  #! world             = (me .# "dragState"   .= jsMakeCleanReference ds me)    world
+	  #! (jsView,world)    = jsMakeCleanReference view me world
+	  #! (jsModel,world)   = jsMakeCleanReference model me world
+	  #! (jsDs,world)      = jsMakeCleanReference ds me world
+	  #! world             = (me .# JS_ATTR_VIEW  .= jsView)  world
+	  #! world             = (me .# JS_ATTR_MODEL .= jsModel) world
+	  #! world             = (me .# "dragState"   .= jsDs)    world
 	  = world
 
 firstIdentifiableParentId :: !JSObj !*JSWorld -> *(!String, !*JSWorld)

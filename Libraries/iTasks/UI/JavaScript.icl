@@ -256,8 +256,8 @@ where
 			halt
 		}
 
-jsMakeCleanReference :: a !JSVal -> JSVal
-jsMakeCleanReference x attach_to = share attach_to x
+jsMakeCleanReference :: a !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
+jsMakeCleanReference x attach_to w = (share attach_to x, w)
 
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 jsGetCleanReference v w = case eval_js_with_return_value (toString v) of
