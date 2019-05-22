@@ -577,6 +577,7 @@ where
 	  #! world           = if (jsIsUndefined to || jsIsNull to) world ((jsGlobal "clearTimeout" .$! to) world)
 	// Register a callback for the click after a small timeout
 	  #! (cb,world)      = jsWrapFun (doNClickEvent` svglet me svg elemId uniqId p local) me world
+	  #! world           = (me .# "clickHandler" .= cb) world
 	  #! (to,world)  	 = (jsGlobal "setTimeout" .$ (cb, CLICK_DELAY)) world
 	  #! world           = (me .# "clickTimeOut" .= to) world
 	// Increase click counter, so we can determine how many times the element was clicked when the timeout passes
@@ -590,6 +591,7 @@ where
 	  #! (nc,world)      = me .# "clickCount" .? world
 	// Reset click count
 	  #! world           = (me .# "clickCount" .= 0) world
+	  #! world           = (me .# "clickHandler" .= jsNull) world
 	  #! nc              = jsValToInt` 0 nc
 	  = doMouseEvent` svglet me svg elemId uniqId p (MouseOnClickData nc) local args world
 	
