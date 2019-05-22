@@ -49,6 +49,12 @@ jsMakeCleanReference :: a !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
  */
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 
+/**
+ * Remove a Clean value from the JavaScript heap. The value must have been
+ * shared using `jsMakeCleanReference` or `jsWrapFun`. For example:
+ */
+jsFreeCleanReference :: !JSVal !*JSWorld -> !*JSWorld
+
 jsTypeOf :: !JSVal -> JSVal
 
 jsIsUndefined :: !JSVal -> Bool

@@ -273,6 +273,12 @@ where
 		pushB TRUE
 	}
 
+jsFreeCleanReference :: !JSVal !*JSWorld -> !*JSWorld
+jsFreeCleanReference (JSCleanRef ref) w = case eval_js clear of
+	True -> w
+where
+	clear = "ABC.clear_shared_clean_value("+++toString ref+++",true)"
+
 jsTypeOf :: !JSVal -> JSVal
 jsTypeOf v = JSTypeOf v
 

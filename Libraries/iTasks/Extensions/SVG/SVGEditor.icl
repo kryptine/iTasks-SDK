@@ -49,7 +49,6 @@ CLICK_DELAY          :== 225
 svgns =: "http://www.w3.org/2000/svg"
 
 //Predefined object methods
-(`addEventListener`)      obj args :== obj .# "addEventListener"      .$ args
 (`setAttribute`)          obj args :== obj .# "setAttribute"          .$ args
 (`setAttributeNS`)        obj args :== obj .# "setAttributeNS"        .$ args
 (`createElementNS`)       obj args :== obj .# "createElementNS"       .$ args
@@ -60,6 +59,20 @@ svgns =: "http://www.w3.org/2000/svg"
 (`getScreenCTM`)          obj args :== obj .# "getScreenCTM"          .$ args
 (`inverse`)               obj args :== obj .# "inverse"               .$ args
 (`matrixTransform`)       obj args :== obj .# "matrixTransform"       .$ args
+
+addEventListener :: !JSObj !String !Bool !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *JSWorld
+addEventListener svg event useCapture callback me world
+  // add event listener
+  #! (jsCallback,world)  = jsWrapFun callback me world
+  #! world          = (svg .# "addEventListener" .$! (event,jsCallback,useCapture)) world
+  // store callback so that it can be freed in clientUpdateSVGString
+  #! (refs,world)   = jsGetCleanReference (me .# "refs") world
+  #! refs           = case refs of
+      Nothing        -> ([], [jsCallback])
+      Just (old,new) -> (old, [jsCallback:new])
+  #! (jsRefs,world) = jsMakeCleanReference refs me world
+  #! world          = (me .# "refs" .= jsRefs) world
+  = world
 
 :: ImageSpanReal :== (!Real, !Real)
 
@@ -427,6 +440,14 @@ clientUpdateSVGString svgStr me world
   #! (_,      world) = if (jsIsNull currSVG)
                           ((domEl `appendChild` newSVG) world)
                           ((domEl .# "replaceChild" .$ (newSVG, currSVG)) world)
+  // Free old callbacks (see #298 for discussion)
+  #! (refs,world)    = jsGetCleanReference (me .# "refs") world
+  | isNothing refs
+    = world
+  #! (old,new)       = fromJust refs
+  #! world           = seqSt jsFreeCleanReference old world
+  #! (jsRefs,world)  = jsMakeCleanReference (new,[]) me world
+  #! world           = (me .# "refs" .= jsRefs) world
   = world
 
 //	return the dimensions of the root image:
@@ -521,10 +542,8 @@ clientRegisterEventhandlers` svglet me taskId es` tags world
   #! (svg,    world)     = clientRootSVGElt me world
   #! idMap               = invertToMapSet (fmap (mkUniqId taskId) tags)
 // all draggable elements share a common mousemove and mouseup event:
-  #! (cbMove, world)     = jsWrapFun (doMouseDragMove svglet me svg) me world
-  #! (cbUp,   world)     = jsWrapFun (doMouseDragUp   svglet me svg idMap) me world
-  #! (_,      world)     = (svg `addEventListener` ("mousemove", cbMove, True)) world
-  #! (_,      world)     = (svg `addEventListener` ("mouseup",   cbUp,   True)) world
+  #! world               = addEventListener svg "mousemove" True (doMouseDragMove svglet me svg) me world
+  #! world               = addEventListener svg "mouseup"   True (doMouseDragUp   svglet me svg idMap) me world
 // register all individual event handlers:
   = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
 where
@@ -551,22 +570,19 @@ where
 	registerNClick` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	registerNClick` svglet me svg elemId uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-	  #! (cb,  world) = jsWrapFun (mkNClickCB` svglet me svg elemId uniqId p local) me world
-	  #! (_,   world) = (elem `addEventListener` ("click", cb, False)) world
+	  #! world        = addEventListener elem "click" False (mkNClickCB` svglet me svg elemId uniqId p local) me world
 	  = world
 	
 	registerMouse` :: !(SVGEditor s v) !JSVal !JSObj !String !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	registerMouse` svglet me svg elemId evt uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-	  #! (cb,  world) = jsWrapFun (doMouseEvent` svglet me svg elemId uniqId p MouseNoData local) me world
-	  #! (_,   world) = (elem `addEventListener` (evt, cb, True)) world
+	  #! world        = addEventListener elem evt True (doMouseEvent` svglet me svg elemId uniqId p MouseNoData local) me world
 	  = world
 	
 	registerDraggable` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !*JSWorld -> *JSWorld
 	registerDraggable` svglet me svg elemId uniqId p world
 	  #! (elem,  world) = (svg .# "getElementById" .$ elemId) world
-	  #! (cbDown,world) = jsWrapFun (doMouseDragEvent` svglet me svg uniqId p elemId elem) me world
-	  #! (_,     world) = (elem `addEventListener` ("mousedown", cbDown, True)) world
+	  #! world          = addEventListener elem "mousedown" True (doMouseDragEvent` svglet me svg uniqId p elemId elem) me world
 	  = world
 	
 	mkNClickCB` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
