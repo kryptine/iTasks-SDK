@@ -11,7 +11,7 @@ editTask =
 	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>=
 	evalTaskConstExpr o toValue taskEditor
 
-:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type
+:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type | Bind TaskConstExpr TaskFuncExpr
 :: TaskFuncExpr  = ViewInformation
 :: Expr          = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
 :: Value         = VInt Int | VBool Bool | VTuple Value Value
@@ -28,7 +28,7 @@ JSONDecode{|Type|} _ _ = undef
 gText{|Type|} _ _ = undef
 gEditor{|Type|} = undef
 
-taskEditor :: DynamicEditor x | TC x
+taskEditor :: DynamicEditor TaskConstExpr
 taskEditor = DynamicEditor conses
 where
 	conses =
@@ -41,6 +41,12 @@ where
 			[ functionConsDyn "Apply" "$"
 				(	dynamic \(Typed taskFunc) (Typed expr) -> Typed (Apply taskFunc expr) ::
 					A.a b: (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
+				)
+			, functionConsDyn "Bind" ">>="
+				(	dynamic \(Typed task) (Typed taskFunc) -> Typed (Bind task taskFunc) ::
+					A.a b:
+						(Typed TaskConstExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
+						-> Typed TaskConstExpr (Task b)
 				)
 			]
 		, DynamicConsGroup "Editors"
@@ -80,7 +86,15 @@ where
 				::
 					A.a b: (Typed Type a) (Typed Type b) -> Typed Type (a, b)
 			)
+		, DynamicCons $ functionConsDyn "Type.?" "(derived type)"
+			(dynamic derivedType :: A.a: Typed Type a | iTask a)
 		]
+
+	derivedType :: Typed Type a | iTask a
+	derivedType = case dynToValue of
+		(toValue :: a^ -> Value | iTask a^) = Typed (Type toValue)
+	where
+		dynToValue = dynamic ()
 
 	intEditor :: Editor Int
 	intEditor = gEditor{|*|}
@@ -89,7 +103,8 @@ where
 	boolEditor = gEditor{|*|}
 
 evalTaskConstExpr :: TaskConstExpr -> Task Value
-evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
+evalTaskConstExpr (Apply taskFunc expr)             = evalTaskFuncExpr taskFunc $ evalExpr expr
+evalTaskConstExpr (Bind task taskFunc)              = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
 evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
