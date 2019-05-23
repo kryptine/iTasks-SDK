@@ -498,20 +498,20 @@ where
 	where
 		loadCachedFontSpan :: !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
 		loadCachedFontSpan (cached,new,world) font
-		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (trace_n ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
+		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (jsTrace ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
 		  | jsIsUndefined v || jsIsNull v
-		                           = trace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
+		                           = jsTrace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
 		  | otherwise              = ('Data.Map'.put font (jsValToReal` (getfontysize` font) v) cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
 
 // store new font dimensions
 	storeFontsSpansToCache :: !FontSpans !*JSWorld -> *JSWorld
 	storeFontsSpansToCache fonts world
-	  | jsIsUndefined jsWebStorage = trace "storeFontsSpansToCache could not store fonts in web storage" world
+	  | jsIsUndefined jsWebStorage = jsTrace "storeFontsSpansToCache could not store fonts in web storage" world
 	  | otherwise                  = 'Data.Foldable'.foldl storeFontSpan world ('Data.Map'.toList fonts)
 	where
 		storeFontSpan :: !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
 		storeFontSpan world (font,descent)
-		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (trace_n ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
+		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (jsTrace ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
 		  = world
 
 // compute the font dimensions of new fonts that are used in an image
@@ -560,9 +560,9 @@ where
 		where
 			loadCachedTextSpan :: !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
 			loadCachedTextSpan font (cached,new,world) str
-			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (trace_n ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
+			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (jsTrace ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
 			  | jsIsUndefined v || jsIsNull v
-			                       = trace_n ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
+			                       = jsTrace ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
 			  | otherwise          = ('Data.Map'.alter (merge ('Data.Map'.singleton str (jsValToReal` zero v))) font cached,'Data.Map'.alter (remove str) font new,world)
 			where
 				remove :: !String !(Maybe (Set String)) -> Maybe (Set String)
@@ -577,7 +577,7 @@ where
 //  store new texts spans dimensions
 	storeTextsSpansToCache :: !TextSpans !*JSWorld -> *JSWorld
 	storeTextsSpansToCache texts world
-	  | jsIsUndefined jsWebStorage = trace "storeTextsSpansToCache could not store texts in web storage" world
+	  | jsIsUndefined jsWebStorage = jsTrace "storeTextsSpansToCache could not store texts in web storage" world
 	  | otherwise                  = 'Data.Foldable'.foldl storeFontTextsSpans world ('Data.Map'.toList texts)
 	where
 		storeFontTextsSpans :: !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
@@ -586,7 +586,7 @@ where
 		where
 			storeTextSpan :: !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
 			storeTextSpan font world (str,width)
-			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (trace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
+			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (jsTrace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
 			  = world
 
 // compute the font-text dimensions of new font-texts that are used in an image
