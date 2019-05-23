@@ -152,7 +152,7 @@ imgTagSource :: !String -> *TagSource
 imgTagSource taskId
   = [(ImageTagUser no taskId, ImageTagUser no taskId) \\ no <- [0..]]
 
-newImgTables :: ImgTables m
+newImgTables :: ImgTables /*m*/
 newImgTables
   = {ImgTables | imgEventhandlers = 'Data.Map'.newMap
                , imgNewFonts      = 'Data.Set'.newSet
@@ -285,12 +285,14 @@ serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=t
 	    = (attrs, state, world)
       Right (svg,es,tags)                                                                       // image complete, send it to client
 	    #! string = browserFriendlySVGEltToString svg
+/********** NO LONGER NECESSARY, ALREADY DEFUNCTIONALIZED
 	    #! es`    = defuncImgEventhandlers es
+**********/
 	    | model_is_new_for_client
-	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es` tags (Just model))) size_and_model
+	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es tags (Just model))) size_and_model
 	      = (attrs, state, world)
 	    | otherwise
-	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es` tags Nothing)) size_and_model
+	      #! attrs = 'Data.Map'.union (toUIAttributes` svglet (ServerHasSVG string es tags Nothing)) size_and_model
 	      = (attrs, state, world)
 where
 	view           = svglet.initView model
@@ -307,7 +309,10 @@ attributesToUIChange set_attrs
     )
 
 //	server side rendering of model value:
+/************ ADAPTED TO DEFUNCTIONALIZED VERSION
 serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v,!ImgTags)
+************/
+serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables /*v*/) (!SVGElt,!ImgEventhandlers`,!ImgTags)
 serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
   #! image`               = renderImage s v (imgTagSource taskId)
   #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})
@@ -458,20 +463,20 @@ where
 	loadCachedFontsSpans fonts world
 	  #! (jsWebStorage,world)      = findObject "localStorage" world
 	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,fonts,world)	// this means that web storage is unavailable on the client (is that even possible?)
-	  | otherwise                  = 'Data.Foldable'.foldl (loadCachedFontSpan jsWebStorage) ('Data.Map'.newMap,fonts,world) ('Data.Set'.toList fonts)  // hmm, if Set is foldable, then there is no need to convert to list here
+	  | otherwise                  = 'Data.Foldable'.foldl (loadCachedFontSpan jsWebStorage) ('Data.Map'.newMap,fonts,world) ('Data.Set'.toList fonts)
 	where
 		loadCachedFontSpan :: !(JSVal a) !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
 		loadCachedFontSpan jsWebStorage (cached,new,world) font
 		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (trace_n ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
 		  | jsIsUndefined v || jsIsNull v
-		                           = trace_n ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
+		                           = trace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
 		  | otherwise              = ('Data.Map'.put font (jsValToReal v) cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
 
 // store new font dimensions
 	storeFontsSpansToCache :: !FontSpans !*JSWorld -> *JSWorld
 	storeFontsSpansToCache fonts world
 	  #! (jsWebStorage,world)      = findObject "localStorage" world
-	  | jsIsUndefined jsWebStorage = trace_n "storeFontsSpansToCache could not store fonts in web storage" world
+	  | jsIsUndefined jsWebStorage = trace "storeFontsSpansToCache could not store fonts in web storage" world
 	  | otherwise                  = 'Data.Foldable'.foldl (storeFontSpan jsWebStorage) world ('Data.Map'.toList fonts)
 	where
 		storeFontSpan :: !(JSVal a) !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
@@ -513,32 +518,16 @@ getNewTextsSpans texts me world
   #! world                         = storeTextsSpansToCache measured world
   | otherwise                      = ('Data.Map'.unionWith 'Data.Map'.union measured cached,world)
 where
-//  store new texts spans dimensions
-	storeTextsSpansToCache :: !TextSpans !*JSWorld -> *JSWorld
-	storeTextsSpansToCache texts world
-	  #! (jsWebStorage,world)      = findObject "localStorage" world
-	  | jsIsUndefined jsWebStorage = trace_n "storeTextsSpansToCache could not store texts in web storage" world
-	  | otherwise                  = 'Data.Foldable'.foldl (storeFontTextsSpans jsWebStorage) world ('Data.Map'.toList texts)
-	where
-		storeFontTextsSpans :: !(JSVal a) !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
-		storeFontTextsSpans jsWebStorage world (font,txt_widths)
-		  = 'Data.Foldable'.foldl (storeTextSpan jsWebStorage font) world ('Data.Map'.toList txt_widths)
-		where
-			storeTextSpan :: !(JSVal a) !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
-			storeTextSpan jsWebStorage font world (str,width)
-			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (trace_n ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
-			  = world
-	
 //	load cached texts spans
 	loadCachedTextsSpans :: !ImgTexts !*JSWorld -> (!TextSpans,!ImgTexts,!*JSWorld)
 	loadCachedTextsSpans texts world
 	  #! (jsWebStorage,world)      = findObject "localStorage" world
 	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,texts,world)   // this means that web storage is unavailable on client (is that even possible?)
-	  | otherwise                  = 'Data.Foldable'.foldl (loadCachedTextSpans jsWebStorage) ('Data.Map'.newMap,texts,world) ('Data.Map'.toList texts)   // hmm, if Map is foldable, then there is no need to convert to list here
+	  | otherwise                  = 'Data.Foldable'.foldl (loadCachedTextSpans jsWebStorage) ('Data.Map'.newMap,texts,world) ('Data.Map'.toList texts)
 	where
 		loadCachedTextSpans :: !(JSVal a) !*(!TextSpans,!ImgTexts,!*JSWorld) !(!FontDef,!Set String) -> *(!TextSpans,!ImgTexts,!*JSWorld)
 		loadCachedTextSpans jsWebStorage (cached,new,world) (font,strs)
-		  = 'Data.Foldable'.foldl (loadCachedTextSpan jsWebStorage font) (cached,new,world) ('Data.Set'.toList strs)           // hmm, if Set is foldable, then there is no need to convert to list
+		  = 'Data.Foldable'.foldl (loadCachedTextSpan jsWebStorage font) (cached,new,world) ('Data.Set'.toList strs)
 		where
 			loadCachedTextSpan :: !(JSVal a) !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
 			loadCachedTextSpan jsWebStorage font (cached,new,world) str
@@ -556,6 +545,23 @@ where
 					set`           = 'Data.Set'.delete str set
 				remove _ nothing   = nothing
 	
+//  store new texts spans dimensions
+	storeTextsSpansToCache :: !TextSpans !*JSWorld -> *JSWorld
+	storeTextsSpansToCache texts world
+	  #! (jsWebStorage,world)      = findObject "localStorage" world
+	  | jsIsUndefined jsWebStorage = trace "storeTextsSpansToCache could not store texts in web storage" world
+	  | otherwise                  = 'Data.Foldable'.foldl (storeFontTextsSpans jsWebStorage) world ('Data.Map'.toList texts)
+	where
+		storeFontTextsSpans :: !(JSVal a) !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
+		storeFontTextsSpans jsWebStorage world (font,txt_widths)
+		  = 'Data.Foldable'.foldl (storeTextSpan jsWebStorage font) world ('Data.Map'.toList txt_widths)
+		where
+			storeTextSpan :: !(JSVal a) !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
+			storeTextSpan jsWebStorage font world (str,width)
+			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (trace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
+			  = world
+	
+// compute the font-text dimensions of new font-texts that are used in an image
 	calcImgTextsLengths :: !ImgTexts !*JSWorld -> (!TextSpans,!*JSWorld)
 	calcImgTextsLengths texts world
 	  #! (svg, world) = (jsDocument `createElementNS` (svgns, "svg")) world
@@ -730,7 +736,7 @@ where
 		        #! svg              = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
 		        #! svgStr           = browserFriendlySVGEltToString svg
 		        #! world            = clientUpdateSVGString svgStr me world
-		        #! world            = clientRegisterEventhandlers` svglet me taskId (defuncImgEventhandlers es) tags world
+		        #! world            = clientRegisterEventhandlers` svglet me taskId /*(defuncImgEventhandlers es)*/es tags world
 		        = world
 	
 	doMouseDragEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !ImgTagNo !ImgNodePath !String !(JSObj o) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld)
