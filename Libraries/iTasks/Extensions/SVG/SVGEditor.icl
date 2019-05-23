@@ -45,7 +45,7 @@ JS_ATTR_TEXT_SPANS   :== "text_spans"
 ****************/
 FONT_WEB_STORAGE_KEY f     :== toString f
 TEXT_WEB_STORAGE_KEY f str :== toString f +++ "-" +++ str
-jsWebStorage               :== jsGlobal "localStorage"
+jsLocalStorage             :== jsGlobal "localStorage"
 
 // Server -> Client SVG attribute names (tag a serialized value of type ServerToClientAttr):
 JS_ATTR_SVG          :== "svgPart"
@@ -493,11 +493,11 @@ where
 // load cached font dimensions
 	loadCachedFontsSpans :: !ImgFonts !*JSWorld -> (!FontSpans,!ImgFonts,!*JSWorld)
 	loadCachedFontsSpans fonts world
-	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,fonts,world)	// this means that web storage is unavailable on the client (is that even possible?)
-	  | otherwise                  = 'Data.Foldable'.foldl loadCachedFontSpan ('Data.Map'.newMap,fonts,world) ('Data.Set'.toList fonts)
+	  #! (jsWebStorage,world)      = jsLocalStorage .? world
+	  = 'Data.Foldable'.foldl (loadCachedFontSpan jsWebStorage) ('Data.Map'.newMap,fonts,world) ('Data.Set'.toList fonts)
 	where
-		loadCachedFontSpan :: !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
-		loadCachedFontSpan (cached,new,world) font
+		loadCachedFontSpan :: !JSVal !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
+		loadCachedFontSpan jsWebStorage (cached,new,world) font
 		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (jsTrace ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
 		  | jsIsUndefined v || jsIsNull v
 		                           = jsTrace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
@@ -506,11 +506,11 @@ where
 // store new font dimensions
 	storeFontsSpansToCache :: !FontSpans !*JSWorld -> *JSWorld
 	storeFontsSpansToCache fonts world
-	  | jsIsUndefined jsWebStorage = jsTrace "storeFontsSpansToCache could not store fonts in web storage" world
-	  | otherwise                  = 'Data.Foldable'.foldl storeFontSpan world ('Data.Map'.toList fonts)
+	  #! (jsWebStorage,world)      = jsLocalStorage .? world
+	  = 'Data.Foldable'.foldl (storeFontSpan jsWebStorage) world ('Data.Map'.toList fonts)
 	where
-		storeFontSpan :: !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
-		storeFontSpan world (font,descent)
+		storeFontSpan :: !JSVal !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
+		storeFontSpan jsWebStorage world (font,descent)
 		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (jsTrace ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
 		  = world
 
@@ -551,15 +551,15 @@ where
 //	load cached texts spans
 	loadCachedTextsSpans :: !ImgTexts !*JSWorld -> (!TextSpans,!ImgTexts,!*JSWorld)
 	loadCachedTextsSpans texts world
-	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,texts,world)   // this means that web storage is unavailable on client (is that even possible?)
-	  | otherwise                  = 'Data.Foldable'.foldl loadCachedTextSpans ('Data.Map'.newMap,texts,world) ('Data.Map'.toList texts)
+	  #! (jsWebStorage,world)      = jsLocalStorage .? world
+	  = 'Data.Foldable'.foldl (loadCachedTextSpans jsWebStorage) ('Data.Map'.newMap,texts,world) ('Data.Map'.toList texts)
 	where
-		loadCachedTextSpans :: !*(!TextSpans,!ImgTexts,!*JSWorld) !(!FontDef,!Set String) -> *(!TextSpans,!ImgTexts,!*JSWorld)
-		loadCachedTextSpans (cached,new,world) (font,strs)
-		  = 'Data.Foldable'.foldl (loadCachedTextSpan font) (cached,new,world) ('Data.Set'.toList strs)
+		loadCachedTextSpans :: !JSVal !*(!TextSpans,!ImgTexts,!*JSWorld) !(!FontDef,!Set String) -> *(!TextSpans,!ImgTexts,!*JSWorld)
+		loadCachedTextSpans jsWebStorage (cached,new,world) (font,strs)
+		  = 'Data.Foldable'.foldl (loadCachedTextSpan jsWebStorage font) (cached,new,world) ('Data.Set'.toList strs)
 		where
-			loadCachedTextSpan :: !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
-			loadCachedTextSpan font (cached,new,world) str
+			loadCachedTextSpan :: !JSVal !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
+			loadCachedTextSpan jsWebStorage font (cached,new,world) str
 			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (jsTrace ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
 			  | jsIsUndefined v || jsIsNull v
 			                       = jsTrace ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
@@ -577,15 +577,15 @@ where
 //  store new texts spans dimensions
 	storeTextsSpansToCache :: !TextSpans !*JSWorld -> *JSWorld
 	storeTextsSpansToCache texts world
-	  | jsIsUndefined jsWebStorage = jsTrace "storeTextsSpansToCache could not store texts in web storage" world
-	  | otherwise                  = 'Data.Foldable'.foldl storeFontTextsSpans world ('Data.Map'.toList texts)
+	  #! (jsWebStorage,world)      = jsLocalStorage .? world
+	  = 'Data.Foldable'.foldl (storeFontTextsSpans jsWebStorage) world ('Data.Map'.toList texts)
 	where
-		storeFontTextsSpans :: !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
-		storeFontTextsSpans world (font,txt_widths)
-		  = 'Data.Foldable'.foldl (storeTextSpan font) world ('Data.Map'.toList txt_widths)
+		storeFontTextsSpans :: !JSVal !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
+		storeFontTextsSpans jsWebStorage world (font,txt_widths)
+		  = 'Data.Foldable'.foldl (storeTextSpan jsWebStorage font) world ('Data.Map'.toList txt_widths)
 		where
-			storeTextSpan :: !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
-			storeTextSpan font world (str,width)
+			storeTextSpan :: !JSVal !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
+			storeTextSpan jsWebStorage font world (str,width)
 			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (jsTrace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
 			  = world
 
