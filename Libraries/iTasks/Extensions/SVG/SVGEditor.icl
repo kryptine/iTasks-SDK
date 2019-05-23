@@ -39,8 +39,13 @@ derive gEq      EditMode
 // Client side state (access via jsMakeCleanReference and jsGetCleanReference):
 JS_ATTR_VIEW         :== "view"
 JS_ATTR_MODEL        :== "model"
+/****************  FONT_SPANS AND TEXT_SPANS ARE NOW STORED IN WEB STORAGE
 JS_ATTR_FONT_SPANS   :== "font_spans"
 JS_ATTR_TEXT_SPANS   :== "text_spans"
+****************/
+FONT_WEB_STORAGE_KEY f     :== toString f
+TEXT_WEB_STORAGE_KEY f str :== toString f +++ "-" +++ str
+jsWebStorage               :== jsGlobal "localStorage"
 
 // Server -> Client SVG attribute names (tag a serialized value of type ServerToClientAttr):
 JS_ATTR_SVG          :== "svgPart"
@@ -59,6 +64,8 @@ svgns =: "http://www.w3.org/2000/svg"
 (`getScreenCTM`)          obj args :== obj .# "getScreenCTM"          .$ args
 (`inverse`)               obj args :== obj .# "inverse"               .$ args
 (`matrixTransform`)       obj args :== obj .# "matrixTransform"       .$ args
+(`setItem`)               obj args :== obj .# "setItem"               .$ args
+(`getItem`)               obj args :== obj .# "getItem"               .$ args
 
 addEventListener :: !JSObj !String !Bool !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *JSWorld
 addEventListener svg event useCapture callback me world
@@ -155,7 +162,7 @@ imgTagSource :: !String -> *TagSource
 imgTagSource taskId
   = [(ImageTagUser no taskId, ImageTagUser no taskId) \\ no <- [0..]]
 
-newImgTables :: ImgTables m
+newImgTables :: ImgTables /*m*/
 newImgTables
   = {ImgTables | imgEventhandlers = 'Data.Map'.newMap
                , imgNewFonts      = 'Data.Set'.newSet
@@ -234,11 +241,12 @@ where
 	  #! world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
 	  #! (jsInitDOMEl,world)         = jsWrapFun (clientInitDOMEl svglet me) me world
 	  #! world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
-	// Initialize caches
+	/********* Initialize caches     CACHE IS STORED IN WEB STORAGE
 	  #! (jsFontSpans,world)         = jsMakeCleanReference 'Data.Map'.newMap me world
 	  #! (jsTextSpans,world)         = jsMakeCleanReference 'Data.Map'.newMap me world
-	  #! world                       = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world   // initialize font spans cache
-	  #! world                       = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world   // initialize text-widths cache
+	  #! world                       = jsPutCleanVal JS_ATTR_FONT_SPANS 'Data.Map'.newMap me world   // initialize font spans cache
+	  #! world                       = jsPutCleanVal JS_ATTR_TEXT_SPANS 'Data.Map'.newMap me world   // initialize text-widths cache
+	*********/
 	  = jsTrace "initClientSideUI" world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
@@ -293,13 +301,15 @@ serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=t
 	    = (attrs, state, world)
       Right (svg,es,tags)                                                                       // image complete, send it to client
 	    #! string = browserFriendlySVGEltToString svg
+/********** NO LONGER NECESSARY, ALREADY DEFUNCTIONALIZED
 	    #! es`    = defuncImgEventhandlers es
+**********/
 	    | model_is_new_for_client
-	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es` tags (Just model)) world
+	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es tags (Just model)) world
 	      #! attrs = 'Data.Map'.union attrs size_and_model
 	      = (attrs, state, world)
 	    | otherwise
-	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es` tags Nothing) world
+	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es tags Nothing) world
 	      #! attrs = 'Data.Map'.union attrs size_and_model
 	      = (attrs, state, world)
 where
@@ -317,7 +327,10 @@ attributesToUIChange set_attrs
     )
 
 //	server side rendering of model value:
+/************ ADAPTED TO DEFUNCTIONALIZED VERSION
 serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v,!ImgTags)
+************/
+serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables /*v*/) (!SVGElt,!ImgEventhandlers`,!ImgTags)
 serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
   #! image`               = renderImage s v (imgTagSource taskId)
   #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})
@@ -396,16 +409,20 @@ where
 
 	clientHandlesTextMetrics :: !(SVGEditor s v) !ImgFonts !ImgTexts !JSVal !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	clientHandlesTextMetrics svglet new_fonts new_texts me world
+	/************  CACHED FONT AND TEXTS SPANS IN WEB STORAGE
 	  #! (Just font_spans,world) = jsGetCleanReference (me .# JS_ATTR_FONT_SPANS) world            // Load the cached font spans
 	  #! (Just text_spans,world) = jsGetCleanReference (me .# JS_ATTR_TEXT_SPANS) world            // Load the cached text width spans
-	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                  // Get missing font spans
-	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                  // Get missing text width spans
-	  #! font_spans             = 'Data.Map'.union new_font_spans font_spans                 // Add missing font spans to cached font spans
+	************/
+	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                              // Get missing font spans
+	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                              // Get missing text width spans
+    /************  NEW METRICS HAVE BEEN STORED IN WEB STORAGE
+	  #! font_spans             = 'Data.Map'.union new_font_spans font_spans                       // Add missing font spans to cached font spans
 	  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans  // Add missing text width spans to cached text width spans
 	  #! (jsFontSpans,world)    = jsMakeCleanReference font_spans me world
 	  #! (jsTextSpans,world)    = jsMakeCleanReference text_spans me world
-	  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world // Store the cached font spans
-	  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world // Store the cached text width spans
+	  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world                  // Store the cached font spans
+	  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world                  // Store the cached text width spans
+	************/
 	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 	//#! (json,          world) = encodeOnClient (ClientHasNewTextMetrics new_font_spans new_text_spans) world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
 	  #! (cidJS,         world) = me .# "attributes.taskId" .? world
@@ -466,20 +483,47 @@ genSVGMasks masks taskId es markers paths spans grids
 
 //	measure font dimensions:
 getNewFontSpans :: !ImgFonts !JSVal !*JSWorld -> (!FontSpans,!*JSWorld)
-getNewFontSpans newFonts me world
-  | 'Data.Set'.null newFonts  = ('Data.Map'.newMap,world)
-  | otherwise           = calcImgFontsSpans newFonts world
+getNewFontSpans fonts me world
+  #! (cached,new,world)    = loadCachedFontsSpans fonts world
+  | 'Data.Set'.null new    = (cached,world)
+  #! (measured, world)     = calcImgFontsSpans new world
+  #! world                 = storeFontsSpansToCache measured world
+  | otherwise              = ('Data.Map'.union cached measured,world)
 where
+// load cached font dimensions
+	loadCachedFontsSpans :: !ImgFonts !*JSWorld -> (!FontSpans,!ImgFonts,!*JSWorld)
+	loadCachedFontsSpans fonts world
+	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,fonts,world)	// this means that web storage is unavailable on the client (is that even possible?)
+	  | otherwise                  = 'Data.Foldable'.foldl loadCachedFontSpan ('Data.Map'.newMap,fonts,world) ('Data.Set'.toList fonts)
+	where
+		loadCachedFontSpan :: !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
+		loadCachedFontSpan (cached,new,world) font
+		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (trace_n ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
+		  | jsIsUndefined v || jsIsNull v
+		                           = trace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
+		  | otherwise              = ('Data.Map'.put font (jsValToReal` (getfontysize` font) v) cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
+
+// store new font dimensions
+	storeFontsSpansToCache :: !FontSpans !*JSWorld -> *JSWorld
+	storeFontsSpansToCache fonts world
+	  | jsIsUndefined jsWebStorage = trace "storeFontsSpansToCache could not store fonts in web storage" world
+	  | otherwise                  = 'Data.Foldable'.foldl storeFontSpan world ('Data.Map'.toList fonts)
+	where
+		storeFontSpan :: !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
+		storeFontSpan world (font,descent)
+		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (trace_n ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
+		  = world
+
 // compute the font dimensions of new fonts that are used in an image
 	calcImgFontsSpans :: !ImgFonts !*JSWorld -> (!FontSpans,!*JSWorld)
-	calcImgFontsSpans new_fonts world
+	calcImgFontsSpans fonts world
 	  #! (svg, world) = (jsDocument `createElementNS` (svgns, "svg")) world
 	  #! (body,world) = jsDocument .# "body" .? world
 	  #! (_,   world) = (body `appendChild` svg) world
 	  #! (elem,world) = (jsDocument `createElementNS` (svgns, "text")) world
 	  #! (_,   world) = (elem `setAttributeNS` ("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve")) world
 	  #! (_,   world) = (svg `appendChild` elem) world
-	  #! (res, world) = 'Data.Foldable'.foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList new_fonts)
+	  #! (res, world) = 'Data.Foldable'.foldl (calcFontSpan elem) ('Data.Map'.newMap,world) ('Data.Set'.toList fonts)
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
 	  = (res,  world)
@@ -497,10 +541,55 @@ where
 
 //	measure text dimensions:
 getNewTextsSpans :: !ImgTexts !JSVal !*JSWorld -> (!TextSpans,!*JSWorld)
-getNewTextsSpans newTexts me world
-  | 'Data.Map'.null newTexts  = ('Data.Map'.newMap,world)
-  | otherwise           = calcImgTextsLengths newTexts world
+getNewTextsSpans texts me world
+  #! (cached,new,world)       = loadCachedTextsSpans texts world
+  | 'Data.Map'.null new       = (cached,world)
+  #! (measured,world)         = calcImgTextsLengths new world
+  #! world                    = storeTextsSpansToCache measured world
+  | otherwise                 = ('Data.Map'.unionWith 'Data.Map'.union measured cached,world)
 where
+//	load cached texts spans
+	loadCachedTextsSpans :: !ImgTexts !*JSWorld -> (!TextSpans,!ImgTexts,!*JSWorld)
+	loadCachedTextsSpans texts world
+	  | jsIsUndefined jsWebStorage = ('Data.Map'.newMap,texts,world)   // this means that web storage is unavailable on client (is that even possible?)
+	  | otherwise                  = 'Data.Foldable'.foldl loadCachedTextSpans ('Data.Map'.newMap,texts,world) ('Data.Map'.toList texts)
+	where
+		loadCachedTextSpans :: !*(!TextSpans,!ImgTexts,!*JSWorld) !(!FontDef,!Set String) -> *(!TextSpans,!ImgTexts,!*JSWorld)
+		loadCachedTextSpans (cached,new,world) (font,strs)
+		  = 'Data.Foldable'.foldl (loadCachedTextSpan font) (cached,new,world) ('Data.Set'.toList strs)
+		where
+			loadCachedTextSpan :: !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
+			loadCachedTextSpan font (cached,new,world) str
+			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (trace_n ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
+			  | jsIsUndefined v || jsIsNull v
+			                       = trace_n ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
+			  | otherwise          = ('Data.Map'.alter (merge ('Data.Map'.singleton str (jsValToReal` zero v))) font cached,'Data.Map'.alter (remove str) font new,world)
+			where
+				remove :: !String !(Maybe (Set String)) -> Maybe (Set String)
+				remove str (Just set)
+				  | 'Data.Set'.null set`
+				                   = Nothing                           // set = {str}, so this entry can be removed entirely from ImgTexts
+				  | otherwise      = Just set`
+				where
+					set`           = 'Data.Set'.delete str set
+				remove _ nothing   = nothing
+	
+//  store new texts spans dimensions
+	storeTextsSpansToCache :: !TextSpans !*JSWorld -> *JSWorld
+	storeTextsSpansToCache texts world
+	  | jsIsUndefined jsWebStorage = trace "storeTextsSpansToCache could not store texts in web storage" world
+	  | otherwise                  = 'Data.Foldable'.foldl storeFontTextsSpans world ('Data.Map'.toList texts)
+	where
+		storeFontTextsSpans :: !*JSWorld !(!FontDef,!Map String TextSpan) -> *JSWorld
+		storeFontTextsSpans world (font,txt_widths)
+		  = 'Data.Foldable'.foldl (storeTextSpan font) world ('Data.Map'.toList txt_widths)
+		where
+			storeTextSpan :: !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
+			storeTextSpan font world (str,width)
+			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (trace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
+			  = world
+
+// compute the font-text dimensions of new font-texts that are used in an image
 	calcImgTextsLengths :: !ImgTexts !*JSWorld -> (!TextSpans,!*JSWorld)
 	calcImgTextsLengths texts world
 	  #! (svg, world) = (jsDocument `createElementNS` (svgns, "svg")) world
@@ -519,16 +608,16 @@ where
 		  #! world       = /*strictFoldl*/foldl (\world args -> snd ((elem `setAttribute` args) world)) world [("x", "-10000"), ("y", "-10000") : svgFontDefAttrPairs fontdef]
 		  #! (ws, world) = 'Data.Foldable'.foldr (calcTextLength elem) ('Data.Map'.newMap, world) strs
 		  = ('Data.Map'.alter (merge ws) fontdef text_spans, world)
-		where
-			merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
-			merge ws` (Just ws) = Just ('Data.Map'.union ws` ws)
-			merge ws` nothing   = Just ws`
 		
 		calcTextLength :: !JSVal !String !*(!Map String TextSpan, !*JSWorld) -> *(!Map String TextSpan,!*JSWorld)
 		calcTextLength elem str (text_spans, world)
 		  #! world        = (elem .# "textContent" .= str) world
 		  #! (ctl, world) = (elem `getComputedTextLength` ()) world
 		  = ('Data.Map'.put str (jsValToReal` 0.0 ctl) text_spans, world)
+
+	merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
+	merge ws` (Just ws) = Just ('Data.Map'.union ws` ws)
+	merge ws` nothing   = Just ws`
 
 clientRootSVGElt :: !JSVal !*JSWorld -> (!JSObj,!*JSWorld)
 clientRootSVGElt me world
@@ -651,26 +740,30 @@ where
 		clientHandleModel :: !(SVGEditor s v) !JSVal !s !v !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
 		  #! (taskId,world)         = clientGetTaskId me world
+		/*********************   TO BE RETRIEVED FROM WEB STORAGE
 		  #! (Just font_spans,world) = jsGetCleanReference (me .# JS_ATTR_FONT_SPANS) world                 // Load the cached font spans
 		  #! (Just text_spans,world) = jsGetCleanReference (me .# JS_ATTR_TEXT_SPANS) world                 // Load the cached text width spans
+		*********************/
 		  #! image`                 = renderImage s v (imgTagSource taskId)
 		  #! (img,{ImgTables | imgEventhandlers=es,imgNewFonts=new_fonts,imgNewTexts=new_texts,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags})
-		                            = toImg image` [] font_spans text_spans newImgTables
-		  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                       // Get missing font spans
-		  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                       // Get missing text width spans
-		  #! font_spans             = 'Data.Map'.union          new_font_spans font_spans             // Add missing font spans to cached font spans
+		                            = toImg image` [] /*font_spans text_spans*/ 'Data.Map'.newMap 'Data.Map'.newMap newImgTables
+		  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                                   // Get missing font spans
+		  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                                   // Get missing text width spans
+		/*********************   ARE STORED IN WEB STORAGE
+		  #! font_spans             = 'Data.Map'.union          new_font_spans font_spans                   // Add missing font spans to cached font spans
 		  #! text_spans             = 'Data.Map'.unionWith 'Data.Map'.union new_text_spans text_spans       // Add missing text width spans to cached text width spans
 		  #! (jsFontSpans,world)    = jsMakeCleanReference font_spans me world
 		  #! (jsTextSpans,world)    = jsMakeCleanReference text_spans me world
 		  #! world                  = (me .# JS_ATTR_FONT_SPANS .= jsFontSpans) world
 		  #! world                  = (me .# JS_ATTR_TEXT_SPANS .= jsTextSpans) world
-		  = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
+		*********************/
+		  = case resolve_all_spans tags new_font_spans new_text_spans img masks markers paths spans grids of
 		      Error error           = abort error
 		      Ok (img,masks,markers,paths,spans,grids)
 		        #! svg              = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
 		        #! svgStr           = browserFriendlySVGEltToString svg
 		        #! world            = clientUpdateSVGString svgStr me world
-		        #! world            = clientRegisterEventhandlers` svglet me taskId (defuncImgEventhandlers es) tags world
+		        #! world            = clientRegisterEventhandlers` svglet me taskId /*(defuncImgEventhandlers es)*/es tags world
 		        = world
 	
 	doMouseDragEvent` :: !(SVGEditor s v) !JSVal !JSObj !ImgTagNo !ImgNodePath !String !JSObj !{!JSVal} !*JSWorld -> *JSWorld
