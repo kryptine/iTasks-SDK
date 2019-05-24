@@ -7,18 +7,23 @@ import iTasks, iTasks.Extensions.Editors.DynamicEditor
 
 Start world = doTasks editTask world
 
-editTask =
-	enterInformation () [EnterUsing id $ dynamicEditor taskEditor] >>=
-	evalTaskConstExpr o toValue taskEditor
+editTask =		forever
+		(		enterInformation () [EnterUsing id $ dynamicEditor taskEditor]
+		>>=		evalTaskConstExpr o toValue taskEditor
+		>>=		viewInformation "result of the completed task is:" []
+		)
 
-:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type | Bind TaskConstExpr TaskFuncExpr
-:: TaskFuncExpr  = ViewInformation
+:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type | Bind TaskConstExpr TaskFuncExpr | Blind TaskConstExpr TaskConstExpr
+				 | Or TaskConstExpr TaskConstExpr | And TaskConstExpr TaskConstExpr
+				 | When TaskConstExpr FunExpr
+:: TaskFuncExpr  = ViewInformation | UpdateInformation | Return
 :: Expr          = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
 :: Value         = VInt Int | VBool Bool | VTuple Value Value
 :: Type          = E.a: Type (a -> Value) & iTask a
 :: Typed a b     =: Typed a
+:: FunExpr	 	 = EqV Value | GrtV Value | LessV Value
 
-derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed
+derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed, FunExpr
 
 // instances are never used
 gDefault{|Type|} = undef
@@ -38,26 +43,63 @@ where
 				(dynamic \(Typed taskExpr) -> taskExpr :: A.a: (Typed TaskConstExpr a) -> TaskConstExpr)
 		  <<@@@ HideIfOnlyChoice
 		, DynamicConsGroup "Combinators"
-			[ functionConsDyn "Apply" "$"
-				(	dynamic \(Typed taskFunc) (Typed expr) -> Typed (Apply taskFunc expr) ::
-					A.a b: (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
-				)
-			, functionConsDyn "Bind" ">>="
+			[ functionConsDyn "Bind" ">>="
 				(	dynamic \(Typed task) (Typed taskFunc) -> Typed (Bind task taskFunc) ::
 					A.a b:
 						(Typed TaskConstExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
 						-> Typed TaskConstExpr (Task b)
 				)
-			]
+			, functionConsDyn "Blind" ">>|"
+				(	dynamic \(Typed task1) (Typed task2) -> Typed (Blind task1 task2) ::
+					A.a b:
+						(Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b))
+						-> Typed TaskConstExpr (Task b)
+				)
+			, functionConsDyn "Or" "-||-"
+				(	dynamic \(Typed task1) (Typed task2) -> Typed (Or task1 task2) ::
+					A.a b:
+						(Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task a))
+						-> Typed TaskConstExpr (Task a)
+				)
+			, functionConsDyn "And" "-&&-"
+				(	dynamic \(Typed task1) (Typed task2) -> Typed (And task1 task2) ::
+					A.a b:
+						(Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b))
+						-> Typed TaskConstExpr (Task (a,b))
+				)
+			, functionConsDyn "When" "when"
+				(	dynamic \(Typed task1) (Typed funexpr) -> Typed (When task1 funexpr) ::
+					A.a b:
+						(Typed TaskConstExpr (Task a)) (Typed FunExpr a)
+						-> Typed TaskConstExpr (Task a)
+				)
+				]
 		, DynamicConsGroup "Editors"
-			[ functionConsDyn "EnterInformation" "enter information"
+			[ functionConsDyn "Apply" "apply"
+				(	dynamic \(Typed taskFunc) (Typed expr) -> Typed (Apply taskFunc expr) ::
+					A.a b: (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
+				) <<@@@ ApplyCssClasses["horizontal"] // don't know css class names to choose from 
+			, functionConsDyn "EnterInformation" "enter information"
 				(	dynamic \(Typed type) -> Typed (EnterInformation type) ::
 					A.a: (Typed Type a) -> Typed TaskConstExpr (Task a)
 				)
 			, functionConsDyn "ViewInformation" "view information"
 				(dynamic Typed ViewInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
+			, functionConsDyn "UpdateInformation" "update information"
+				(dynamic Typed UpdateInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
+			, functionConsDyn "Return" "return"
+				(dynamic Typed Return :: A.a: Typed TaskFuncExpr (a -> Task a))
 			]
+
 		// ordinary (non-task) expressions
+
+		, DynamicCons $ functionConsDyn "EqV"   "equal"
+			(dynamic \i -> Typed (EqV (VInt i))  :: Int  -> Typed FunExpr Int)
+		, DynamicCons $ functionConsDyn "GrtV"   "greater"
+			(dynamic \i -> Typed (GrtV (VInt i))  :: Int  -> Typed FunExpr Int)
+		, DynamicCons $ functionConsDyn "LessV"   "less"
+			(dynamic \i -> Typed (LessV (VInt i))  :: Int  -> Typed FunExpr Int)
+
 		, DynamicCons $ functionConsDyn "int"   "enter integer:"
 			(dynamic \i -> Typed (Int i)  :: Int  -> Typed Expr Int)
 		, DynamicCons $ functionConsDyn "bool"  "enter boolean:"
@@ -76,7 +118,9 @@ where
 			)
 		, DynamicCons $ customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
 		, DynamicCons $ customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
+
 		// type specifications for enterInformation
+
 		, DynamicCons $ functionConsDyn "Type.Int"   "Int"   (dynamic Typed (Type VInt)  :: Typed Type Int)
 		, DynamicCons $ functionConsDyn "Type.Bool"  "Bool"  (dynamic Typed (Type VBool) :: Typed Type Bool)
 		, DynamicCons $ functionConsDyn "Type.Tuple" "Tuple"
@@ -103,12 +147,30 @@ where
 	boolEditor = gEditor{|*|}
 
 evalTaskConstExpr :: TaskConstExpr -> Task Value
+evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
 evalTaskConstExpr (Apply taskFunc expr)             = evalTaskFuncExpr taskFunc $ evalExpr expr
 evalTaskConstExpr (Bind task taskFunc)              = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
-evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
+evalTaskConstExpr (Blind task1 task2)             	= evalTaskConstExpr task1 >>| evalTaskConstExpr task2
+evalTaskConstExpr (Or task1 task2)             		= evalTaskConstExpr task1 -||- evalTaskConstExpr task2
+evalTaskConstExpr (And task1 task2)             	= evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
+evalTaskConstExpr (When task pred)					= evalTaskConstExpr task >>* [OnAction ActionOk (ifValue test return)]
+where
+	test (VInt i) = case pred of
+						(LessV (VInt j))  = i<j
+						(GrtV  (VInt j))  = i>j
+						(EqV   (VInt j))  = i==j
+	test (VBool i) = case pred of
+						(EqV   (VBool j)) = i==j
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
-evalTaskFuncExpr ViewInformation value = viewInformation () [] value
+evalTaskFuncExpr ViewInformation (VInt i)		= viewInformation () [] i @ VInt
+evalTaskFuncExpr ViewInformation (VBool b)		= viewInformation () [] b @ VBool
+evalTaskFuncExpr ViewInformation (VTuple a b)	= evalTaskFuncExpr ViewInformation a -&&- evalTaskFuncExpr ViewInformation b @ \(a,b) -> VTuple a b 
+evalTaskFuncExpr UpdateInformation (VInt i)		= updateInformation () [] i @ VInt
+evalTaskFuncExpr UpdateInformation (VBool b)	= updateInformation () [] b @ VBool
+evalTaskFuncExpr UpdateInformation (VTuple a b)	= evalTaskFuncExpr UpdateInformation a -&&- evalTaskFuncExpr UpdateInformation b @ \(a,b) -> VTuple a b
+evalTaskFuncExpr Return value 					= return value
+
 
 evalExpr :: Expr -> Value
 evalExpr (Int i)                 = VInt i
@@ -122,176 +184,3 @@ where
 	(VTuple _ snd) = evalExpr expr
 evalExpr (Eq expr1 expr2)        = VBool $ evalExpr expr1 === evalExpr expr2
 
-/*
-import Data.Func, Data.Functor, Data.Maybe
-import iTasks, iTasks.UI.Editor.Modifiers
-import iTasks.Extensions.Editors.DynamicEditor
-
-:: TE  	= UpdEdit |  ViewEdit | Return //  EnterEdit 
-		| Apply TE TE
-		| Bind TE TE | Blind TE TE
-		| Or TE TE | And TE TE 
-		| I Int | B Bool | T (TE, TE) | Fst TE | Snd TE 
-
-:: RTE a =: RTE TE
-:: Tsk a =: Tsk a
-:: Val a =: Val a
-
-derive class iTask  TE, RTE, Tsk, Val 
-
-tEditor :: DynamicEditor (RTE  a) | TC a
-tEditor 
-	= DynamicEditor ( 
-	[ DynamicConsGroup "Editors"
-		[ functionConsDyn "updEdit" "update"
-		                ( dynamic RTE UpdEdit 
-		                :: A.b: (RTE ((Val b) -> (Tsk (Val b))))
-		                ) <<@@@ UseAsDefault
-		, functionConsDyn "viewEdit" "view"
-		                ( dynamic (RTE ViewEdit)
-		                :: A.b : (RTE ((Val b) -> (Tsk (Val b))))
-		                )
-		, functionConsDyn "return"  "return"     
-						( dynamic (RTE Return) 
-						:: A.b : (RTE ((Val b) -> (Tsk (Val b))))
-						) 
-//			, functionConsDyn "enterEdit" "enter"
-//			                ( dynamic (RTE EnterEdit)
-//			                :: A.b : (RTE (Tsk (Val b)))
-//			                ) <<@@@ UseAsDefault
-		, functionConsDyn "apply" "editor:"
-		                ( dynamic \(RTE f) (RTE v) = (RTE (Apply f v)) 
-		                :: A.b c: (RTE ((Val b) -> (Tsk (Val c)))) (RTE (Val b)) -> (RTE (Tsk (Val c))) // crashes, type c is to general
-						) <<@@@ LayoutVertical
-		]
-	] ++
-	[ DynamicConsGroup "Sequencial Tasks"
-		[ functionConsDyn "bind"  ">>="     
-						( dynamic \(RTE  b) (RTE c) = RTE (Bind b c) 
-						:: A.b c: (RTE (Tsk (Val b))) (RTE ((Val b) -> (Tsk (Val c)))) -> RTE (Tsk (Val c))
-						) <<@@@ LayoutVertical
-		, functionConsDyn "blind"  ">>|"     
-						( dynamic \(RTE  b) (RTE c) = RTE (Blind b c) 
-						:: A.b c: (RTE (Tsk (Val b))) (RTE (Tsk (Val c))) -> RTE (Tsk (Val c))
-						)  <<@@@ LayoutVertical
-		]
-	] ++
-	[ DynamicConsGroup "Parallel Tasks"
-		[ functionConsDyn "or" "-||-"
-		                ( dynamic \(RTE t1) (RTE t2) = RTE (Or t1 t2) 
-		                :: A.b: (RTE (Tsk (Val b))) (RTE (Tsk (Val b))) -> (RTE (Tsk (Val b)))  
-		                ) <<@@@ LayoutVertical
-		, functionConsDyn "and" "-&&-"
-		                ( dynamic \(RTE t1) (RTE t2) = RTE (And t1 t2) 
-		                :: A.b c: (RTE (Tsk (Val b))) (RTE (Tsk (Val b))) -> RTE (Tsk (Val (b,c)))
-		                ) <<@@@ LayoutVertical
-		]
-	] ++
-	[ DynamicConsGroup "Functions"
-		[ functionConsDyn "fst" "first"
-		                ( dynamic \(RTE t)  = RTE (Fst t) 
-		                :: A.b c: (RTE (Val (b,c))) -> (RTE (Val b))
-		                )
-		, functionConsDyn "snd" "second"
-		                ( dynamic \(RTE t)  = RTE (Snd t) 
-		                :: A.b c: (RTE (Val (b,c))) -> (RTE (Val c))
-		                )
-		]
-	] ++
-	[ DynamicConsGroup "Basic Types"
-		[ functionConsDyn "int"  "integer" 	
-						( dynamic (RTE (I 0)) 
-						:: RTE (Val Int) 
-						) <<@@@ UseAsDefault
-		, functionConsDyn "bool" "bool"
-						( dynamic (RTE (B False)) 
-						:: RTE (Val Bool) 
-						)
-		, functionConsDyn "tuple" "tuple"
-						( dynamic \(RTE t1) (RTE t2) = RTE (T (t1, t2))
-						::  A.b c: (RTE (Val b)) (RTE (Val c)) -> (RTE (Val (b,c)))
-						) <<@@@ LayoutVertical
-		]
-	])
-
-
-interpret :: (RTE (Tsk (Val Int))) -> Task TE  // TO DO for all cases
-interpret (RTE v) = interper v 
-where
-	interper :: TE -> Task TE
-//		interper EnterEdit 
-//			= enterInformation "enter value" []
-	interper (Apply f v) 
-		= case f of
-			UpdEdit  -> updateInformation "update value" [] v
-			ViewEdit -> viewInformation "view value" [] v
-			Return	 -> return v
-	interper (Bind t1 t2) 
-		= interper t1 >>= \v -> interper (Apply t2 v)
-	interper (Blind t1 t2) 
-		= interper t1 >>| interper t2 
-	interper (Or t1 t2) 
-		= interper t1 -||- interper t2 
-	interper (And t1 t2) 
-		= (interper t1 -&&- interper t2) @ T
-	interper (Blind t1 t2) 
-		= interper t1 >>| interper t2 
-
-	interper (I i)
-		= return (I i)
-	interper (B b)
-		= return (B b)
-	interper (T (a,b))
-		= return (T (a,b))
-
-
-Start world = doTasks enterTask world
-
-//enterTask :: Task TE
-enterTask 
-	= 	(enterInformation     () [EnterUsing id $ dynamicEditor tEditor] 
-	>&> viewSharedInformation () [ViewAs $ fmap $ toValue tEditor])
-    >>= \val -> case val of
-    			(Just te) -> interpret (toValue tEditor te) >>= viewInformation "result = " [] 
-
-
-
-// non-typesafe expression
-:: Expr = IntLit Int | RealLit Real | Plus Expr Expr | ToInt Expr | ToReal Expr | Eq Expr Expr
-
-// expression with phantom type
-:: TypedExpr a =: TypedExpr Expr
-
-derive class iTask Expr, TypedExpr
-
-dslEditor :: DynamicEditor (TypedExpr a)
-dslEditor = DynamicEditor  
-    [ DynamicConsGroup "Fixed"
-      [ functionConsDyn "plus" "plus"
-                        ( dynamic \(TypedExpr x) (TypedExpr y) -> TypedExpr (Plus x y) ::
-                          A.b: (TypedExpr b) (TypedExpr b) -> TypedExpr b
-                        )
-      , functionCons "toInt"  "to integer" toIntExpr
-      , functionCons "toReal" "to decimal" toRealExpr
-      , customEditorCons "int"  "(enter integer)"
-                         (bijectEditorValue (\(TypedExpr (IntLit i)) -> i)  intLit  gEditor{|*|})
-      , customEditorCons "real" "(enter decimal)"
-                         (bijectEditorValue (\(TypedExpr (RealLit r)) -> r) realLit gEditor{|*|})
-      , functionConsDyn "eq" "are equal"
-                        ( dynamic \(TypedExpr x) (TypedExpr y) -> TypedExpr (Eq x y) ::
-                          A.b: (TypedExpr b) (TypedExpr b) -> TypedExpr Bool
-                        )
-      ]
-    ]
-where
-    toIntExpr :: (TypedExpr Real) -> TypedExpr Int
-    toIntExpr (TypedExpr x) = TypedExpr (ToInt x)
-
-    toRealExpr :: (TypedExpr Int) -> TypedExpr Real
-    toRealExpr (TypedExpr x) = TypedExpr (ToReal x)
-
-    intLit :: Int -> TypedExpr Int
-    intLit i = TypedExpr (IntLit i)
-
-    realLit :: Real -> TypedExpr Real
-    realLit r = TypedExpr (RealLit r)*/
