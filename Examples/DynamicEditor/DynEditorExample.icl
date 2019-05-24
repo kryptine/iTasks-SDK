@@ -78,11 +78,11 @@ where
 			[ functionConsDyn "Apply" "apply"
 				(	dynamic \(Typed taskFunc) (Typed expr) -> Typed (Apply taskFunc expr) ::
 					A.a b: (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
-				) <<@@@ ApplyCssClasses["horizontal"] // don't know css class names to choose from 
+				)
 			, functionConsDyn "EnterInformation" "enter information"
 				(	dynamic \(Typed type) -> Typed (EnterInformation type) ::
 					A.a: (Typed Type a) -> Typed TaskConstExpr (Task a)
-				)
+				) <<@@@ applyHorizontalClasses
 			, functionConsDyn "ViewInformation" "view information"
 				(dynamic Typed ViewInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
 			, functionConsDyn "UpdateInformation" "update information"
@@ -95,11 +95,13 @@ where
 
 		, DynamicCons $ functionConsDyn "EqV"   "equal"
 			(dynamic \i -> Typed (EqV (VInt i))  :: Int  -> Typed FunExpr Int)
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ functionConsDyn "GrtV"   "greater"
 			(dynamic \i -> Typed (GrtV (VInt i))  :: Int  -> Typed FunExpr Int)
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ functionConsDyn "LessV"   "less"
 			(dynamic \i -> Typed (LessV (VInt i))  :: Int  -> Typed FunExpr Int)
-
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ functionConsDyn "int"   "enter integer:"
 			(dynamic \i -> Typed (Int i)  :: Int  -> Typed Expr Int)
 		, DynamicCons $ functionConsDyn "bool"  "enter boolean:"
@@ -110,12 +112,15 @@ where
 			)
 		, DynamicCons $ functionConsDyn "fst"   "fst"
 			(dynamic \(Typed (Tuple a _)) -> Typed a :: A.a b: (Typed Expr (a, b)) -> Typed Expr a)
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ functionConsDyn "snd"   "snd"
 			(dynamic \(Typed (Tuple _ b)) -> Typed b :: A.a b: (Typed Expr (a, b)) -> Typed Expr b)
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ functionConsDyn "=="    "=="
 			(	dynamic \(Typed a) (Typed b) -> Typed (Eq a b) ::
 				A.a: (Typed Expr a) (Typed Expr a) -> Typed Expr Bool
 			)
+			<<@@@ applyHorizontalClasses
 		, DynamicCons $ customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
 		, DynamicCons $ customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
 
@@ -129,9 +134,7 @@ where
 						Typed (Type \(x, y) -> VTuple (toValue1 x) (toValue2 y))
 				::
 					A.a b: (Typed Type a) (Typed Type b) -> Typed Type (a, b)
-			)
-		, DynamicCons $ functionConsDyn "Type.?" "(derived type)"
-			(dynamic derivedType :: A.a: Typed Type a | iTask a)
+			) <<@@@ applyHorizontalClasses
 		]
 
 	derivedType :: Typed Type a | iTask a
@@ -145,6 +148,8 @@ where
 
 	boolEditor :: Editor Bool
 	boolEditor = gEditor{|*|}
+
+applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-width", "itasks-panel"]
 
 evalTaskConstExpr :: TaskConstExpr -> Task Value
 evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
@@ -165,7 +170,7 @@ where
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
 evalTaskFuncExpr ViewInformation (VInt i)		= viewInformation () [] i @ VInt
 evalTaskFuncExpr ViewInformation (VBool b)		= viewInformation () [] b @ VBool
-evalTaskFuncExpr ViewInformation (VTuple a b)	= evalTaskFuncExpr ViewInformation a -&&- evalTaskFuncExpr ViewInformation b @ \(a,b) -> VTuple a b 
+evalTaskFuncExpr ViewInformation (VTuple a b)	= evalTaskFuncExpr ViewInformation a -&&- evalTaskFuncExpr ViewInformation b @ \(a,b) -> VTuple a b
 evalTaskFuncExpr UpdateInformation (VInt i)		= updateInformation () [] i @ VInt
 evalTaskFuncExpr UpdateInformation (VBool b)	= updateInformation () [] b @ VBool
 evalTaskFuncExpr UpdateInformation (VTuple a b)	= evalTaskFuncExpr UpdateInformation a -&&- evalTaskFuncExpr UpdateInformation b @ \(a,b) -> VTuple a b
