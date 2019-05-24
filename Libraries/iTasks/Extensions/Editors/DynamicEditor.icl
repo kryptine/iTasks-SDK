@@ -298,7 +298,7 @@ where
         | e =: JSONNull || e =: (JSONArray []) // A null or an empty array are accepted as a reset events
             //If necessary remove the fields of the previously selected cons
             # change = ChangeUI [] $ removeNChildren $ length childSts
-            = (Ok (change, Nothing, [nullState: childSts]), vst)
+            = (Ok (change, Nothing, [nullState]), vst)
         | otherwise
             = (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
 
@@ -502,7 +502,9 @@ where
 	where
 		childTypesAreMatching` :: !Dynamic ![Maybe Dynamic] -> MaybeErrorString ()
 		childTypesAreMatching` _ [] = Ok ()
-		childTypesAreMatching` cons [Nothing: otherArgs] = childTypesAreMatching` cons otherArgs
+		childTypesAreMatching` cons [Nothing: otherArgs] =
+			case cons of
+				(cons` :: a -> z) = childTypesAreMatching` (dynamic cons` undef) otherArgs
 		childTypesAreMatching` cons [Just nextArg: otherArgs] =
 			case (cons, nextArg) of
 				// `cons` undef` has type z`, which is z updated by unifying the type of the next arg
