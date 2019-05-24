@@ -43,9 +43,10 @@ JS_ATTR_MODEL        :== "model"
 JS_ATTR_FONT_SPANS   :== "font_spans"
 JS_ATTR_TEXT_SPANS   :== "text_spans"
 ****************/
-FONT_WEB_STORAGE_KEY f     :== toString f
-TEXT_WEB_STORAGE_KEY f str :== toString f +++ "-" +++ str
+FONT_WEB_STORAGE_KEY f     :== FontKeyWithoutDefaults f
+TEXT_WEB_STORAGE_KEY f str :== FontKeyWithoutDefaults f +++ "-" +++ str
 jsLocalStorage             :== jsGlobal "localStorage"
+FontKeyWithoutDefaults f   = "{FontDef` | " <+++ join "," (filter ((<>) "normal") [f.fontfamily`,toString f.fontysize`,f.fontstretch`,f.fontstyle`,f.fontvariant`,f.fontweight`]) <+++ "}"
 
 // Server -> Client SVG attribute names (tag a serialized value of type ServerToClientAttr):
 JS_ATTR_SVG          :== "svgPart"
