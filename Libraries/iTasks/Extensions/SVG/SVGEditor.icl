@@ -23,6 +23,10 @@ import Text.GenJSON
 import Text.HTML
 
 import StdDebug
+trace_n` a b :== b
+trace`   a b :== b
+jsTrace` a b :== b
+
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
 class short a :: !a -> String
 instance short FontDef where short fontdef = "{FontDef | " <+++ getfontfamily fontdef <+++ "," <+++ getfontysize fontdef <+++ "}"
@@ -222,7 +226,7 @@ where
 	      Nothing    = (Error "Error in module SVGEditor (fromSVGEditor/initServerSideUI): SVG editors cannot be used in Enter EditMode.",world)
 	      Just model
 	          #! (serializedModel,world) = serializeForClient model world
-	          = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
+	          = trace_n` ("initServerSideUI of task with taskId = " +++ taskId)
 	                   (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (JSONString serializedModel)) (sizeAttr FlexSize FlexSize))),initServerSVGState model),world)
 
 //	initClientSideUI is called after initServerSideUI.
@@ -248,21 +252,21 @@ where
 	  #! world                       = jsPutCleanVal JS_ATTR_FONT_SPANS 'Data.Map'.newMap me world   // initialize font spans cache
 	  #! world                       = jsPutCleanVal JS_ATTR_TEXT_SPANS 'Data.Map'.newMap me world   // initialize text-widths cache
 	*********/
-	  = jsTrace "initClientSideUI" world
+	  = jsTrace` "initClientSideUI" world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
  	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|} s
   	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
   	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} False vst
-  	  = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
+  	  = trace_n` ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
   	    (Ok (attributesToUIChange set_attrs,mask),vst)
   	serverHandleEditFromClient svglet _ (_,ClientHasNewTextMetrics new_font_metrics new_texts_metrics) mask=:{ServerSVGState | model=old,fonts,texts} vst 
       #! font_spans           = 'Data.Map'.union                      new_font_metrics  fonts
       #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
       #! mask                 = {ServerSVGState | mask & fonts=font_spans, texts=text_spans}
       #! (set_attrs,mask,vst) = serverHandleModel svglet mask True vst
-      = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ 
+      = trace_n` ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ 
                  join "," (map short ('Data.Map'.keys new_font_metrics)) +++ 
                  "] ["                                                   +++ 
                  join "," (map short ('Data.Map'.toAscList ('Data.Map'.unions (map snd ('Data.Map'.toAscList new_texts_metrics))))) +++ 
@@ -271,7 +275,7 @@ where
         (Ok (attributesToUIChange set_attrs,mask),vst)
     serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old,fonts,texts} vst
 	  #! (attrs,mask,vst) = serverHandleModel svglet mask False vst
-	  = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
+	  = trace_n` ("serverHandleEditFromClient ClientNeedsSVG")
 	    (Ok (attributesToUIChange attrs,mask),vst)
 
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
@@ -281,7 +285,7 @@ where
   	| gEq{|*|} old new
   		= (Ok (NoChange,mask),vst)
   	#! (set_attrs,mask`,vst`) = serverHandleModel svglet {ServerSVGState | mask & model=new} True vst
-  	= trace_n ("serverHandleEditFromContext")
+  	= trace_n` ("serverHandleEditFromContext")
   	  (Ok (attributesToUIChange set_attrs,mask`),vst`)
 	
 //	valueFromState, using a LeafEditor always succeeds
@@ -323,7 +327,7 @@ toUIAttributes` svglet msg vst = toUIAttributes msg vst
 
 attributesToUIChange :: !UIAttributes -> UIChange
 attributesToUIChange set_attrs
-  = trace_n ("attributesToUIChange: attributes to set = [" +++ join "," ('Data.Map'.keys set_attrs) +++ "]") (
+  = trace_n` ("attributesToUIChange: attributes to set = [" +++ join "," ('Data.Map'.keys set_attrs) +++ "]") (
     ChangeUI [SetAttribute label value \\ (label,value) <- 'Data.Map'.toList set_attrs] []
     )
 
@@ -368,7 +372,7 @@ clientInitDOMEl svglet me args world
   #! (cidJS, world) = me .# "attributes.taskId".? world
   #! (editId,world) = me .# "attributes.editorId" .? world
   #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
-  = jsTrace "clientInitDOMEl"
+  = jsTrace` "clientInitDOMEl"
     world
 
 //  this auxiliary function is necessary to resolve otherwise internal overloading because of the type parameter s
@@ -383,22 +387,22 @@ clientHandleAttributeChange svglet me args world
         #! (request,world) = fromUIAttributes (jsValToString` "" json) world
         = case request of
             (ServerNeedsTextMetrics new_fonts new_texts)
-              = jsTrace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
+              = jsTrace` ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
                 clientHandlesTextMetrics svglet new_fonts new_texts me world
             (ServerHasSVG svg_body svg_handlers svg_tags new_model)
               #! world     = clientUpdateSVGString svg_body me world
               #! world     = clientRegisterEventhandlers svglet me svg_handlers svg_tags world
               = case new_model of
-                  Nothing  = jsTrace ("clientHandleAttributeChange reacts to ServerHasSVG without new model")
+                  Nothing  = jsTrace` ("clientHandleAttributeChange reacts to ServerHasSVG without new model")
                              world
                   Just model
                     #! (jsView,world)  = jsMakeCleanReference (svglet.initView model) me world
                     #! (jsModel,world) = jsMakeCleanReference model me world
                     #! world     = (me .# JS_ATTR_VIEW  .= jsView) world
                     #! world     = (me .# JS_ATTR_MODEL .= jsModel) world
-                    = jsTrace ("clientHandleAttributeChange reacts to ServerHasSVG with new model")
+                    = jsTrace` ("clientHandleAttributeChange reacts to ServerHasSVG with new model")
                       world
-      _ = jsTrace ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
+      _ = jsTrace` ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
           world
 where
 	nv_pairs                = to_name_value_pairs [a \\ a <-: args]
@@ -499,9 +503,9 @@ where
 	where
 		loadCachedFontSpan :: !JSVal !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
 		loadCachedFontSpan jsWebStorage (cached,new,world) font
-		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (jsTrace ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
+		  #! (v,world)             = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (jsTrace` ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
 		  | jsIsUndefined v || jsIsNull v
-		                           = jsTrace ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
+		                           = jsTrace` ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved undefined value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
 		  | otherwise              = ('Data.Map'.put font (jsValToReal` (getfontysize` font) v) cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
 
 // store new font dimensions
@@ -512,7 +516,7 @@ where
 	where
 		storeFontSpan :: !JSVal !*JSWorld !(!FontDef,!FontDescent) -> *JSWorld
 		storeFontSpan jsWebStorage world (font,descent)
-		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (jsTrace ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
+		  #! (_,world)             = (jsWebStorage `setItem` (FONT_WEB_STORAGE_KEY font,descent)) (jsTrace` ("storeFontSpan (" +++ FONT_WEB_STORAGE_KEY font +++ "," +++ toString descent +++ ")") world)
 		  = world
 
 // compute the font dimensions of new fonts that are used in an image
@@ -561,9 +565,9 @@ where
 		where
 			loadCachedTextSpan :: !JSVal !FontDef !*(!TextSpans,!ImgTexts,!*JSWorld) !String -> *(!TextSpans,!ImgTexts,!*JSWorld)
 			loadCachedTextSpan jsWebStorage font (cached,new,world) str
-			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (jsTrace ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
+			  #! (v,world)         = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (jsTrace` ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
 			  | jsIsUndefined v || jsIsNull v
-			                       = jsTrace ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
+			                       = jsTrace` ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved undefined value ") (cached,new,world)
 			  | otherwise          = ('Data.Map'.alter (merge ('Data.Map'.singleton str (jsValToReal` zero v))) font cached,'Data.Map'.alter (remove str) font new,world)
 			where
 				remove :: !String !(Maybe (Set String)) -> Maybe (Set String)
@@ -587,7 +591,7 @@ where
 		where
 			storeTextSpan :: !JSVal !FontDef !*JSWorld !(!String,!TextSpan) -> *JSWorld
 			storeTextSpan jsWebStorage font world (str,width)
-			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (jsTrace ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
+			  #! (_,world)         = (jsWebStorage `setItem` (TEXT_WEB_STORAGE_KEY font str,width)) (jsTrace` ("storeTextSpan (" +++ TEXT_WEB_STORAGE_KEY font str +++ "," +++ toString width +++ ")") world)
 			  = world
 
 // compute the font-text dimensions of new font-texts that are used in an image
@@ -703,7 +707,7 @@ where
 	
 	doMouseEvent` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local _ world
-	  #! world              = jsTrace ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
+	  #! world              = jsTrace` ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
 	  #! (cidJS,world)      = me .# "attributes.taskId" .? world
 	  #! taskId             = jsValToString` "" cidJS
 	  #! (Just view, world) = jsGetCleanReference (me .# JS_ATTR_VIEW)  world
