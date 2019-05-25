@@ -94,10 +94,12 @@ where
 				with
 					copy_elems :: !{#JSObjectElement} !Int !*{#Char} !Int -> (!.{#Char}, !Int)
 					copy_elems elems k dest i
+					# dest & [i]='"'
 					# {key,val} = elems.[k]
-					# (dest,i) = copy_chars key dest i
-					# dest & [i]=':'
-					# (dest,i) = copy val dest (i+1)
+					# (dest,i) = copy_chars key dest (i+1)
+					# dest & [i]='"'
+					# dest & [i+1]=':'
+					# (dest,i) = copy val dest (i+2)
 					| k+1>=size elems
 						= (dest,i)
 						= copy_elems elems (k+1) {dest & [i]=','} (i+1)
@@ -209,7 +211,7 @@ where
 			JSObject elems
 			| size elems==0
 				-> 2+l
-				-> count_elems (size elems-1) (l+(2*size elems)+1)
+				-> count_elems (size elems-1) (l+(4*size elems)+1)
 			where
 				count_elems :: !Int !Int -> Int
 				count_elems -1 l = l
