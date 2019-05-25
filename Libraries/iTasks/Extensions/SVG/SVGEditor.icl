@@ -23,9 +23,9 @@ import Text.GenJSON
 import Text.HTML
 
 import StdDebug
-trace_n` a b :== b
-trace`   a b :== b
-jsTrace` a b :== b
+trace_n` a b :== trace_n a b
+trace`   a b :== trace   a b
+jsTrace` a b :== jsTrace a b
 
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
 class short a :: !a -> String
@@ -351,11 +351,12 @@ clientInitDOMEl svglet me args world
   #! (jsModel,world)= jsMakeCleanReference model me world
   #! world          = (me .# JS_ATTR_VIEW  .= jsView) world
   #! world          = (me .# JS_ATTR_MODEL .= jsModel) world
+//CAMIL:
   #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet ClientNeedsSVG))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 //#! (json,  world) = encodeOnClient ClientNeedsSVG world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
   #! (cidJS, world) = me .# "attributes.taskId".? world
   #! (editId,world) = me .# "attributes.editorId" .? world
-  #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
+  #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json/*toJSON` svglet ClientNeedsSVG*/)) world
   = jsTrace` "clientInitDOMEl"
     world
 
@@ -400,11 +401,12 @@ where
 	clientHandlesTextMetrics svglet new_fonts new_texts me world
 	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                              // Get missing font spans
 	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                              // Get missing text width spans
+//CAMIL:
 	  #! (json,          world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 	//#! (json,          world) = encodeOnClient (ClientHasNewTextMetrics new_font_spans new_text_spans) world                                            //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
 	  #! (cidJS,         world) = me .# "attributes.taskId" .? world
 	  #! (editId,        world) = me .# "attributes.editorId" .? world
-	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
+	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json/*toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans)*/)) world
 	  = world
 	
 	clientRegisterEventhandlers :: !(SVGEditor s v) !JSVal !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
@@ -698,10 +700,11 @@ where
 	      | local									// the new model value is rendered entirely local on client
 	        = clientHandleModel svglet me model view world
 	      | otherwise           					// the new model value is rendered on the server
+//CAMIL
           #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewModel model)))) world //TODO: Should not really print+parse here [NOTE: encodeOnClient DOES NOT WORK (YET)]
 		//#! (json,  world) = encodeOnClient (ClientHasNewModel model) world                                    //REPLACED WITH THIS LINE; STILL NEEDS TO BE TESTED WITH ABC VERSION
 	      #! (editId,world) = me .# "attributes.editorId" .? world
-	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
+	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json/*toJSON (ClientHasNewModel model)*/)) world
 	      = world							// rendering is completed by clientHandleAttributeChange
 	where
 		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData m -> m
