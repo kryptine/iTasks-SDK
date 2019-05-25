@@ -166,12 +166,20 @@ const ABC={
 			} else if (typeof values[i]=='number') {
 				ABC.memory_array[store_ptrs/4]=hp;
 				if (Number.isInteger(values[i])) {
-					if (values[i]>2**31)
-						console.warn('Copying value',values[i],'>2^31 to Clean; truncating!');
 					ABC.memory_array[hp/4]=ABC.addresses.JSInt;
 					ABC.memory_array[hp/4+1]=0;
-					ABC.memory_array[hp/4+2]=values[i]; // TODO also support >32-bit
-					ABC.memory_array[hp/4+3]=0;
+					if (values[i]>2**31 || values[i]<0-2**31) {
+						if (typeof BigInt64Array!='undefined') {
+							const bigint_array=new BigInt64Array(ABC.memory_array.buffer, hp+8);
+							bigint_array[0]=BigInt(values[i]);
+						} else {
+							ABC.memory_array[hp/4+2]=values[i];
+							ABC.memory_array[hp/4+3]=Math.floor(values[i] / 2**32); // NB: >> is 32-bit in JS, can't use it here
+						}
+					} else {
+						ABC.memory_array[hp/4+2]=values[i];
+						ABC.memory_array[hp/4+3]=0;
+					}
 				} else {
 					ABC.memory_array[hp/4]=ABC.addresses.JSReal;
 					ABC.memory_array[hp/4+1]=0;
