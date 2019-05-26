@@ -56,15 +56,28 @@ const ABC={
 			console.log(ABC.log_buffer);
 	},
 
-	deserialize: function (string, component) {
-		var max_words_needed=string.length/8*4; // rough upper bound
-		if (ABC.interpreter.instance.exports.get_hp_free() < max_words_needed) {
+	require_hp: function (needed_words) {
+		var free_words = ABC.interpreter.instance.exports.get_hp_free();
+
+		// Each gc iteration may free part of the ABC.js array, which may in turn
+		// free more nodes in Clean. Therefore we run gc as long as the number of
+		// free words decreases or until there is enough space. It will be possible
+		// to do this much neater in the future when JS has weak references /
+		// finalizers and/or when WebAssembly has GC access.
+		while (free_words < needed_words) {
 			console.warn('gc from js');
 			ABC.util.instance.exports.gc();
 
-			if (ABC.interpreter.instance.exports.get_hp_free() < max_words_needed)
-				throw 'not enough heap to deserialize: '+string;
+			var new_free_words=ABC.interpreter.instance.exports.get_hp_free();
+			if (new_free_words<=free_words)
+				throw new ABCError('out of memory');
+			free_words=new_free_words;
 		}
+	},
+
+	deserialize: function (string, component) {
+		var max_words_needed=string.length/8*4; // rough upper bound
+		ABC.require_hp(max_words_needed);
 
 		var array=new Int8Array(string.length);
 		for (var i in string)
@@ -292,18 +305,11 @@ const ABC={
 			throw new ABCError('missing case in copy_js_to_clean');
 		}
 	},
-	copy_js_to_clean: function (value, store_ptrs, hp, hp_free) {
+	copy_js_to_clean: function (value, store_ptrs) {
 		var node_size=ABC.copied_node_size(value);
-		if (node_size>hp_free) {
-			console.warn('gc from js');
-			ABC.util.instance.exports.gc();
-			hp=ABC.interpreter.instance.exports.get_hp();
-			hp_free=ABC.interpreter.instance.exports.get_hp_free();
-			if (node_size>hp_free) {
-				console.error('not enough memory to copy',value);
-				throw new ABCError('out of memory');
-			}
-		}
+		ABC.require_hp(node_size);
+		var hp=ABC.interpreter.instance.exports.get_hp();
+		var hp_free=ABC.interpreter.instance.exports.get_hp_free();
 
 		var result=ABC._copy_js_to_clean([value], store_ptrs, hp, hp_free);
 
@@ -463,7 +469,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
-							var copied=ABC.copy_js_to_clean(result, asp, hp, hp_free);
+							var copied=ABC.copy_js_to_clean(result, asp);
 							ABC.interpreter.instance.exports.set_hp(copied.hp);
 							ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 							break;
@@ -647,7 +653,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 		/* NB: the order here matters: copy_js_to_clean may trigger garbage
 		 * collection, so do that first, then set the rest of the arguments and
 		 * update asp. */
-		const copied=ABC.copy_js_to_clean(args, asp+8, hp, hp_free);
+		const copied=ABC.copy_js_to_clean(args, asp+8);
 		ABC.memory_array[asp/4]=(31+17*2)*8; // JSWorld: INT 17
 		ABC.memory_array[asp/4+4]=ABC.shared_clean_values[f.shared_clean_value_index].ref;
 		ABC.interpreter.instance.exports.set_asp(asp+16);
