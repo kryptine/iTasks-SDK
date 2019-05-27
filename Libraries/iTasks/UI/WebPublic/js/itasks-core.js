@@ -324,6 +324,16 @@ itasks.Component = {
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
+	getViewport: function() {
+		var me = this, vp = me.parentCmp;
+		while(vp) {
+			if(vp.cssCls == 'viewport') { //Bit of a hack...
+				return vp;
+			}
+			vp = vp.parentCmp;
+		}
+		return null;
+	}
 };
 itasks.Loader = {
 	cssCls: 'loader',
@@ -368,6 +378,8 @@ itasks.Viewport = {
 
 		var uiChangeCallback = me.onInstanceUIChange.bind(me);
 		var exceptionCallback = me.onException.bind(me);
+
+		me.changeListeners = [];
 
 		if('instanceNo' in me.attributes) {
 			//Connect to an existing task instance
@@ -436,6 +448,19 @@ itasks.Viewport = {
 				});
 			}
 		}
+		//Trigger changelisteners
+		me.changeListeners.forEach(function(cl) {
+			cl.onViewportChange(change);
+		});
+	},
+	addChangeListener: function(cmp) {
+		var me = this;
+		me.changeListeners.push(cmp);
+	},
+	removeChangeListener: function(cmp) {
+		me.changeListeners = me.changeListeners.filter(function(el) {
+			return el != cmp;
+		});
 	},
 	onException: function(exception) {
 		var me = this;

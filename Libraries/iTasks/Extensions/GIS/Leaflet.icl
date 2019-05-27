@@ -179,6 +179,12 @@ where
 		# world            = (me .# "afterChildInsert" .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) me world
 		# world            = (me .# "beforeChildRemove" .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onViewportChange me w) me world
+		# world            = (me .# "onViewportChange" .= cb) world
+		# (vp,world)       = (me .# "getViewport" .$ ()) world
+		# world            = (vp .# "addChangeListener" .$! me) world
+		# (cb,world)       = jsWrapFun (\a w -> beforeRemove me w) me world
+		# world            = (me .# "beforeRemove" .= cb) world
 		# world = case viewMode of
             True
 				= world
@@ -271,6 +277,16 @@ where
 			| jsIsUndefined popup = world
 			# (mapObj,world)    = me .# "map" .? world
 			= (mapObj.# "removeLayer" .$! popup) world
+
+	onViewportChange me world
+		# (mapObj,world) 	= me .# "map" .? world
+		# world             = (mapObj .# "invalidateSize" .$! ()) world
+		= world
+
+	beforeRemove me world
+		# (vp,world)       = (me .# "getViewport" .$ ()) world
+		# world            = (vp .# "removeChangeListener" .$! me) world
+		= world
 
     onWindowRemove me windowId _ world
         // remove children from iTasks component
