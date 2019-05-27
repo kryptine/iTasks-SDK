@@ -280,6 +280,6 @@ where
 		getTimeoutFromClock` _ = mt
 
 	dependsOnClock :: !SDSNotifyRequest -> Bool
-	dependsOnClock snr = indexOf "$IWorld:timespec$" snr.reqSDSId > 0
+	dependsOnClock snr = indexOf "$IWorld:timespec$" snr.reqSDSId >= 0
 
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
