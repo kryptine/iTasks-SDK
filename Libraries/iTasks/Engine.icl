@@ -273,10 +273,13 @@ where
 	where
 		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
 		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
-			| startsWith "$IWorld:timespec$" snr.reqSDSId && ts.interval <> zero
+			| dependsOnClock snr && ts.interval <> zero
 				# fire = iworldTimespecNextFire now reqTimespec ts
 				= Just (max 0 (toMs fire - toMs now))
 			= mt
 		getTimeoutFromClock` _ = mt
+
+	dependsOnClock :: !SDSNotifyRequest -> Bool
+	dependsOnClock snr = indexOf "$IWorld:timespec$" snr.reqSDSId >= 0
 
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
