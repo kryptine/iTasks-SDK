@@ -27,6 +27,12 @@ trace_n` a b :== /*trace_n a*/ b
 trace`   a b :== /*trace   a*/ b
 jsTrace` a b :== /*jsTrace a*/ b
 
+timeTrace :: !String !*JSWorld -> *JSWorld
+timeTrace msg world
+  #! (ms,world) = getCurrentTimeInMilliseconds world
+  #! world      = jsTrace (msg +++ toString ms +++ "ms") world
+  = world
+
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
 class short a :: !a -> String
 instance short FontDef where short fontdef = "{FontDef | " <+++ getfontfamily fontdef <+++ "," <+++ getfontysize fontdef <+++ "}"
@@ -67,6 +73,7 @@ svgns						 =: "http://www.w3.org/2000/svg"
 (`matrixTransform`)       obj args :== obj .# "matrixTransform"       .$ args
 (`setItem`)               obj args :== obj .# "setItem"               .$ args
 (`getItem`)               obj args :== obj .# "getItem"               .$ args
+(`now`)                   obj args :== obj .# "now"                   .$ args
 
 addEventListener :: !JSObj !String !Bool !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *JSWorld
 addEventListener svg event useCapture callback me world
@@ -81,6 +88,11 @@ addEventListener svg event useCapture callback me world
   #! (jsRefs,world) = jsMakeCleanReference refs me world
   #! world          = (me .# "refs" .= jsRefs) world
   = world
+
+getCurrentTimeInMilliseconds :: !*JSWorld -> (!Int,!*JSWorld)
+getCurrentTimeInMilliseconds world
+  #! (ms,world)     = (jsGlobal "Date.now" .$ ()) world
+  = (jsValToInt` 0 ms,world)
 
 :: ImageSpanReal :== (!Real, !Real)
 
@@ -242,7 +254,7 @@ where
 	  #! world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
 	  #! (jsInitDOMEl,world)         = jsWrapFun (clientInitDOMEl svglet me) me world
 	  #! world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
-	  = jsTrace` "initClientSideUI" world
+	  = world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
@@ -364,28 +376,30 @@ toJSON` _ msg = toJSON msg
 //	client side handling of server requests via attributes:
 clientHandleAttributeChange :: !(SVGEditor s v) !JSVal !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 clientHandleAttributeChange svglet me args world
+  #! world = timeTrace ("clientHandleAttributeChange [" +++ join "," (map fst nv_pairs) +++ "] started at ") world
   = case svg_or_text of
       Just json
         #! (request,world) = fromUIAttributes (jsValToString` "" json) world
         = case request of
             (ServerNeedsTextMetrics new_fonts new_texts)
-              = jsTrace` ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
-                clientHandlesTextMetrics svglet new_fonts new_texts me world
+              #! world     = timeTrace "clientHandleAttributeChange (ServerNeedsTextMetrics) started at " world
+              #! world     = clientHandlesTextMetrics svglet new_fonts new_texts me world
+              #! world     = timeTrace "clientHandleAttributeChange (ServerNeedsTextMetrics) ended at " world
+              = world
             (ServerHasSVG svg_body svg_handlers svg_tags new_model)
+              #! world     = timeTrace "clientHandleAttributeChange (ServerHasSVG) started at " world
               #! world     = clientUpdateSVGString svg_body me world
               #! world     = clientRegisterEventhandlers svglet me svg_handlers svg_tags world
               = case new_model of
-                  Nothing  = jsTrace` ("clientHandleAttributeChange reacts to ServerHasSVG without new model")
-                             world
+                  Nothing  = timeTrace "clientHandleAttributeChange (ServerHasSVG, no new model) ended at " world
                   Just model
-                    #! (jsView,world)  = jsMakeCleanReference (svglet.initView model) me world
+                    #! (jsView, world) = jsMakeCleanReference (svglet.initView model) me world
                     #! (jsModel,world) = jsMakeCleanReference model me world
-                    #! world     = (me .# JS_ATTR_VIEW  .= jsView) world
-                    #! world     = (me .# JS_ATTR_MODEL .= jsModel) world
-                    = jsTrace` ("clientHandleAttributeChange reacts to ServerHasSVG with new model")
-                      world
-      _ = jsTrace` ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
-          world
+                    #! world           = (me .# JS_ATTR_VIEW  .= jsView) world
+                    #! world           = (me .# JS_ATTR_MODEL .= jsModel) world
+                    #! world           = timeTrace "clientHandleAttributeChange (ServerHasSVG, new model) ended at " world
+                    = world
+      _ = timeTrace "clientHandleAttributeChange (no action) ended at " world
 where
 	nv_pairs                = to_name_value_pairs [a \\ a <-: args]
 	svg_or_text             = lookup JS_ATTR_SVG nv_pairs
@@ -396,17 +410,21 @@ where
 
 	clientHandlesTextMetrics :: !(SVGEditor s v) !ImgFonts !ImgTexts !JSVal !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	clientHandlesTextMetrics svglet new_fonts new_texts me world
+	  #! world                  = timeTrace "clientHandlesTextMetrics started at " world
 	  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                              // Get missing font spans
 	  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                              // Get missing text width spans
 	  #! (cidJS,         world) = me .# "attributes.taskId" .? world
 	  #! (editId,        world) = me .# "attributes.editorId" .? world
 	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,toJSON` svglet (ClientHasNewTextMetrics new_font_spans new_text_spans))) world
+	  #! world                  = timeTrace "clientHandlesTextMetrics ended at " world
 	  = world
 	
 	clientRegisterEventhandlers :: !(SVGEditor s v) !JSVal !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es tags world
+	  #! world              = timeTrace "clientRegisterEventhandlers started at " world
 	  #! (taskId,world)     = clientGetTaskId me world
 	  #! world              = clientRegisterEventhandlers` svglet me taskId es tags world
+	  #! world              = timeTrace "clientRegisterEventhandlers ended at " world
 	  = world
 
 //	generate the entire SVG element from an Img with all spans resolved:
@@ -422,6 +440,7 @@ genSVGElt img taskId interactive_imgs masks markers paths spans grids
 //	update the DOM element with the new SVG content, represented as a string:
 clientUpdateSVGString :: !String !JSVal !*JSWorld -> *JSWorld
 clientUpdateSVGString svgStr me world
+  #! world           = timeTrace "clientUpdateSVGString started at " world
   #! (parser, world) = jsNew "DOMParser" () world
   #! (doc,    world) = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
   #! (newSVG, world) = doc .# "firstChild" .? world
@@ -433,11 +452,13 @@ clientUpdateSVGString svgStr me world
   // Free old callbacks (see #298 for discussion)
   #! (refs,world)    = jsGetCleanReference (me .# "refs") world
   | isNothing refs
+    #! world         = timeTrace "clientUpdateSVGString (no freeing of callbacks) ended at " world
     = world
   #! (old,new)       = fromJust refs
   #! world           = seqSt jsFreeCleanReference old world
   #! (jsRefs,world)  = jsMakeCleanReference (new,[]) me world
   #! world           = (me .# "refs" .= jsRefs) world
+  #! world           = timeTrace "clientUpdateSVGString (with freeing of callbacks) ended at " world
   = world
 
 //	return the dimensions of the root image:
@@ -676,6 +697,7 @@ where
 	doMouseEvent` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local _ world
 	  #! world              = jsTrace` ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
+	  #! world              = timeTrace "doMouseEvent` started at " world
 	  #! (cidJS,world)      = me .# "attributes.taskId" .? world
 	  #! taskId             = jsValToString` "" cidJS
 	  #! (Just view, world) = jsGetCleanReference (me .# JS_ATTR_VIEW)  world
@@ -696,6 +718,7 @@ where
 	      | otherwise           					// the new model value is rendered on the server
 	      #! (editId,world) = me .# "attributes.editorId" .? world
 	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,toJSON (ClientHasNewModel model))) world
+	      #! world          = timeTrace "doMouseEvent` starts server round trip at " world
 	      = world							// rendering is completed by clientHandleAttributeChange
 	where
 		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData m -> m
@@ -710,6 +733,7 @@ where
 	//	client side entire rendering of model value:
 		clientHandleModel :: !(SVGEditor s v) !JSVal !s !v !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
+		  #! world                  = timeTrace "clientHandleModel started at " world
 		  #! (taskId,world)         = clientGetTaskId me world
 		  #! image`                 = renderImage s v (imgTagSource taskId)
 		  #! (img,{ImgTables | imgEventhandlers=es,imgNewFonts=new_fonts,imgNewTexts=new_texts,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags})
@@ -723,6 +747,7 @@ where
 		        #! svgStr           = browserFriendlySVGEltToString svg
 		        #! world            = clientUpdateSVGString svgStr me world
 		        #! world            = clientRegisterEventhandlers` svglet me taskId es tags world
+		        #! world            = timeTrace "clientHandleModel finished at " world
 		        = world
 	
 	doMouseDragEvent` :: !(SVGEditor s v) !JSVal !JSObj !ImgTagNo !ImgNodePath !String !JSObj !{!JSVal} !*JSWorld -> *JSWorld
