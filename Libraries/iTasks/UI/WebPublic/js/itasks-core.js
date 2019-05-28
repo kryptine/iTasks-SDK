@@ -26,30 +26,36 @@ itasks.Component = {
 	init: function() {
 		var me = this;
 		me.lastFire = 0;
-		me.initUI();
-		me.initComponent();
-		me.initChildren();
-		me.renderComponent();
 
-		me.initialized = true;
-		return me;
+		return me.initUI().then(function(){
+			me.initComponent();
+			return me.initChildren();
+		}).then(function(){
+			me.renderComponent();
+			me.initialized = true;
+		});
 	},
 	initUI: function() {
 		var me=this;
-		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
-			var initUI=ABC.deserialize(me.attributes.initUI,me);
-			ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
-		}
+		if (me.attributes.initUI!=null && me.attributes.initUI!='')
+			return ABC.loading_promise.then(function(){
+				var initUI=ABC.deserialize(me.attributes.initUI,me);
+				ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
+			});
+		else
+			return Promise.resolve();
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {
 		var me = this;
-		me.children.forEach(function(spec,i) {
+		var promises=me.children.map(function(spec,i){
 			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
-			me.children[i].init();
-			me.afterChildInsert(i,me.children[i]);
+			return me.children[i].init().then(function(){
+				me.afterChildInsert(i,me.children[i]);
+			});
 		});
+		return Promise.all(promises);
 	},
 	renderComponent: function() {
 		var me = this;
@@ -181,24 +187,29 @@ itasks.Component = {
 		//Add the child to the collection of children
 		me.children.splice(idx,0,child);
 
+		var finish_up=function(){
+			me.afterChildInsert(idx,child);
+			if (child.onResize)
+				child.onResize();
+		};
+
 		if(me.initialized) {
 			//Initialize, if we are already initialized
-			child.init();
-			//Add the child to the dom
-			if(child.domEl) {
-				if(isLast) {
-					me.containerEl.appendChild(child.domEl);
-				} else {
-					me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+			child.init().then(function(){
+				//Add the child to the dom
+				if(child.domEl) {
+					if(isLast) {
+						me.containerEl.appendChild(child.domEl);
+					} else {
+						me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+					}
+					child.onShow();
 				}
-				child.onShow();
-			}
-		} 
-		me.afterChildInsert(idx,child);
 
-		//When the child is first added, we trigger a resize event
-		if(child.onResize) {
-			child.onResize();
+				finish_up();
+			});
+		} else {
+			finish_up();
 		}
 	},
 	beforeChildInsert: function(idx,spec) {},
@@ -461,7 +472,7 @@ itasks.Viewport = {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
-	init: function () { return this; },
+	init: function () { return Promise.resolve(); },
 	beforeRemove: function() {},
 	_beforeRemove: function() {},
 };
