@@ -26,7 +26,7 @@ Start world
 	@image displays the number of times that you've clicked on the text. The initial value is @n.
 */
 count :: Int *TagSource -> Image Int
-count n _ = margin (px 20.0) (beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onclick = (+), local = False})
+count n _ = margin (px 20.0) (beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onNclick = (+), local = False})
 
 digits :: Int -> [Int]
 digits n = [toInt c - toInt '0' \\ c <-: toString n]

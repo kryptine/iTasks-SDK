@@ -18,7 +18,7 @@ import qualified Graphics.Scalable.Image as GS
 from Graphics.Scalable.Image import :: Image, :: TagSource (..), :: TagRef (..), :: ImageTag, :: Span, :: Angle (..)
 from Graphics.Scalable.Image import px, text, class toSVGColor(..), instance toSVGColor String, beside, <@<, textxspan, class tuneImage(..)
 from Graphics.Scalable.Image import instance tuneImage YRadiusAttr, instance tuneImage XRadiusAttr, instance tuneImage StrokeAttr
-from Graphics.Scalable.Image import instance tuneImage StrokeWidthAttr, instance tuneImage FillAttr, instance tuneImage OnClickAttr
+from Graphics.Scalable.Image import instance tuneImage StrokeWidthAttr, instance tuneImage FillAttr, instance tuneImage OnClickAttr, instance tuneImage OnNClickAttr
 from Graphics.Scalable.Image import instance tuneImage DashAttr
 from Graphics.Scalable.Image import overlay, polygon, xline, rect, deg, rotate, yline, tag, imageyspan, imagexspan, maxSpan
 from Graphics.Scalable.Image import empty, above, class margin(..), circle, tuneIf
@@ -26,7 +26,7 @@ from Graphics.Scalable.Image import instance margin Span, instance margin (Span,
 from Graphics.Scalable.Image import instance + Span, instance - Span, instance ~ Span, instance zero Span, instance *. Span, instance /. Span
 from Graphics.Scalable.Image import :: FontDef(..), :: Host(..), :: YAlign(..), :: XAlign(..), :: ImageOffset(..), :: DashAttr(..), :: FillAttr(..)
 from Graphics.Scalable.Image import :: XYAlign(..), :: StrokeAttr(..), :: LineEndMarker(..), :: LineMidMarker(..), :: LineStartMarker(..), :: GridMajor(..), :: GridXLayout(..), :: GridYLayout(..)
-from Graphics.Scalable.Image import :: GridDimension(..), :: StrokeWidthAttr(..), :: OnClickAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
+from Graphics.Scalable.Image import :: GridDimension(..), :: StrokeWidthAttr(..), :: OnClickAttr(..), :: OnNClickAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
 from Graphics.Scalable.Image import class *.(..), class /.(..)
 import Graphics.Scalable.Internal.Image`
 import Graphics.Scalable.Internal.Types
@@ -563,7 +563,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                                 && bpident_compId == fmap getComputationId inh.inh_bpinst
                                 && click_origin_mbnodeId == Just eid
                            _ = False
-  #! valAnchor         = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
+  #! valAnchor         = rect (px 8.0) (px 8.0) <@< { onNclick = openDetails clickMeta, local = False }
                                                 <@< { fill = case stability of
                                                                TNoVal    -> TonicWhite
                                                                TStable   -> TonicBlue
@@ -645,7 +645,7 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
   where
   mkArgAndTy :: !(!TExpr, !TExpr) !Int !(Maybe TExpr) -> [Image ModelTy]
   mkArgAndTy (arg, ty) i mvar
-    #! clickHandler = { onclick = selectArg inh i, local = False}
+    #! clickHandler = { onNclick = selectArg inh i, local = False}
     = [ text ArialRegular10px (ppTExpr arg) <@< clickHandler
       , text ArialRegular10px " :: "        <@< clickHandler
       , text ArialRegular10px (ppTExpr ty)  <@< clickHandler
@@ -743,7 +743,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             [Just x:_] -> (x, tsrc)
                             _          -> tDefaultMApp isDynamic inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` augments tsrc
   #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap getComputationId inh.inh_bpinst) mbNavTo
-  #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
+  #! taskApp            = taskApp <@< { onNclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_compName, bpident_compId}
@@ -753,7 +753,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                                  && bpident_compId == fmap getComputationId inh.inh_bpinst
                                  && click_origin_mbnodeId == Just eid
                             _ -> False
-  #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
+  #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onNclick = openDetails clickMeta, local = False }
                                                  <@< { fill = case stability of
                                                                 TNoVal    -> TonicWhite
                                                                 TStable   -> TonicBlue

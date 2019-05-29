@@ -75,11 +75,16 @@ svgns						 =: "http://www.w3.org/2000/svg"
 (`getItem`)               obj args :== obj .# "getItem"               .$ args
 (`now`)                   obj args :== obj .# "now"                   .$ args
 
-addEventListener :: !JSObj !String !Bool !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *JSWorld
+:: EventCapture = EventBubbling | EventCapturing
+instance toBool EventCapture
+   where toBool EventBubbling  = False
+         toBool EventCapturing = True
+
+addEventListener :: !JSObj !String !EventCapture !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *JSWorld
 addEventListener svg event useCapture callback me world
   // add event listener
   #! (jsCallback,world)  = jsWrapFun callback me world
-  #! world          = (svg .# "addEventListener" .$! (event,jsCallback,useCapture)) world
+  #! world          = (svg .# "addEventListener" .$! (event,jsCallback,toBool useCapture)) world
   // store callback so that it can be freed in clientUpdateSVGString
   #! (refs,world)   = jsGetCleanReference (me .# "refs") world
   #! refs           = case refs of
@@ -633,8 +638,8 @@ where
 	  | isAnyMember draggableAttrs required
 	// all draggable elements share a common mousemove and mouseup event:
 	    #! idMap         = invertToMapSet (fmap (mkUniqId taskId) tags)
-	    #! world         = addEventListener svg "mousemove" True (doMouseDragMove svglet me svg)       me world
-	    #! world         = addEventListener svg "mouseup"   True (doMouseDragUp   svglet me svg idMap) me world
+	    #! world         = addEventListener svg "mousemove" EventCapturing (doMouseDragMove svglet me svg)       me world
+	    #! world         = addEventListener svg "mouseup"   EventCapturing (doMouseDragUp   svglet me svg idMap) me world
 	    = world
 	  | otherwise
 	    = world
@@ -653,63 +658,63 @@ where
 		= 'Data.Foldable'.foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
 	where
 		register` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !(ImgNodePath,ImgEventhandler`) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnClickAttr`,local}) world
+		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnNClickAttr`,local}) world
 			= registerNClick` svglet me svg elemId uniqId p local world
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseDownAttr`,local}) world
-			= registerMouse` svglet me svg elemId "mousedown" uniqId p local world
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseUpAttr`,local}) world
-			= registerMouse` svglet me svg elemId "mouseup" uniqId p local world
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseOverAttr`,local}) world
-			= registerMouse` svglet me svg elemId "mouseover" uniqId p local world
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseMoveAttr`,local}) world
-			= registerMouse` svglet me svg elemId "mousemove" uniqId p local world
-		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerOnMouseOutAttr`,local}) world
-			= registerMouse` svglet me svg elemId "mouseout"  uniqId p local world
 		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler = ImgEventhandlerDraggableAttr`}) world
 			= registerDraggable` svglet me svg elemId uniqId p world
-	
+		register` svglet me svg elemId uniqId (p,{ImgEventhandler` | handler,local}) world
+			= registerMouse` svglet me svg elemId eventname capture uniqId p local world
+		where
+			(eventname,capture)	= case handler of
+									ImgEventhandlerOnClickAttr`     = ("click",    EventBubbling)
+									ImgEventhandlerOnMouseDownAttr` = ("mousedown",EventCapturing)
+									ImgEventhandlerOnMouseUpAttr`   = ("mouseup",  EventCapturing)
+									ImgEventhandlerOnMouseOverAttr` = ("mouseover",EventCapturing)
+									ImgEventhandlerOnMouseMoveAttr` = ("mousemove",EventCapturing)
+									ImgEventhandlerOnMouseOutAttr`  = ("mouseout", EventCapturing)
+		
 	registerNClick` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	registerNClick` svglet me svg elemId uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-	  #! world        = addEventListener elem "click" False (mkNClickCB` svglet me svg elemId uniqId p local) me world
+	  #! world        = addEventListener elem "click" EventBubbling (mkNClickCB` svglet me svg elemId uniqId p local) me world
 	  = world
 	
-	registerMouse` :: !(SVGEditor s v) !JSVal !JSObj !String !String !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
-	registerMouse` svglet me svg elemId evt uniqId p local world
+	registerMouse` :: !(SVGEditor s v) !JSVal !JSObj !String !String !EventCapture !ImgTagNo !ImgNodePath !Bool !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+	registerMouse` svglet me svg elemId evt capture uniqId p local world
 	  #! (elem,world) = (svg .# "getElementById" .$ elemId) world
-	  #! world        = addEventListener elem evt True (doMouseEvent` svglet me svg elemId uniqId p MouseNoData local) me world
+	  #! world        = addEventListener elem evt capture (doMouseEvent` svglet me svg elemId uniqId p MouseNoData local) me world
 	  = world
 	
 	registerDraggable` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !*JSWorld -> *JSWorld
 	registerDraggable` svglet me svg elemId uniqId p world
 	  #! (elem,  world) = (svg .# "getElementById" .$ elemId) world
-	  #! world          = addEventListener elem "mousedown" True (doMouseDragEvent` svglet me svg uniqId p elemId elem) me world
+	  #! world          = addEventListener elem "mousedown" EventCapturing (doMouseDragEvent` svglet me svg uniqId p elemId elem) me world
 	  = world
 	
 	mkNClickCB` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	mkNClickCB` svglet me svg elemId uniqId p local args world
-	  #! world           = if (size args>0) ((args.[0] .# "stopPropagation" .$! ()) world) world
+	  #! world      = if (size args>0) ((args.[0] .# "stopPropagation" .$! ()) world) world
 	// If another click already registered a timeout, clear that timeout
-	  #! (to,world)      = me .# "clickTimeOut" .? world
-	  #! world           = if (jsIsUndefined to || jsIsNull to) world ((jsGlobal "clearTimeout" .$! to) world)
+	  #! (to,world) = me .# "clickTimeOut" .? world
+	  #! world      = if (jsIsUndefined to || jsIsNull to) world ((jsGlobal "clearTimeout" .$! to) world)
 	// Register a callback for the click after a small timeout
-	  #! (cb,world)      = jsWrapFun (doNClickEvent` svglet me svg elemId uniqId p local) me world
-	  #! world           = (me .# "clickHandler" .= cb) world
-	  #! (to,world)  	 = (jsGlobal "setTimeout" .$ (cb, CLICK_DELAY)) world
-	  #! world           = (me .# "clickTimeOut" .= to) world
+	  #! (cb,world) = jsWrapFun (doNClickEvent` svglet me svg elemId uniqId p local) me world
+	  #! world      = (me .# "clickHandler" .= cb) world
+	  #! (to,world) = (jsGlobal "setTimeout" .$ (cb, CLICK_DELAY)) world
+	  #! world      = (me .# "clickTimeOut" .= to) world
 	// Increase click counter, so we can determine how many times the element was clicked when the timeout passes
-	  #! (nc,world)      = me .# "clickCount" .? world
-	  #! world           = (me .# "clickCount" .= jsValToInt` 0 nc + 1) world
+	  #! (nc,world) = me .# "clickCount" .? world
+	  #! world      = (me .# "clickCount" .= jsValToInt` 0 nc + 1) world
 	  = world
 	
 	doNClickEvent` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !Bool !{!JSVal} !*JSWorld-> *JSWorld | JSONEncode{|*|} s
 	doNClickEvent` svglet me svg elemId uniqId p local args world
 	// Get click count
-	  #! (nc,world)      = me .# "clickCount" .? world
+	  #! (nc,world) = me .# "clickCount" .? world
 	// Reset click count
-	  #! world           = (me .# "clickCount" .= 0) world
-	  #! world           = (me .# "clickHandler" .= jsNull) world
-	  #! nc              = jsValToInt` 0 nc
+	  #! world      = (me .# "clickCount" .= 0) world
+	  #! world      = (me .# "clickHandler" .= jsNull) world
+	  #! nc         = jsValToInt` 0 nc
 	  = doMouseEvent` svglet me svg elemId uniqId p (MouseOnClickData nc) local args world
 	
 	doMouseEvent` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
@@ -740,7 +745,8 @@ where
 	      = world							// rendering is completed by clientHandleAttributeChange
 	where
 		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData m -> m
-		applyImgEventhandler (ImgEventhandlerOnClickAttr     {OnClickAttr     | onclick     = f}) (MouseOnClickData n) m = f n m
+		applyImgEventhandler (ImgEventhandlerOnClickAttr     {OnClickAttr     | onclick     = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnNClickAttr    {OnNClickAttr    | onNclick    = f}) (MouseOnClickData n) m = f n m
 		applyImgEventhandler (ImgEventhandlerOnMouseDownAttr {OnMouseDownAttr | onmousedown = f}) _ m = f m
 		applyImgEventhandler (ImgEventhandlerOnMouseUpAttr   {OnMouseUpAttr   | onmouseup   = f}) _ m = f m
 		applyImgEventhandler (ImgEventhandlerOnMouseOverAttr {OnMouseOverAttr | onmouseover = f}) _ m = f m

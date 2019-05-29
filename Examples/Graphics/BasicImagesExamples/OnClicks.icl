@@ -32,8 +32,8 @@ toggleOf :: Who Toggles -> Bool
 toggleOf A t = t.Toggles.update_a_locally
 toggleOf B t = t.Toggles.update_b_locally
 
-toggleIncr :: Int Toggles -> Toggles
-toggleIncr n t=:{Toggles | value_in_sds = m} = {Toggles | t & value_in_sds = n+m}
+toggleIncr :: Toggles -> Toggles
+toggleIncr t=:{Toggles | value_in_sds = m} = {Toggles | t & value_in_sds = m+1}
 
 toggle :: Who Toggles -> Toggles
 toggle A t=:{Toggles | update_a_locally} = {Toggles | t & update_a_locally = not update_a_locally}
@@ -76,7 +76,7 @@ count label toggles _
 		  [ beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onclick = toggleIncr, local = toggleOf label toggles}
 		  , margin (px 10.0) (
 		       circle (h /. 5) 
-		           <@< {onclick     = const (toggle label), local = False}
+		           <@< {onclick     = toggle label, local = False}
 		           <@< {stroke      = if (toggleOf label toggles) black none}
 		           <@< {strokewidth = if (toggleOf label toggles) (h /. 25) (h /. 50)}
 		           <@< {fill        = yellow}

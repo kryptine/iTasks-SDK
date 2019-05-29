@@ -29,6 +29,6 @@ tons_of_circles model tags
 		        \\ i <- [0..100], j <- [0..100]
 		        ]
 		        host
-	  ) <@< {onclick= \_ m = m,local=False}
+	  ) <@< {onclick=id,local=False}
 where
 	host	= Host (rect (px 808.0) (px 808.0) <@< {fill=white})
