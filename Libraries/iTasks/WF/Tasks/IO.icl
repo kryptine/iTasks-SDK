@@ -49,9 +49,10 @@ where
 	eval DestroyEvent evalOpts (TCBasic taskId ts jsonph _) iworld
 		# iworld = clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
 		= apIWTransformer iworld
-		$             tuple (fjson jsonph)
-		>-= \(ph, _)->liftOSErr (terminateProcess ph)
-		>-= \_      ->tuple (Ok DestroyedResult)
+		$               tuple (fjson jsonph)
+		>-= \(ph, pio)->liftOSErr (terminateProcess ph)
+		>-= \_        ->liftOSErr (closeProcessIO pio)
+		>-= \_        ->tuple (Ok DestroyedResult)
 
 	//Destroyed when the task was already stable
 	eval DestroyEvent evalOpts tree iworld
