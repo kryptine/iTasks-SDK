@@ -30,7 +30,7 @@ jsTrace` a b :== /*jsTrace a*/ b
 timeTrace :: !String !*JSWorld -> *JSWorld
 timeTrace msg world
   #! (ms,world) = getCurrentTimeInMilliseconds world
-  #! world      = jsTrace (msg +++ toString ms +++ "ms") world
+  #! world      = jsTrace` (msg +++ toString ms +++ "ms") world
   = world
 
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
@@ -308,6 +308,7 @@ serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=t
 	    = (attrs, state, world)
       Right (svg,es,tags)                                                                       // image complete, send it to client
 	    #! string = browserFriendlySVGEltToString svg
+	    #! string = trace_n` ("serverHandleModel generates complete SVG string of size " +++ toString (size string) +++ " Bytes") string
 	    | model_is_new_for_client
 	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es tags (Just model)) world
 	      #! attrs = 'Data.Map'.union attrs size_and_model
@@ -333,17 +334,17 @@ attributesToUIChange set_attrs
 //	server side rendering of model value:
 serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables) (!SVGElt,!ImgEventhandlers`,!ImgTags)
 serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
-  #! image`               = renderImage s v (imgTagSource taskId)
+  #! image`               = trace_n` "serverSVG starts to render image" (renderImage s v (imgTagSource taskId))
   #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})
-                          = toImg image` [] font_spans text_spans newImgTables
+                          = trace_n` "serverSVG starts toImg" (toImg image` [] font_spans text_spans newImgTables)
   | not ('Data.Set'.null new_fonts) || not ('Data.Map'.null new_texts)                    // some font / text-width information is missing: need to ask the client
       = Left (img,tables)
   #! {ImgTables | imgEventhandlers=es,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags}
                           = tables
-  = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
+  = case trace_n` "serverSVG starts resolve_all_spans" (resolve_all_spans tags font_spans text_spans img masks markers paths spans grids) of
       Error error         = abort error
       Ok (img,masks,markers,paths,spans,grids)
-        #! svg            = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
+        #! svg            = trace_n` "serverSVG starts genSVGElt" (genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids)
         = Right (svg,es,tags)
 
 clientGetTaskId :: !JSVal !*JSWorld -> (!String,!*JSWorld)
@@ -595,7 +596,7 @@ where
 	  #! (res, world) = 'Data.Map'.foldrWithKey (calcTextLengths elem) ('Data.Map'.newMap, world) texts
 	  #! (_,   world) = (svg `removeChild` elem) world
 	  #! (_,   world) = (body `removeChild` svg) world
-	  = (res,  world)
+	  = (res,  world) 
 	where
 		calcTextLengths :: !JSVal !FontDef !(Set String) !*(!TextSpans, !*JSWorld) -> *(!TextSpans,!*JSWorld)
 		calcTextLengths elem fontdef strs (text_spans, world)
@@ -622,14 +623,31 @@ clientRootSVGElt me world
 //	register the defunctionalized event handlers of the image:
 clientRegisterEventhandlers` :: !(SVGEditor s v) !JSVal !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 clientRegisterEventhandlers` svglet me taskId es` tags world
-  #! (svg,    world)     = clientRootSVGElt me world
-  #! idMap               = invertToMapSet (fmap (mkUniqId taskId) tags)
-// all draggable elements share a common mousemove and mouseup event:
-  #! world               = addEventListener svg "mousemove" True (doMouseDragMove svglet me svg) me world
-  #! world               = addEventListener svg "mouseup"   True (doMouseDragUp   svglet me svg idMap) me world
-// register all individual event handlers:
+  #! (svg,world)         = clientRootSVGElt me world
+  #! world               = registerDragEventhandlers` svg me taskId es` tags world
   = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
 where
+//	register mousemove and mouseup listeners only when one of the draggable attributes are present in the image
+	registerDragEventhandlers` :: !JSObj !JSVal !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld
+	registerDragEventhandlers` svg me taskId es` tags world
+	  | isAnyMember draggableAttrs required
+	// all draggable elements share a common mousemove and mouseup event:
+	    #! idMap         = invertToMapSet (fmap (mkUniqId taskId) tags)
+	    #! world         = addEventListener svg "mousemove" True (doMouseDragMove svglet me svg)       me world
+	    #! world         = addEventListener svg "mouseup"   True (doMouseDragUp   svglet me svg idMap) me world
+	    = world
+	  | otherwise
+	    = world
+	where
+		draggableAttrs   = [ImgEventhandlerOnMouseDownAttr`
+		                   ,ImgEventhandlerOnMouseUpAttr`
+		                   ,ImgEventhandlerOnMouseOverAttr`
+		                   ,ImgEventhandlerOnMouseMoveAttr`
+		                   ,ImgEventhandlerOnMouseOutAttr`
+		                   ,ImgEventhandlerDraggableAttr`
+		                   ]
+		required         = removeDup (map (\(_,{ImgEventhandler` | handler}) = handler) (flatten ('Data.Map'.elems es`)))
+	
 	registerEventhandler` :: !(SVGEditor s v) !JSVal !String !JSObj !ImgTagNo ![(ImgNodePath,ImgEventhandler`)] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	registerEventhandler` svglet me taskId svg uniqId es` world
 		= 'Data.Foldable'.foldr (register` svglet me svg (mkUniqId taskId uniqId) uniqId) world es`
@@ -959,7 +977,8 @@ where
 	
 	genSVGTransform :: !HostImg !(Maybe ImgTransform) !ImgSpans !String -> [SVGAttr]
 	genSVGTransform (CompositeImg img) (Just tf) spans taskId
-		= [genTransform imgSpan tf taskId]
+	  #! attr = genTransform imgSpan tf taskId
+	  = [attr]
 	where
 		imgSpan     = case 'Data.Map'.get img.Img.uniqId spans of
 			            Just (PxSpan w, PxSpan h) = (w,h)
@@ -968,39 +987,50 @@ where
 		
 		genTransform :: !ImageSpanReal !ImgTransform !String -> SVGAttr
 		genTransform (xsp, ysp) (RotateImg imAn) _
-			= TransformAttr [RotateTransform (to2decString (toDeg imAn)) (Just (to2decString (xsp / 2.0), to2decString (ysp / 2.0)))]
+		  #! attr = RotateTransform (to2decString (toDeg imAn)) (Just (to2decString (xsp / 2.0), to2decString (ysp / 2.0)))
+		  = TransformAttr [attr]
 		genTransform _ (SkewXImg imAn) _
-			= TransformAttr [SkewXTransform (toString (toDeg imAn))]
+		  #! attr = SkewXTransform (toString (toDeg imAn))
+		  = TransformAttr [attr]
 		genTransform _ (SkewYImg imAn) _
-			= TransformAttr [SkewYTransform (toString (toDeg imAn))]
+		  #! attr = SkewYTransform (toString (toDeg imAn))
+		  = TransformAttr [attr]
 		genTransform (xsp, ysp) (FitImg spx spy) _
-			= TransformAttr [ScaleTransform fx fy]
+		  #! attr = ScaleTransform fx fy
+		  = TransformAttr [attr]
 		where
 			(fx,fy)      = case (spx,spy) of
 			                 (PxSpan rx, PxSpan ry) = (to2decString (rx / xsp), to2decString (ry / ysp))
 			                 _                      = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg  "fit"))
 		genTransform (xsp, ysp) (FitXImg sp) _
-			= TransformAttr [ScaleTransform fxy fxy]
+		  #! attr = ScaleTransform fxy fxy
+		  = TransformAttr [attr]
 		where
 			fx          = case sp of
 			                PxSpan rx = rx / xsp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fitx"))
 			fxy         = if (xsp > 0.0) (to2decString fx) "1.0"
 		genTransform (xsp, ysp) (FitYImg sp) _
-			= TransformAttr [ScaleTransform fxy fxy]
+		  #! attr = ScaleTransform fxy fxy
+		  = TransformAttr [attr]
 		where
 			fy          = case sp of
 			                PxSpan ry = ry / ysp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fity"))
 			fxy         = if (ysp > 0.0) (to2decString fy) "1.0"
 		genTransform (_, ysp) (ScaleImg fx fy) _
-			= TransformAttr [ScaleTransform (to2decString fx) (to2decString fy)]
+		  #! attr = ScaleTransform (to2decString fx) (to2decString fy)
+		  = TransformAttr [attr]
 		genTransform (xsp, ysp) FlipXImg _
-			= TransformAttr [TranslateTransform (to2decString xsp) "0", ScaleTransform "-1" "1"]
+		  #! attr0 = TranslateTransform (to2decString xsp) "0"
+		  #! attr1 = ScaleTransform "-1" "1"
+		  = TransformAttr [attr0, attr1]
 		genTransform (xsp, ysp) FlipYImg _
-			= TransformAttr [TranslateTransform "0" (to2decString ysp), ScaleTransform "1" "-1"]
+		  #! attr0 = TranslateTransform "0" (to2decString ysp)
+		  #! attr1 = ScaleTransform "1" "-1"
+		  = TransformAttr [attr0, attr1]
 		genTransform _ (MaskImg uniqId) taskId
-			= MaskAttr (mkUrl (mkMaskId taskId uniqId))
+		  = MaskAttr (mkUrl (mkMaskId taskId uniqId))
 	genSVGTransform _ _ _ _
 		= []
 	
@@ -1012,15 +1042,27 @@ where
 		genSVGImageAttrs atts = strictTRMap genSVGImageAttr ('Data.Set'.toList atts)
 		where
 			genSVGImageAttr :: !BasicImgAttr -> SVGAttr
-			genSVGImageAttr (BasicImgStrokeAttr      color)      = StrokeAttr (PaintColor color Nothing)
-			genSVGImageAttr (BasicImgStrokeWidthAttr (PxSpan w)) = StrokeWidthAttr (StrokeWidthLength (toString w, PX))
-			genSVGImageAttr (BasicImgXRadiusAttr     (PxSpan r)) = RxAttr (toString r, PX)
-			genSVGImageAttr (BasicImgYRadiusAttr     (PxSpan r)) = RyAttr (toString r, PX)
-			genSVGImageAttr (BasicImgStrokeOpacityAttr op)       = StrokeOpacityAttr (toString op)
-			genSVGImageAttr (BasicImgFillOpacityAttr   op)       = FillOpacityAttr (FillOpacity (toString op))
-			genSVGImageAttr (BasicImgFillAttr        color)      = FillAttr (PaintColor color Nothing)
-			genSVGImageAttr (BasicImgDashAttr        dash)       = StrokeDashArrayAttr (DashArray (strictTRMap toString dash))
-			genSVGImageAttr _ = abort "Unexpected error in module SVGEditor (local function genSVGImageAttr of genSVGElts): unresolved span value encountered."
+			genSVGImageAttr (BasicImgStrokeAttr      color)
+			  = StrokeAttr (PaintColor color Nothing)
+			genSVGImageAttr (BasicImgStrokeWidthAttr (PxSpan w))
+			  #! w` = toString w
+			  = StrokeWidthAttr (StrokeWidthLength (w`, PX))
+			genSVGImageAttr (BasicImgXRadiusAttr (PxSpan r))
+			  #! r` = toString r
+			  = RxAttr (r`, PX)
+			genSVGImageAttr (BasicImgYRadiusAttr (PxSpan r))
+			  #! r` = toString r
+			  = RyAttr (r`, PX)
+			genSVGImageAttr (BasicImgStrokeOpacityAttr op)
+			  = StrokeOpacityAttr (toString op)
+			genSVGImageAttr (BasicImgFillOpacityAttr op)
+			  = FillOpacityAttr (FillOpacity (toString op))
+			genSVGImageAttr (BasicImgFillAttr color)
+			  = FillAttr (PaintColor color Nothing)
+			genSVGImageAttr (BasicImgDashAttr dash)
+			  = StrokeDashArrayAttr (DashArray (strictTRMap toString dash))
+			genSVGImageAttr _
+			  = abort "Unexpected error in module SVGEditor (local function genSVGImageAttr of genSVGElts): unresolved span value encountered."
 	genSVGHost no host=:(RawHostImg content) taskId es markers paths spans grids
 		= [RawElt content]
 	genSVGHost no host=:(CompositeImg img) taskId es markers paths spans grids
@@ -1028,36 +1070,39 @@ where
 	
 	genSVGBasicHostImg :: !ImgTagNo !BasicImg ![SVGAttr] !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 	genSVGBasicHostImg no EmptyImg attrs taskId es markers paths spans grids
-		= []
+	  = []
 	genSVGBasicHostImg no (TextImg fontdef txt) attrs taskId es markers paths spans grids
-		= [TextElt [XmlspaceAttr "preserve"] 
+	  #! elt = TextElt [XmlspaceAttr "preserve"] 
 		           (keepTransformAttrsTogether (TransformAttr [TranslateTransform (toString 0.0) (toString (getfontysize fontdef * 0.75))]) (attrs ++ svgFontDefAttrs fontdef)) txt
-		  ]
+	  = [elt]
 	genSVGBasicHostImg no RectImg attrs taskId es markers paths spans grids
-		= [RectElt sizeAtts attrs]
+	  #! elt = RectElt sizeAtts attrs
+	  = [elt]
 	where
 		sizeAtts          = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = mkWH (w,h)
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "rect"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "rect"))
 	genSVGBasicHostImg no CircleImg attrs taskId es markers paths spans grids
-		= [CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]]
+	  #! elt = CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]
+	  = [elt]
 	where
 		radius            = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w,h)         = to2decString (w / 2.0)
 		                      Just (_,_)                = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "circle"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "circle"))
 	genSVGBasicHostImg no EllipseImg attrs taskId es markers paths spans grids
-		= [EllipseElt [] [RxAttr (xradius,PX), CxAttr (xradius,PX), RyAttr (yradius,PX), CyAttr (yradius,PX) : attrs]]
+	  #! elt = EllipseElt [] [RxAttr (xradius,PX), CxAttr (xradius,PX), RyAttr (yradius,PX), CyAttr (yradius,PX) : attrs]
+	  = [elt]
 	where
 		(xradius,yradius) = case 'Data.Map'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = (to2decString (w / 2.0), to2decString (h / 2.0))
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "ellipse"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "ellipse"))
 	genSVGBasicHostImg no PolylineImg attrs taskId es markers` paths spans grids
-		= [ PolylineElt [] [PointsAttr (strictTRMap (polypointToPointsAttr "polyline") points) : attrs ++ markerAttrs]
-		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
-		  ]
+	  #! attr = PointsAttr (strictTRMap (polypointToPointsAttr "polyline") points)
+	  #! elt  = PolylineElt [] [attr : attrs ++ markerAttrs]
+	  = [ elt : map (\elt -> DefsElt [] [] [elt]) markerElts ]		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 	where
 		markers                   = case 'Data.Map'.get no markers` of
 		                              Just m  = m
@@ -1067,9 +1112,9 @@ where
 		                              nothing = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "polyline"))
 		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polyline" markers taskId es markers` paths spans grids)
 	genSVGBasicHostImg no PolygonImg attrs taskId es markers` paths spans grids
-		= [ PolygonElt [] [PointsAttr (strictTRMap (polypointToPointsAttr "polygon") points) : attrs ++ markerAttrs]
-		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
-		  ]
+	  #! attr = PointsAttr (strictTRMap (polypointToPointsAttr "polygon") points)
+	  #! elt  = PolygonElt [] [attr : attrs ++ markerAttrs]
+	  = [ elt : map (\elt -> DefsElt [] [] [elt]) markerElts ]		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 	where
 		markers                   = case 'Data.Map'.get no markers` of
 		                              Just m  = m
@@ -1112,12 +1157,19 @@ where
 
 	genSVGOverlays :: ![Img] ![ImageOffset] !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 	genSVGOverlays overlays offsets taskId es markers paths spans grids
-		= flatten [mkGroup [] (mkTransformTranslateAttr off) (genSVGElts img taskId es markers paths spans grids) \\ img <- overlays & off <- offsets]
+		= flatten (strictTRMap (genGroup taskId es markers paths spans grids) (zip2 overlays offsets))
 	where
+		genGroup :: !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans !(!Img,!ImageOffset) -> [SVGElt]
+		genGroup taskId es markers paths spans grids (img,offset)
+		  #! attr = mkTransformTranslateAttr offset
+		  #! elts = genSVGElts img taskId es markers paths spans grids
+		  = mkGroup [] attr elts
+		
 		mkTransformTranslateAttr :: !ImageOffset -> [SVGAttr]
 		mkTransformTranslateAttr (PxSpan dx,PxSpan dy)
 		| dx == 0.0 && dy == 0.0   = []
-		| otherwise                = [TransformAttr [TranslateTransform (to2decString dx) (to2decString dy)]]
+		#! transform               = TranslateTransform (to2decString dx) (to2decString dy)
+		| otherwise                = [TransformAttr [transform]]
 		mkTransformTranslateAttr _ = abort (lookupSpanErrorMsg "genSVGOverlays" (unresolvedErrorMsg "Img"))
 	
 	polypointToPointsAttr :: !String !ImageOffset -> (!String,!String)
@@ -1134,11 +1186,18 @@ where
 	lookupSpanErrorMsg local_fun error = "Unexpected error in module SVGEditor (local function " +++ local_fun +++ " of genSVGElts): " +++ error
 
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
-mkGroup _      _      []                  = []
-mkGroup []     []     xs                  = xs
-mkGroup hattrs []     [GElt [] sattrs xs] = [GElt hattrs sattrs xs]
-mkGroup []     sattrs [GElt hattrs [] xs] = [GElt hattrs sattrs xs]
-mkGroup []     [tfattr=:(TransformAttr [TranslateTransform x y])] xs = map f xs
+mkGroup _ _ []
+  = []
+mkGroup [] [] xs
+  = xs
+mkGroup hattrs [] [GElt [] sattrs xs]
+  #! elt = GElt hattrs sattrs xs
+  = [elt]
+mkGroup [] sattrs [GElt hattrs [] xs]
+  #! elt = GElt hattrs sattrs xs
+  = [elt]
+mkGroup [] [tfattr=:(TransformAttr [TranslateTransform x y])] xs
+  = strictTRMap f xs
 where
   f :: !SVGElt -> SVGElt
   f (GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = GElt       hattrs (keepTransformAttrsTogether (dualTransformTranslate x y x` y`) attrs) elts
@@ -1156,10 +1215,14 @@ where
 
   lineAdd :: !String !SVGNumber -> String
   lineAdd strVal n = to2decString (toReal strVal + toReal n)
-mkGroup has    sas elts = [GElt has sas elts]
+mkGroup has    sas elts
+  #! elt = GElt has sas elts
+  = [elt]
 
 dualTransformTranslate :: !a !a !a !a -> SVGAttr | toReal a
-dualTransformTranslate x y x` y` = TransformAttr [TranslateTransform (to2decString (toReal x + toReal x`)) (to2decString (toReal y + toReal y`))]
+dualTransformTranslate x y x` y`
+  #! transform = TranslateTransform (to2decString (toReal x + toReal x`)) (to2decString (toReal y + toReal y`))
+  = TransformAttr [transform]
 
 // PA: this is rather cumbersome;
 // better plan is to keep the SVG transforms separate when creating the Img and in the end do put them at the end of the [SVGAttr]-list where they seem to end up
