@@ -75,22 +75,11 @@ const ABC={
 		}
 	},
 
-	deserialize: function (string) {
-		var max_words_needed=string.length/8*4; // rough upper bound
-		ABC.require_hp(max_words_needed);
-
-		var array=new Int8Array(string.length);
-		for (var i in string)
-			array[i]=string.charCodeAt(i);
-		var graph=new Uint32Array(array.buffer);
-		var unused_semispace=ABC.util.instance.exports.get_unused_semispace();
-		for (var i=0; i<graph.length; i++)
-			ABC.memory_array[unused_semispace/4+i]=graph[i];
-
+	_deserialize: function (addr, size) {
 		var old_hp=ABC.interpreter.instance.exports.get_hp();
 		var new_hp=ABC.util.instance.exports.copy_from_string(
-			unused_semispace,
-			graph.length/2,
+			addr,
+			size,
 			ABC.interpreter.instance.exports.get_asp()+8,
 			ABC.interpreter.instance.exports.get_bsp()-8,
 			old_hp,
@@ -103,7 +92,28 @@ const ABC={
 
 		ABC.interpreter.instance.exports.set_hp_free(new_hp_free);
 
-		return ABC.memory_array[unused_semispace/4];
+		return ABC.memory_array[addr/4];
+	},
+	deserialize_from_unique_string: function (str_ptr) {
+		var size=ABC.memory_array[str_ptr/4+2];
+		ABC.require_hp(size/8*4); // rough upper bound
+
+		return ABC._deserialize(str_ptr+16, size/8);
+	},
+	deserialize: function (string) {
+		var max_words_needed=string.length/8*4; // rough upper bound
+		ABC.require_hp(max_words_needed);
+
+		var array=new Uint8Array(string.length);
+		for (var i=0; i<string.length; i++)
+			array[i]=string.charCodeAt(i);
+		var graph=new Uint32Array(array.buffer);
+
+		var unused_semispace=ABC.util.instance.exports.get_unused_semispace();
+		for (var i=0; i<graph.length; i++)
+			ABC.memory_array[unused_semispace/4+i]=graph[i];
+
+		return ABC._deserialize(unused_semispace, graph.length/2);
 	},
 
 	interpret: null,
@@ -319,11 +329,15 @@ const ABC={
 
 	get_clean_string: function (hp_ptr) {
 		var size=ABC.memory_array[hp_ptr/4+2];
-		var string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16);
-		var string='';
-		for (var i=0; i<size; i++)
-			string+=String.fromCharCode(string_buffer[i]);
-		return string;
+		var string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16, size);
+		if (typeof TextDecoder!='undefined') {
+			return new TextDecoder('x-user-defined').decode(string_buffer);
+		} else {
+			var string='';
+			for (var i=0; i<size; i++)
+				string+=String.fromCharCode(string_buffer[i]);
+			return string;
+		}
 	},
 
 	addresses: {},
@@ -481,8 +495,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[index].ref;
 							break;
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
-							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							ABC.memory_array[asp/4]=ABC.deserialize(string);
+							var hp_ptr=ABC.memory_array[asp/4];
+							ABC.memory_array[asp/4]=ABC.deserialize_from_unique_string(hp_ptr);
 							break;
 						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */
 							var array=ABC.memory_array[asp/4]+24;
