@@ -79,10 +79,17 @@ const ABC={
 		var max_words_needed=string.length/8*4; // rough upper bound
 		ABC.require_hp(max_words_needed);
 
-		var array=new Int8Array(string.length);
-		for (var i in string)
-			array[i]=string.charCodeAt(i);
-		var graph=new Uint32Array(array.buffer);
+		var graph;
+		if (string.constructor.name=='Uint32Array') {
+			graph=string;
+		} else if (typeof string=='string') {
+			var array=new Uint8Array(string.length);
+			for (var i=0; i<string.length; i++)
+				array[i]=string.charCodeAt(i);
+			graph=new Uint32Array(array.buffer);
+		} else {
+			throw new ABCError('illegal argument type for ABC.deserialize()');
+		}
 		var unused_semispace=ABC.util.instance.exports.get_unused_semispace();
 		for (var i=0; i<graph.length; i++)
 			ABC.memory_array[unused_semispace/4+i]=graph[i];
@@ -481,8 +488,10 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.memory_array[asp/4]=ABC.shared_clean_values[index].ref;
 							break;
 						case 6: /* iTasks.UI.JS.Interface: deserialize */
-							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							ABC.memory_array[asp/4]=ABC.deserialize(string);
+							var hp_ptr=ABC.memory_array[asp/4];
+							var size=ABC.memory_array[hp_ptr/4+2];
+							var array=new Uint32Array(ABC.memory.buffer,hp_ptr+16,size/4);
+							ABC.memory_array[asp/4]=ABC.deserialize(array);
 							break;
 						case 7: /* iTasks.UI.JS.Interface: initialize_client in wrapInitUIFunction */
 							var array=ABC.memory_array[asp/4]+24;
