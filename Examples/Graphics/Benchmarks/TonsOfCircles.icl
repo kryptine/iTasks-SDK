@@ -1,5 +1,9 @@
 module TonsOfCircles
 
+/** Test program that renders 101x101 circles with different fill colors.
+	Clicking in the image starts a server round trip to re-render the same image.
+*/
+
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.UI.Prompt
