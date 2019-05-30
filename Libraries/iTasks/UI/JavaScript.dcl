@@ -208,7 +208,7 @@ wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *
  * @param The string to deserialize.
  * @result The deserialized value.
  */
-jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
 
 /**
  * Load external CSS stylesheet by its URL.

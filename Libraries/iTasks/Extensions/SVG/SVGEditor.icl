@@ -160,10 +160,14 @@ toUIAttributes attr vst
   # (attr,vst) = serializeForClient attr vst
   = ('Data.Map'.fromList [(JS_ATTR_SVG,JSONString attr)], vst)
 
-fromUIAttributes :: !String !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
+fromUIAttributes :: !*String !*JSWorld -> (!ServerToClientAttr s,!*JSWorld)
 fromUIAttributes json world
   = jsDeserializeGraph json world
 
+ensure_uniqueness :: !String -> *String
+ensure_uniqueness _ = code {
+	no_op
+}
 
 //	the server side state:
 :: ServerSVGState s
@@ -367,7 +371,7 @@ clientGetTaskId me world
 clientInitDOMEl :: !(SVGEditor s v) !JSVal !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 clientInitDOMEl svglet me args world
   #! (model,  world) = me .# "attributes.value" .? world
-  #! (model,  world) = jsDeserializeGraph (jsValToString` "" model) world
+  #! (model,  world) = jsDeserializeGraph (ensure_uniqueness (jsValToString` "" model)) world
   #! (jsView, world) = jsMakeCleanReference (svglet.initView model) me world
   #! (jsModel,world) = jsMakeCleanReference model me world
   #! world           = (me .# JS_ATTR_VIEW  .= jsView) world
@@ -388,7 +392,7 @@ clientHandleAttributeChange svglet me args world
   #! world = timeTrace ("clientHandleAttributeChange [" +++ join "," (map fst nv_pairs) +++ "] started at ") world
   = case svg_or_text of
       Just json
-        #! (request,world) = fromUIAttributes (jsValToString` "" json) world
+        #! (request,world) = fromUIAttributes (ensure_uniqueness (jsValToString` "" json)) world
         = case request of
             (ServerNeedsTextMetrics new_fonts new_texts)
               #! world     = timeTrace "clientHandleAttributeChange (ServerNeedsTextMetrics) started at " world

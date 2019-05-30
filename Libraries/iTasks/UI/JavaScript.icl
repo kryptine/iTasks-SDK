@@ -552,10 +552,10 @@ where
 			repl_r_args 0 1
 		}
 
-jsDeserializeGraph :: !String !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
 jsDeserializeGraph s w = (deserialize s, w)
 where
-	deserialize :: !String -> .a
+	deserialize :: !*String -> .a
 	deserialize _ = code {
 		instruction 6
 	}
