@@ -326,11 +326,15 @@ const ABC={
 
 	get_clean_string: function (hp_ptr) {
 		var size=ABC.memory_array[hp_ptr/4+2];
-		var string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16);
-		var string='';
-		for (var i=0; i<size; i++)
-			string+=String.fromCharCode(string_buffer[i]);
-		return string;
+		var string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16, size);
+		if (typeof TextDecoder!='undefined') {
+			return new TextDecoder('x-user-defined').decode(string_buffer);
+		} else {
+			var string='';
+			for (var i=0; i<size; i++)
+				string+=String.fromCharCode(string_buffer[i]);
+			return string;
+		}
 	},
 
 	addresses: {},
