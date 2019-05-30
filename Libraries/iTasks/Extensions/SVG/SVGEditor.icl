@@ -30,7 +30,8 @@ jsTrace` a b :== /*jsTrace a*/ b
 timeTrace :: !String !*JSWorld -> *JSWorld
 timeTrace msg world
   #! (ms,world) = getCurrentTimeInMilliseconds world
-  #! world      = jsTrace` (msg +++ toString ms +++ "ms") world
+  #! ms`        = toString ms
+  #! world      = jsTrace (ms`%(size ms`-7,size ms`-1) +++ "\tms:\t" +++ msg) world
   = world
 
 from iTasks.Internal.Generic.Visualization import <+++, generic gText
@@ -251,6 +252,7 @@ where
 	initClientSideUI :: !(SVGEditor s v) !JSObj !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	initClientSideUI svglet me world
 	// Set attributes
+      #! world                       = timeTrace "initClientSideUI started at " world
       #! world                       = (me .# "clickCount" .= 0) world
 	  #! (jsDragState,world)         = jsMakeCleanReference initDragState me world
 	  #! world                       = (me .# "dragState" .= jsDragState) world
@@ -259,6 +261,7 @@ where
 	  #! world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
 	  #! (jsInitDOMEl,world)         = jsWrapFun (clientInitDOMEl svglet me) me world
 	  #! world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
+	  #! world                       = timeTrace "initClientSideUI ended at " world
 	  = world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
@@ -626,9 +629,11 @@ clientRootSVGElt me world
 //	register the defunctionalized event handlers of the image:
 clientRegisterEventhandlers` :: !(SVGEditor s v) !JSVal !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 clientRegisterEventhandlers` svglet me taskId es` tags world
+  #! world               = timeTrace "clientRegisterEventhandlers` started at " world
   #! (svg,world)         = clientRootSVGElt me world
   #! world               = registerDragEventhandlers` svg me taskId es` tags world
-  = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
+  #! world               = 'Data.Map'.foldrWithKey (registerEventhandler` svglet me taskId svg) world es`
+  = timeTrace "clientRegisterEventhandlers` ended at " world
 where
 //	register mousemove and mouseup listeners only when one of the draggable attributes are present in the image
 	registerDragEventhandlers` :: !JSObj !JSVal !String !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld
@@ -725,7 +730,7 @@ where
 	  #! (Just model,world) = jsGetCleanReference (me .# JS_ATTR_MODEL) world
 	  #! image`             = renderImage model view (imgTagSource taskId)
 	  = case getImgEventhandler image` p of
-	      Nothing           = world		// this code should never be reached
+	      Nothing           = timeTrace "doMouseEvent` reached illegal code section ended at " world		// this code should never be reached
 	      Just f
 	   // Update the view & the model
 	      #! view           = applyImgEventhandler f cb_data view
@@ -735,11 +740,12 @@ where
 	      #! world          = (me .# JS_ATTR_VIEW  .= jsView)  world
 	      #! world          = (me .# JS_ATTR_MODEL .= jsModel) world
 	      | local									// the new model value is rendered entirely local on client
+	        #! world        = timeTrace "doMouseEvent` calls clientHandleModel started at " world
 	        = clientHandleModel svglet me model view world
 	      | otherwise           					// the new model value is rendered on the server
 	      #! (editId,world) = me .# "attributes.editorId" .? world
 	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,toJSON (ClientHasNewModel model))) world
-	      #! world          = timeTrace "doMouseEvent` starts server round trip at " world
+	      #! world          = timeTrace "doMouseEvent` calls server round trip started at " world
 	      = world							// rendering is completed by clientHandleAttributeChange
 	where
 		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData m -> m
@@ -760,8 +766,10 @@ where
 		  #! image`                 = renderImage s v (imgTagSource taskId)
 		  #! (img,{ImgTables | imgEventhandlers=es,imgNewFonts=new_fonts,imgNewTexts=new_texts,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags})
 		                            = toImg image` [] 'Data.Map'.newMap 'Data.Map'.newMap newImgTables
+		  #! world                  = timeTrace "clientHandleModel gets metrics started at " world
 		  #! (new_font_spans,world) = getNewFontSpans  new_fonts me world                                   // Get missing font spans
 		  #! (new_text_spans,world) = getNewTextsSpans new_texts me world                                   // Get missing text width spans
+		  #! world                  = timeTrace "clientHandleModel gets metrics ended at " world
 		  = case resolve_all_spans tags new_font_spans new_text_spans img masks markers paths spans grids of
 		      Error error           = abort error
 		      Ok (img,masks,markers,paths,spans,grids)
@@ -769,7 +777,7 @@ where
 		        #! svgStr           = browserFriendlySVGEltToString svg
 		        #! world            = clientUpdateSVGString svgStr me world
 		        #! world            = clientRegisterEventhandlers` svglet me taskId es tags world
-		        #! world            = timeTrace "clientHandleModel finished at " world
+		        #! world            = timeTrace "clientHandleModel ended at " world
 		        = world
 	
 	doMouseDragEvent` :: !(SVGEditor s v) !JSVal !JSObj !ImgTagNo !ImgNodePath !String !JSObj !{!JSVal} !*JSWorld -> *JSWorld
