@@ -434,10 +434,8 @@ where
 	
 	clientRegisterEventhandlers :: !(SVGEditor s v) !JSVal !ImgEventhandlers` !ImgTags !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es tags world
-	  #! world          = timeTrace "clientRegisterEventhandlers started at " world
 	  #! (taskId,world) = clientGetTaskId me world
 	  #! world          = clientRegisterEventhandlers` svglet me taskId es tags world
-	  #! world          = timeTrace "clientRegisterEventhandlers ended at " world
 	  = world
 
 //	generate the entire SVG element from an Img with all spans resolved:
