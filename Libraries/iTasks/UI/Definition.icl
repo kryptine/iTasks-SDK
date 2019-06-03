@@ -51,6 +51,9 @@ uiac type attr items = UI type attr items
 emptyAttr :: UIAttributes
 emptyAttr = 'DM'.newMap
 
+taskTypeAttr :: !String -> UIAttributes
+taskTypeAttr type = 'DM'.fromList [("task-type",JSONString type)]
+
 optionalAttr :: !Bool -> UIAttributes
 optionalAttr optional = 'DM'.fromList [("optional",JSONBool optional)]
 

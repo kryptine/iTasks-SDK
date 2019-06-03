@@ -36,7 +36,6 @@ import
 
 	//	Miscellaneous machinery
 	,	Text.GenJSON							// JSON is used for serializing/deserializing strings
-	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
 
 	//	API extensions for user  & workflow management

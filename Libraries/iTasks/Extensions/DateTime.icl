@@ -10,7 +10,6 @@ import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
 import iTasks.Internal.IWorld
 import iTasks.UI.Definition
-import iTasks.UI.Prompt
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Editor.Modifiers

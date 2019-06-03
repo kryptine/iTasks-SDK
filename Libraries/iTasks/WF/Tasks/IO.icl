@@ -7,7 +7,6 @@ import iTasks.SDS.Definition
 import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Editor
-import iTasks.UI.Prompt
 
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task

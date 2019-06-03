@@ -5,6 +5,7 @@ import Data.Func
 from Data.Tuple import appSnd
 from Data.List import isMemberGen, findIndex, instance Functor [], getItems
 from Data.Map import qualified get, put
+import qualified Data.Map as DM
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor, Data.Maybe, StdString
 import iTasks.WF.Tasks.Core
@@ -16,45 +17,91 @@ import iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Common
 import iTasks.Internal.Util
 import iTasks.Internal.SDS
-import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
+import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Text.HTML
 
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
+instance toPrompt ()
+where toPrompt _ = 'DM'.newMap
+
+instance toPrompt UIAttributes
+where toPrompt attr = attr
+
+instance toPrompt String
+where toPrompt hint = 'DM'.fromList [("hint",JSONString hint)]
+
+instance toPrompt (!String,!String)
+where toPrompt (title,hint) = 'DM'.fromList [("title",JSONString title),("hint",JSONString hint)]
+
+instance toString Icon
+where
+	toString (Icon icon) = icon
+	toString (IconView)	= "view"
+	toString (IconEdit) = "edit"
+
+instance toPrompt (!Icon,!String,!String)
+where
+	toPrompt (icon,title,hint) = 'DM'.fromList [("icon",JSONString (toString icon)),("title",JSONString title),("hint",JSONString hint)]
+
+instance toPrompt Title
+where
+	toPrompt (Title title) = 'DM'.fromList [("title",JSONString title)]
+
+instance toPrompt Label
+where
+	toPrompt (Label label) = 'DM'.fromList [("label",JSONString label)]
+
+instance toPrompt Hint
+where
+	toPrompt (Hint hint) = 'DM'.fromList [("hint",JSONString hint)]
+
+instance toPrompt Icon
+where
+	toPrompt icon = 'DM'.fromList [("icon",JSONString (toString icon))]
+
+instance toPrompt Att
+where
+	toPrompt (Att a) = toPrompt a
+
+instance toPrompt [d] | toPrompt d
+where
+	toPrompt list = 'DM'.unions (map toPrompt list)
+
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterAs fromf:_]
-	= interactRW d unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} gEditor{|*|} @ (\((),v) -> fromf v)
+	= interactRW (toPrompt d) unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} gEditor{|*|} @ (\((),v) -> fromf v)
 enterInformation d opts=:[EnterUsing fromf editor:_]
-	= interactRW d unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} editor @ (\((),v) -> fromf v)
+	= interactRW (toPrompt d) unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} editor @ (\((),v) -> fromf v)
 enterInformation d _ = enterInformation d [EnterAs id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateAs tof fromf:_] m
-	= interactRW d unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
+	= interactRW (toPrompt d) unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
 		gEditor{|*|} @ (\((),v) -> fromf m v)
 updateInformation d [UpdateUsing tof fromf editor:_] m
-	= interactRW d unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
+	= interactRW (toPrompt d) unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
 		editor @ (\((),v) -> fromf m v)
 updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 viewInformation d [ViewAs tof:_] m
-	= interactRW d unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} gEditor{|*|} @! m
+	= interactRW (toPrompt d) unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} gEditor{|*|} @! m
 viewInformation d [ViewUsing tof editor:_] m
-	= interactRW d unitShare {onInit = const ((), View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
+	= interactRW (toPrompt d) unitShare {onInit = const ((), View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
 viewInformation d _ m = viewInformation d [ViewAs id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(sds () r w) -> Task r | toPrompt d & iTask r & iTask w & RWShared sds
 updateSharedInformation d [UpdateAs tof fromf:_] shared
-	= interactRW d shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ _ -> (r,tof r,Nothing)}
+	= interactRW (toPrompt d) shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ _ -> (r,tof r,Nothing)}
 				gEditor{|*|} @ fst
 
 updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
-	= interactRW d shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ _ -> (r,tof r,Nothing)}
+	= interactRW (toPrompt d) shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ _ -> (r,tof r,Nothing)}
 				editor @ fst
 
 updateSharedInformation d [UpdateSharedAs tof fromf conflictf:_] shared
-	= interactRW d shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
+	= interactRW (toPrompt d) shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
 				gEditor{|*|} @ fst
 
 updateSharedInformation d _ shared
@@ -66,22 +113,22 @@ updateSharedInformation d _ shared
 
 viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
 viewSharedInformation d [ViewAs tof:_] shared
-	= interactR d shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} gEditor{|*|} @ fst
+	= interactR (toPrompt d) shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} gEditor{|*|} @ fst
 
 viewSharedInformation d [ViewUsing tof editor:_] shared
-	= interactR d shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
+	= interactR (toPrompt d) shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
 viewSharedInformation d _ shared = viewSharedInformation d [ViewAs id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(sds () r w) m -> Task m | toPrompt d & iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared d [UpdateAs tof fromf:_] shared m
-	= interactRW d shared
+	= interactRW (toPrompt d) shared
 		{onInit = \r -> ((r,m), Update $ tof (r,m))
 		,onEdit = \v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing)
 		,onRefresh = \r (_,m) _ -> ((r,m),tof (r,m),Nothing)
 		} gEditor{|*|} @ (snd o fst)
 
 updateInformationWithShared d [UpdateUsing tof fromf editor:_] shared m
-	= interactRW d shared
+	= interactRW (toPrompt d) shared
 		{onInit = \r -> ((r,m),Update $ tof (r,m))
 		,onEdit = \v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing)
 		,onRefresh = \r (_,m) _ -> ((r,m),tof (r,m),Nothing)
@@ -97,7 +144,7 @@ editSelection d multi (SelectInList toView fromView) container sel = editSelecti
 editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid <<@ multipleAttr multi) toView fromView container sel
 editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree <<@ multipleAttr multi) toView fromView container sel
 editSelection` d editor toView fromView container sel
-	= interactRW d unitShare
+	= interactRW (toPrompt d) unitShare
 		{onInit = \r     -> ((), Update (toView container,sel))
 		,onEdit = \v l _ -> (l,v,Nothing)
 		,onRefresh = \_ l (Just v) -> (l,v,Nothing)
@@ -110,7 +157,7 @@ editSelectionWithShared d multi (SelectInList toView fromView) sharedContainer i
 editSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer initSel = editSelectionWithShared` d (grid <<@ multipleAttr multi) toView fromView sharedContainer initSel
 editSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer initSel = editSelectionWithShared` d (tree <<@ multipleAttr multi) toView fromView sharedContainer initSel
 editSelectionWithShared` d editor toView fromView sharedContainer initSel
-	= interactRW d sharedContainer
+	= interactRW (toPrompt d) sharedContainer
 		{onInit = \r     -> (r, Update(toView r, initSel r))
 		,onEdit = \v l _ -> (l,v,Nothing)
 		,onRefresh = \r l (Just (v,sel)) -> (r,(toView r,sel),Nothing)
@@ -123,7 +170,7 @@ editSharedSelection d multi (SelectInList toView fromView) container sharedSel =
 editSharedSelection d multi (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d (grid <<@ multipleAttr multi) toView fromView container sharedSel
 editSharedSelection d multi (SelectInTree toView fromView) container sharedSel = editSharedSelection` d (tree <<@ multipleAttr multi) toView fromView container sharedSel
 editSharedSelection` d editor toView fromView container sharedSel
-	= interactRW d sharedSel
+	= interactRW (toPrompt d) sharedSel
 		{onInit = \r           -> ((), Update (toView container,r))
 		,onEdit = \(vt,vs) l _ -> (l,(vt,vs),Just (const vs))
 		,onRefresh = \r l (Just (vt,vs)) -> (l,(vt,r),Nothing)
@@ -141,7 +188,7 @@ editSharedSelectionWithShared d multi (SelectInGrid toView fromView) sharedConta
 editSharedSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer sharedSel
 	= editSharedSelectionWithShared` d (tree <<@ multipleAttr multi) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSel
-	= interactRW d (sharedContainer |*< sharedSel)
+	= interactRW (toPrompt d) (sharedContainer |*< sharedSel)
 		{onInit = \(rc, rs)       -> (rc, Update (toView rc,rs))
 		,onEdit = \v=:(_, vs) l _ -> (l, v, Just (const vs))
 		,onRefresh = \(rc, rs)   _ _ -> (rc, (toView rc, rs), Nothing)

@@ -179,6 +179,7 @@ uiac :: UIType UIAttributes [UI] -> UI
 //Predefined attribute defintions
 emptyAttr         :: UIAttributes
 
+taskTypeAttr      :: !String                              -> UIAttributes
 optionalAttr 	  :: !Bool                                -> UIAttributes
 
 sizeAttr          :: !UISize !UISize                      -> UIAttributes

@@ -5,6 +5,7 @@ import iTasks.UI.Layout
 import iTasks.UI.Layout.Common
 import StdBool, StdString, StdArray, Data.List, Data.Maybe, Data.Func, Text.GenJSON
 import qualified Data.Map as DM
+import Text.HTML
 
 standardFormsSessionLayout :: LayoutRule
 standardFormsSessionLayout = sequenceLayouts
@@ -14,7 +15,7 @@ standardFormsSessionLayout = sequenceLayouts
 	]
 
 layoutCombinatorContainers = sequenceLayouts
-	[layoutSubUIs (SelectByType UIInteract) layoutInteract
+	[layoutSubUIs (SelectByAttribute "task-type" ((==) (JSONString "interact"))) layoutInteract
 	,layoutSubUIs (SelectByType UIStep) layoutStep
 	,layoutSubUIs (SelectByType UIParallel) layoutParallel
 	//There can still be buttons (e.g. when a parallel has been transformed to a tabset
@@ -71,36 +72,44 @@ where
 	layoutWithActions = sequenceLayouts [setUIType UIPanel, addToolBar]
 
 layoutInteract = sequenceLayouts
-	[setTitle
+	[delUIAttributes (SelectKeys ["task-type"]) //Make sure the rule won't trigger twice
 	,layoutEditor
-	,removePromptIfEmpty
-	,setContainerType
+	,decorateEditor
 	]
 where
-	setTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
-
-	layoutEditor = layoutSubUIs (SelectByPath [1]) (sequenceLayouts
+	layoutEditor = sequenceLayouts
 		[layoutSubUIs SelectFormElement layoutFormItem
 		,layoutSubUIs (SelectByType UIRecord) layoutRecord
 		,layoutSubUIs (SelectByType UICons) layoutCons
 		,layoutSubUIs (SelectByType UIVarCons) layoutVarCons
 		,layoutSubUIs (SelectByType UIList) layoutList
 		,layoutSubUIs (SelectByType UIPair) layoutPair
-		])
+		]
 	layoutFormItem = sequenceLayouts
 		[toFormItem
 		,layoutSubUIs (SelectAND SelectDescendents SelectFormElement) layoutFormItem
 		]
 
-	removePromptIfEmpty = layoutSubUIs withEmptyPrompt removePrompt
+	decorateEditor = layoutSubUIs (SelectOR hasTitle hasPrompt) wrapEditor
 	where
-		withEmptyPrompt = SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))
-		removePrompt = removeSubUIs (SelectByPath [0])
+		hasTitle = SelectAND (SelectByPath []) (SelectByHasAttribute "title")
+		hasPrompt = SelectAND (SelectByPath []) (SelectByHasAttribute "hint")
+		wrapEditor = sequenceLayouts
+			[wrapUI UIContainer
+			,copySubUIAttributes SelectAll [0] []
+			,layoutSubUIs hasTitle (setUIType UIPanel)
+			,layoutSubUIs hasPrompt (sequenceLayouts [createPrompt,fillPrompt])
+			]
+		createPrompt = insertChildUI 0 prompt
+		where
+			prompt = UI UIContainer (classAttr ["itasks-prompt","itasks-flex-width","itasks-wrap-height"]) [ui UITextView]
 
-	setContainerType = sequenceLayouts
-		[setUIType UIContainer 
-		,layoutSubUIs (SelectAND (SelectByPath []) (SelectByHasAttribute "title")) (setUIType UIPanel)
-		]
+		fillPrompt = sequenceLayouts
+			[copySubUIAttributes (SelectKeys ["hint"]) [] [0,0]
+			,layoutSubUIs (SelectByPath [0,0]) (modifyUIAttributes (SelectKeys ["hint"]) promptToValue)
+			]
+		where
+			promptToValue attr = 'DM'.fromList [("value",JSONString (maybe "" (\(JSONString s) -> escapeStr s) ('DM'.get "hint" attr)))]
 
 SelectFormElement = SelectByHasAttribute LABEL_ATTRIBUTE
 

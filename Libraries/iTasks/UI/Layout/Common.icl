@@ -3,9 +3,10 @@ implementation module iTasks.UI.Layout.Common
 import StdEnv
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
-import iTasks.UI.Definition, iTasks.UI.Prompt
+import iTasks.UI.Definition
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
+import iTasks.WF.Tasks.Interaction
 import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
 import Data.Monoid
 import qualified Data.Map as DM

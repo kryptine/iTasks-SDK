@@ -2,7 +2,6 @@ definition module iTasks.WF.Tasks.Interaction
 
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: Action
-from iTasks.UI.Prompt import class toPrompt
 from iTasks.UI.Editor.Controls import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode
 import iTasks.SDS.Definition
 
@@ -37,6 +36,34 @@ from Data.Functor import class Functor
 						| E.v: ChooseFromCheckGroup (o -> v) & iTask v
 						| E.v: ChooseFromList (o -> v)       & iTask v
 						| E.v: ChooseFromGrid (o -> v)       & iTask v
+
+
+/*** Convenience class to add prompting related attributes***/
+class toPrompt d :: !d -> UIAttributes
+
+:: Att				= E.a: Att !a & toPrompt a
+
+:: Title			= Title !String
+:: Label            = Label !String
+:: Hint				= Hint !String
+:: Icon				= Icon !String
+					| IconView
+					| IconEdit
+
+instance toPrompt ()                  //No prompt
+instance toPrompt UIAttributes        //Identity
+instance toPrompt String              //Simple hint
+instance toPrompt (!String, !String)  //Title attribute + hint attribute
+
+//Additional instances to create more complex prompts
+instance toPrompt (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
+instance toPrompt Title
+instance toPrompt Label
+instance toPrompt Hint
+instance toPrompt Icon
+
+instance toPrompt Att
+instance toPrompt [d] | toPrompt d
 
 /*** General input/update/output tasks ***/
 
