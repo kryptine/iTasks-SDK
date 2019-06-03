@@ -469,6 +469,7 @@ itasks.Viewport = {
 		me.changeListeners.push(cmp);
 	},
 	removeChangeListener: function(cmp) {
+		var me = this;
 		me.changeListeners = me.changeListeners.filter(function(el) {
 			return el != cmp;
 		});
