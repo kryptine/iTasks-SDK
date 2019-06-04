@@ -27,13 +27,12 @@ itasks.Component = {
 		var me = this;
 		me.lastFire = 0;
 
-		return me.initUI().then(function(){
-			me.initComponent();
-			return me.initChildren();
-		}).then(function(){
-			me.renderComponent();
-			me.initialized = true;
-		});
+		return Promise.resolve()
+			.then(me.initUI.bind(me))
+			.then(me.initComponent.bind(me))
+			.then(me.initChildren.bind(me))
+			.then(me.renderComponent.bind(me))
+			.then(function(){ me.initialized=true; });
 	},
 	initUI: function() {
 		var me=this;
@@ -42,20 +41,17 @@ itasks.Component = {
 				var initUI=ABC.deserialize(me.attributes.initUI,me);
 				ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
 			});
-		else
-			return Promise.resolve();
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {
 		var me = this;
-		var promises=me.children.map(function(spec,i){
+		return me.children.reduce((promise,spec,i) => promise.then(function(){
 			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
 			return me.children[i].init().then(function(){
 				me.afterChildInsert(i,me.children[i]);
 			});
-		});
-		return Promise.all(promises);
+		}), Promise.resolve());
 	},
 	renderComponent: function() {
 		var me = this;
@@ -195,7 +191,7 @@ itasks.Component = {
 
 		if(me.initialized) {
 			//Initialize, if we are already initialized
-			child.init().then(function(){
+			return child.init().then(function(){
 				//Add the child to the dom
 				if(child.domEl) {
 					if(isLast) {
@@ -229,7 +225,7 @@ itasks.Component = {
 		var me = this;
 		if(idx >= 0 && idx < me.children.length) {
 			me.removeChild(idx);
-			me.insertChild(idx,spec);
+			return me.insertChild(idx,spec);
 		}
 	},
 	moveChild: function(sidx,didx) {
@@ -276,24 +272,21 @@ itasks.Component = {
 		if(change) {
 			switch(change.type) {
 				case 'replace':
-					me.onReplaceUI(change.definition);
-					break;
+					return me.onReplaceUI(change.definition);
 				case 'change':
-					me.onChangeUI(change.attributes,change.children);
-					break;
+					return me.onChangeUI(change.attributes,change.children);
 			}
 		}
 	},
 	onReplaceUI: function(spec) {
-		var me = this, idx;
-
+		var me = this;
 		if(me.parentCmp) {
-			idx = me.parentCmp.findChild(me);
-			me.parentCmp.replaceChild(idx,spec);
+			var idx = me.parentCmp.findChild(me);
+			return me.parentCmp.replaceChild(idx,spec);
 		}
 	},
 	onChangeUI: function(attributeChanges,childChanges) {
-		var me = this, idx;
+		var me = this;
 
 		//Handle attribute changes
 		if(attributeChanges instanceof Array) {
@@ -303,19 +296,18 @@ itasks.Component = {
 		}
 		//Handle child changes
 		if (childChanges instanceof Array) {
-			childChanges.forEach(function(change) {
+			childChanges.reduce((promise,change) => promise.then(function(){
 				var idx = change[0];
 				switch(change[1]) {
 					case 'change':
 						if(idx >= 0 && idx < me.children.length) {
-							me.children[idx].onUIChange(change[2]);
+							return me.children[idx].onUIChange(change[2]);
 						} else {
 							console.log("UNKNOWN CHILD",idx,me.children.length,change);
 						}
 						break;
 					case 'insert':
-						me.insertChild(idx,change[2]);
-						break;
+						return me.insertChild(idx,change[2]);
 					case 'remove':
 						me.removeChild(idx);
 						break;
@@ -323,7 +315,7 @@ itasks.Component = {
 						me.moveChild(idx,change[2]);
 						break;
 				}
-			});
+			}), Promise.resolve());
 		}
 	},
 	onShow: function() {
@@ -498,7 +490,7 @@ itasks.Viewport = {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
-	init: function () { return Promise.resolve(); },
+	init: function () { },
 	beforeRemove: function() {},
 	_beforeRemove: function() {},
 };
