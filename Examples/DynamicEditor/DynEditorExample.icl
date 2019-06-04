@@ -8,22 +8,33 @@ import iTasks, iTasks.Extensions.Editors.DynamicEditor
 Start world = doTasks editTask world
 
 editTask =		forever
-		(		enterInformation () [EnterUsing id $ dynamicEditor taskEditor]
-		>>=		evalTaskConstExpr o toValue taskEditor
-		>>=		viewInformation "result of the completed task is:" []
-		)
+		(			viewInformation "Contruct a Task expression:" [] ()
+					||- 
+					enterInformation () [EnterUsing id $ dynamicEditor taskEditor]
+		>>=	\v ->	viewInformation "Evaluate the Expression:" [] ()
+					||- 
+					evalTaskConstExpr (toValue taskEditor v)
+		>>=			viewInformation "Result of the Task is:" [] 
+		>>=			return
+		) // <<@ ApplyLayout frameCompact
 
-:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation Type | Bind TaskConstExpr TaskFuncExpr | Blind TaskConstExpr TaskConstExpr
+:: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation String Type | Bind TaskConstExpr TaskFuncExpr | Blind TaskConstExpr TaskConstExpr
 				 | Or TaskConstExpr TaskConstExpr | And TaskConstExpr TaskConstExpr
-				 | When TaskConstExpr FunExpr
-:: TaskFuncExpr  = ViewInformation | UpdateInformation | Return
-:: Expr          = Int Int | Bool Bool | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
-:: Value         = VInt Int | VBool Bool | VTuple Value Value
-:: Type          = E.a: Type (a -> Value) & iTask a
-:: Typed a b     =: Typed a
+//				 | When TaskConstExpr FunExpr String TaskFuncExpr
+//				 | When TaskConstExpr [(FunExpr, String, TaskFuncExpr)]
+				 | When TaskConstExpr TaskStepExpr
+:: TaskFuncExpr  = ViewInformation String | UpdateInformation String | Return
+:: TaskStepExpr	 = StepN FunExpr String TaskFuncExpr TaskStepExpr | Step1 FunExpr String TaskFuncExpr
+
+:: Expr          = Int Int | Bool Bool | String String | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
+
+:: Value         = VInt Int | VBool Bool | VString String | VTuple Value Value
 :: FunExpr	 	 = EqV Value | GrtV Value | LessV Value
 
-derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed, FunExpr
+:: Type          = E.a: Type (a -> Value) & iTask a
+:: Typed a b     =: Typed a
+
+derive class iTask TaskConstExpr, TaskFuncExpr, TaskStepExpr, Expr, Value, Typed, FunExpr
 
 // instances are never used
 gDefault{|Type|} = undef
@@ -68,11 +79,23 @@ where
 						-> Typed TaskConstExpr (Task (a,b))
 				)
 			, functionConsDyn "When" "when"
-				(	dynamic \(Typed task1) (Typed funexpr) -> Typed (When task1 funexpr) ::
+				(	dynamic \(Typed task1) (Typed step) -> Typed (When task1 step) ::
 					A.a b:
-						(Typed TaskConstExpr (Task a)) (Typed FunExpr a)
-						-> Typed TaskConstExpr (Task a)
-				)
+						(Typed TaskConstExpr (Task a)) (Typed TaskStepExpr (a -> Task b))
+						-> Typed TaskConstExpr (Task b)
+				)	 <<@@@ applyHorizontalClasses
+			, functionConsDyn "StepN" ">>* (>1)"
+				(	dynamic \(Typed funExpr) s (Typed taskFunc) (Typed taskStepExpr) -> Typed (StepN funExpr s taskFunc taskStepExpr) ::
+					A.a b:
+						(Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b)) (Typed TaskStepExpr (a -> Task b))
+						-> Typed TaskStepExpr (a -> Task b)
+				)	<<@@@ applyHorizontalClasses
+			, functionConsDyn "Step1" ">>* (1)"
+				(	dynamic \(Typed funExpr) s (Typed taskFunc) -> Typed (Step1 funExpr s taskFunc) ::
+					A.a b:
+						(Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b))
+						-> Typed TaskStepExpr (a -> Task b)
+				)	<<@@@ applyHorizontalClasses
 				]
 		, DynamicConsGroup "Editors"
 			[ functionConsDyn "Apply" "apply"
@@ -80,15 +103,21 @@ where
 					A.a b: (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
 				)
 			, functionConsDyn "EnterInformation" "enter information"
-				(	dynamic \(Typed type) -> Typed (EnterInformation type) ::
-					A.a: (Typed Type a) -> Typed TaskConstExpr (Task a)
+				(	dynamic \s (Typed type) -> Typed (EnterInformation s type) ::
+					A.a: String (Typed Type a) -> Typed TaskConstExpr (Task a)
 				) <<@@@ applyHorizontalClasses
 			, functionConsDyn "ViewInformation" "view information"
-				(dynamic Typed ViewInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
+				(	dynamic \s -> Typed (ViewInformation s) :: 
+					A.a: String -> Typed TaskFuncExpr (a -> Task a)
+				)  <<@@@ applyHorizontalClasses
 			, functionConsDyn "UpdateInformation" "update information"
-				(dynamic Typed UpdateInformation :: A.a: Typed TaskFuncExpr (a -> Task a))
+				(	dynamic \s -> Typed (UpdateInformation s) :: 
+					A.a: String -> Typed TaskFuncExpr (a -> Task a)
+				)  <<@@@ applyHorizontalClasses
 			, functionConsDyn "Return" "return"
-				(dynamic Typed Return :: A.a: Typed TaskFuncExpr (a -> Task a))
+				(	dynamic Typed Return :: 
+					A.a: Typed TaskFuncExpr (a -> Task a)
+				)
 			]
 
 		// ordinary (non-task) expressions
@@ -102,10 +131,12 @@ where
 		, DynamicCons $ functionConsDyn "LessV"   "less"
 			(dynamic \i -> Typed (LessV (VInt i))  :: Int  -> Typed FunExpr Int)
 			<<@@@ applyHorizontalClasses
-		, DynamicCons $ functionConsDyn "int"   "enter integer:"
+		, DynamicCons $ functionConsDyn "int"   "enter an integer:"
 			(dynamic \i -> Typed (Int i)  :: Int  -> Typed Expr Int)
-		, DynamicCons $ functionConsDyn "bool"  "enter boolean:"
+		, DynamicCons $ functionConsDyn "bool"  "enter a boolean:"
 			(dynamic \b -> Typed (Bool b) :: Bool -> Typed Expr Bool)
+		, DynamicCons $ functionConsDyn "string"  "enter a string:"
+			(dynamic \s -> Typed (String s) :: String -> Typed Expr String)
 		, DynamicCons $ functionConsDyn "tuple" "enter tuple:"
 			(	dynamic \(Typed a) (Typed b) -> Typed (Tuple a b) ::
 				A.a b: (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
@@ -123,12 +154,14 @@ where
 			<<@@@ applyHorizontalClasses
 		, DynamicCons $ customEditorCons "Int"   "(enter integer)" intEditor  <<@@@ HideIfOnlyChoice
 		, DynamicCons $ customEditorCons "Bool"  "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
+		, DynamicCons $ customEditorCons "String""(enter string )" stringEditor <<@@@ HideIfOnlyChoice
 
 		// type specifications for enterInformation
 
-		, DynamicCons $ functionConsDyn "Type.Int"   "Int"   (dynamic Typed (Type VInt)  :: Typed Type Int)
-		, DynamicCons $ functionConsDyn "Type.Bool"  "Bool"  (dynamic Typed (Type VBool) :: Typed Type Bool)
-		, DynamicCons $ functionConsDyn "Type.Tuple" "Tuple"
+		, DynamicCons $ functionConsDyn "Type.Int"   	"Int"   	(dynamic Typed (Type VInt)  :: Typed Type Int)
+		, DynamicCons $ functionConsDyn "Type.Bool"  	"Bool"  	(dynamic Typed (Type VBool) :: Typed Type Bool)
+		, DynamicCons $ functionConsDyn "Type.String"  	"String"  	(dynamic Typed (Type VString) :: Typed Type String)
+		, DynamicCons $ functionConsDyn "Type.Tuple" 	"Tuple"
 			(	dynamic
 					\(Typed (Type toValue1)) (Typed (Type toValue2)) ->
 						Typed (Type \(x, y) -> VTuple (toValue1 x) (toValue2 y))
@@ -149,37 +182,61 @@ where
 	boolEditor :: Editor Bool
 	boolEditor = gEditor{|*|}
 
+	stringEditor :: Editor String
+	stringEditor = gEditor{|*|}
+
+
 applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-width", "itasks-panel"]
 
 evalTaskConstExpr :: TaskConstExpr -> Task Value
-evalTaskConstExpr (EnterInformation (Type toValue)) = enterInformation () [] @ toValue
-evalTaskConstExpr (Apply taskFunc expr)             = evalTaskFuncExpr taskFunc $ evalExpr expr
-evalTaskConstExpr (Bind task taskFunc)              = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
-evalTaskConstExpr (Blind task1 task2)             	= evalTaskConstExpr task1 >>| evalTaskConstExpr task2
-evalTaskConstExpr (Or task1 task2)             		= evalTaskConstExpr task1 -||- evalTaskConstExpr task2
-evalTaskConstExpr (And task1 task2)             	= evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
-evalTaskConstExpr (When task pred)					= evalTaskConstExpr task >>* [OnAction ActionOk (ifValue test return)]
+evalTaskConstExpr (EnterInformation prompt (Type toValue)) = enterInformation prompt [] @ toValue
+evalTaskConstExpr (Apply taskFunc expr)             =	evalTaskFuncExpr taskFunc $ evalExpr expr
+evalTaskConstExpr (Bind task taskFunc)              = 	evalTaskConstExpr task 
+													>>= evalTaskFuncExpr taskFunc
+evalTaskConstExpr (Blind task1 task2)             	= 	evalTaskConstExpr task1 
+													>>| evalTaskConstExpr task2
+evalTaskConstExpr (Or task1 task2)             		= 	evalTaskConstExpr task1 
+													-||- 
+														evalTaskConstExpr task2
+evalTaskConstExpr (And task1 task2)             	= 	evalTaskConstExpr task1 
+													-&&- 
+														evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
+evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 >>* reverse (mkSteps options [])
 where
-	test (VInt i) = case pred of
+	mkSteps (Step1 pred butName task) steps			=   [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
+	mkSteps (StepN pred butName task mStep) steps	=   mkSteps mStep [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
+
+	test pred (VInt i) = case pred of
 						(LessV (VInt j))  = i<j
 						(GrtV  (VInt j))  = i>j
 						(EqV   (VInt j))  = i==j
-	test (VBool i) = case pred of
-						(EqV   (VBool j)) = i==j
+	test pred (VBool i) = case pred of
+						(EqV   (VBool j))  = i==j
+						(LessV (VBool j))  = False
+						(GrtV  (VBool j))  = False
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
-evalTaskFuncExpr ViewInformation (VInt i)		= viewInformation () [] i @ VInt
-evalTaskFuncExpr ViewInformation (VBool b)		= viewInformation () [] b @ VBool
-evalTaskFuncExpr ViewInformation (VTuple a b)	= evalTaskFuncExpr ViewInformation a -&&- evalTaskFuncExpr ViewInformation b @ \(a,b) -> VTuple a b
-evalTaskFuncExpr UpdateInformation (VInt i)		= updateInformation () [] i @ VInt
-evalTaskFuncExpr UpdateInformation (VBool b)	= updateInformation () [] b @ VBool
-evalTaskFuncExpr UpdateInformation (VTuple a b)	= evalTaskFuncExpr UpdateInformation a -&&- evalTaskFuncExpr UpdateInformation b @ \(a,b) -> VTuple a b
-evalTaskFuncExpr Return value 					= return value
+evalTaskFuncExpr (ViewInformation p) (VInt i)		= (viewInformation p [] i @ VInt)	<<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (ViewInformation p) (VBool b)		= (viewInformation p [] b @ VBool)	<<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (ViewInformation p) (VString s)	= (viewInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (ViewInformation p) (VTuple a b)	= (viewInformation p [] () ||-
+													   evalTaskFuncExpr (ViewInformation "") a
+													   -&&- 
+													   evalTaskFuncExpr (ViewInformation "") b @ \(a,b) -> VTuple a b) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (UpdateInformation p) (VInt i)		= (updateInformation p [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (UpdateInformation p) (VBool b)	= (updateInformation p [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (UpdateInformation p) (VString s)	= (updateInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr (UpdateInformation p) (VTuple a b)	= (viewInformation p [] () ||-
+													   evalTaskFuncExpr (UpdateInformation "") a 
+													   -&&- 
+													   evalTaskFuncExpr (UpdateInformation "" )b @ \(a,b) -> VTuple a b) <<@ ApplyLayout arrangeHorizontal
+evalTaskFuncExpr Return value 						= return value
 
 
 evalExpr :: Expr -> Value
 evalExpr (Int i)                 = VInt i
 evalExpr (Bool b)                = VBool b
+evalExpr (String s)              = VString s
 evalExpr (Tuple fstExpr sndExpr) = VTuple (evalExpr fstExpr) (evalExpr sndExpr)
 evalExpr (Fst expr)              = fst
 where
