@@ -74,7 +74,7 @@ exePathToOutputDir path = dropExtension path +++ "-www"
 
 //Determine the potential input folders and css fragments
 objectPathsToInputDirs :: [FilePath] -> [FilePath]
-objectPathsToInputDirs paths = flatten (map rewrite paths)
+objectPathsToInputDirs paths = removeDup (flatten (map rewrite paths))
 where
 	rewrite path = [join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (dropExtension path)))) +++ "-WebPublic"
 				   //Transitional location of WebPublic files, they should eventually be linked directory to specific modules dash
