@@ -199,11 +199,11 @@ evalTaskConstExpr (Or task1 task2)             		= 	evalTaskConstExpr task1
 evalTaskConstExpr (And task1 task2)             	= 	evalTaskConstExpr task1 
 													-&&- 
 														evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
-/*evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 >>* reverse (mkSteps options [])
+evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 
+													>>* [  OnAction (Action butName) (ifValue (test pred)(evalTaskFuncExpr taskFunc))
+														\\ (pred, butName, taskFunc) <- options
+														]
 where
-	mkSteps (Step1 pred butName task) steps			=   [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
-	mkSteps (StepN pred butName task mStep) steps	=   mkSteps mStep [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
-
 	test pred (VInt i) = case pred of
 						(LessV (VInt j))  = i<j
 						(GrtV  (VInt j))  = i>j
@@ -211,7 +211,7 @@ where
 	test pred (VBool i) = case pred of
 						(EqV   (VBool j))  = i==j
 						(LessV (VBool j))  = False
-						(GrtV  (VBool j))  = False*/
+						(GrtV  (VBool j))  = False
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
 evalTaskFuncExpr (ViewInformation p) (VInt i)		= (viewInformation p [] i @ VInt)	<<@ ApplyLayout arrangeHorizontal
