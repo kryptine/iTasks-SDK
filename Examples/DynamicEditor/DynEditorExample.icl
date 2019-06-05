@@ -20,11 +20,8 @@ editTask =		forever
 
 :: TaskConstExpr = Apply TaskFuncExpr Expr | EnterInformation String Type | Bind TaskConstExpr TaskFuncExpr | Blind TaskConstExpr TaskConstExpr
 				 | Or TaskConstExpr TaskConstExpr | And TaskConstExpr TaskConstExpr
-//				 | When TaskConstExpr FunExpr String TaskFuncExpr
-//				 | When TaskConstExpr [(FunExpr, String, TaskFuncExpr)]
-				 | When TaskConstExpr TaskStepExpr
+				 | When TaskConstExpr [(FunExpr, String, TaskFuncExpr)]
 :: TaskFuncExpr  = ViewInformation String | UpdateInformation String | Return
-:: TaskStepExpr	 = StepN FunExpr String TaskFuncExpr TaskStepExpr | Step1 FunExpr String TaskFuncExpr
 
 :: Expr          = Int Int | Bool Bool | String String | Tuple Expr Expr | Fst Expr | Snd Expr | Eq Expr Expr
 
@@ -34,7 +31,7 @@ editTask =		forever
 :: Type          = E.a: Type (a -> Value) & iTask a
 :: Typed a b     =: Typed a
 
-derive class iTask TaskConstExpr, TaskFuncExpr, TaskStepExpr, Expr, Value, Typed, FunExpr
+derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed, FunExpr
 
 // instances are never used
 gDefault{|Type|} = undef
@@ -79,24 +76,25 @@ where
 						-> Typed TaskConstExpr (Task (a,b))
 				)
 			, functionConsDyn "When" "when"
-				(	dynamic \(Typed task1) (Typed step) -> Typed (When task1 step) ::
+				(	dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
 					A.a b:
-						(Typed TaskConstExpr (Task a)) (Typed TaskStepExpr (a -> Task b))
+						(Typed TaskConstExpr (Task a)) (Typed [(FunExpr, String, TaskFuncExpr)] (a -> Task b))
 						-> Typed TaskConstExpr (Task b)
 				)	 <<@@@ applyHorizontalClasses
-			, functionConsDyn "StepN" ">>* (>1)"
-				(	dynamic \(Typed funExpr) s (Typed taskFunc) (Typed taskStepExpr) -> Typed (StepN funExpr s taskFunc taskStepExpr) ::
+			, listConsDyn "[(FunExpr, String, TaskFuncExpr)]" "[(FunExpr, String, TaskFuncExpr)]"
+				(	dynamic \typedSteps -> Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
 					A.a b:
-						(Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b)) (Typed TaskStepExpr (a -> Task b))
-						-> Typed TaskStepExpr (a -> Task b)
-				)	<<@@@ applyHorizontalClasses
-			, functionConsDyn "Step1" ">>* (1)"
-				(	dynamic \(Typed funExpr) s (Typed taskFunc) -> Typed (Step1 funExpr s taskFunc) ::
+						[Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)] -> Typed [(FunExpr, String, TaskFuncExpr)] (a -> Task b)
+				)
+				<<@@@ HideIfOnlyChoice
+			, functionConsDyn "(FunExpr, String, TaskFuncExpr)" "(FunExpr, String, TaskFuncExpr)"
+				(	dynamic \(Typed funExpr) s (Typed taskFunc) -> Typed (funExpr, s, taskFunc) ::
 					A.a b:
 						(Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b))
-						-> Typed TaskStepExpr (a -> Task b)
-				)	<<@@@ applyHorizontalClasses
-				]
+						-> Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)
+				)
+				<<@@@ HideIfOnlyChoice
+			]
 		, DynamicConsGroup "Editors"
 			[ functionConsDyn "Apply" "apply"
 				(	dynamic \(Typed taskFunc) (Typed expr) -> Typed (Apply taskFunc expr) ::
@@ -201,7 +199,7 @@ evalTaskConstExpr (Or task1 task2)             		= 	evalTaskConstExpr task1
 evalTaskConstExpr (And task1 task2)             	= 	evalTaskConstExpr task1 
 													-&&- 
 														evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
-evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 >>* reverse (mkSteps options [])
+/*evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 >>* reverse (mkSteps options [])
 where
 	mkSteps (Step1 pred butName task) steps			=   [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
 	mkSteps (StepN pred butName task mStep) steps	=   mkSteps mStep [OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr task)):steps]
@@ -213,7 +211,7 @@ where
 	test pred (VBool i) = case pred of
 						(EqV   (VBool j))  = i==j
 						(LessV (VBool j))  = False
-						(GrtV  (VBool j))  = False
+						(GrtV  (VBool j))  = False*/
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
 evalTaskFuncExpr (ViewInformation p) (VInt i)		= (viewInformation p [] i @ VInt)	<<@ ApplyLayout arrangeHorizontal

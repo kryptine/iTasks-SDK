@@ -28,6 +28,7 @@ listCons         :: !String !String !([a] -> b) -> DynamicCons | TC a & TC b
 customEditorCons :: !String !String !(Editor a) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
 // dynamic variants are required because this is the only way to use quantified type variables
 functionConsDyn :: !String !String !Dynamic -> DynamicCons
+// The `Dynamic` argument must be a dynamic of type `[a] -> b`.
 listConsDyn     :: !String !String !Dynamic -> DynamicCons
 
 dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) | TC a
