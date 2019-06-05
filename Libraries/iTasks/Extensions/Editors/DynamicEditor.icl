@@ -288,10 +288,17 @@ where
                 // insert new UIs for arguments
                 # inserts = [(i, InsertChild ui) \\ ui <- uis & i <- [1..]]
                 # removals = removeNChildren $ length childrenSts
-                # change = ChangeUI [] (removals ++ inserts)
+                // add "itasks-container" classes as this class always has to be present for containers
+                # uiAttrs = 'Map'.alter (Just o addContainerClass) "class" cons.uiAttributes
+                # change = ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts)
                 # builderChooseState = LeafState {touched = True, state = JSONInt $ length uis}
                 = (Ok (change, Just (cons.consId, type, True), [builderChooseState: childSts]), vst)
             Error e = (Error e, vst)
+	where
+		addContainerClass :: !(Maybe JSONNode) -> JSONNode
+		addContainerClass mbJSONClasses = JSONArray [JSONString "itasks-container": otherClasses]
+		where
+			otherClasses = maybe [] (\(JSONArray classes) -> classes) mbJSONClasses
 
     // other events targeted directly at this cons
     onEdit dp ([],e) _ [_: childSts] vst
@@ -313,7 +320,7 @@ where
                 # (E editor) = children !! argIdx
                 = editor.Editor.onEdit (dp ++ [argIdx]) (tp, e) (childSts !! (argIdx + 1)) vst
             ListCons lbuilder
-                = (listBuilderEditor lbuilder cons.uiAttributes).Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
+                = (listBuilderEditor lbuilder).Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
             CustomEditorCons editor
                 = editor.Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
         = case res of
@@ -374,7 +381,7 @@ where
         where
             genChildEditors` [] accUi accSt vst = (Ok (accUi, accSt), vst)
             genChildEditors` [(mbVal, E editor, i): children] accUi accSt vst =
-                case editor.Editor.genUI cons.uiAttributes (dp ++ [i]) (maybe Enter (if viewMode View Update) mbVal) vst of
+                case editor.Editor.genUI 'Map'.newMap (dp ++ [i]) (maybe Enter (if viewMode View Update) mbVal) vst of
                     (Ok (ui, st), vst) = genChildEditors` children [ui: accUi] [st: accSt] vst
                     (Error e,     vst) = (Error e, vst)
 
@@ -386,13 +393,13 @@ where
                 _                             = repeat Nothing
         ListCons lbuilder
             # listEditorMode = mapEditMode (\(DEApplication listElems) -> listElems) mode
-            # (mbUi, vst) = (listBuilderEditor lbuilder cons.uiAttributes).Editor.genUI 'Map'.newMap (dp ++ [0]) listEditorMode vst
+            # (mbUi, vst) = (listBuilderEditor lbuilder).Editor.genUI 'Map'.newMap (dp ++ [0]) listEditorMode vst
             = ((\(ui, st) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst)
         CustomEditorCons editor
             # editorMode = mapEditMode
                 (\(DEJSONValue json) -> fromMaybe (abort "Invalid dynamic editor state") $ fromJSON json)
                 mode
-            # (mbUi, vst) = editor.Editor.genUI cons.uiAttributes (dp ++ [0]) editorMode vst
+            # (mbUi, vst) = editor.Editor.genUI 'Map'.newMap (dp ++ [0]) editorMode vst
             = ((\(ui, st) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst)
     where
         (cons, idx) = consWithId cid matchingConses
@@ -446,8 +453,8 @@ where
             (f :: [a] -> b, _ :: DynamicEditor b) = Just $ ListCons (dynamic f)
             _                                     = Nothing
 
-    listBuilderEditor :: !Dynamic !UIAttributes -> Editor [(!DynamicConsId, !DEVal)]
-    listBuilderEditor (lbuilder :: [a] -> b) attrs = listEditor (Just $ const Nothing) True True Nothing childrenEd`
+    listBuilderEditor :: !Dynamic -> Editor [(!DynamicConsId, !DEVal)]
+    listBuilderEditor (lbuilder :: [a] -> b) = listEditor (Just $ const Nothing) True True Nothing childrenEd`
     where
         childrenEd  = childrenEditorList lbuilder
         childrenEd` = bijectEditorValue (\(cid, val)                   -> DynamicEditorValue cid val)
@@ -456,8 +463,8 @@ where
 
         // first argument only used for type
         childrenEditorList :: ([a] -> b) -> Editor (DynamicEditorValue a) | TC a
-        childrenEditorList _ = dynamicEditor (DynamicEditor elements) <<@ attrs
-    listBuilderEditor _ _ = abort "dynamic editors: invalid list builder value"
+        childrenEditorList _ = dynamicEditor (DynamicEditor elements)
+    listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
     uiContainer :: !UIAttributes ![UI] -> UI
     uiContainer attr uis = UI UIContainer attr uis
