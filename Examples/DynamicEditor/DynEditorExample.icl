@@ -90,7 +90,7 @@ where
 			, functionConsDyn "(FunExpr, String, TaskFuncExpr)" "(FunExpr, String, TaskFuncExpr)"
 				(	dynamic \(Typed funExpr) s (Typed taskFunc) -> Typed (funExpr, s, taskFunc) ::
 					A.a b:
-						(Typed FunExpr (a -> Bool)) String (Typed TaskFuncExpr (a -> Task b))
+						(Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b))
 						-> Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)
 				)
 				<<@@@ HideIfOnlyChoice
