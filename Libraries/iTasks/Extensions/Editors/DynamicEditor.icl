@@ -528,6 +528,7 @@ where
 
 		argOf :: !TypeCode -> TypeCode
 		argOf (TypeApp (TypeApp _ arg) _) = arg
+		argOf (TypeScheme _ type)         = argOf type
 	// only function conses can have not matching child types
 	childTypesAreMatching _ _ = Ok ()
 
