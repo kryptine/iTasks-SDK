@@ -235,7 +235,7 @@ assign attr task
 	@?	result
 where
 	processControl tlist
-		= viewSharedInformation () [ViewAs toView] (sdsFocus filter tlist) @? const NoValue
+		= viewSharedInformation [ViewAs toView] (sdsFocus filter tlist) @? const NoValue
     where
         filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
                  ,includeValue=False,includeAttributes=True,includeProgress=True}

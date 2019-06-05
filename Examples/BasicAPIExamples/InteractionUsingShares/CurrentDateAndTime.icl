@@ -15,5 +15,5 @@ main = showDateAndTime @! ()
 
 showDateAndTime :: Task Time
 showDateAndTime
-	= 	viewSharedInformation "The current Date and Time is:" [] currentDateTime
-	>>| viewSharedInformation "The current time is:" [ViewAs AnalogClock] currentTime
+	= 	viewSharedInformation [ViewWithHint "The current Date and Time is:"] currentDateTime
+	>>| viewSharedInformation [ViewWithHint "The current time is:", ViewAs AnalogClock] currentTime

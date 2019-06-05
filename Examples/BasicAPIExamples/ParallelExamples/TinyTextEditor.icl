@@ -24,7 +24,7 @@ derive class iTask Statistics, Replace
 
 editWithStatistics :: Task ()
 editWithStatistics
- =						enterInformation "Give name of text file you want to edit..." []
+ =						enterInformation [EnterWithHint "Give name of text file you want to edit..."]
 	>>= \fileName -> 	let file = sharedStore fileName ""
 						in	editFile fileName file
 							-||-
@@ -37,7 +37,7 @@ editFile fileName sharedFile
 	=	updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile @! ()
 
 showStatistics :: (Shared sds String) -> Task () | RWShared sds
-showStatistics sharedFile = viewSharedInformation "Statistics:" [ViewAs stat] sharedFile @! ()
+showStatistics sharedFile = viewSharedInformation [ViewWithHint "Statistics:", ViewAs stat] sharedFile @! ()
 where
 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
 	where

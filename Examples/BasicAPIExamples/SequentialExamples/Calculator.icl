@@ -18,7 +18,7 @@ calculator :: Task Int
 calculator = calc initSt
 where
 	calc st
-	= 		viewInformation "Calculator" [] st
+	= 		viewInformation [ViewWithHint "Calculator"] st
 		>>* [ OnAction (Action "7") (always (updateDigit 7 st))
 			, OnAction (Action "8") (always (updateDigit 8 st))
 			, OnAction (Action "9") (always (updateDigit 9 st))

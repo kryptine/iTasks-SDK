@@ -12,5 +12,5 @@ main = enterInt @! ()
 
 enterInt :: Task Int
 enterInt
-	=   enterInformation "Enter an Integer number:" []
-	>>= viewInformation "You entered:" []
+	=   enterInformation [EnterWithHint "Enter an Integer number:"]
+	>>= viewInformation [ViewWithHint "You entered:"]

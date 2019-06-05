@@ -20,7 +20,7 @@ where
 				-||-
 				updateSharedInformation ("Lines","Edit lines") [listEditor] state
 						<<@ ArrangeHorizontal
-		>>=		viewInformation "Result:" []
+		>>=		viewInformation [ViewWithHint "Result:"]
 		>>=		return
 
 	noteEditor = UpdateUsing id (const id) textArea

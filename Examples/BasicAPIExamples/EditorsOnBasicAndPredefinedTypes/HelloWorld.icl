@@ -12,4 +12,4 @@ main = helloWorld @! ()
 
 helloWorld :: Task String
 helloWorld
-	= viewInformation "You have a message from iTasks:" [] "Hello, world!"
+	= viewInformation [ViewWithHint "You have a message from iTasks:"] "Hello, world!"

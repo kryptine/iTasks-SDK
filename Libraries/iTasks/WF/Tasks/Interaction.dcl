@@ -11,9 +11,17 @@ from Data.Functor import class Functor
 
 :: ViewOption a 		= E.v: ViewAs 	    (a -> v)                       & iTask v
 						| E.v: ViewUsing 	(a -> v) (Editor v)            & iTask v //Use a custom editor to view the data
+						//Common attributes as option
+						| ViewWithHint     !String
+						| ViewWithTitle    !String
+						| ViewWithLabel    !String
 
 :: EnterOption a		= E.v: EnterAs      (v -> a)                       & iTask v
 						| E.v: EnterUsing 	(v -> a) (Editor v)            & iTask v //Use a custom editor to enter the data
+						//Common attributes as option
+						| EnterWithHint     !String
+						| EnterWithTitle    !String
+						| EnterWithLabel    !String
 
 :: UpdateOption a b		= E.v: UpdateAs     (a -> v) (a v -> b)	           & iTask v
 						| E.v: UpdateUsing  (a -> v) (a v -> b) (Editor v) & iTask v //Use a custom editor to enter the data
@@ -70,12 +78,11 @@ instance toPrompt [d] | toPrompt d
 /**
 * Ask the user to enter information.
 *
-* @param Description:		A description of the task to display to the user
-* @param Views:				Views
+* @param Options:			Customization options
 *
 * @return					Value entered by the user
 */
-enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
+enterInformation :: ![EnterOption m] -> Task m | iTask m
 
 /**
 * Ask the user to update predefined information.
@@ -89,15 +96,14 @@ enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 
 /**
-* Show information to the user.
+* Allow the user to view some information.
 *
-* @param Description:		A description of the task to display to the user
-* @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
+* @param Options:			Customization options
 * @param Data model:		The data shown to the user
 *
 * @return					Value shown to the user, the value is not modified
 */
-viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
+viewInformation :: ![ViewOption m] !m -> Task m | iTask m
 
 /**
 * Ask the user to update predefined local and shared information.
@@ -112,15 +118,14 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 updateSharedInformation :: !d ![UpdateOption r w] !(sds () r w) -> Task r | toPrompt d & iTask r & iTask w & RWShared sds
 
 /**
-* Show a shared value.
+* View a shared value.
 *
-* @param Description:		A description of the task to display to the user
-* @param Options:			Views options
+* @param Options:			Customization options
 * @param Shared:			Reference to the shared state to monitor
 *
 * @return					Last value of the monitored state
 */
-viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
+viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 
 /*** Special tasks for a mix of manipulating shared and local information ***/
 
@@ -191,13 +196,12 @@ editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o
 /**
 * Wait for a share to match a certain predicate
 *
-* @param Description:		A description of the task to display to the user
 * @param Predicate:			A predicate to test when to continue. The task completes as soon as the predicate is true
 * @param Shared:			Reference to the shared state to wait for
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
+wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 
 
 /*** Special tasks for choosing actions ***/

@@ -16,10 +16,10 @@ main = multiUserExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) players)
-	>>|				viewInformation "Login under one of the following names (password = login name)" []
+	>>|				viewInformation [ViewWithHint "Login under one of the following names (password = login name)"]
 						(join ", " players)
 					-||-
-					viewInformation "and then Select \"new\" to create a new Task..." [] ""
+					viewInformation [ViewWithHint "and then Select \"new\" to create a new Task..."] ""
 	>>|				installWorkflows [wf "Meeting date"]
 	>>|				loginAndManageWork "Meeting_4_3 Example" Nothing Nothing False
 where
@@ -52,11 +52,11 @@ derive class iTask DateOption, MeetingOption
 
 DefineMeetingPurpose :: Task String
 DefineMeetingPurpose
-	=	enterInformation "What is the purpose of the meeting?" []
+	=	enterInformation [EnterWithHint "What is the purpose of the meeting?"]
 
 SelectDatesToPropose :: Task [DateOption]
 SelectDatesToPropose
-	=	enterInformation "Select the date(s) and time you propose to meet..." []
+	=	enterInformation [EnterWithHint "Select the date(s) and time you propose to meet..."]
 
 SelectAttendencees :: Task [User]
 SelectAttendencees
@@ -73,10 +73,10 @@ where
 	askAll table
 		=   allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
 		>-| enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table
-		>>=	 		viewInformation "Date chosen:" []
+		>>=	 		viewInformation [ViewWithHint "Date chosen:"]
 	where
 		checkOptions user
-			=				viewSharedInformation "Current Responses:" [] table
+			=				viewSharedInformation [ViewWithHint "Current Responses:"] table
 							||-
 							enterMultipleChoice "Select the date(s) you can attend the meeting (ctrl alt):" [ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1]
 			>>=	\ids ->	upd (\table -> [{t & users = if (isMember j ids) [user:t.users] t.users} \\ j <- [0..] & t <- table]) table

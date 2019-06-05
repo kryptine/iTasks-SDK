@@ -148,8 +148,8 @@ archivedStandAloneViewer
   archivedStandAloneViewer`` curIdx newRTMap
     =   enterChoice "Select blueprint" [ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
     >&> withSelection noSel2 viewBP
-  noSel1 = viewInformation "Notice" [] "No recording selected"
-  noSel2 = viewInformation "Notice" [] "No blueprint"
+  noSel1 = viewInformation [ViewWithHint "Notice"] "No recording selected"
+  noSel2 = viewInformation [ViewWithHint "Notice"] "No blueprint"
   viewBP :: (ComputationId, ModuleName, FuncName, GenBlueprintInstance) -> Task ()
   viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False 0 @! () // TODO Enable controls
 
@@ -173,7 +173,7 @@ where
     =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
     >&> withSelection noSel (
     (\bp -> whileUnchanged (tonicServerShare |*| shViewerSettings)
-    (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation () [] () >>* [ startAction tms
+    (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation [] () >>* [ startAction tms
                                                                             , pauseAction tms
                                                                             , continueAction tms
                                                                             , stopAction tms
@@ -210,7 +210,7 @@ where
     refreshAction = OnAction (Action "Refresh") (always startViewer)
 
     noSel :: Task ()
-    noSel = viewInformation "Notice" [] "No blueprint selected" @! ()
+    noSel = viewInformation [ViewWithHint "Notice"] "No blueprint selected" @! ()
     f (TMNewTopLevel tl) = [tl]
     f _                  = []
   runViewer :: (TMessageStore, ViewerSettings) -> Task ()
@@ -220,11 +220,11 @@ where
                        Just [(_, selBPI) : _]
                          = showGenBlueprintInstance [] selBPI Nothing False 0 @! () // TODO Enable controls
                        _ = startViewer
-  runViewer x = viewInformation "Notice" [] "No blueprint selected" >>| runViewer x
+  runViewer x = viewInformation [ViewWithHint "Notice"] "No blueprint selected" >>| runViewer x
 
 viewMessage :: TonicMessage [TonicMessage] -> Task ()
 viewMessage (TMNewTopLevel msg) prevMsgs
-  = viewInformation () [] "Not implemented!" @! ()
+  = viewInformation [] "Not implemented!" @! ()
 viewMessage (TMApply msg) prevMsgs
   =           getModule msg.tma_bpModuleName
   >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
@@ -237,7 +237,7 @@ viewMessage (TMApply msg) prevMsgs
                   # inst & bpi_activeNodes      = case currActive of
                                                     [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino numPrev, msg.tma_nodeId)) inst.bpi_activeNodes
                   = viewInstance inst
-                _ = viewInformation () [] "No blueprint found!" @! ()
+                _ = viewInformation [] "No blueprint found!" @! ()
 
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}} = return ()
@@ -303,7 +303,7 @@ acceptAndViewTonicTraces :: Task ()
 acceptAndViewTonicTraces
   = acceptTonicTraces tonicServerShare
       ||-
-    viewSharedInformation "Logged traces" [] tonicServerShare @! ()
+    viewSharedInformation [ViewWithHint "Logged traces"] tonicServerShare @! ()
 
 acceptTonicTraces :: !(Shared sds TMessageStore) -> Task [ServerState] | RWShared sds
 acceptTonicTraces tonicShare

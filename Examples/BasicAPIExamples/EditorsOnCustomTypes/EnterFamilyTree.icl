@@ -27,5 +27,5 @@ derive class iTask Family, Person, Gender
 
 enterFamily :: Task Family
 enterFamily
-	=   enterInformation "Enter a family tree:" []
-	>>= viewInformation "You Entered:" []
+	=   enterInformation [EnterWithHint "Enter a family tree:"]
+	>>= viewInformation [ViewWithHint "You Entered:"]

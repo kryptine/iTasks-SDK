@@ -27,7 +27,7 @@ coffeemachine
 
 getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay)
-	= 				viewInformation "Coffee Machine" [ViewAs view1] toPay
+	= 				viewInformation [ViewWithHint "Coffee Machine",ViewAs view1] toPay
 					||-
 					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 	 (always (stop ("Product Cancelled",paid)))
@@ -40,7 +40,7 @@ where
 	| toPay > coin	= getCoins (paid+coin) (product, toPay-coin)
 	| otherwise		= stop (product,coin-toPay)
 
-	stop (product, money) = viewInformation "Coffee Machine" [ViewAs view2] (product,money)
+	stop (product, money) = viewInformation [ViewWithHint "Coffee Machine",ViewAs view2] (product,money)
 
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Enjoy your: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]

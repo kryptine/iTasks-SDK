@@ -66,6 +66,9 @@ widthAttr width = 'DM'.fromList [("width",encodeUI width)]
 heightAttr :: !UISize -> UIAttributes
 heightAttr height = 'DM'.fromList [("height",encodeUI height)]
 
+hintAttr :: !String -> UIAttributes
+hintAttr hint = 'DM'.fromList [("hint",JSONString hint)]
+
 titleAttr :: !String -> UIAttributes
 titleAttr title = 'DM'.fromList [("title",JSONString title)]
 

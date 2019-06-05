@@ -19,7 +19,7 @@ where
 	step2 n1 n2		=		updateInformation ("Number 2","Enter the second number") [] n2
 						>>*	[ OnAction ActionPrevious (always 	(step1 n1 n2))
 							, OnAction ActionNext     (hasValue (\n2 -> step3 n1 n2))]
-	step3 n1 n2		=		viewInformation ("Sum","The sum of those numbers is:") [] (n1 + n2)
+	step3 n1 n2		=		viewInformation [ViewWithTitle "Sum",ViewWithHint "The sum of those numbers is:"] (n1 + n2)
 						>>*	[ OnAction ActionPrevious	(always 	(step2 n1 n2))
 						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]

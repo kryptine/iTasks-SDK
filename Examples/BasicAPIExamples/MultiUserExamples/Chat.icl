@@ -13,10 +13,10 @@ main = myExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) players)
-	>>|				viewInformation "Login under one of the following names (password = login name)" []
+	>>|				viewInformation [ViewWithHint "Login under one of the following names (password = login name)"]
 						(foldl (+++) "" (map (\n -> n +++ ", ") players))
 					-||-
-					viewInformation "and then Select \"new\" to create a new Task..." [] ""
+					viewInformation [ViewWithHint "and then Select \"new\" to create a new Task..."] ""
 	>>|				installWorkflows [wf "chat"]	
 	>>|				loginAndManageWork "Chat_4_2 Example" Nothing Nothing False
 where
@@ -32,7 +32,7 @@ myExample
 	= createChatSession enter update
 where
 	enter :: Task String
-	enter = enterInformation "Type in a message" []
+	enter = enterInformation [EnterWithHint "Type in a message"]
 
 	update :: User String -> Task String
 	update user chat = return (toString user +++ " says : " +++ chat)
@@ -50,7 +50,7 @@ startChats enter update chatters chatStore
 
 chatWith :: User (Task a) (User a -> Task b) (Shared sds [b]) -> Task () | iTask a & iTask b & RWShared sds
 chatWith me enter update chatStore
-	=  	viewSharedInformation ("Chat History:") [] chatStore
+	=  	viewSharedInformation [ViewWithHint "Chat History:"] chatStore
 	   	||-
 		oneChat
 where

@@ -71,7 +71,7 @@ where
 	
 doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
 doAuthenticatedWith verifyCredentials task
-	=	enterInformation ("Log in","Please enter your credentials") []
+	=	enterInformation [EnterWithTitle "Log in", EnterWithHint "Please enter your credentials"]
 	>>!	verifyCredentials
 	>>= \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
@@ -111,11 +111,11 @@ manageUsers =
 
 createUserFlow :: Task ()
 createUserFlow =
-		enterInformation ("Create user","Enter user information") []
+		enterInformation [EnterWithTitle "Create user", EnterWithHint "Enter user information"]
 	>>*	[ OnAction		ActionCancel	(always (return ()))
 		, OnAction	    ActionOk 		(hasValue (\user ->
 											createUser user
-										>>|	viewInformation "User created" [] "Successfully added new user"
+										>>|	viewInformation [ViewWithTitle "User created"] "Successfully added new user"
 										>>| return ()
 									    ))
 		]
@@ -129,7 +129,7 @@ updateUserFlow userId
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)
-											>>=	viewInformation "User updated" [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
+											>>=	viewInformation [ViewWithTitle "User updated",ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
 											>>| return newAccount
 											))
 				])
@@ -141,10 +141,9 @@ changePasswordFlow userId =
 	get (userAccount userId) >>~ \mbAccount ->
 	case mbAccount of
 		Just account = enterInformation
-			( "Change Password for " +++ fromMaybe "Untitled" account.StoredUserAccount.title
-			, "Please enter a new password"
-			)
-			[]
+			[ EnterWithTitle ("Change Password for " +++ fromMaybe "Untitled" account.StoredUserAccount.title)
+			, EnterWithHint "Please enter a new password"
+			]
 			>>* [ OnAction ActionCancel (always   $ return account)
 			    , OnAction ActionOk     (hasValue $ updatePassword account)
 			    ]
@@ -155,8 +154,8 @@ where
 		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>= \creds ->
 		let account` = {StoredUserAccount| account & credentials = creds} in
 		set (Just account`) (userAccount userId) >>=
-		viewInformation "Password updated"
-		                [ ViewAs \(Just {StoredUserAccount|title}) ->
+		viewInformation [ ViewWithHint "Password updated"
+		                , ViewAs \(Just {StoredUserAccount|title}) ->
 		                         "Successfully changed password for " +++ fromMaybe "Untitled" title
 		                ] >>|
 		return account`
@@ -166,23 +165,23 @@ deleteUserFlow userId
 	=	get (userAccount userId)
 	>>= \mbAccount -> case mbAccount of 
 		(Just account)
-			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
+			=	viewInformation [ViewWithTitle "Delete user"] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
-									>>|	viewInformation "User deleted" [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>>|	viewInformation [ViewWithHint "User deleted", ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
 									))
 				]
 				
 importUserFileFlow :: Task ()
-importUserFileFlow = viewInformation "Not implemented" [] ()
+importUserFileFlow = viewInformation [ViewWithHint "Not implemented"] ()
 
 exportUserFileFlow :: Task Document
 exportUserFileFlow
 	=	get userAccounts -&&- get applicationName
 	>>= \(list,app) ->
 		createCSVFile (app +++ "-users.csv") (map toRow list)
-	>>=	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
+	>>=	viewInformation [ViewWithTitle "Export users file",ViewWithHint "A CSV file containing the users of this application has been created for you to download."]
 where
 	toRow {StoredUserAccount| credentials = {StoredCredentials|username = (Username username), saltedPasswordHash, salt}, title, roles}
 		= [fromMaybe "" title,username,saltedPasswordHash,salt:roles]

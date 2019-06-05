@@ -15,7 +15,7 @@ main = sharedNotes @! ()
 sharedNotes :: Task String
 sharedNotes
 	= withShared ""																									// create an initial empty shared string
-		(\note -> 	viewSharedInformation "View on note" [ViewUsing id textArea] note								// one to view the resulting string
+		(\note -> 	viewSharedInformation [ViewWithHint "View on note", ViewUsing id textArea] note								// one to view the resulting string
 					-||-
 					(	updateSharedInformation "Update shared note 1" [UpdateUsing id (const id) textArea] note	// an editor to update the shared string
 					 	-||-
@@ -23,5 +23,5 @@ sharedNotes
 					 		<<@ ArrangeHorizontal 
 					 )
 		)
-	>>= viewInformation "Resulting string is:" [ViewUsing id textArea]
+	>>= viewInformation [ViewWithHint "Resulting string is:", ViewUsing id textArea]
 	>>= return

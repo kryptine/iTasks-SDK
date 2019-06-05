@@ -13,5 +13,5 @@ main = enterDateTime @! ()
 
 enterDateTime :: Task [(Date, Time)]
 enterDateTime
-	= 	enterInformation "Enter a date and time" []
-	>>=	viewInformation "You Entered:" []
+	= 	enterInformation [EnterWithHint "Enter a date and time"]
+	>>=	viewInformation [ViewWithHint "You Entered:"]

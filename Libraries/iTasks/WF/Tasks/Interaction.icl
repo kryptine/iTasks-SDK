@@ -68,12 +68,41 @@ instance toPrompt [d] | toPrompt d
 where
 	toPrompt list = 'DM'.unions (map toPrompt list)
 
-enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
-enterInformation d [EnterAs fromf:_]
-	= interactRW (toPrompt d) unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} gEditor{|*|} @ (\((),v) -> fromf v)
-enterInformation d opts=:[EnterUsing fromf editor:_]
-	= interactRW (toPrompt d) unitShare {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} editor @ (\((),v) -> fromf v)
-enterInformation d _ = enterInformation d [EnterAs id]
+//Boilerplate access functions
+viewAttributes :: [ViewOption a] -> UIAttributes
+viewAttributes options = foldr addOption 'DM'.newMap options
+where
+	addOption (ViewWithHint hint) attr = 'DM'.union (hintAttr hint) attr
+	addOption (ViewWithTitle title) attr = 'DM'.union (titleAttr title) attr
+	addOption (ViewWithLabel label) attr = 'DM'.union (labelAttr label) attr
+	addOption _ attr = attr
+
+enterAttributes :: [EnterOption a] -> UIAttributes
+enterAttributes options = foldr addOption 'DM'.newMap options
+where
+	addOption (EnterWithHint hint) attr = 'DM'.union (hintAttr hint) attr
+	addOption (EnterWithTitle title) attr = 'DM'.union (titleAttr title) attr
+	addOption (EnterWithLabel label) attr = 'DM'.union (labelAttr label) attr
+	addOption _ attr = attr
+
+viewEditor :: [ViewOption m] -> ViewOption m | iTask m
+viewEditor [ViewUsing tof editor:_] = ViewUsing tof editor
+viewEditor [ViewAs tof:_] = ViewUsing tof gEditor{|*|}
+viewEditor [_:es] = viewEditor es
+viewEditor [] =  ViewUsing id gEditor{|*|}
+
+enterEditor :: [EnterOption m] -> EnterOption m | iTask m
+enterEditor [EnterUsing fromf editor:_] = EnterUsing fromf editor
+enterEditor [EnterAs fromf:_] = EnterUsing fromf gEditor{|*|}
+enterEditor [_:es] = enterEditor es
+enterEditor [] =  EnterUsing id gEditor{|*|}
+
+enterInformation :: ![EnterOption m] -> Task m | iTask m
+enterInformation options = enterInformation` (enterAttributes options) (enterEditor options)
+enterInformation` attributes (EnterUsing fromf editor)
+	= interactRW attributes unitShare handlers editor @ (\((),v) -> fromf v)
+where
+	handlers = {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} 
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateAs tof fromf:_] m
@@ -84,12 +113,10 @@ updateInformation d [UpdateUsing tof fromf editor:_] m
 		editor @ (\((),v) -> fromf m v)
 updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
-viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
-viewInformation d [ViewAs tof:_] m
-	= interactRW (toPrompt d) unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} gEditor{|*|} @! m
-viewInformation d [ViewUsing tof editor:_] m
-	= interactRW (toPrompt d) unitShare {onInit = const ((), View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
-viewInformation d _ m = viewInformation d [ViewAs id] m
+viewInformation :: ![ViewOption m] !m -> Task m | iTask m
+viewInformation options m = viewInformation` (viewAttributes options) (viewEditor options) m
+viewInformation` attributes (ViewUsing tof editor) m
+	= interactR attributes unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(sds () r w) -> Task r | toPrompt d & iTask r & iTask w & RWShared sds
 updateSharedInformation d [UpdateAs tof fromf:_] shared
@@ -104,20 +131,17 @@ updateSharedInformation d [UpdateSharedAs tof fromf conflictf:_] shared
 	= interactRW (toPrompt d) shared {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
 				gEditor{|*|} @ fst
 
-updateSharedInformation d _ shared
+updateSharedInformation d _ sds
 	//Use dynamics to test if r == w, if so we can use an update view
 	//If different types are used we just display the read type r
 	= case dynamic id :: A.a: (a -> a) of
-		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared
-		_                  = viewSharedInformation d [] shared
+		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] sds
+		_                  = viewSharedInformation [] sds
 
-viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
-viewSharedInformation d [ViewAs tof:_] shared
-	= interactR (toPrompt d) shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} gEditor{|*|} @ fst
-
-viewSharedInformation d [ViewUsing tof editor:_] shared
-	= interactR (toPrompt d) shared {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
-viewSharedInformation d _ shared = viewSharedInformation d [ViewAs id] shared
+viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+viewSharedInformation options sds = viewSharedInformation` (viewAttributes options) (viewEditor options) sds
+viewSharedInformation` attributes (ViewUsing tof editor) sds
+	= interactR attributes sds {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(sds () r w) m -> Task m | toPrompt d & iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared d [UpdateAs tof fromf:_] shared m
@@ -350,18 +374,18 @@ where
 	tof (options,mbv) = findIndices target mbv options
 	fromf w (options,_) = Just (findSelection target options w)
 
-wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
-wait desc pred shared
-	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
+wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+wait pred shared
+	=	viewSharedInformation [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
-	=	viewInformation () [] ()
+	=	viewInformation [] ()
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
 
 viewTitle :: !a -> Task a | iTask a
-viewTitle a = viewInformation (Title title) [ViewAs view] a
+viewTitle a = viewInformation [ViewWithTitle title, ViewAs view] a
 where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
@@ -383,11 +407,11 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
         , OnAction (Action "Delete") (hasValue deleteItem)
         ]
   newItem
-    =            enterInformation (Title "New item") enterOpts
+    =            enterInformation [EnterWithTitle "New item":enterOpts]
     >>= \item -> upd (putItem item) sh
     >>|          goCRUD
   viewItem x
-    =            viewInformation (Title "View item") viewOpts x
+    =            viewInformation [ViewWithTitle "View item":viewOpts] x
     >>|          goCRUD
   editItem x
     =            updateInformation (Title "Edit item") updateOpts x

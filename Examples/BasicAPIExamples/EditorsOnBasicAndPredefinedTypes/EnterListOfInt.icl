@@ -12,5 +12,5 @@ main = enterListOfInt @! ()
 
 enterListOfInt :: Task [Int]
 enterListOfInt
-	=   enterInformation "Enter a list of Integer numbers:" []
-	>>= viewInformation "You Entered:" []
+	=   enterInformation [EnterWithHint "Enter a list of Integer numbers:"]
+	>>= viewInformation [ViewWithHint "You Entered:"]
