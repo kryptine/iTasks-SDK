@@ -99,51 +99,56 @@ where
             ( dynamic \(Typed task) (Typed taskFunc) ->
               Typed (Bind task taskFunc) ::
                 A.a b:
-                  (Typed TaskConstExpr (Task a)) (Typed TaskFuncExpr (a -> Task b)) ->
-                  Typed TaskConstExpr (Task b)
+                (Typed TaskConstExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
+                -> Typed TaskConstExpr (Task b)
             )
         , functionConsDyn "Blind" ">>|"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (Blind task1 task2) ::
                 A.a b:
-                  (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b)) ->
-                  Typed TaskConstExpr (Task b)
+                (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b))
+                -> Typed TaskConstExpr (Task b)
             )
         , functionConsDyn "Or" "-||-"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (Or task1 task2) ::
                 A.a b:
-                  (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task a)) ->
-                  Typed TaskConstExpr (Task a)
+                (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task a))
+                -> Typed TaskConstExpr (Task a)
             )
         , functionConsDyn "And" "-&&-"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (And task1 task2) ::
                 A.a b:
-                  (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b)) ->
-                  Typed TaskConstExpr (Task (a, b))
+                (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b))
+                -> Typed TaskConstExpr (Task (a, b))
             )
         , functionConsDyn "When" "when"
             ( dynamic \(Typed task1) (Typed steps) ->
               Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
                 A.a b:
-                  (Typed TaskConstExpr (Task a)) (Typed (List (Typed FunExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b)) ->
-                  Typed TaskConstExpr (Task b)
+                (Typed TaskConstExpr (Task a))
+                (Typed (List (Typed FunExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b))
+                -> Typed TaskConstExpr (Task b)
             )
             <<@@@ applyHorizontalClasses
         , listConsDyn "[(FunExpr, String, TaskFuncExpr)]" "[(FunExpr, String, TaskFuncExpr)]"
             ( dynamic \typedSteps ->
               Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
                 A.a b:
-                  (List (Typed (FunExpr, String, TaskFuncExpr) (a -> Task b))) -> Typed (List (FunExpr, String, TaskFuncExpr)) (a -> Task b)
+                (List (Typed (FunExpr, String, TaskFuncExpr)
+                (a -> Task b)))
+                -> Typed (List (FunExpr, String, TaskFuncExpr)) (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
         , functionConsDyn "(FunExpr, String, TaskFuncExpr)" "(FunExpr, String, TaskFuncExpr)"
             ( dynamic \(Typed funExpr) s (Typed taskFunc) ->
               Typed (funExpr, s, taskFunc) ::
                 A.a b:
-                  (Typed FunExpr a) String (Typed TaskFuncExpr (a -> Task b)) ->
-                  Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)
+                (Typed FunExpr a)
+                String
+                (Typed TaskFuncExpr (a -> Task b))
+                -> Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
         ]
@@ -152,33 +157,38 @@ where
             ( dynamic \(Typed taskFunc) (Typed expr) ->
               Typed (Apply taskFunc expr) ::
                 A.a b:
-                  (Typed TaskFuncExpr (a -> Task b)) (Typed Expr a) -> Typed TaskConstExpr (Task b)
+                (Typed TaskFuncExpr (a -> Task b))
+                (Typed Expr a)
+                -> Typed TaskConstExpr (Task b)
             )
         , functionConsDyn "EnterInformation" "enter information"
             ( dynamic \s (Typed ty) ->
               Typed (EnterInformation s ty) ::
                 A.a:
-                  String (Typed Ty a) -> Typed TaskConstExpr (Task a)
+                String (Typed Ty a)
+                -> Typed TaskConstExpr (Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "ViewInformation" "view information"
             ( dynamic \s ->
               Typed (ViewInformation s) ::
                 A.a:
-                  String -> Typed TaskFuncExpr (a -> Task a)
+                String
+                -> Typed TaskFuncExpr (a -> Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "UpdateInformation" "update information"
             ( dynamic \s ->
               Typed (UpdateInformation s) ::
                 A.a:
-                  String -> Typed TaskFuncExpr (a -> Task a)
+                String
+                -> Typed TaskFuncExpr (a -> Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "Return" "return"
             ( dynamic Typed Return ::
               A.a:
-                Typed TaskFuncExpr (a -> Task a)
+              Typed TaskFuncExpr (a -> Task a)
             )
         ]
     // ordinary (non-task) expressions
