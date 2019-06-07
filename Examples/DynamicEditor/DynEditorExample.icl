@@ -9,12 +9,12 @@ Start world = doTasks editTask world
 
 editTask =		forever
 		(			viewInformation "Contruct a Task expression:" [] ()
-					||- 
+					||-
 					enterInformation () [EnterUsing id $ dynamicEditor taskEditor]
 		>>=	\v ->	viewInformation "Evaluate the Expression:" [] ()
-					||- 
+					||-
 					evalTaskConstExpr (toValue taskEditor v)
-		>>=			viewInformation "Result of the Task is:" [] 
+		>>=			viewInformation "Result of the Task is:" []
 		>>=			return
 		) // <<@ ApplyLayout frameCompact
 
@@ -105,15 +105,15 @@ where
 					A.a: String (Typed Type a) -> Typed TaskConstExpr (Task a)
 				) <<@@@ applyHorizontalClasses
 			, functionConsDyn "ViewInformation" "view information"
-				(	dynamic \s -> Typed (ViewInformation s) :: 
+				(	dynamic \s -> Typed (ViewInformation s) ::
 					A.a: String -> Typed TaskFuncExpr (a -> Task a)
 				)  <<@@@ applyHorizontalClasses
 			, functionConsDyn "UpdateInformation" "update information"
-				(	dynamic \s -> Typed (UpdateInformation s) :: 
+				(	dynamic \s -> Typed (UpdateInformation s) ::
 					A.a: String -> Typed TaskFuncExpr (a -> Task a)
 				)  <<@@@ applyHorizontalClasses
 			, functionConsDyn "Return" "return"
-				(	dynamic Typed Return :: 
+				(	dynamic Typed Return ::
 					A.a: Typed TaskFuncExpr (a -> Task a)
 				)
 			]
@@ -189,17 +189,17 @@ applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-widt
 evalTaskConstExpr :: TaskConstExpr -> Task Value
 evalTaskConstExpr (EnterInformation prompt (Type toValue)) = enterInformation prompt [] @ toValue
 evalTaskConstExpr (Apply taskFunc expr)             =	evalTaskFuncExpr taskFunc $ evalExpr expr
-evalTaskConstExpr (Bind task taskFunc)              = 	evalTaskConstExpr task 
+evalTaskConstExpr (Bind task taskFunc)              = 	evalTaskConstExpr task
 													>>= evalTaskFuncExpr taskFunc
-evalTaskConstExpr (Blind task1 task2)             	= 	evalTaskConstExpr task1 
+evalTaskConstExpr (Blind task1 task2)             	= 	evalTaskConstExpr task1
 													>>| evalTaskConstExpr task2
-evalTaskConstExpr (Or task1 task2)             		= 	evalTaskConstExpr task1 
-													-||- 
+evalTaskConstExpr (Or task1 task2)             		= 	evalTaskConstExpr task1
+													-||-
 														evalTaskConstExpr task2
-evalTaskConstExpr (And task1 task2)             	= 	evalTaskConstExpr task1 
-													-&&- 
+evalTaskConstExpr (And task1 task2)             	= 	evalTaskConstExpr task1
+													-&&-
 														evalTaskConstExpr task2 @ \(a,b) -> VTuple a b
-evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1 
+evalTaskConstExpr (When task1 options)				= 	evalTaskConstExpr task1
 													>>* [  OnAction (Action butName) (ifValue (test pred)(evalTaskFuncExpr taskFunc))
 														\\ (pred, butName, taskFunc) <- options
 														]
@@ -219,14 +219,14 @@ evalTaskFuncExpr (ViewInformation p) (VBool b)		= (viewInformation p [] b @ VBoo
 evalTaskFuncExpr (ViewInformation p) (VString s)	= (viewInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (ViewInformation p) (VTuple a b)	= (viewInformation p [] () ||-
 													   evalTaskFuncExpr (ViewInformation "") a
-													   -&&- 
+													   -&&-
 													   evalTaskFuncExpr (ViewInformation "") b @ \(a,b) -> VTuple a b) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VInt i)		= (updateInformation p [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VBool b)	= (updateInformation p [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VString s)	= (updateInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VTuple a b)	= (viewInformation p [] () ||-
-													   evalTaskFuncExpr (UpdateInformation "") a 
-													   -&&- 
+													   evalTaskFuncExpr (UpdateInformation "") a
+													   -&&-
 													   evalTaskFuncExpr (UpdateInformation "" )b @ \(a,b) -> VTuple a b) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr Return value 						= return value
 
@@ -243,4 +243,3 @@ evalExpr (Snd expr)              = snd
 where
 	(VTuple _ snd) = evalExpr expr
 evalExpr (Eq expr1 expr2)        = VBool $ evalExpr expr1 === evalExpr expr2
-
