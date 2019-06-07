@@ -32,17 +32,20 @@ where
 
 // Data ////////////////////////////////////////////////////////////////////////
 
-:: TaskConstExpr
+:: TaskExpr
   = Apply TaskFuncExpr Expr
   | EnterInfo String Ty
-  | Then TaskConstExpr TaskFuncExpr
-  | Or TaskConstExpr TaskConstExpr
-  | And TaskConstExpr TaskConstExpr
-  | When TaskConstExpr (List (FunExpr, String, TaskFuncExpr))
+  | Then TaskExpr TaskFuncExpr
+  | Or TaskExpr TaskExpr
+  | And TaskExpr TaskExpr
+  | When TaskExpr (List TaskContExpr)
 
 :: TaskFuncExpr
   = ViewInfo String
   | UpdateInfo String
+
+:: TaskContExpr
+  = { name :: String, pred :: FuncExpr, cont :: TaskFuncExpr}
 
 :: Expr
   = Int Int
@@ -59,7 +62,7 @@ where
   | VString String
   | VTuple Value Value
 
-:: FunExpr
+:: FuncExpr
   = EqV Value
   | GrtV Value
   | LessV Value
@@ -70,7 +73,7 @@ where
 :: Typed a b
   =: Typed a
 
-derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed, FunExpr
+derive class iTask TaskExpr, TaskFuncExpr, TaskContExpr, Expr, FuncExpr, Value, Typed
 
 // These instances cannot be auto derived because of the existential quantifier.
 // However, they will be never used, so we make them undefined.
@@ -84,64 +87,64 @@ gEditor{|Ty|} = undef
 
 // Editor //////////////////////////////////////////////////////////////////////
 
-taskEditor :: DynamicEditor TaskConstExpr
+taskEditor :: DynamicEditor TaskExpr
 taskEditor = DynamicEditor conses
 where
   conses =
-    [ // This cons is used to provide untyped `TaskConstExpr` values.
+    [ // This cons is used to provide untyped `TaskExpr` values.
       DynamicCons
-        $ functionConsDyn "TaskConstExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskConstExpr a) -> TaskConstExpr)
+        $ functionConsDyn "TaskExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskExpr a) -> TaskExpr)
         <<@@@ HideIfOnlyChoice
     , DynamicConsGroup "Combinators"
         [ functionConsDyn "Then" "sequence"
             ( dynamic \(Typed task) (Typed taskFunc) ->
               Typed (Then task taskFunc) ::
                 A.a b:
-                (Typed TaskConstExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
-                -> Typed TaskConstExpr (Task b)
+                (Typed TaskExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
+                -> Typed TaskExpr (Task b)
             )
         , functionConsDyn "When" "when"
             ( dynamic \(Typed task1) (Typed steps) ->
               Typed (When task1 steps) ::
               // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
                 A.a b:
-                (Typed TaskConstExpr (Task a))
-                (Typed (List (FunExpr, String, TaskFuncExpr)) (a -> Task b))
-                // (Typed (List (Typed FunExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b))
-                -> Typed TaskConstExpr (Task b)
+                (Typed TaskExpr (Task a))
+                (Typed (List TaskContExpr) (a -> Task b))
+                // (Typed (List (Typed FuncExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b))
+                -> Typed TaskExpr (Task b)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "Or" "or"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (Or task1 task2) ::
                 A.a b:
-                (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task a))
-                -> Typed TaskConstExpr (Task a)
+                (Typed TaskExpr (Task a)) (Typed TaskExpr (Task a))
+                -> Typed TaskExpr (Task a)
             )
         , functionConsDyn "And" "and"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (And task1 task2) ::
                 A.a b:
-                (Typed TaskConstExpr (Task a)) (Typed TaskConstExpr (Task b))
-                -> Typed TaskConstExpr (Task (a, b))
+                (Typed TaskExpr (Task a)) (Typed TaskExpr (Task b))
+                -> Typed TaskExpr (Task (a, b))
             )
-        , listConsDyn "List (FunExpr, String, TaskFuncExpr)" "List (FunExpr, String, TaskFuncExpr)"
+        , listConsDyn "List TaskContExpr" "continuations"
             ( dynamic \typedSteps ->
               Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
                 A.a b:
-                (List (Typed (FunExpr, String, TaskFuncExpr)
+                (List (Typed TaskContExpr
                 (a -> Task b)))
-                -> Typed (List (FunExpr, String, TaskFuncExpr)) (a -> Task b)
+                -> Typed (List TaskContExpr) (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
-        , functionConsDyn "(FunExpr, String, TaskFuncExpr)" "(FunExpr, String, TaskFuncExpr)"
-            ( dynamic \(Typed funExpr) s (Typed taskFunc) ->
-              Typed (funExpr, s, taskFunc) ::
+        , functionConsDyn "TaskContExpr" "continuation"
+            ( dynamic \s (Typed func) (Typed taskFunc) ->
+              Typed {name = s, pred = func, cont = taskFunc} ::
                 A.a b:
-                (Typed FunExpr a)
                 String
+                (Typed FuncExpr a)
                 (Typed TaskFuncExpr (a -> Task b))
-                -> Typed (FunExpr, String, TaskFuncExpr) (a -> Task b)
+                -> Typed TaskContExpr (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
         ]
@@ -152,14 +155,14 @@ where
                 A.a b:
                 (Typed TaskFuncExpr (a -> Task b))
                 (Typed Expr a)
-                -> Typed TaskConstExpr (Task b)
+                -> Typed TaskExpr (Task b)
             )
         , functionConsDyn "EnterInfo" "enter information"
             ( dynamic \s (Typed ty) ->
               Typed (EnterInfo s ty) ::
                 A.a:
                 String (Typed Ty a)
-                -> Typed TaskConstExpr (Task a)
+                -> Typed TaskExpr (Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "ViewInfo" "view information"
@@ -181,13 +184,13 @@ where
         ]
     // ordinary (non-task) expressions
     , DynamicCons
-        $ functionConsDyn "EqV" "equal" (dynamic \i -> Typed (EqV (VInt i)) :: Int -> Typed FunExpr Int)
+        $ functionConsDyn "EqV" "equal" (dynamic \i -> Typed (EqV (VInt i)) :: Int -> Typed FuncExpr Int)
         <<@@@ applyHorizontalClasses
     , DynamicCons
-        $ functionConsDyn "GrtV" "greater" (dynamic \i -> Typed (GrtV (VInt i)) :: Int -> Typed FunExpr Int)
+        $ functionConsDyn "GrtV" "greater" (dynamic \i -> Typed (GrtV (VInt i)) :: Int -> Typed FuncExpr Int)
         <<@@@ applyHorizontalClasses
     , DynamicCons
-        $ functionConsDyn "LessV" "less" (dynamic \i -> Typed (LessV (VInt i)) :: Int -> Typed FunExpr Int)
+        $ functionConsDyn "LessV" "less" (dynamic \i -> Typed (LessV (VInt i)) :: Int -> Typed FuncExpr Int)
         <<@@@ applyHorizontalClasses
     , DynamicCons
         $ functionConsDyn "int" "enter an integer:" (dynamic \i -> Typed (Int i) :: Int -> Typed Expr Int)
@@ -257,17 +260,16 @@ applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-widt
 
 // Evaluation //////////////////////////////////////////////////////////////////
 
-evalTaskConstExpr :: TaskConstExpr -> Task Value
+evalTaskConstExpr :: TaskExpr -> Task Value
 evalTaskConstExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
 evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
 evalTaskConstExpr (Then task taskFunc) = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
 evalTaskConstExpr (Or task1 task2) = evalTaskConstExpr task1 -||- evalTaskConstExpr task2
 evalTaskConstExpr (And task1 task2) = evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 @ \(a, b) -> VTuple a b
 evalTaskConstExpr (When task1 options) = evalTaskConstExpr task1
-  >>* [ OnAction (Action butName) (ifValue (test pred) (evalTaskFuncExpr taskFunc))
-        \\ (pred, butName, taskFunc)
-        <- options
-    ]
+  >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFuncExpr cont))
+      \\ {name, pred, cont} <- options
+      ]
 where
   test pred (VInt i) = case pred of
     LessV (VInt j) -> i < j
