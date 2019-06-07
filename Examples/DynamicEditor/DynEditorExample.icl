@@ -7,21 +7,30 @@ import Text
 import iTasks
 import iTasks.Extensions.Editors.DynamicEditor
 
+
+// Synonyms ////////////////////////////////////////////////////////////////////
+
 :: List a :== [a]
+
+
+// Main ////////////////////////////////////////////////////////////////////////
 
 Start world = doTasks editTask world
 
 editTask =
   forever
-    ( viewInformation "Contruct a Task expression:" [] ()
-      ||- enterInformation () [EnterUsing id $ dynamicEditor taskEditor]
+    ( enterInformation ("Contruct a task", info) [EnterUsing id $ dynamicEditor taskEditor]
       >>= \v ->
-          viewInformation "Evaluate the Expression:" [] ()
-            ||- evalTaskConstExpr (toValue taskEditor v)
-            >>= viewInformation "Result of the Task is:" []
+          viewInformation ("Evaluate the task", "") [] ()
+            ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
+            >>= viewInformation ("Done!", "") []
             >>= return
-    ) // <<@ ApplyLayout frameCompact
+    )
+where
+  info = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
 
+
+// Data ////////////////////////////////////////////////////////////////////////
 
 :: TaskConstExpr
   = Apply TaskFuncExpr Expr
@@ -65,8 +74,8 @@ editTask =
 
 derive class iTask TaskConstExpr, TaskFuncExpr, Expr, Value, Typed, FunExpr
 
-
-// instances are never used
+// These instances cannot be auto derived because of the existential quantifier.
+// However, they will be never used, so we make them undefined.
 gDefault{|Ty|} = undef
 gEq{|Ty|} _ _ = undef
 JSONEncode{|Ty|} _ _ = undef
@@ -74,6 +83,8 @@ JSONDecode{|Ty|} _ _ = undef
 gText{|Ty|} _ _ = undef
 gEditor{|Ty|} = undef
 
+
+// Editor //////////////////////////////////////////////////////////////////////
 
 taskEditor :: DynamicEditor TaskConstExpr
 taskEditor = DynamicEditor conses
