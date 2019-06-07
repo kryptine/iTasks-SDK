@@ -20,7 +20,8 @@ import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.SDS
-import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combinators.Overloaded
+import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Overloaded
+import iTasks.UI.Tune
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Layout

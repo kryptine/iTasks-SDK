@@ -8,7 +8,7 @@ import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
 from iTasks.UI.Definition import :: Title, :: Hint, :: Label, :: Icon
 from iTasks.WF.Definition import :: Task
-from iTasks.WF.Combinators.Tune import class tune
+from iTasks.UI.Tune import class tune
 
 /**
 * Add a CSS class to customize styling

@@ -4,7 +4,7 @@ import StdEnv
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition
-import iTasks.WF.Combinators.Tune
+import iTasks.UI.Tune
 import iTasks.WF.Combinators.Overloaded
 import iTasks.WF.Tasks.Interaction
 import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
@@ -315,7 +315,7 @@ where
 
 instance tune CSSStyle Task
 where
-	tune (CSSStyle s) t = tune (ApplyAttribute "style" s) t
+	tune (CSSStyle s) t = tune ("style",JSONString s) t
 
 instance tune ToWindow Task
 where
@@ -343,19 +343,19 @@ where
 
 instance tune Title Task
 where
-	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
+	tune (Title title) t = tune (titleAttr title) t
 
 instance tune Hint Task
 where
-	tune (Hint hint) t = tune (ApplyLayout (setUIAttributes (hintAttr hint)) ) t
+	tune (Hint hint) t = tune (hintAttr hint) t
        
 instance tune Icon Task
 where
-	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
+	tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
 
 instance tune Label Task
 where
-	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
+	tune (Label label) t = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) t
 
 toFormItem :: LayoutRule
 toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))

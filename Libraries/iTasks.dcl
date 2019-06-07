@@ -23,13 +23,13 @@ import
     ,   iTasks.WF.Tasks.Interaction
     ,   iTasks.WF.Combinators.Core
     ,   iTasks.WF.Combinators.SDS
-    ,   iTasks.WF.Combinators.Tune
     ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
 	// Distributed iTasks
 	,   iTasks.Internal.Distributed.Domain
 
 	//  Custom task GUI's
+    ,   iTasks.UI.Tune
     ,   iTasks.UI.Editor.Controls
     ,   iTasks.UI.Editor.Containers
     ,   iTasks.UI.Editor.Modifiers
