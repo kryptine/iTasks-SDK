@@ -76,9 +76,9 @@ where
 						-> Typed TaskConstExpr (Task (a,b))
 				)
 			, functionConsDyn "When" "when"
-				(	dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
+				(	dynamic \(Typed task1) (Typed steps) -> Typed (When task1 [(expr,pred,tfExpr)\\ (Typed expr,pred,Typed tfExpr) <- steps]) ::
 					A.a b:
-						(Typed TaskConstExpr (Task a)) (Typed [(FunExpr, String, TaskFuncExpr)] (a -> Task b))
+						(Typed TaskConstExpr (Task a)) (Typed [(Typed FunExpr (a -> Bool) , String, Typed TaskFuncExpr (a -> Task a))] (a -> Task b))
 						-> Typed TaskConstExpr (Task b)
 				)	 <<@@@ applyHorizontalClasses
 			, listConsDyn "[(FunExpr, String, TaskFuncExpr)]" "[(FunExpr, String, TaskFuncExpr)]"
@@ -225,7 +225,7 @@ evalTaskFuncExpr (UpdateInformation p) (VInt i)		= (updateInformation p [] i @ V
 evalTaskFuncExpr (UpdateInformation p) (VBool b)	= (updateInformation p [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VString s)	= (updateInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInformation p) (VTuple a b)	= (viewInformation p [] () ||-
-													   evalTaskFuncExpr (UpdateInformation "") a
+													   evalTaskFuncExpr (UpdateInformation "") a 
 													   -&&-
 													   evalTaskFuncExpr (UpdateInformation "" )b @ \(a,b) -> VTuple a b) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr Return value 						= return value
