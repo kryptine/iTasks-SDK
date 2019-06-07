@@ -27,8 +27,11 @@ editTask =
             >>= return
     )
 where
+  info1 :: String
   info1 = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
+  info2 :: String
   info2 = "Now step through the task you just created to test it."
+  info3 :: String
   info3 = "The program is done, the result is given below."
 
 
