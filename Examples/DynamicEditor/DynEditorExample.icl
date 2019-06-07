@@ -123,22 +123,25 @@ where
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (Or task1 task2) ::
                 A.a b:
-                (Typed TaskExpr (Task a)) (Typed TaskExpr (Task a))
+                (Typed TaskExpr (Task a))
+                (Typed TaskExpr (Task a))
                 -> Typed TaskExpr (Task a)
             )
+            <<@@@ applyHorizontalClasses
         , functionConsDyn "And" "and"
             ( dynamic \(Typed task1) (Typed task2) ->
               Typed (And task1 task2) ::
                 A.a b:
-                (Typed TaskExpr (Task a)) (Typed TaskExpr (Task b))
+                (Typed TaskExpr (Task a))
+                (Typed TaskExpr (Task b))
                 -> Typed TaskExpr (Task (a, b))
             )
+            <<@@@ applyHorizontalClasses
         , listConsDyn "List TaskContExpr" "continuations"
             ( dynamic \typedSteps ->
               Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
                 A.a b:
-                (List (Typed TaskContExpr
-                (a -> Task b)))
+                (List (Typed TaskContExpr (a -> Task b)))
                 -> Typed (List TaskContExpr) (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
@@ -269,8 +272,8 @@ evalTaskConstExpr :: TaskExpr -> Task Value
 evalTaskConstExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
 evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
 evalTaskConstExpr (Then task taskFunc) = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
-evalTaskConstExpr (Or task1 task2) = evalTaskConstExpr task1 -||- evalTaskConstExpr task2
-evalTaskConstExpr (And task1 task2) = evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 @ \(a, b) -> VTuple a b
+evalTaskConstExpr (Or task1 task2) = (evalTaskConstExpr task1 -||- evalTaskConstExpr task2 <<@ ApplyLayout arrangeHorizontal)
+evalTaskConstExpr (And task1 task2) = (evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 <<@ ApplyLayout arrangeHorizontal) @ \(a, b) -> VTuple a b
 evalTaskConstExpr (When task1 options) = evalTaskConstExpr task1
   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFuncExpr cont))
       \\ {name, pred, cont} <- options
