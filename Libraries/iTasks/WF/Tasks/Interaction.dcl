@@ -70,33 +70,6 @@ from Data.Functor import class Functor
 	| ChooseWithTitle    !String
 	| ChooseWithLabel    !String
 
-/*** Convenience class to add prompting related attributes***/
-class toPrompt d :: !d -> UIAttributes
-
-:: Att				= E.a: Att !a & toPrompt a
-
-:: Title			= Title !String
-:: Label            = Label !String
-:: Hint				= Hint !String
-:: Icon				= Icon !String
-					| IconView
-					| IconEdit
-
-instance toPrompt ()                  //No prompt
-instance toPrompt UIAttributes        //Identity
-instance toPrompt String              //Simple hint
-instance toPrompt (!String, !String)  //Title attribute + hint attribute
-
-//Additional instances to create more complex prompts
-instance toPrompt (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
-instance toPrompt Title
-instance toPrompt Label
-instance toPrompt Hint
-instance toPrompt Icon
-
-instance toPrompt Att
-instance toPrompt [d] | toPrompt d
-
 /*** General input/update/output tasks ***/
 
 /**

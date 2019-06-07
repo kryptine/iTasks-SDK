@@ -156,6 +156,12 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	, value		:: !Int
 	}
 
+//Common attributes:
+:: Title = Title !String
+:: Hint = Hint !String
+:: Label = Label !String
+:: Icon = Icon !String
+
 //Predefined attribute names
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"

@@ -344,7 +344,11 @@ where
 instance tune Title Task
 where
 	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
-	
+
+instance tune Hint Task
+where
+	tune (Hint hint) t = tune (ApplyLayout (setUIAttributes (hintAttr hint)) ) t
+       
 instance tune Icon Task
 where
 	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t

@@ -22,52 +22,6 @@ import Text.HTML
 
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
-instance toPrompt ()
-where toPrompt _ = 'DM'.newMap
-
-instance toPrompt UIAttributes
-where toPrompt attr = attr
-
-instance toPrompt String
-where toPrompt hint = 'DM'.fromList [("hint",JSONString hint)]
-
-instance toPrompt (!String,!String)
-where toPrompt (title,hint) = 'DM'.fromList [("title",JSONString title),("hint",JSONString hint)]
-
-instance toString Icon
-where
-	toString (Icon icon) = icon
-	toString (IconView)	= "view"
-	toString (IconEdit) = "edit"
-
-instance toPrompt (!Icon,!String,!String)
-where
-	toPrompt (icon,title,hint) = 'DM'.fromList [("icon",JSONString (toString icon)),("title",JSONString title),("hint",JSONString hint)]
-
-instance toPrompt Title
-where
-	toPrompt (Title title) = 'DM'.fromList [("title",JSONString title)]
-
-instance toPrompt Label
-where
-	toPrompt (Label label) = 'DM'.fromList [("label",JSONString label)]
-
-instance toPrompt Hint
-where
-	toPrompt (Hint hint) = 'DM'.fromList [("hint",JSONString hint)]
-
-instance toPrompt Icon
-where
-	toPrompt icon = 'DM'.fromList [("icon",JSONString (toString icon))]
-
-instance toPrompt Att
-where
-	toPrompt (Att a) = toPrompt a
-
-instance toPrompt [d] | toPrompt d
-where
-	toPrompt list = 'DM'.unions (map toPrompt list)
-
 //Boilerplate access functions
 viewAttributes :: [ViewOption a] -> UIAttributes
 viewAttributes options = foldr addOption 'DM'.newMap options

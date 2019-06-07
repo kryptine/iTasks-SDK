@@ -6,7 +6,7 @@ definition module iTasks.UI.Layout.Common
 */
 import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
-from iTasks.WF.Tasks.Interaction import :: Title, :: Label, :: Icon
+from iTasks.UI.Definition import :: Title, :: Hint, :: Label, :: Icon
 from iTasks.WF.Definition import :: Task
 from iTasks.WF.Combinators.Tune import class tune
 
@@ -139,6 +139,7 @@ setActionIcon :: (Map String String) -> LayoutRule
 
 //Setting attributes 
 instance tune Title Task
+instance tune Hint Task
 instance tune Label Task
 instance tune Icon Task
 
