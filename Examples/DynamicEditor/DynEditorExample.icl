@@ -234,6 +234,8 @@ where
     ]
 
 
+// Helpers //
+
 derivedType :: Typed Ty a | iTask a
 derivedType = case dynToValue of
   (toValue :: a^ -> Value | iTask a^) = Typed (Ty toValue)
@@ -253,8 +255,10 @@ stringEditor = gEditor{|*|}
 applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-width", "itasks-panel"]
 
 
+// Evaluation //////////////////////////////////////////////////////////////////
+
 evalTaskConstExpr :: TaskConstExpr -> Task Value
-evalTaskConstExpr (EnterInfo prompt (Ty toValue)) = enterInformation prompt [] @ toValue
+evalTaskConstExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
 evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
 evalTaskConstExpr (Then task taskFunc) = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
 evalTaskConstExpr (Or task1 task2) = evalTaskConstExpr task1 -||- evalTaskConstExpr task2
@@ -277,7 +281,6 @@ where
 
 
 evalTaskFuncExpr :: TaskFuncExpr Value -> Task Value
-
 evalTaskFuncExpr (ViewInfo p) (VInt i) = (viewInformation p [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (ViewInfo p) (VBool b) = (viewInformation p [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (ViewInfo p) (VString s) = (viewInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
@@ -288,7 +291,6 @@ evalTaskFuncExpr (ViewInfo p) (VTuple a b) =
     @ \(a, b) -> VTuple a b
   )
     <<@ ApplyLayout arrangeHorizontal
-
 evalTaskFuncExpr (UpdateInfo p) (VInt i) = (updateInformation p [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInfo p) (VBool b) = (updateInformation p [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
 evalTaskFuncExpr (UpdateInfo p) (VString s) = (updateInformation p [] s @ VString) <<@ ApplyLayout arrangeHorizontal
