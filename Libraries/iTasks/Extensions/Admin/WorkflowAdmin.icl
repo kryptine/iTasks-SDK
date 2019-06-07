@@ -178,7 +178,7 @@ manageSession =
 where
 	view user	= "Welcome " +++ toString user
 
-chooseWhatToDo welcomeMessage = updateChoiceWithShared (Title "Menu") [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
+chooseWhatToDo welcomeMessage = updateChoiceWithShared [ChooseWithTitle "Menu",ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
 where
 	addManageWork wfs = [manageWorkWf:wfs]
 	manageWorkWf = transientWorkflow "My Tasks" "Manage your worklist"  (manageWork welcomeMessage)
@@ -190,7 +190,7 @@ where
 		= get currentUser @ userRoles
 		>>- \roles ->
 			forever
-			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
+			(	enterChoiceWithSharedAs [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
 				>>* (continuations roles taskList)
 			)
 
@@ -225,7 +225,7 @@ addNewTask list
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedPersistentWorkflows (const []) 
+	=  editSelectionWithShared [SelectWithTitle "Tasks", SelectMultiple False, SelectInTree toTree fromTree] allowedPersistentWorkflows (const []) 
 	@? tvHd
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list

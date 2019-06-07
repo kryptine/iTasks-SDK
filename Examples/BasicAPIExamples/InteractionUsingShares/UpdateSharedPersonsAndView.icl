@@ -23,7 +23,7 @@ derive class iTask Person, Gender
 enterSharedPersons :: Task [Person]
 enterSharedPersons
 	= 				withShared []																		// create an empty shared list
-	\sharedList ->  updateSharedInformation "Modify the Shared List of Persons:" [] sharedList			// update that list
+	\sharedList ->  updateSharedInformation [UpdateSharedWithHint "Modify the Shared List of Persons:"] sharedList			// update that list
 					-||
 					viewSharedInformation [ViewWithHint "Current Content of this Shared List:"] sharedList 	 		// while showing that list
 						<<@ ArrangeHorizontal															// show both list next to each other (default is below)

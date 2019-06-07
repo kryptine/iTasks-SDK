@@ -16,12 +16,12 @@ sharedNoteAsList
 	=	withShared "" doEditor
 where
 	doEditor state
-		= 		updateSharedInformation ("Text","Edit text")  [noteEditor] state
+		= 		updateSharedInformation [UpdateSharedWithTitle "Text",UpdateSharedWithHint "Edit text",noteEditor] state
 				-||-
-				updateSharedInformation ("Lines","Edit lines") [listEditor] state
+				updateSharedInformation [UpdateSharedWithTitle "Lines",UpdateSharedWithHint "Edit lines",listEditor] state
 						<<@ ArrangeHorizontal
 		>>=		viewInformation [ViewWithHint "Result:"]
 		>>=		return
 
-	noteEditor = UpdateUsing id (const id) textArea
-	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
+	noteEditor = UpdateSharedUsing id (const id) const textArea
+	listEditor = UpdateSharedAs (split "\n") (\_ l -> join "\n" l) const

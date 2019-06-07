@@ -17,9 +17,9 @@ sharedNotes
 	= withShared ""																									// create an initial empty shared string
 		(\note -> 	viewSharedInformation [ViewWithHint "View on note", ViewUsing id textArea] note								// one to view the resulting string
 					-||-
-					(	updateSharedInformation "Update shared note 1" [UpdateUsing id (const id) textArea] note	// an editor to update the shared string
+					(	updateSharedInformation [UpdateSharedWithHint "Update shared note 1", UpdateSharedUsing id (const id) const textArea] note	// an editor to update the shared string
 					 	-||-
-					 	updateSharedInformation "Update shared note 2"  [UpdateUsing id (const id) textArea] note	// and an other updating editor
+					 	updateSharedInformation [UpdateSharedWithHint "Update shared note 2", UpdateSharedUsing id (const id) const textArea] note	// and an other updating editor
 					 		<<@ ArrangeHorizontal 
 					 )
 		)

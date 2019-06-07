@@ -55,7 +55,7 @@ genChat = createChatSession myChat updateChat
 createChatSession :: (Task a) (User a -> Task b) -> Task [b] | iTask a & iTask b
 createChatSession enter update
    =           		get currentUser
-   >>= \me ->  		enterMultipleChoiceWithShared ("select chatters") [ChooseFromCheckGroup id] users
+   >>= \me ->  		enterMultipleChoiceWithShared [ChooseWithHint "select chatters", ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 where
 	startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds
@@ -81,7 +81,7 @@ where
 
 
 myChat
-	=			enterChoice "select message kind" [] ["Text","Doc + Text","NewChat"]
+	=			enterChoice [ChooseWithHint "select message kind"] ["Text","Doc + Text","NewChat"]
 	>>= \sel -> case sel of
 				"Text" 			-> oneChat	@ Text o ((+++) "\t")
 				"Doc + Text"  	-> oneChat	@ DocWithText

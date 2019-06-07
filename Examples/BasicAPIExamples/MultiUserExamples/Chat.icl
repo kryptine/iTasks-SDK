@@ -40,7 +40,7 @@ where
 createChatSession :: (Task a) (User a -> Task b) -> Task [b] | iTask a & iTask b
 createChatSession enter update
    =           		get currentUser
-   >>= \me ->  		enterMultipleChoiceWithShared ("select chatters") [ChooseFromCheckGroup id] users
+   >>= \me ->  		enterMultipleChoiceWithShared [ChooseWithHint "select chatters", ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 
 startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds

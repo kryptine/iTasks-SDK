@@ -53,7 +53,7 @@ tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browse
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 tonicStaticBrowser rs
   =                withShared [] (
-      \navstack -> (updateSharedInformation "Display settings" [] staticDisplaySettings
+      \navstack -> (updateSharedInformation [UpdateSharedWithHint "Display settings"] staticDisplaySettings
               -&&- (allBlueprints
   >>- \allbps   -> (selectModule
                >&> withSelection noModuleSelection (
@@ -62,7 +62,7 @@ tonicStaticBrowser rs
          )) <<@ ArrangeWithSideBar 0 LeftSide True
          )) ) @! ()
   where
-  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseFromDropdown id]
+  selectModule      = getTonicModules >>- enterChoice [ChooseWithHint "Select a module",ChooseFromDropdown id]
   noModuleSelection = viewInformation [] "Select module..."
 
 tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared sds NavStack) TonicModule -> Task () | RWShared sds
@@ -83,7 +83,7 @@ tonicBrowseWithModule allbps rs navstack tm
      )) <<@ ArrangeWithSideBar 0 LeftSide True
         @! ()
   where
-  selectTask tm   = enterChoice "Select task" [ChooseFromDropdown id] (getTasks tm)
+  selectTask tm   = enterChoice [ChooseWithHint "Select task", ChooseFromDropdown id] (getTasks tm)
   noTaskSelection = viewInformation [] "Select task..."
 
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared sds NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
@@ -154,7 +154,7 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
   >>~ \outputs -> let outputs` = 'DM'.foldlWithKey (\m (tid, eid) v -> if (tid == bpi.bpi_taskId)
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
-                   in updateInformation ()
+                   in updateInformation
                         [UpdateUsing id (const id) (editor outputs`)]
                         { ActionState
                         | state  = { tis_task    = bpi.bpi_blueprint
@@ -171,7 +171,7 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
 showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Int
                     -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
-  = updateInformation ()
+  = updateInformation
       [UpdateUsing id (const id) editor]
       { ActionState
       | state  = { tis_task    = task
@@ -206,7 +206,7 @@ tonicDynamicBrowser rs
     supportArea = arrangeWithSideBar 0 TopSide 200 False [settingsTask, filterTask, usersTask] []
 */
 
-  filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
+  filterQuery = updateSharedInformation [UpdateSharedWithTitle "Filter query"] queryShare @! ()
 
   taskViewer = whileUnchanged dynamicDisplaySettings (
             \{show_task_value} -> if show_task_value
@@ -231,7 +231,7 @@ tonicDynamicBrowser rs
 
   settingsViewer :: Task ()
   settingsViewer
-    =   updateSharedInformation (Title "Settings") [] dynamicDisplaySettings @! ()
+    =   updateSharedInformation [UpdateSharedWithTitle "Settings"] dynamicDisplaySettings @! ()
 
   windowIf True t = t <<@ InWindow
   windowIf _    _ = return ()
@@ -282,8 +282,7 @@ tonicDynamicBrowser` rs navstack =
   ((activeBlueprintInstances -&&- blueprintViewer) /* <<@ ArrangeVertical */) @! ()
 where
   activeBlueprintInstances = editSharedChoiceWithSharedAs
-                               (Title "Active blueprint instances")
-                               [ChooseFromGrid customView]
+                               [ChooseWithTitle "Active blueprint instances",ChooseFromGrid customView]
                                (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |*| queryShare))
                                setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide True
   where

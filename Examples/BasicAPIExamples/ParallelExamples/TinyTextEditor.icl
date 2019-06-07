@@ -34,7 +34,7 @@ editWithStatistics
 
 editFile :: String (Shared sds String)  -> Task () | RWShared sds
 editFile fileName sharedFile
-	=	updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile @! ()
+	=	updateSharedInformation [UpdateSharedWithHint ("edit " +++ fileName), UpdateSharedUsing id (const id) const textArea] sharedFile @! ()
 
 showStatistics :: (Shared sds String) -> Task () | RWShared sds
 showStatistics sharedFile = viewSharedInformation [ViewWithHint "Statistics:", ViewAs stat] sharedFile @! ()
@@ -49,7 +49,7 @@ where
 
 replace :: Replace (Shared sds String) -> Task () | RWShared sds
 replace cmnd sharedFile
- = 	(	updateInformation "Replace:" [] cmnd
+ = 	(	updateInformation [UpdateWithHint "Replace:"] cmnd
 	>>*	[ OnAction (Action "Replace") (hasValue substitute)
 		]
 	)

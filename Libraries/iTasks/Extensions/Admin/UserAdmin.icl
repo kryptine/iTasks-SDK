@@ -98,7 +98,7 @@ deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) use
 
 manageUsers :: Task ()
 manageUsers =
-	(		enterChoiceWithSharedAs ("Users","The following users are available") [ChooseFromGrid id] userAccounts identifyUserAccount
+	(		enterChoiceWithSharedAs [ChooseWithTitle "Users",ChooseWithHint "The following users are available", ChooseFromGrid id] userAccounts identifyUserAccount
 		>>*	[ OnAction		(Action "New")									(always (createUserFlow	@ const False))
 			, OnAction 	    (ActionEdit) 						                (hasValue (\u -> updateUserFlow u @ const False))
 		    , OnAction      (Action "Change Password")                      (hasValue (\u -> changePasswordFlow u @ const False))
@@ -125,7 +125,7 @@ updateUserFlow userId
 	=	get (userAccount userId)
 	>>= \mbAccount -> case mbAccount of 
 		(Just account)
-			=	(updateInformation ("Editing " +++ fromMaybe "Untitled" account.StoredUserAccount.title ,"Please make your changes") [] account
+			=	(updateInformation [UpdateWithTitle ("Editing " +++ fromMaybe "Untitled" account.StoredUserAccount.title) ,UpdateWithHint "Please make your changes"] account
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)

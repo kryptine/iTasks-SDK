@@ -18,8 +18,9 @@ derive class iTask MySum
 calculateSumInRecord :: Task Int
 calculateSumInRecord
   = 				withShared (0,0)
-  (\sum ->			updateSharedInformation ("Sum of 2 numbers, with view","")
-  						[UpdateAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)})
-  						          (\_ res -> (res.firstNumber,res.secondNumber))] sum
+  (\sum ->			updateSharedInformation
+						[UpdateSharedWithTitle "Sum of 2 numbers, with view"
+  						,UpdateSharedAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)})
+  						          (\_ res -> (res.firstNumber,res.secondNumber)) const] sum
   )
   >>= \(i,j) ->		return (i+j)

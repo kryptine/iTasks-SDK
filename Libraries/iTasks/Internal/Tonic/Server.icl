@@ -112,7 +112,7 @@ showGenBlueprintInstance :: ![TaskAppRenderer] !GenBlueprintInstance
                             !Bool !Int
                          -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showGenBlueprintInstance rs bpi selDetail compact depth
-  = updateInformation ()
+  = updateInformation
       [abort "huehue" /*imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id)  (\_ _ -> Nothing) (const id) */]
       { ActionState
       | state  = { tis_task    = bpi.gbpi_blueprint
@@ -129,7 +129,7 @@ archivedStandAloneViewer
   = archivedStandAloneViewer` 0
   where
   archivedStandAloneViewer` curIdx
-    =            enterChoiceWithShared "Select recording" [] (mapRead 'DM'.keys recordingsShare)
+    =            enterChoiceWithShared [ChooseWithHint "Select recording"] (mapRead 'DM'.keys recordingsShare)
     >&>          withSelection noSel1
     (\dt ->      get (sdsFocus dt recordingForDateTimeShare)
     >>~ \recs -> showRecs curIdx recs)
@@ -146,7 +146,7 @@ archivedStandAloneViewer
         , OnAction (Action "Last")     (ifCond notLast  (showRecs lastIdx recs))
         ]
   archivedStandAloneViewer`` curIdx newRTMap
-    =   enterChoice "Select blueprint" [ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
+    =   enterChoice [ChooseWithHint "Select blueprint", ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
     >&> withSelection noSel2 viewBP
   noSel1 = viewInformation [ViewWithHint "Notice"] "No recording selected"
   noSel2 = viewInformation [ViewWithHint "Notice"] "No blueprint"
@@ -165,12 +165,12 @@ saSelectedBlueprint :: SimpleSDSLens (Maybe (ComputationId, BlueprintIdent))
 saSelectedBlueprint = sharedStore "saSelectedBlueprint" Nothing
 
 liveStandAloneViewer :: Task ()
-liveStandAloneViewer = allTasks [ updateSharedInformation "Viewer settings" [] shViewerSettings @! ()
+liveStandAloneViewer = allTasks [ updateSharedInformation [UpdateSharedWithHint "Viewer settings"] shViewerSettings @! ()
              , startViewer @! ()
              ] @! ()
 where
   startViewer
-    =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
+    =   enterChoiceWithShared [ChooseWithHint "Select blueprint"] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
     >&> withSelection noSel (
     (\bp -> whileUnchanged (tonicServerShare |*| shViewerSettings)
     (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation [] () >>* [ startAction tms

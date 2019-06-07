@@ -15,7 +15,7 @@ coffeemachine :: Task (String,EUR)
 coffeemachine
 	=
 	forever
-	( 	enterChoice ("Product","Choose your product:") []
+	( 	enterChoice [ChooseWithTitle "Product",ChooseWithHint "Choose your product:"]
 					[("Coffee", EUR 100)
 					,("Cappucino", EUR 150)
 					,("Tea", EUR 50)
@@ -29,7 +29,7 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay)
 	= 				viewInformation [ViewWithHint "Coffee Machine",ViewAs view1] toPay
 					||-
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
+					enterChoice  [ChooseWithTitle "Insert coins",ChooseWithHint "Please insert a coin...", ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 	 (always (stop ("Product Cancelled",paid)))
 					, OnAction (Action "Insert") (hasValue handleMoney)
 					]

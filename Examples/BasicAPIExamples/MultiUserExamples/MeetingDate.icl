@@ -60,7 +60,7 @@ SelectDatesToPropose
 
 SelectAttendencees :: Task [User]
 SelectAttendencees
-	=	enterMultipleChoiceWithShared ("Who do you want to invite for the meeting?") [ChooseFromCheckGroup id] users
+	=	enterMultipleChoiceWithShared [ChooseWithHint "Who do you want to invite for the meeting?", ChooseFromCheckGroup id] users
 
 AskOthers :: String [User] [DateOption] -> Task MeetingOption
 AskOthers purpose others dates
@@ -72,13 +72,13 @@ where
 
 	askAll table
 		=   allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
-		>-| enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table
+		>-| enterChoiceWithShared [ChooseWithHint "Select the date for the meeting:", ChooseFromGrid id] table
 		>>=	 		viewInformation [ViewWithHint "Date chosen:"]
 	where
 		checkOptions user
 			=				viewSharedInformation [ViewWithHint "Current Responses:"] table
 							||-
-							enterMultipleChoice "Select the date(s) you can attend the meeting (ctrl alt):" [ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1]
+							enterMultipleChoice [ChooseWithHint "Select the date(s) you can attend the meeting (ctrl alt):", ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1]
 			>>=	\ids ->	upd (\table -> [{t & users = if (isMember j ids) [user:t.users] t.users} \\ j <- [0..] & t <- table]) table
 
 
