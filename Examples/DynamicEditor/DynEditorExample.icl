@@ -102,10 +102,12 @@ where
             )
         , functionConsDyn "When" "when"
             ( dynamic \(Typed task1) (Typed steps) ->
-              Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
+              Typed (When task1 steps) ::
+              // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
                 A.a b:
                 (Typed TaskConstExpr (Task a))
-                (Typed (List (Typed FunExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b))
+                (Typed (List (FunExpr, String, TaskFuncExpr)) (a -> Task b))
+                // (Typed (List (Typed FunExpr (a -> Bool), String, Typed TaskFuncExpr (a -> Task a))) (a -> Task b))
                 -> Typed TaskConstExpr (Task b)
             )
             <<@@@ applyHorizontalClasses
