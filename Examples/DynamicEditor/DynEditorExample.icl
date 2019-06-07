@@ -19,15 +19,17 @@ Start world = doTasks editTask world
 
 editTask =
   forever
-    ( enterInformation ("Contruct a task", info) [EnterUsing id $ dynamicEditor taskEditor]
+    ( enterInformation ("Contruct a task", info1) [EnterUsing id $ dynamicEditor taskEditor]
       >>= \v ->
-          viewInformation ("Evaluate the task", "") [] ()
+          viewInformation ("Evaluate the task", info2) [] ()
             ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
-            >>= viewInformation ("Done!", "") []
+            >>= viewInformation ("Done!", info3) []
             >>= return
     )
 where
-  info = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
+  info1 = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
+  info2 = "Now step through the task you just created to test it."
+  info3 = "The program is done, the result is given below."
 
 
 // Data ////////////////////////////////////////////////////////////////////////
@@ -103,7 +105,7 @@ where
                 (Typed TaskExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
                 -> Typed TaskExpr (Task b)
             )
-        , functionConsDyn "When" "when"
+        , functionConsDyn "When" "guarded sequence"
             ( dynamic \(Typed task1) (Typed steps) ->
               Typed (When task1 steps) ::
               // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
