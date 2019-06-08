@@ -155,6 +155,7 @@ where
                 -> Typed TaskContExpr (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
+            <<@@@ AddLabels [Just "name", Just "pred", Just "cont"]
         ]
     , DynamicConsGroup "Editors"
         [ functionConsDyn "Apply" "apply"

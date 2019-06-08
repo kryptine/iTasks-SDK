@@ -17,6 +17,7 @@ import Data.Functor
     , showIfOnlyChoice :: !Bool
     , useAsDefault     :: !Bool
     , uiAttributes     :: !UIAttributes
+    , labels           :: ![Maybe String]
     }
 
 (<<@@@) infixl 2 :: !DynamicCons !DynamicConsOption -> DynamicCons
@@ -28,8 +29,9 @@ import Data.Functor
 tunedDynamicConsEditor :: !DynamicConsOption !DynamicCons -> DynamicCons
 tunedDynamicConsEditor HideIfOnlyChoice cons = {cons & showIfOnlyChoice = False}
 tunedDynamicConsEditor UseAsDefault     cons = {cons & useAsDefault = True}
-tunedDynamicConsEditor (ApplyCssClasses classes) cons
-	= {cons & uiAttributes = 'Map'.union (classAttr classes) cons.uiAttributes}
+tunedDynamicConsEditor (ApplyCssClasses classes) cons =
+	{cons & uiAttributes = 'Map'.union (classAttr classes) cons.uiAttributes}
+tunedDynamicConsEditor (AddLabels labels) cons = {cons & labels = labels}
 
 functionCons :: !String !String !a -> DynamicCons | TC a
 functionCons consId label func = functionConsDyn consId label (dynamic func)
@@ -41,6 +43,7 @@ functionConsDyn consId label func = { consId           = consId
                                     , showIfOnlyChoice = True
                                     , useAsDefault     = False
                                     , uiAttributes     = 'Map'.newMap
+                                    , labels           = []
                                     }
 
 listCons :: !String !String !([a] -> b) -> DynamicCons | TC a & TC b
@@ -53,6 +56,7 @@ listConsDyn consId label func = { consId           = consId
                                 , showIfOnlyChoice = True
                                 , useAsDefault     = False
                                 , uiAttributes     = 'Map'.newMap
+                                , labels           = []
                                 }
 
 customEditorCons :: !String !String !(Editor a) -> DynamicCons
@@ -63,6 +67,7 @@ customEditorCons consId label editor = { consId           = consId
                                        , showIfOnlyChoice = True
                                        , useAsDefault     = False
                                        , uiAttributes     = 'Map'.newMap
+                                       , labels           = []
                                        }
 
 // TODO: don't use aborts here
@@ -211,7 +216,7 @@ where
         Enter = case matchingConses of
             [(onlyChoice, _)] | hideCons
                 # (mbUis, _, type, _, vst) = genChildEditors dp onlyChoice.consId Enter vst
-                # mbUis = ( \(uis, childSts) -> (uiContainer attr uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
+                # mbUis = ( \(uis, childSts) -> (uiContainer attr onlyChoice.labels uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
                           ) <$>
                           mbUis
                 = (mbUis, vst)
@@ -221,10 +226,10 @@ where
                     = case mbUis of
                         Ok (uis, childSts)
                             | hideCons
-                                = (Ok (uiContainer attr uis, Just (defaultChoice.consId, type, True), [nullState: childSts]), vst)
+                                = (Ok (uiContainer attr defaultChoice.labels uis, Just (defaultChoice.consId, type, True), [nullState: childSts]), vst)
                             | otherwise
                                 # (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-                                = ( Ok ( uiContainer attr [consChooseUI: uis]
+                                = ( Ok ( uiContainer attr [Nothing: defaultChoice.labels] [consChooseUI: uis]
                                        , Just (defaultChoice.consId, type, True)
                                        , [chooseSt: childSts]
                                        )
@@ -233,28 +238,30 @@ where
                         Error e = (Error e, vst)
                 _
                     # (consChooseUI, chooseSt) = genConsChooseUI taskId dp Nothing
-                    = (Ok (uiContainer attr [consChooseUI], Nothing, [chooseSt]), vst)
+                    = (Ok (uiContainer attr [] [consChooseUI], Nothing, [chooseSt]), vst)
 		Update Undefined = genUI attr dp Enter vst
         Update (DynamicEditorValue cid val)
             # (mbUis, idx, type, label, vst) = genChildEditors dp cid (Update val) vst
+			# (cons, _) = consWithId cid matchingConses
             = case mbUis of
                 Ok (uis, childSts)
                     | hideCons
-                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr cons.labels uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
+                        = (Ok (uiContainer attr [Nothing: cons.labels] [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
                 Error e = (Error e, vst)
 
         View (DynamicEditorValue cid val)
             # (mbUis, _, type, label, vst) = genChildEditors dp cid (View val) vst
+			# (cons, _) = consWithId cid matchingConses
             = case mbUis of
                 Ok (uis, childSts)
                     | hideCons
-                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr cons.labels uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # consChooseUI = uia UITextView $ valueAttr $ JSONString label
-                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr [Nothing: cons.labels] [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
                 Error e = (Error e, vst)
 
     genConsChooseUI taskId dp mbSelectedCons = (consChooseUI, consChooseSt)
@@ -466,8 +473,13 @@ where
         childrenEditorList _ = dynamicEditor (DynamicEditor elements)
     listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
-    uiContainer :: !UIAttributes ![UI] -> UI
-    uiContainer attr uis = UI UIContainer attr uis
+    uiContainer :: !UIAttributes ![Maybe String] ![UI] -> UI
+    uiContainer attr labels uis =
+		UI UIRecord attr (withLabels <$> zip2 uis (labels ++ repeat Nothing))
+	where
+		withLabels :: !(!UI, !Maybe String) -> UI
+		withLabels (UI type attrs item, Just label) = UI type ('Map'.union attrs $ labelAttr label) item
+		withLabels (ui,                 Nothing)    = ui
 
     valueFromState :: !(Maybe (!DynamicConsId, !ConsType, !Bool)) ![EditState] -> *Maybe (DynamicEditorValue a)
     valueFromState (Just (cid, CustomEditor, True)) [_: [editorSt]] =
