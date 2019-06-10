@@ -17,15 +17,14 @@ import iTasks.Extensions.Editors.DynamicEditor
 
 Start world = doTasks editTask world
 
-editTask =
-  forever
-    ( enterInformation ("Contruct a task", info1) [EnterUsing id $ dynamicEditor taskEditor]
-      >>= \v ->
-          viewInformation ("Evaluate the task", info2) [] ()
-            ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
-            >>= viewInformation ("Done!", info3) []
-            >>= return
-    )
+editTask :: Task Value
+editTask = forever $
+  enterInformation ("Contruct a task", info1) [EnterUsing id $ dynamicEditor taskEditor]
+    >>= \v ->
+        viewInformation ("Evaluate the task", info2) [] ()
+          ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
+          >>= viewInformation ("Done!", info3) []
+          >>= return  // Extra return to disable `Continue` button
 where
   info1 :: String
   info1 = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
