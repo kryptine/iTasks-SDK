@@ -46,7 +46,7 @@ where
   // | Apply TaskFunc Expr
 
 :: TaskFunc
-  = ViewF String
+  = ViewF String Func
   | UpdateF String
   | ThenF TaskFunc TaskFunc
 
@@ -59,18 +59,19 @@ where
   | Snd Expr
   | Eq Expr Expr
 
+:: Func
+  = Identity
+  | GtF Value
+  | GeF Value
+  | EqF Value
+  | LeF Value
+  | LtF Value
+
 :: Value
   = VInt Int
   | VBool Bool
   | VString String
   | VTuple Value Value
-
-:: Func
-  = GtF Value
-  | GeF Value
-  | EqF Value
-  | LeF Value
-  | LtF Value
 
 :: Ty
   = E.a: Ty (a -> Value) & iTask a
@@ -172,10 +173,11 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyHorizontalClasses
       , functionConsDyn "ViewF" "view"
-          ( dynamic \s -> Typed (ViewF s) ::
-              A.a:
+          ( dynamic \s (Typed func) -> Typed (ViewF s func) ::
+              A.a b:
               String
-              -> Typed TaskFunc (a -> Task a)
+              (Typed Func (a -> b))
+              -> Typed TaskFunc (a -> Task b)
           )
           <<@@@ applyHorizontalClasses
       , functionConsDyn "UpdateF" "update"
@@ -203,6 +205,13 @@ taskEditor = DynamicEditor
       //     )
       ]
   // Non-task functions:
+  , DynamicConsGroup "Basics"
+      [ functionConsDyn "Identity" "this value"
+          (dynamic Typed Identity ::
+            A.a:
+            Typed Func (a -> a)
+          )
+      ]
   , DynamicConsGroup "Comparison"
       [ functionConsDyn "GtF" "greater than"
           (dynamic \i -> Typed (GtF (VInt i)) :: Int -> Typed Func Int)
@@ -311,14 +320,13 @@ where
 
 evalTaskFunc :: TaskFunc Value -> Task Value
 evalTaskFunc (ThenF this next) val = evalTaskFunc this val >>= evalTaskFunc next
-evalTaskFunc (ViewF msg) val = case val of
+evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (viewInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
   (VTuple a b) ->
     ( viewInformation msg [] ()
-      ||- evalTaskFunc (ViewF "") a
-      -&&- evalTaskFunc (ViewF "") b
+      ||- evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
@@ -346,6 +354,7 @@ evalExpr (Eq expr1 expr2) = evalFunc (evalExpr expr1) (EqF (evalExpr expr2))
 
 
 evalFunc :: Value Func -> Value
+evalFunc val Identity = val
 evalFunc (VInt i1) func = case func of
   (GtF (VInt i2)) -> VBool $ i1 > i2
   (GeF (VInt i2)) -> VBool $ i1 >= i2
