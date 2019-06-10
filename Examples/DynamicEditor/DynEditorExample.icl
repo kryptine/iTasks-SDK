@@ -38,7 +38,8 @@ where
 // Data ////////////////////////////////////////////////////////////////////////
 
 :: TaskExpr
-  = Apply TaskFuncExpr Expr
+  = Done Expr
+  // | Apply TaskFuncExpr Expr
   | EnterInfo String Ty
   | Then TaskExpr TaskFuncExpr
   | Or TaskExpr TaskExpr
@@ -101,16 +102,20 @@ where
         $ functionConsDyn "TaskExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskExpr a) -> TaskExpr)
         <<@@@ HideIfOnlyChoice
     , DynamicConsGroup "Combinators"
-        [ functionConsDyn "Then" "sequence"
-            ( dynamic \(Typed task) (Typed taskFunc) ->
-              Typed (Then task taskFunc) ::
+        [ functionConsDyn "Done" "done"
+            ( dynamic \(Typed expr) -> Typed (Done expr) ::
+                A.a:
+                (Typed Expr a)
+                -> Typed TaskExpr (Task a)
+            )
+        , functionConsDyn "Then" "sequence"
+            ( dynamic \(Typed task) (Typed taskFunc) -> Typed (Then task taskFunc) ::
                 A.a b:
                 (Typed TaskExpr (Task a)) (Typed TaskFuncExpr (a -> Task b))
                 -> Typed TaskExpr (Task b)
             )
         , functionConsDyn "When" "guarded sequence"
-            ( dynamic \(Typed task1) (Typed steps) ->
-              Typed (When task1 steps) ::
+            ( dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
               // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
                 A.a b:
                 (Typed TaskExpr (Task a))
@@ -120,8 +125,7 @@ where
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "Or" "or"
-            ( dynamic \(Typed task1) (Typed task2) ->
-              Typed (Or task1 task2) ::
+            ( dynamic \(Typed task1) (Typed task2) -> Typed (Or task1 task2) ::
                 A.a b:
                 (Typed TaskExpr (Task a))
                 (Typed TaskExpr (Task a))
@@ -129,8 +133,7 @@ where
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "And" "and"
-            ( dynamic \(Typed task1) (Typed task2) ->
-              Typed (And task1 task2) ::
+            ( dynamic \(Typed task1) (Typed task2) -> Typed (And task1 task2) ::
                 A.a b:
                 (Typed TaskExpr (Task a))
                 (Typed TaskExpr (Task b))
@@ -138,16 +141,14 @@ where
             )
             <<@@@ applyHorizontalClasses
         , listConsDyn "List TaskContExpr" "continuations"
-            ( dynamic \typedSteps ->
-              Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
+            ( dynamic \typedSteps -> Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
                 A.a b:
                 (List (Typed TaskContExpr (a -> Task b)))
                 -> Typed (List TaskContExpr) (a -> Task b)
             )
             <<@@@ HideIfOnlyChoice
         , functionConsDyn "TaskContExpr" "continuation"
-            ( dynamic \s (Typed func) (Typed taskFunc) ->
-              Typed {name = s, pred = func, cont = taskFunc} ::
+            ( dynamic \s (Typed func) (Typed taskFunc) -> Typed {name = s, pred = func, cont = taskFunc} ::
                 A.a b:
                 String
                 (Typed FuncExpr a)
@@ -158,33 +159,30 @@ where
             <<@@@ AddLabels [Just "name", Just "predicate", Just "continuation"]
         ]
     , DynamicConsGroup "Editors"
-        [ functionConsDyn "Apply" "apply"
-            ( dynamic \(Typed taskFunc) (Typed expr) ->
-              Typed (Apply taskFunc expr) ::
-                A.a b:
-                (Typed TaskFuncExpr (a -> Task b))
-                (Typed Expr a)
-                -> Typed TaskExpr (Task b)
-            )
-        , functionConsDyn "EnterInfo" "enter information"
-            ( dynamic \s (Typed ty) ->
-              Typed (EnterInfo s ty) ::
+        // [ functionConsDyn "Apply" "apply"
+        //     ( dynamic \(Typed taskFunc) (Typed expr) ->
+        //       Typed (Apply taskFunc expr) ::
+        //         A.a b:
+        //         (Typed TaskFuncExpr (a -> Task b))
+        //         (Typed Expr a)
+        //         -> Typed TaskExpr (Task b)
+        //     )
+        [ functionConsDyn "EnterInfo" "enter information"
+            ( dynamic \s (Typed ty) -> Typed (EnterInfo s ty) ::
                 A.a:
                 String (Typed Ty a)
                 -> Typed TaskExpr (Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "ViewInfo" "view information"
-            ( dynamic \s ->
-              Typed (ViewInfo s) ::
+            ( dynamic \s -> Typed (ViewInfo s) ::
                 A.a:
                 String
                 -> Typed TaskFuncExpr (a -> Task a)
             )
             <<@@@ applyHorizontalClasses
         , functionConsDyn "UpdateInfo" "update information"
-            ( dynamic \s ->
-              Typed (UpdateInfo s) ::
+            ( dynamic \s -> Typed (UpdateInfo s) ::
                 A.a:
                 String
                 -> Typed TaskFuncExpr (a -> Task a)
@@ -270,8 +268,9 @@ applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-widt
 // Evaluation //////////////////////////////////////////////////////////////////
 
 evalTaskConstExpr :: TaskExpr -> Task Value
+evalTaskConstExpr (Done expr) = return $ evalExpr expr
 evalTaskConstExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
-evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
+// evalTaskConstExpr (Apply taskFunc expr) = evalTaskFuncExpr taskFunc $ evalExpr expr
 evalTaskConstExpr (Then task taskFunc) = evalTaskConstExpr task >>= evalTaskFuncExpr taskFunc
 evalTaskConstExpr (Or task1 task2) = (evalTaskConstExpr task1 -||- evalTaskConstExpr task2 <<@ ApplyLayout arrangeHorizontal)
 evalTaskConstExpr (And task1 task2) = (evalTaskConstExpr task1 -&&- evalTaskConstExpr task2 <<@ ApplyLayout arrangeHorizontal) @ \(a, b) -> VTuple a b
@@ -312,7 +311,6 @@ evalTaskFuncExpr (UpdateInfo p) (VTuple a b) =
     @ \(a, b) -> VTuple a b
   )
     <<@ ApplyLayout arrangeHorizontal
-
 
 evalExpr :: Expr -> Value
 evalExpr (Int i) = VInt i
