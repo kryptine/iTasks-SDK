@@ -299,7 +299,7 @@ where
                 # removals = removeNChildren $ length childrenSts
                 // add "itasks-container" classes as this class always has to be present for containers
                 # uiAttrs = withContainerClassAttr cons.uiAttributes
-                # change = ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts)
+                # change = ChangeUI [] [(0, ChangeChild $ ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts))]
                 # builderChooseState = LeafState {touched = True, state = JSONInt $ length uis}
                 = (Ok (change, Just (cons.consId, type, True), [builderChooseState: childSts]), vst)
             Error e = (Error e, vst)
@@ -308,7 +308,7 @@ where
     onEdit dp ([],e) _ [_: childSts] vst
         | e =: JSONNull || e =: (JSONArray []) // A null or an empty array are accepted as a reset events
             //If necessary remove the fields of the previously selected cons
-            # change = ChangeUI [] $ removeNChildren $ length childSts
+            # change = ChangeUI [] [(0, ChangeChild $ ChangeUI [] $ removeNChildren $ length childSts)]
             = (Ok (change, Nothing, [nullState]), vst)
         | otherwise
             = (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
@@ -329,13 +329,13 @@ where
                 = editor.Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
         = case res of
             Ok (change, childSt)
-				# change = ChangeUI [] ([(argIdx + if hideCons 0 1, ChangeChild change)] ++ mbErrorIconChange)
+				# change = ChangeUI [] $ [(0, ChangeChild $ ChangeUI [] [(argIdx + if hideCons 0 1, ChangeChild change)])] ++ mbErrorIconChange
 				// replace state for this child
 				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`), vst)
 			where
 				mbErrorIconChange
 					| typeWasCorrect && isError typeIsCorrect =
-						[(length childSts, InsertChild errorIcon)]
+						[(1, InsertChild errorIcon)]
 					with
 						errorIcon =
 							UI
@@ -343,7 +343,7 @@ where
 								('Map'.union (iconClsAttr "icon-invalid") (tooltipAttr $ fromError typeIsCorrect))
 								[]
 					| not typeWasCorrect && isOk typeIsCorrect =
-						[(length childSts, RemoveChild)]
+						[(1, RemoveChild)]
 					| otherwise = []
 				typeIsCorrect = childTypesAreMatching cons.builder (drop 1 childSts`)
 				childSts` = updateAt (argIdx + 1) childSt childSts
@@ -483,7 +483,11 @@ where
     listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
     uiContainer :: !UIAttributes ![UI] -> UI
-    uiContainer attr uis = UI UIRecord attr uis
+    uiContainer attr uis =
+		UI
+			UIContainer
+			('Map'.singleton "class" $ JSONArray [JSONString "itasks-container", JSONString "itasks-horizontal"])
+			[UI UIRecord attr uis]
 
     valueFromState :: !(Maybe (!DynamicConsId, !ConsType, !Bool)) ![EditState] -> *Maybe (DynamicEditorValue a)
     valueFromState (Just (cid, CustomEditor, True)) [_: [editorSt]] =
