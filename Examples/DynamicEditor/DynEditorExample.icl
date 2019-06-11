@@ -56,7 +56,6 @@ where
   | Both TaskExpr TaskExpr
   | Any TaskExpr TaskExpr
   | One TaskExpr TaskExpr
-  // | Apply TaskFunc Expr
 
 :: TaskFunc
   = ViewF String Func
@@ -345,26 +344,26 @@ evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 evalTaskExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
 evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
-evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2 <<@ ApplyLayout arrangeHorizontal)
-evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2 <<@ ApplyLayout arrangeHorizontal) @ \(a, b) -> VTuple a b
-// evalTaskExpr (Apply taskFunc expr) = evalTaskFunc taskFunc $ evalExpr expr
+evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
+evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
 // evalTaskExpr (When task1 options) = evalTaskExpr task1
 //   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
 //       \\ {name, pred, cont} <- options
 //       ]
-where
-  test pred (VInt i) = case pred of
-    Lt (VInt j) -> i < j
-    Gt (VInt j) -> i > j
-    Eq (VInt j) -> i == j
-  test pred (VBool i) = case pred of
-    Eq (VBool j) -> i == j
-    Lt (VBool j) -> False
-    Gt (VBool j) -> False
+// where
+//   test pred (VInt i) = case pred of
+//     Lt (VInt j) -> i < j
+//     Gt (VInt j) -> i > j
+//     Eq (VInt j) -> i == j
+//   test pred (VBool i) = case pred of
+//     Eq (VBool j) -> i == j
+//     Lt (VBool j) -> False
+//     Gt (VBool j) -> False
 
 
 evalTaskFunc :: TaskFunc Value -> Task Value
 evalTaskFunc (ThenF this next) val = evalTaskFunc this val >>= evalTaskFunc next
+
 evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (viewInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
@@ -375,6 +374,7 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
+
 evalTaskFunc (UpdateF msg) val = case val of
   (VInt i) -> (updateInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (updateInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
