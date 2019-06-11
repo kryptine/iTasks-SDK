@@ -44,7 +44,7 @@ where
   info3 = "The program is done, the result is given below."
 
   enterOrUpdateExpr msg Nothing = enterInformation msg [EnterUsing id $ dynamicEditor taskEditor]
-  enterOrUpdateExpr msg (Just v) = updateInformation msg [UpdateUsing id (curry fst) (dynamicEditor taskEditor)] v
+  enterOrUpdateExpr msg (Just v) = updateInformation msg [UpdateUsing id (curry snd) (dynamicEditor taskEditor)] v
 
 
 // Data ////////////////////////////////////////////////////////////////////////
