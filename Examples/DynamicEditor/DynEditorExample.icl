@@ -51,7 +51,7 @@ where
 
 :: TaskExpr
   = Done Expr
-  | EnterInfo String Ty
+  | EnterInfo Ty String
   | Then TaskExpr TaskFunc
   | Both TaskExpr TaskExpr
   | Any TaskExpr TaskExpr
@@ -187,14 +187,14 @@ taskEditor = DynamicEditor
       ]
   , DynamicConsGroup "Editors"
       [ functionConsDyn "Enter" "enter"
-          ( dynamic \s (Typed ty) -> Typed (EnterInfo s ty) ::
+          ( dynamic \(Typed ty) s -> Typed (EnterInfo ty s) ::
               A.a:
-              String
               (Typed Ty a)
+              String
               -> Typed TaskExpr (Task a)
           )
           <<@@@ applyHorizontalClasses
-          <<@@@ AddLabels [Just "message", Just "type"]
+          <<@@@ AddLabels [Nothing, Just "message"]
       , functionConsDyn "ViewF" "view"
           ( dynamic \s (Typed func) -> Typed (ViewF s func) ::
               A.a b:
@@ -346,7 +346,7 @@ where
 
 evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
-evalTaskExpr (EnterInfo msg (Ty toValue)) = enterInformation msg [] @ toValue
+evalTaskExpr (EnterInfo (Ty toValue) msg) = enterInformation msg [] @ toValue
 evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
 evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
 evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
