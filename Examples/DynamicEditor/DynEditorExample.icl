@@ -58,9 +58,9 @@ where
   | One TaskExpr TaskExpr
 
 :: TaskFunc
-  = ViewF String Func
+  = ThenF TaskFunc TaskFunc
+  | ViewF String Func
   | UpdateF String
-  | ThenF TaskFunc TaskFunc
 
 :: Expr
   = Int Int
@@ -240,7 +240,7 @@ taskEditor = DynamicEditor
       ]
   , DynamicConsGroup "Arithmetic"
       [ functionConsDyn "Add" "add"
-          (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int)) //XXX (Typed Expr Int) -> Typed Func (Int -> Int)
+          (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
       , functionConsDyn "Sub" "sub"
           (dynamic \(Typed i) -> Typed (Sub i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
