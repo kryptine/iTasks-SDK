@@ -68,23 +68,24 @@ where
   | Bool Bool
   | String String
   | Tuple Expr Expr
-  | Fst Expr
-  | Snd Expr
+  | Apply Func Expr
 
 :: Func
-  = IdentityF
-  | ConjF Expr
-  | DisjF Expr
-  | NotF
-  | GtF Expr
-  | GeF Expr
-  | EqF Expr
-  | LeF Expr
-  | LtF Expr
-  | AddF Expr
-  | SubF Expr
-  | MulF Expr
-  | DivF Expr
+  = Identity
+  | Conj Expr
+  | Disj Expr
+  | Not
+  | Gt Expr
+  | Ge Expr
+  | Eq Expr
+  | Le Expr
+  | Lt Expr
+  | Add Expr
+  | Sub Expr
+  | Mul Expr
+  | Div Expr
+  | Fst
+  | Snd
 
 :: Value
   = VInt Int
@@ -215,63 +216,66 @@ taskEditor = DynamicEditor
               (Typed Expr a)
               -> Typed TaskExpr (Task a)
           )
-      // , functionConsDyn "Apply" "apply"
-      //     ( dynamic \(Typed taskFunc) (Typed expr) ->
-      //       Typed (Apply taskFunc expr) ::
-      //         A.a b:
-      //         (Typed TaskFunc (a -> Task b))
-      //         (Typed Expr a)
-      //         -> Typed TaskExpr (Task b)
-      //     )
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
-      [ functionConsDyn "IdentityF" "this value"
-          (dynamic Typed IdentityF ::
-            A.a:
-            Typed Func (a -> a)
+      [ functionConsDyn "Identity" "this value"
+          (dynamic Typed Identity :: A.a: Typed Func (a -> a))
+      , functionConsDyn "Apply" "apply"
+          ( dynamic \(Typed func) (Typed expr) ->
+            Typed (Apply func expr) ::
+              A.a b:
+              (Typed Func (a -> b))
+              (Typed Expr a)
+              -> Typed Expr b
           )
+      , functionConsDyn "Fst" "fst"
+          (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
+          <<@@@ applyHorizontalClasses
+      , functionConsDyn "Snd" "snd"
+          (dynamic Typed Snd :: A.a b: Typed Func ((a, b) -> b))
+          <<@@@ applyHorizontalClasses
       ]
   , DynamicConsGroup "Arithmetic"
-      [ functionConsDyn "AddF" "add"
-          (dynamic \(Typed i) -> Typed (AddF i) :: (Typed Expr Int) -> Typed Func (Int -> Int)) //XXX (Typed Expr Int) -> Typed Func (Int -> Int)
+      [ functionConsDyn "Add" "add"
+          (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int)) //XXX (Typed Expr Int) -> Typed Func (Int -> Int)
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "SubF" "sub"
-          (dynamic \(Typed i) -> Typed (SubF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Sub" "sub"
+          (dynamic \(Typed i) -> Typed (Sub i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "MulF" "mul"
-          (dynamic \(Typed i) -> Typed (MulF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Mul" "mul"
+          (dynamic \(Typed i) -> Typed (Mul i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "DivF" "div"
-          (dynamic \(Typed i) -> Typed (DivF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Div" "div"
+          (dynamic \(Typed i) -> Typed (Div i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
       ]
   , DynamicConsGroup "Logic"
-      [ functionConsDyn "ConjF" "and"
-          (dynamic \(Typed b) -> Typed (ConjF b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
+      [ functionConsDyn "Conj" "and"
+          (dynamic \(Typed b) -> Typed (Conj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "DisjF" "or"
-          (dynamic \(Typed b) -> Typed (DisjF b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
+      , functionConsDyn "Disj" "or"
+          (dynamic \(Typed b) -> Typed (Disj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "NotF" "not"
-          (dynamic Typed (NotF) :: Typed Func (Bool -> Bool))
+      , functionConsDyn "Not" "not"
+          (dynamic Typed Not :: Typed Func (Bool -> Bool))
           <<@@@ applyHorizontalClasses
       ]
   , DynamicConsGroup "Comparison"
-      [ functionConsDyn "GtF" "greater than"
-          (dynamic \(Typed i) -> Typed (GtF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      [ functionConsDyn "Gt" "greater than"
+          (dynamic \(Typed i) -> Typed (Gt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "GeF" "greater or equal"
-          (dynamic \(Typed i) -> Typed (GeF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Ge" "greater or equal"
+          (dynamic \(Typed i) -> Typed (Ge i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "EqF" "equal to"
-          (dynamic \(Typed i) -> Typed (EqF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Eq" "equal to"
+          (dynamic \(Typed i) -> Typed (Eq i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "LeF" "lesser than"
-          (dynamic \(Typed i) -> Typed (LeF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Le" "lesser than"
+          (dynamic \(Typed i) -> Typed (Le i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
-      , functionConsDyn "LtF" "lesser than"
-          (dynamic \(Typed i) -> Typed (LtF i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
+      , functionConsDyn "Lt" "lesser than"
+          (dynamic \(Typed i) -> Typed (Lt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalClasses
       ]
   // Non-task expressions:
@@ -291,10 +295,6 @@ taskEditor = DynamicEditor
               A.a b:
                 (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
           )
-          <<@@@ applyHorizontalClasses
-      , functionConsDyn "Fst" "fst" (dynamic \(Typed (Tuple a _)) -> Typed a ::  A.a b: (Typed Expr (a, b)) -> Typed Expr a)
-          <<@@@ applyHorizontalClasses
-      , functionConsDyn "Snd" "snd" (dynamic \(Typed (Tuple _ b)) -> Typed b ::  A.a b: (Typed Expr (a, b)) -> Typed Expr b)
           <<@@@ applyHorizontalClasses
     ]
   // Types
@@ -347,13 +347,13 @@ evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2 <<
 //       ]
 where
   test pred (VInt i) = case pred of
-    LtF (VInt j) -> i < j
-    GtF (VInt j) -> i > j
-    EqF (VInt j) -> i == j
+    Lt (VInt j) -> i < j
+    Gt (VInt j) -> i > j
+    Eq (VInt j) -> i == j
   test pred (VBool i) = case pred of
-    EqF (VBool j) -> i == j
-    LtF (VBool j) -> False
-    GtF (VBool j) -> False
+    Eq (VBool j) -> i == j
+    Lt (VBool j) -> False
+    Gt (VBool j) -> False
 
 
 evalTaskFunc :: TaskFunc Value -> Task Value
@@ -364,7 +364,7 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
   (VTuple a b) ->
     ( viewInformation msg [] ()
-      ||- evalTaskFunc (ViewF "" IdentityF) a -&&- evalTaskFunc (ViewF "" IdentityF) b
+      ||- evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
@@ -386,42 +386,45 @@ evalExpr (Int i) = VInt i
 evalExpr (Bool b) = VBool b
 evalExpr (String s) = VString s
 evalExpr (Tuple fstExpr sndExpr) = VTuple (evalExpr fstExpr) (evalExpr sndExpr)
-evalExpr (Fst expr) = let (VTuple fst _) = evalExpr expr in fst
-evalExpr (Snd expr) = let (VTuple _ snd) = evalExpr expr in snd
+evalExpr (Apply func expr) = evalFunc (evalExpr expr) func
 
 
 evalFunc :: Value Func -> Value
 
-evalFunc val IdentityF = val
+evalFunc val Identity = val
 
 evalFunc (VInt i1) func = case func of
-  (GtF expr) -> VBool $ i1 > evalInt expr
-  (GeF expr) -> VBool $ i1 >= evalInt expr
-  (EqF expr) -> VBool $ i1 == evalInt expr
-  (LeF expr) -> VBool $ i1 <= evalInt expr
-  (LtF expr) -> VBool $ i1 < evalInt expr
-  (AddF expr) -> VInt $ i1 + evalInt expr
-  (SubF expr) -> VInt $ i1 - evalInt expr
-  (MulF expr) -> VInt $ i1 * evalInt expr
-  (DivF expr) -> VInt $ i1 / evalInt expr
+  (Gt expr) -> VBool $ i1 > evalInt expr
+  (Ge expr) -> VBool $ i1 >= evalInt expr
+  (Eq expr) -> VBool $ i1 == evalInt expr
+  (Le expr) -> VBool $ i1 <= evalInt expr
+  (Lt expr) -> VBool $ i1 < evalInt expr
+  (Add expr) -> VInt $ i1 + evalInt expr
+  (Sub expr) -> VInt $ i1 - evalInt expr
+  (Mul expr) -> VInt $ i1 * evalInt expr
+  (Div expr) -> VInt $ i1 / evalInt expr
 where
   evalInt :: Expr -> Int
   evalInt expr = case evalExpr expr of
     (VInt i) -> i
 
 evalFunc (VBool b1) func = case func of
-  (EqF expr) -> VBool $ b1 == evalBool expr
-  (ConjF expr) -> VBool $ b1 && evalBool expr
-  (DisjF expr) -> VBool $ b1 || evalBool expr
-  (NotF) -> VBool $ not b1
+  (Eq expr) -> VBool $ b1 == evalBool expr
+  (Conj expr) -> VBool $ b1 && evalBool expr
+  (Disj expr) -> VBool $ b1 || evalBool expr
+  (Not) -> VBool $ not b1
 where
   evalBool :: Expr -> Bool
   evalBool expr = case evalExpr expr of
     (VBool b) -> b
 
 evalFunc (VString s1) func = case func of
-  (EqF expr) -> VBool $ s1 == evalString expr
+  (Eq expr) -> VBool $ s1 == evalString expr
 where
   evalString :: Expr -> String
   evalString expr = case evalExpr expr of
     (VString s) -> s
+
+evalFunc (VTuple x1 x2) func = case func of
+  Fst -> x1
+  Snd -> x2
