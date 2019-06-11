@@ -193,6 +193,7 @@ taskEditor = DynamicEditor
               -> Typed TaskExpr (Task a)
           )
           <<@@@ applyHorizontalClasses
+          <<@@@ AddLabels [Just "message", Just "type"]
       , functionConsDyn "ViewF" "view"
           ( dynamic \s (Typed func) -> Typed (ViewF s func) ::
               A.a b:
