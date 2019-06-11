@@ -132,6 +132,7 @@ taskEditor = DynamicEditor
               (Typed TaskFunc (a -> Task b)) (Typed TaskFunc (b -> Task c))
               -> Typed TaskFunc (a -> Task c)
           )
+          <<@@@ applyVerticalClasses
       , functionConsDyn "Both" "both"
           ( dynamic \(Typed task1) (Typed task2) -> Typed (Both task1 task2) ::
               A.a b:
@@ -216,6 +217,7 @@ taskEditor = DynamicEditor
               (Typed Expr a)
               -> Typed TaskExpr (Task a)
           )
+          <<@@@ applyHorizontalClasses
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
@@ -229,6 +231,7 @@ taskEditor = DynamicEditor
               (Typed Expr a)
               -> Typed Expr b
           )
+          <<@@@ applyHorizontalClasses
       , functionConsDyn "Fst" "fst"
           (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
           <<@@@ applyHorizontalClasses
@@ -301,10 +304,13 @@ taskEditor = DynamicEditor
   , DynamicConsGroup "Types"
       [ functionConsDyn "Ty.Int" "Int"
           (dynamic Typed (Ty VInt) :: Typed Ty Int)
+          <<@@@ applyHorizontalClasses
       , functionConsDyn "Ty.Bool" "Bool"
           (dynamic Typed (Ty VBool) :: Typed Ty Bool)
+          <<@@@ applyHorizontalClasses
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
+          <<@@@ applyHorizontalClasses
       , functionConsDyn "Ty.Tuple" "Tuple"
           ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VTuple (toValue1 x) (toValue2 y)) ::
               A.a b:
@@ -330,6 +336,7 @@ where
   stringEditor = gEditor{|*|}
 
   applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-width", "itasks-panel"]
+  applyVerticalClasses = ApplyCssClasses ["itasks-vertical", "itasks-wrap-width", "itasks-panel"]
 
 
 // Evaluation //////////////////////////////////////////////////////////////////
@@ -390,7 +397,6 @@ evalExpr (Apply func expr) = evalFunc (evalExpr expr) func
 
 
 evalFunc :: Value Func -> Value
-
 evalFunc val Identity = val
 
 evalFunc (VInt i1) func = case func of
