@@ -3,29 +3,38 @@ module DynEditorExample
 import StdEnv
 import Data.Func
 import Data.Functor
-import Text
 import iTasks
 import iTasks.Extensions.Editors.DynamicEditor
 
 
-// Synonyms ////////////////////////////////////////////////////////////////////
+// Helpers /////////////////////////////////////////////////////////////////////
 
 :: List a :== [a]
+:: Message :== String
+:: Button :== String
+
+always x :== const True x
+
+(>?>) infixl 1 :: (Task a) (List ( Button, a -> Bool, a -> Task b )) -> Task b | iTask a & iTask b
+(>?>) task options = task >>* map trans options
+where
+  trans ( a, p, t ) = OnAction (Action a) (ifValue p t)
 
 
 // Main ////////////////////////////////////////////////////////////////////////
 
-Start world = doTasks (editTask Nothing) world
+Start world = doTasks (editTaskExpr Nothing) world
 
-editTask :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
-editTask mv =
-  enterOrUpdate ("Contruct a task", info1) mv
-    >>= \v ->
-        viewInformation ("Evaluate the task", info2) [] ()
-          ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
-          >>= viewInformation ("Done!", info3) []
-          >>= return
-          >>| editTask (Just v)
+editTaskExpr :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
+editTaskExpr mv =
+  enterOrUpdateExpr ("Contruct a task", info1) mv >?>
+    [ ( "Run", always, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >?>
+        [ ( "Finish", always, \r -> viewInformation ("Done!", info3) [] r >?>
+            [ ( "Back", always, \_ -> editTaskExpr (Just v) ) ]
+          )
+        ]
+      )
+    ]
 where
   info1 :: String
   info1 = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
@@ -34,8 +43,8 @@ where
   info3 :: String
   info3 = "The program is done, the result is given below."
 
-  enterOrUpdate msg Nothing = enterInformation msg [EnterUsing id $ dynamicEditor taskEditor]
-  enterOrUpdate msg (Just v) = updateInformation msg [UpdateUsing id (curry fst) (dynamicEditor taskEditor)] v
+  enterOrUpdateExpr msg Nothing = enterInformation msg [EnterUsing id $ dynamicEditor taskEditor]
+  enterOrUpdateExpr msg (Just v) = updateInformation msg [UpdateUsing id (curry fst) (dynamicEditor taskEditor)] v
 
 
 // Data ////////////////////////////////////////////////////////////////////////
