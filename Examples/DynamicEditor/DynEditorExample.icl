@@ -61,11 +61,17 @@ where
 
 :: Func
   = Identity
+  | And Value
+  | Or Value
   | GtF Value
   | GeF Value
   | EqF Value
   | LeF Value
   | LtF Value
+  | Add Value
+  | Sub Value
+  | Mul Value
+  | Div Value
 
 :: Value
   = VInt Int
