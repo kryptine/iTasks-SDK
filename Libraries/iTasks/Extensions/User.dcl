@@ -117,7 +117,7 @@ assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 */
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 
-workerAttributes :: worker [(String, String)] -> TaskAttributes | toUserConstraint worker
+workerAttributes :: worker [(String, JSONNode)] -> TaskAttributes | toUserConstraint worker
 
 appendTopLevelTaskFor 	  :: !worker         		 !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskPrioFor :: !worker !String !String !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker

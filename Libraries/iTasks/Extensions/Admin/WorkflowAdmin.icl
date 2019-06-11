@@ -58,11 +58,11 @@ where
 	mkRow {TaskInstance|instanceNo,attributes,listId} =
 		{WorklistRow
 		|taskNr		= Just (toString instanceNo)
-		,title      = fmap toString ('DM'.get "title"          attributes)
-		,priority   = fmap toString ('DM'.get "priority"       attributes)
+		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title"          attributes)
+		,priority   = fmap (\(JSONInt x) -> toString x) ('DM'.get "priority"       attributes)
 		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
-		,date       = fmap toString ('DM'.get "createdAt"      attributes)
-		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
+		,date       = fmap toString  ('DM'.get "createdAt"      attributes)
+		,deadline   = fmap toString  ('DM'.get "completeBefore" attributes)
 		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
@@ -270,17 +270,17 @@ startWorkflow :: !(SharedTaskList ()) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser -&&- get currentDateTime
 	>>=	\(user,now) ->
-		appendTopLevelTask ('DM'.fromList [ ("title",      workflowTitle wf)
-                                          , ("catalogId",  wf.Workflow.path)
-                                          , ("createdBy",  toString (toUserConstraint user))
-                                          , ("createdAt",  toString now)
-                                          , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+		appendTopLevelTask ('DM'.fromList [ ("title",      toJSON (workflowTitle wf))
+                                          , ("catalogId",  toJSON wf.Workflow.path)
+                                          , ("createdBy",  toJSON (toUserConstraint user))
+                                          , ("createdAt",  toJSON now)
+                                          , ("createdFor", toJSON (toUserConstraint user))
+                                          , ("priority",   toJSON 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
 where
-    userAttr (AuthenticatedUser uid _ _) = [("user", uid)]
+    userAttr (AuthenticatedUser uid _ _) = [("user", JSONString uid)]
     userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
@@ -322,7 +322,7 @@ where
         =  get ((sdsFocus taskId (taskListEntryMeta topLevelTasks)) |*| workflows)
         @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
     where
-        lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
+        lookup [wf=:{Workflow|path}:wfs] (JSONString cid) = if (path == cid) (Just wf) (lookup wfs (JSONString cid))
         lookup [] _ = Nothing
 
 appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
@@ -335,7 +335,7 @@ where
     name = toString identity
     checkItems name [] = False
     checkItems name [{TaskListItem|attributes}:is]
-        | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
+        | maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)  = True //Item with name exists!
                                                                 = checkItems name is
 
 removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a

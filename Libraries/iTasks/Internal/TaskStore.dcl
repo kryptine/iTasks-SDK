@@ -23,7 +23,7 @@ from System.Time    import :: Timestamp
 	, includeSessions   :: !Bool
 	, includeDetached   :: !Bool
 	, includeStartup    :: !Bool
-	, matchAttribute 	:: !Maybe (!String,!String)
+	, matchAttribute 	:: !Maybe (!String,!JSONNode)
 	  //'Horizontal' filters
 	, includeConstants  :: !Bool
 	, includeProgress   :: !Bool

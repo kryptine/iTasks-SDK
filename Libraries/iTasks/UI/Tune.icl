@@ -12,8 +12,6 @@ import qualified Data.Set as DS
 import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 
-//TODO: Remove attributes from TaskEvalInfo
-
 class tune b f :: !b !(f a) -> f a
 class tunev b a f | iTask a :: !(b a) !(f a) -> f a
 
