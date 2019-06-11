@@ -15,17 +15,17 @@ import iTasks.Extensions.Editors.DynamicEditor
 
 // Main ////////////////////////////////////////////////////////////////////////
 
-Start world = doTasks editTask world
+Start world = doTasks (editTask Nothing) world
 
-editTask =
-  forever
-    ( enterInformation ("Contruct a task", info1) [EnterUsing id $ dynamicEditor taskEditor]
-      >>= \v ->
-          viewInformation ("Evaluate the task", info2) [] ()
-            ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
-            >>= viewInformation ("Done!", info3) []
-            >>= return
-    )
+editTask :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
+editTask mv =
+  enterOrUpdate ("Contruct a task", info1) mv
+    >>= \v ->
+        viewInformation ("Evaluate the task", info2) [] ()
+          ||- (evalTaskConstExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact)
+          >>= viewInformation ("Done!", info3) []
+          >>= return
+          >>| editTask (Just v)
 where
   info1 :: String
   info1 = "Select the editors and combinators you'd like to use. When you're ready, push the 'Continue' button below to run your program."
@@ -33,6 +33,9 @@ where
   info2 = "Now step through the task you just created to test it."
   info3 :: String
   info3 = "The program is done, the result is given below."
+
+  enterOrUpdate msg Nothing = enterInformation msg [EnterUsing id $ dynamicEditor taskEditor]
+  enterOrUpdate msg (Just v) = updateInformation msg [UpdateUsing id (curry fst) (dynamicEditor taskEditor)] v
 
 
 // Data ////////////////////////////////////////////////////////////////////////
