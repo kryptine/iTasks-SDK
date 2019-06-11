@@ -73,18 +73,18 @@ where
   | Eq Expr Expr
 
 :: Func
-  = Identity
-  | And Value
-  | Or Value
+  = IdentityF
+  | AndF Value
+  | OrF Value
   | GtF Value
   | GeF Value
   | EqF Value
   | LeF Value
   | LtF Value
-  | Add Value
-  | Sub Value
-  | Mul Value
-  | Div Value
+  | AddF Value
+  | SubF Value
+  | MulF Value
+  | DivF Value
 
 :: Value
   = VInt Int
@@ -225,8 +225,8 @@ taskEditor = DynamicEditor
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
-      [ functionConsDyn "Identity" "this value"
-          (dynamic Typed Identity ::
+      [ functionConsDyn "IdentityF" "this value"
+          (dynamic Typed IdentityF ::
             A.a:
             Typed Func (a -> a)
           )
@@ -345,7 +345,7 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
   (VTuple a b) ->
     ( viewInformation msg [] ()
-      ||- evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b
+      ||- evalTaskFunc (ViewF "" IdentityF) a -&&- evalTaskFunc (ViewF "" IdentityF) b
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
@@ -373,7 +373,7 @@ evalExpr (Eq expr1 expr2) = evalFunc (evalExpr expr1) (EqF (evalExpr expr2))
 
 
 evalFunc :: Value Func -> Value
-evalFunc val Identity = val
+evalFunc val IdentityF = val
 evalFunc (VInt i1) func = case func of
   (GtF (VInt i2)) -> VBool $ i1 > i2
   (GeF (VInt i2)) -> VBool $ i1 >= i2
