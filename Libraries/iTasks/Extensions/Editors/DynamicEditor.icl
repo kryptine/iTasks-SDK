@@ -242,13 +242,15 @@ where
 		Update Undefined = genUI attr dp Enter vst
         Update (DynamicEditorValue cid val)
             # (mbUis, idx, type, label, vst) = genChildEditors dp cid (Update val) vst
+			# (cons, _)                      = consWithId cid matchingConses
             = case mbUis of
                 Ok (uis, childSts)
+					# attrs = 'Map'.union (withContainerClassAttr cons.uiAttributes) attr
                     | hideCons
-                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
+                        = (Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
                 Error e = (Error e, vst)
 
         View (DynamicEditorValue cid val)
@@ -256,11 +258,12 @@ where
 			# (cons, _) = consWithId cid matchingConses
             = case mbUis of
                 Ok (uis, childSts)
+					# attrs = 'Map'.union (withContainerClassAttr cons.uiAttributes) attr
                     | hideCons
-                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # consChooseUI = uia UITextView $ valueAttr $ JSONString label
-                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
                 Error e = (Error e, vst)
 
     genConsChooseUI taskId dp mbSelectedCons = (consChooseUI, consChooseSt)
@@ -295,16 +298,11 @@ where
                 # inserts = [(i, InsertChild ui) \\ ui <- uis & i <- [1..]]
                 # removals = removeNChildren $ length childrenSts
                 // add "itasks-container" classes as this class always has to be present for containers
-                # uiAttrs = 'Map'.alter (Just o addContainerClass) "class" cons.uiAttributes
+                # uiAttrs = withContainerClassAttr cons.uiAttributes
                 # change = ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts)
                 # builderChooseState = LeafState {touched = True, state = JSONInt $ length uis}
                 = (Ok (change, Just (cons.consId, type, True), [builderChooseState: childSts]), vst)
             Error e = (Error e, vst)
-	where
-		addContainerClass :: !(Maybe JSONNode) -> JSONNode
-		addContainerClass mbJSONClasses = JSONArray [JSONString "itasks-container": otherClasses]
-		where
-			otherClasses = maybe [] (\(JSONArray classes) -> classes) mbJSONClasses
 
     // other events targeted directly at this cons
     onEdit dp ([],e) _ [_: childSts] vst
@@ -352,6 +350,14 @@ where
             Error e = (Error e, vst)
 
     onEdit _ _ _ _ vst = (Error "Invalid edit event for dynamic editor.", vst)
+
+	// add "itasks-container" classes as this class always has to be present for containers
+	withContainerClassAttr attrs = 'Map'.alter (Just o addContainerClass) "class" attrs
+	where
+		addContainerClass :: !(Maybe JSONNode) -> JSONNode
+		addContainerClass mbJSONClasses = JSONArray [JSONString "itasks-container": otherClasses]
+		where
+			otherClasses = maybe [] (\(JSONArray classes) -> classes) mbJSONClasses
 
     removeNChildren :: !Int -> [(!Int, !UIChildChange)]
     removeNChildren nrArgs = repeatn nrArgs (1, RemoveChild)
