@@ -7,7 +7,7 @@ from Data.Tuple import appFst
 import iTasks, iTasks.UI.Definition, iTasks.UI.Editor.Common, iTasks.UI.Editor.Modifiers
 import qualified Data.Map as Map
 from Data.Func import $
-from Data.List import zip3, intersperse
+from Data.List import zip4, intersperse
 import Data.Functor
 
 :: DynamicCons =
@@ -216,7 +216,7 @@ where
         Enter = case matchingConses of
             [(onlyChoice, _)] | hideCons
                 # (mbUis, _, type, _, vst) = genChildEditors dp onlyChoice.consId Enter vst
-                # mbUis = ( \(uis, childSts) -> (uiContainer attr onlyChoice.labels uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
+                # mbUis = ( \(uis, childSts) -> (uiContainer attr uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
                           ) <$>
                           mbUis
                 = (mbUis, vst)
@@ -226,10 +226,10 @@ where
                     = case mbUis of
                         Ok (uis, childSts)
                             | hideCons
-                                = (Ok (uiContainer attr defaultChoice.labels uis, Just (defaultChoice.consId, type, True), [nullState: childSts]), vst)
+                                = (Ok (uiContainer attr uis, Just (defaultChoice.consId, type, True), [nullState: childSts]), vst)
                             | otherwise
                                 # (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-                                = ( Ok ( uiContainer attr [Nothing: defaultChoice.labels] [consChooseUI: uis]
+                                = ( Ok ( uiContainer attr [consChooseUI: uis]
                                        , Just (defaultChoice.consId, type, True)
                                        , [chooseSt: childSts]
                                        )
@@ -238,18 +238,17 @@ where
                         Error e = (Error e, vst)
                 _
                     # (consChooseUI, chooseSt) = genConsChooseUI taskId dp Nothing
-                    = (Ok (uiContainer attr [] [consChooseUI], Nothing, [chooseSt]), vst)
+                    = (Ok (uiContainer attr [consChooseUI], Nothing, [chooseSt]), vst)
 		Update Undefined = genUI attr dp Enter vst
         Update (DynamicEditorValue cid val)
             # (mbUis, idx, type, label, vst) = genChildEditors dp cid (Update val) vst
-			# (cons, _) = consWithId cid matchingConses
             = case mbUis of
                 Ok (uis, childSts)
                     | hideCons
-                        = (Ok (uiContainer attr cons.labels uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-                        = (Ok (uiContainer attr [Nothing: cons.labels] [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
+                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts]), vst)
                 Error e = (Error e, vst)
 
         View (DynamicEditorValue cid val)
@@ -258,10 +257,10 @@ where
             = case mbUis of
                 Ok (uis, childSts)
                     | hideCons
-                        = (Ok (uiContainer attr cons.labels uis, Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr uis, Just (cid, type, True), [nullState: childSts]), vst)
                     | otherwise
                         # consChooseUI = uia UITextView $ valueAttr $ JSONString label
-                        = (Ok (uiContainer attr [Nothing: cons.labels] [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
+                        = (Ok (uiContainer attr [consChooseUI: uis], Just (cid, type, True), [nullState: childSts]), vst)
                 Error e = (Error e, vst)
 
     genConsChooseUI taskId dp mbSelectedCons = (consChooseUI, consChooseSt)
@@ -383,14 +382,18 @@ where
                     -> *(!MaybeErrorString (![UI], ![EditState]), Int, ConsType, String, !*VSt)
     genChildEditors dp cid mode vst= case cons.builder of
         FunctionCons fbuilder
-            # (mbUis, vst) = genChildEditors` (reverse $ zip3 vals (childrenEditors fbuilder) [0..]) [] [] vst
+            # (mbUis, vst) = genChildEditors` (reverse $ zip4 vals (childrenEditors fbuilder) (cons.labels ++ repeat Nothing) [0..]) [] [] vst
             = (mbUis, idx, type, cons.DynamicCons.label, vst)
         where
             genChildEditors` [] accUi accSt vst = (Ok (accUi, accSt), vst)
-            genChildEditors` [(mbVal, E editor, i): children] accUi accSt vst =
+            genChildEditors` [(mbVal, E editor, mbLabel, i): children] accUi accSt vst =
                 case editor.Editor.genUI 'Map'.newMap (dp ++ [i]) (maybe Enter (if viewMode View Update) mbVal) vst of
-                    (Ok (ui, st), vst) = genChildEditors` children [ui: accUi] [st: accSt] vst
+                    (Ok (ui, st), vst) = genChildEditors` children [withLabel mbLabel ui: accUi] [st: accSt] vst
                     (Error e,     vst) = (Error e, vst)
+			where
+				withLabel :: !(Maybe String) !UI -> UI
+				withLabel (Just label) (UI type attrs item) = UI type ('Map'.union attrs $ labelAttr label) item
+				withLabel Nothing      ui                   = ui
 
             vals :: [Maybe (DynamicEditorValue a)]
             vals = case editModeValue mode of
@@ -473,13 +476,8 @@ where
         childrenEditorList _ = dynamicEditor (DynamicEditor elements)
     listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
-    uiContainer :: !UIAttributes ![Maybe String] ![UI] -> UI
-    uiContainer attr labels uis =
-		UI UIRecord attr (withLabels <$> zip2 uis (labels ++ repeat Nothing))
-	where
-		withLabels :: !(!UI, !Maybe String) -> UI
-		withLabels (UI type attrs item, Just label) = UI type ('Map'.union attrs $ labelAttr label) item
-		withLabels (ui,                 Nothing)    = ui
+    uiContainer :: !UIAttributes ![UI] -> UI
+    uiContainer attr uis = UI UIRecord attr uis
 
     valueFromState :: !(Maybe (!DynamicConsId, !ConsType, !Bool)) ![EditState] -> *Maybe (DynamicEditorValue a)
     valueFromState (Just (cid, CustomEditor, True)) [_: [editorSt]] =
