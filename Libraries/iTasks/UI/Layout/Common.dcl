@@ -6,7 +6,6 @@ definition module iTasks.UI.Layout.Common
 */
 import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
-from iTasks.UI.Definition import :: Title, :: Hint, :: Label, :: Icon
 from iTasks.WF.Definition import :: Task
 from iTasks.UI.Tune import class tune
 
@@ -136,12 +135,6 @@ instance tune NoUserInterface Task
 actionToButton :: LayoutRule
 
 setActionIcon :: (Map String String) -> LayoutRule
-
-//Setting attributes 
-instance tune Title Task
-instance tune Hint Task
-instance tune Label Task
-instance tune Icon Task
 
 /*
  * Format a basic editor as if it was a generic labelled iconized edtior

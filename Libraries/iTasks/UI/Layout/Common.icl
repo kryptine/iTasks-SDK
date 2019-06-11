@@ -341,22 +341,6 @@ where
 				= (ValueResult taskvalue evalinfo change tasktree, iworld)
 			other = other
 
-instance tune Title Task
-where
-	tune (Title title) t = tune (titleAttr title) t
-
-instance tune Hint Task
-where
-	tune (Hint hint) t = tune (hintAttr hint) t
-       
-instance tune Icon Task
-where
-	tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
-
-instance tune Label Task
-where
-	tune (Label label) t = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) t
-
 toFormItem :: LayoutRule
 toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
 	(sequenceLayouts

@@ -65,7 +65,27 @@ where
 			ignoreAttributes keys (DelAttribute k) = isMember k keys
 
 		withExtraAttributes extra result = result
-			
+
+instance tune Title Task
+where tune (Title title) t = tune (titleAttr title) t
+instance tune Title Editor
+where tune (Title title) e = tune (titleAttr title) e
+
+instance tune Hint Task
+where tune (Hint hint) t = tune (hintAttr hint) t
+instance tune Hint Editor
+where tune (Hint hint) e = tune (hintAttr hint) e
+       
+instance tune Icon Task
+where tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
+instance tune Icon Editor
+where tune (Icon icon) e = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) e
+
+instance tune Label Task
+where tune (Label label) t = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) t
+instance tune Label Editor
+where tune (Label label) e = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) e
+
 instance tune ApplyLayout Task
 where
 	tune (ApplyLayout rule) task=:(Task evala) = Task eval

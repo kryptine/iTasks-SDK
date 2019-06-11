@@ -6,7 +6,7 @@ definition module iTasks.UI.Tune
 from iTasks.UI.Layout import :: LayoutRule, :: LUI, :: LUINo, :: LUIMoves, :: LUIMoveID, :: LUIEffectStage
 import iTasks.SDS.Definition
 
-from iTasks.UI.Definition import :: UIAttribute, :: UIAttributes
+from iTasks.UI.Definition import :: UIAttribute, :: UIAttributes, :: Title, :: Hint, :: Label, :: Icon
 from iTasks.WF.Definition import :: Task
 
 /**
@@ -29,6 +29,16 @@ instance tune UIAttribute Task
 instance tune UIAttributes Task
 instance tune UIAttribute Editor
 instance tune UIAttributes Editor
+
+//* Common attributes
+instance tune Title Task
+instance tune Hint Task
+instance tune Label Task
+instance tune Icon Task
+instance tune Title Editor
+instance tune Hint Editor
+instance tune Label Editor
+instance tune Icon Editor
 
 //* Apply a layout transform to a task
 :: ApplyLayout = ApplyLayout LayoutRule
