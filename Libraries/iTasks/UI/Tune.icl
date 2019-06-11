@@ -56,7 +56,7 @@ where
 			= ValueResult value info (ReplaceUI (UI type attr items)) tree
 		withExtraAttributes extra (ValueResult value info (ChangeUI attrChanges itemChanges) tree)
 			//The constant value overrules any changes to the attribute
-			# attrChanges = filter (ignoreAttributes ('DM'.keys extra)) attrChanges
+			# attrChanges = filter (not o ignoreAttributes ('DM'.keys extra)) attrChanges
 			= ValueResult value info (ChangeUI attrChanges itemChanges) tree
 		where
 			ignoreAttributes keys (SetAttribute k _) = isMember k keys

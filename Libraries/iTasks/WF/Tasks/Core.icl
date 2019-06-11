@@ -176,7 +176,8 @@ interactEvents shared handlers editor event evalOpts tree modifyFun iworld=:{cur
 				_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 	| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 	| mbd =:(Ok (Right _)) = case mbd of
-		(Ok (Right (taskId, ts, sds))) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (ReplaceUI (uia UIProgressBar (textAttr "Getting data"))) (TCAwait Read taskId taskTime tree), iworld)
+		(Ok (Right (taskId, ts, sds)))
+			= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (ReplaceUI (uia UIProgressBar ('DM'.unions [textAttr "Getting data",taskTypeAttr "interact"]))) (TCAwait Read taskId taskTime tree), iworld)
 	# (Left (taskId,ts,l,v,st,viewMode)) = fromOk mbd
 	# (mbRes, iworld) = case event of
 		EditEvent eTaskId name edit | eTaskId == taskId =
@@ -243,7 +244,6 @@ applyEditEvent_ name edit taskId editor taskTime shared onEdit writeFun l ov st 
 	# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
 	= case res of
 		Ok (change, st)
-			# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 			= case editor.Editor.valueFromState st of
 				Just v
 					# (l, v, mbf) = onEdit v l ov
@@ -272,7 +272,6 @@ refreshView_ taskId editor shared onRefresh modifyFun l ov st taskTime iworld
 			# (res, iworld) = withVSt taskId (editor.Editor.onRefresh [] v st) iworld
 			= case res of
 				Ok (change,st)
-					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 					//Update the share if necessary
 					= case mbf of
 						Just f = case modifyFun taskId f iworld of
