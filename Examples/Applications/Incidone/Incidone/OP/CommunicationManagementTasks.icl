@@ -28,7 +28,7 @@ updateCommunication communicationNo
             (EmailMessage,Out)  = composeEmailMessage communicationNo
             (P2000Message,Out)  = composeP2000Message communicationNo
             _
-                =   viewSharedInformation (Title "Communication details:") [] (sdsFocus communicationNo communicationDetailsByNo)
+                =   (Title "Communication details:") @>> viewSharedInformation [] (sdsFocus communicationNo communicationDetailsByNo)
                 >>| return communicationNo
 
 //Answer an incoming call
@@ -121,11 +121,11 @@ composeAndSendMessage communicationNo share sendTask = forever
     )
 where
     composeMessage
-        =   updateSharedInformation (Title "Message") [] share // <<@ FillNotes //FIXME
+        =   (Title "Message") @>> updateSharedInformation [] share // <<@ FillNotes //FIXME
         >>* [OnAction ActionSend (hasValue (\_ -> sendTask communicationNo))]
 
     viewMessage
-        = viewSharedInformation (Title "Message") [] share
+        = (Title "Message") @>> viewSharedInformation [] share
         @! ()
 
 relateMessageToIncidents :: CommunicationNo -> Task ()
@@ -156,42 +156,42 @@ connectOutboundPhoneCall communicationNo
     >^* [OnAction ActionDial (ifValue isNothing (\_ -> initiateAsteriskChannel communicationNo))
         ,OnAction ActionCancel (ifValue (maybe False ((===) Pending)) (\_ -> destroyAsteriskChannel communicationNo))
         ,OnAction ActionHangup (ifValue (maybe False ((===) Connected)) (\_ -> destroyAsteriskChannel communicationNo))
-        ]) <<@ ApplyAttribute "buttonPosition" "right"
+        ]) <<@ ("buttonPosition",JSONString "right")
     @! ()
 
 updatePhoneCallMeta :: CommunicationNo -> Task CommunicationStatus
 updatePhoneCallMeta communicationNo
-    = ((Label "External number" @>> updateSharedInformation () [] (sdsFocus communicationNo phoneCallExternalNo))
+    = ((Label "External number" @>> updateSharedInformation [] (sdsFocus communicationNo phoneCallExternalNo))
         -&&-
-       (Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime))
+       (Label "Time" @>> updateSharedInformation [] (sdsFocus communicationNo communicationTime))
       )
       -&&-
-      ((Label "Status" @>> editSharedChoice () [] [Pending,Ringing,Connected,Missed,Answered] (sdsFocus communicationNo communicationStatus))
+      ((Label "Status" @>> editSharedChoice [] [Pending,Ringing,Connected,Missed,Answered] (sdsFocus communicationNo communicationStatus))
         -&&-
-       (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
+       (Label "Handled by" @>> editSharedChoiceWithSharedAs [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
       ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
 updateRadioCallMeta :: CommunicationNo -> Task CommunicationStatus
 updateRadioCallMeta communicationNo
-    = ((Label "Channel" @>> updateSharedInformation () [] (sdsFocus communicationNo radioCallChannel))
+    = ((Label "Channel" @>> updateSharedInformation [] (sdsFocus communicationNo radioCallChannel))
        -&&-
-       (Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime))
+       (Label "Time" @>> updateSharedInformation [] (sdsFocus communicationNo communicationTime))
        )
       -&&-
-      ((Label "Status" @>> editSharedChoice () [] [Missed,Answered] (sdsFocus communicationNo communicationStatus))
+      ((Label "Status" @>> editSharedChoice [] [Missed,Answered] (sdsFocus communicationNo communicationStatus))
         -&&-
-       (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
+       (Label "Handled by" @>> editSharedChoiceWithSharedAs [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
       ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
 updateMessageMeta :: CommunicationNo -> Task CommunicationStatus
 updateMessageMeta communicationNo
-    = ((Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime)))
+    = ((Label "Time" @>> updateSharedInformation [] (sdsFocus communicationNo communicationTime)))
       -&&-
-      ((Label "Status" @>> editSharedChoice () [] [Pending,Sent] (sdsFocus communicationNo communicationStatus))
+      ((Label "Status" @>> editSharedChoice [] [Pending,Sent] (sdsFocus communicationNo communicationStatus))
         -&&-
-       (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
+       (Label "Handled by" @>> editSharedChoiceWithSharedAs [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
       ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
@@ -256,12 +256,12 @@ determineContact mbPrevious
        <<@ ArrangeVertical
 where
     createNewContact filter
-        =   enterInformation (Title "Contact") [] // @> (mapToFilter,filter)
+        =   Title "Contact" @>> enterInformation [] // @> (mapToFilter,filter)
         >>* [OnAction ActionCreate (hasValue (createContact))]
     selectExistingContact filter
         =   whileUnchanged filter
             \curFilter ->
-            enterChoiceWithSharedAs (Title "Select contact") [ChooseFromList contactTitle] (sdsFocus curFilter filteredContactsShort) contactIdentity
+            (Title "Select contact") @>> enterChoiceWithSharedAs [ChooseFromList contactTitle] (sdsFocus curFilter filteredContactsShort) contactIdentity
         >>* [OnValue (hasValue return)
             :maybe [] (\contactNo -> [OnAction ActionCancel (always (return contactNo))]) mbPrevious]
 
@@ -293,7 +293,7 @@ manageVoiceCallContent type communicationNo
     = updateCallNotes -|| relateMessageToIncidents communicationNo <<@ ArrangeWithTabs True
 where
     updateCallNotes
-        =   updateSharedInformation (Title "Notes") [] (callNotes type) //<<@ FillNotes //FIXME
+        =   (Title "Notes") @>> updateSharedInformation [] (callNotes type) //<<@ FillNotes //FIXME
         @! ()
 
     callNotes PhoneCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) Nothing phoneCallByNo)
