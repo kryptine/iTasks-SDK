@@ -328,7 +328,7 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
                  (   upd ('DM'.put actor.userName actor) userToActorShare
                  >>| move (0, {col = 0, row = 0}) location actor.userName
                  >>| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
-                 (viewInformation ("Section with number: " <+++ location <+++ " does not exist") [] () >>| return ())
+                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>| return ())
 
 :: UITag :== [Int]
 
@@ -429,19 +429,19 @@ moveAround viewDeck user inventoryForSectionShare
   changeDecks :: Task ()
   changeDecks
     =    watch (lockedHopsShare |*| roomNoForCurrentUserShare)
-    -&&- enterChoiceWithShared "Change deck" [prettyPrintHops] nearbyHops
+    -&&- (Hint "Change deck" @>> enterChoiceWithShared  [prettyPrintHops] nearbyHops)
     >>*  [OnAction (Action "Change deck") changeDeck]
 
   pickUpItems :: Task ()
   pickUpItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items nearby" [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare)
+    -&&- (Hint "Items nearby" @>> enterChoiceWithShared [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare))
     >>*  [OnAction (Action "Grab selected item") (withSelectedObject userToActorShare inventoryForSectionShare pickupObject)]
 
   dropItems :: Task ()
   dropItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items in inventory" [prettyPrintItems] (inventoryShare userToActorShare)
+    -&&- (Hint "Items in inventory" @>> enterChoiceWithShared  [prettyPrintItems] (inventoryShare userToActorShare))
     >>*  [OnAction (Action "Drop selected item") (withSelectedObject userToActorShare inventoryForSectionShare dropObject)]
 
   moveAroundUI :: TaskUITree -> TaskUILayout

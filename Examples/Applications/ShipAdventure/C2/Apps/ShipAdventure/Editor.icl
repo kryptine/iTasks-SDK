@@ -34,16 +34,16 @@ shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
 
 exportShip :: Task ()
 exportShip
-  =                enterInformation "Enter file name" []
+  =                Hint "Enter file name" @>> enterInformation []
   >>= \fileName -> get (myInventoryMap |*| myNetwork |*| myCables |*| myDevices |*| maps2DShare)
   >>- \data     -> exportJSONFile (fileName +++ ".map") data
-  >>|              viewInformation "Success!" [] "File exported"
+  >>|              Title "Success!" @>> viewInformation [] "File exported"
   >>|              exportShip @! ()
 
 importShip :: Task ()
 importShip
   =                getMapNames
-  >>= \mapNames -> enterChoice "Select file" [] mapNames
+  >>= \mapNames -> Hint "Select file" @>> enterChoice [] mapNames
   >>*              [ OnAction (Action "Import") (hasValue doImport)
                    , OnAction (Action "Refresh list") (always importShip)
                    ]
@@ -52,7 +52,7 @@ importShip
   doImport mapName
     =            getMap mapName
     >>- \data -> set data (myInventoryMap >*< myNetwork >*< myCables >*< myDevices >*< maps2DShare)
-    >>|          viewInformation "Ship imported" [] "Ship imported"
+    >>|          Title "Ship imported" @>> viewInformation [] "Ship imported"
     >>|          importShip @! ()
 
 getMap :: !String -> Task (!(!(!(!MySectionInventoryMap, !Network), !IntMap Cable), !IntMap Device), !Maps2D)
@@ -169,15 +169,15 @@ manageCables :: Task ()
 manageCables = intMapCrudWith "Cables" [ChooseFromGrid id] [] [] [] (\cable -> cable.Cable.cableId) myCables @! ()
 
 intMapCrud :: !String !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
-intMapCrud descr mkId share = crud descr 'DIS'.elems (putItem mkId) (delItem mkId) share
+intMapCrud descr mkId share = Title descr @>> crud 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   putItem mkId item allItems = 'DIS'.put (mkId item) item allItems
   delItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   delItem mkId item allItems = 'DIS'.del (mkId item) allItems
 
-intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r] !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
-intMapCrudWith descr cos eos vos uos mkId share = crudWith descr cos eos vos uos 'DIS'.elems (putItem mkId) (delItem mkId) share
+intMapCrudWith :: !String ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r] !(r -> Int) !(SimpleSDSLens (IntMap r)) -> Task r | iTask r
+intMapCrudWith descr cos eos vos uos mkId share = Title descr @>> crudWith cos eos vos uos 'DIS'.elems (putItem mkId) (delItem mkId) share
   where
   putItem :: !(r -> Int) !r !(IntMap r) -> IntMap r
   putItem mkId item allItems = 'DIS'.put (mkId item) item allItems
@@ -186,8 +186,8 @@ intMapCrudWith descr cos eos vos uos mkId share = crudWith descr cos eos vos uos
 
 graphicalMapEditor :: Task ()
 graphicalMapEditor
-  = updateSharedInformation (Title "Graphical map editor")
-      [UpdateUsing id (const fst) imageEditor]
+  = Title "Graphical map editor" @>> updateSharedInformation 
+      [UpdateSharedUsing id (const fst) const imageEditor]
       (sharedEditShip >*| (myInventoryMap |*| myNetwork |*| myDevices)) @! ()
 	  @! ()
 where
@@ -202,10 +202,10 @@ where
 editLayout :: Task ()
 editLayout
   = allTasks [ graphicalMapEditor
-             , updateSharedInformation (Title "Edit map dimensions") [UpdateAs toMapsForm fromMapsForm] maps2DShare @! ()
-             , updateSharedInformation (Title "Edit map") [UpdateAs toMapActionForm fromMapActionForm] sharedEditShip @! ()
+             , Title "Edit map dimensions" @>> updateSharedInformation  [UpdateSharedAs toMapsForm fromMapsForm const] maps2DShare @! ()
+             , Title "Edit map" @>> updateSharedInformation [UpdateSharedAs toMapActionForm fromMapActionForm const] sharedEditShip @! ()
              , (watch maps2DShare
-               -&&- enterChoiceWithShared (Title "Quick borders") [] (mapRead (\ship -> [mapId \\ {Map2D | mapId} <- ship]) maps2DShare)
+               -&&- (Title "Quick borders" @>> enterChoiceWithShared [] (mapRead (\ship -> [mapId \\ {Map2D | mapId} <- ship]) maps2DShare))
                >>* [ OnAction (Action "Add outer borders"    ) (hasValue (uncurry (editOuterBorders Wall)))
                    , OnAction (Action "Remove outer borders" ) (hasValue (uncurry (editOuterBorders Open)))
                    ]
@@ -252,7 +252,7 @@ editSectionContents :: Task ()
 editSectionContents
   = allTasks [ graphicalMapEditor
              , withSelectedSection (
-                 \mid c2d -> updateSharedInformation (Title (mkDesc mid c2d "Inventory")) [UpdateAs fromInv toInv] (sdsFocus (mid, c2d) inventoryInSectionShare)
+                 \mid c2d -> (Title (mkDesc mid c2d "Inventory"))  @>> updateSharedInformation [UpdateSharedAs fromInv toInv const] (sdsFocus (mid, c2d) inventoryInSectionShare)
                )
              , withSelectedSection (
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) devicesInSectionShare
@@ -270,14 +270,14 @@ editSectionContents
   where
   updateSectionEditor :: !String ![ChoiceOption a] (Shared sds1 [a]) (Shared sds2 [a]) -> Task [a] | iTask a & RWShared sds1 & RWShared sds2
   updateSectionEditor d updOpts listShare focusedShare
-	= editSharedMultipleChoiceWithShared (Title d) updOpts listShare focusedShare
+	= Title d @>> editSharedMultipleChoiceWithShared updOpts listShare focusedShare
 
   withSelectedSection :: !(Int Coord2D -> Task a) -> Task () | iTask a
   withSelectedSection f
     = whileUnchanged sharedMapAction
         (\editLayout -> case editLayout of
            FocusOnSection (mid, c2d) = f mid c2d @! ()
-           _                         = viewInformation (Title "Please select section") [] "Please select section" @! ()
+           _                         = (Title "Please select section") @>> viewInformation [] "Please select section" @! ()
         )
 
 /*
