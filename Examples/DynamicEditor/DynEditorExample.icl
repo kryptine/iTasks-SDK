@@ -125,6 +125,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a)) (Typed TaskFunc (a -> Task b))
               -> Typed TaskExpr (Task b)
           )
+          <<@@@ applyVerticalClasses
       , functionConsDyn "ThenF" "sequence"
           ( dynamic \(Typed taskFunc1) (Typed taskFunc2) -> Typed (ThenF taskFunc1 taskFunc2) ::
               A.a b c:
@@ -139,7 +140,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task b))
               -> Typed TaskExpr (Task (a, b))
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyVerticalClasses
       , functionConsDyn "Any" "any of"
           ( dynamic \(Typed task1) (Typed task2) -> Typed (Any task1 task2) ::
               A.a b:
@@ -147,7 +148,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a))
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyVerticalClasses
       , functionConsDyn "One" "one of"
           ( dynamic \(Typed task1) (Typed task2) -> Typed (One task1 task2) ::
               A.a b:
@@ -155,7 +156,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a))
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyVerticalClasses
       // , functionConsDyn "When" "guarded sequence"
       //     ( dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
       //       // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
@@ -223,6 +224,7 @@ taskEditor = DynamicEditor
   , DynamicConsGroup "Basics"
       [ functionConsDyn "Identity" "this value"
           (dynamic Typed Identity :: A.a: Typed Func (a -> a))
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Apply" "apply"
           ( dynamic \(Typed func) (Typed expr) ->
             Typed (Apply func expr) ::
@@ -234,10 +236,10 @@ taskEditor = DynamicEditor
           <<@@@ applyHorizontalClasses
       , functionConsDyn "Fst" "fst"
           (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Snd" "snd"
           (dynamic Typed Snd :: A.a b: Typed Func ((a, b) -> b))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       ]
   , DynamicConsGroup "Arithmetic"
       [ functionConsDyn "Add" "add"
@@ -285,13 +287,13 @@ taskEditor = DynamicEditor
   , DynamicConsGroup "Values"
       [ functionConsDyn "Int" "the integer"
           (dynamic \i -> Typed (Int i) :: Int -> Typed Expr Int)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Bool" "the boolean"
           (dynamic \b -> Typed (Bool b) :: Bool -> Typed Expr Bool)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "String" "the string"
           (dynamic \s -> Typed (String s) :: String -> Typed Expr String)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Tuple" "the tuple"
           ( dynamic \(Typed a) (Typed b) ->
             Typed (Tuple a b) ::
@@ -304,13 +306,13 @@ taskEditor = DynamicEditor
   , DynamicConsGroup "Types"
       [ functionConsDyn "Ty.Int" "Int"
           (dynamic Typed (Ty VInt) :: Typed Ty Int)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Ty.Bool" "Bool"
           (dynamic Typed (Ty VBool) :: Typed Ty Bool)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       , functionConsDyn "Ty.Tuple" "Tuple"
           ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VTuple (toValue1 x) (toValue2 y)) ::
               A.a b:
@@ -335,8 +337,9 @@ where
   stringEditor :: Editor String
   stringEditor = gEditor{|*|}
 
-  applyHorizontalClasses = ApplyCssClasses ["itasks-horizontal", "itasks-wrap-width", "itasks-panel"]
-  applyVerticalClasses = ApplyCssClasses ["itasks-vertical", "itasks-wrap-width", "itasks-panel"]
+  applyHorizontalClasses         = ApplyCssClasses ["typedTaskEditor", "itasks-horizontal", "itasks-wrap-width", "itasks-wrap-height", "typedTaskEditorWithBorder"]
+  applyHorizontalClassesNoBorder = ApplyCssClasses ["typedTaskEditor", "itasks-horizontal", "itasks-wrap-width", "itasks-wrap-height"]
+  applyVerticalClasses           = ApplyCssClasses ["typedTaskEditor", "itasks-vertical", "itasks-wrap-width", "itasks-wrap-height", "typedTaskEditorWithBorder"]
 
 
 // Evaluation //////////////////////////////////////////////////////////////////
