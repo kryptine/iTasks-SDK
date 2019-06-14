@@ -361,14 +361,10 @@ evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
 evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
 evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
 evalTaskExpr (One button1 task1 button2 task2)
-= viewInformation "Make a choice" [] () >>*
-  [ OnAction (Action button1) (ifValue (const True) (\_ -> evalTaskExpr task1))
-  , OnAction (Action button2) (ifValue (const True) (\_ -> evalTaskExpr task2))
+= viewInformation "Make a choice" [] () >?>
+  [ ( button1, const True, \_ -> evalTaskExpr task1 )
+  , ( button2, const True, \_ -> evalTaskExpr task2 )
   ]
-evalTaskExpr x = abort $ "My brain hurts!" +++ unlines (gText{|*|} AsMultiLine (Just x))
-where
-  unlines :: [String] -> String
-  unlines xs = foldr (\x acc -> x +++ "\n" +++ acc) "" xs
 
 // evalTaskExpr (When task1 options) = evalTaskExpr task1
 //   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
