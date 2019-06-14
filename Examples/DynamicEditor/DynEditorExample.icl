@@ -214,7 +214,7 @@ taskEditor = DynamicEditor
               -> Typed TaskFunc (a -> Task b)
           )
           <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [Just "message"]
+          <<@@@ AddLabels [ Just "message" ]
       , functionConsDyn "Done" "done"
           ( dynamic \(Typed expr) -> Typed (Done expr) ::
               A.a:
@@ -237,10 +237,11 @@ taskEditor = DynamicEditor
               -> Typed Expr b
           )
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Fst" "fst"
+          <<@@@ AddLabels [ Just "the function", Just "to" ]
+      , functionConsDyn "Fst" "first element"
           (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
           <<@@@ applyHorizontalLayout
-      , functionConsDyn "Snd" "snd"
+      , functionConsDyn "Snd" "second element"
           (dynamic Typed Snd :: A.a b: Typed Func ((a, b) -> b))
           <<@@@ applyHorizontalLayout
       ]
@@ -248,13 +249,13 @@ taskEditor = DynamicEditor
       [ functionConsDyn "Add" "add"
           (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Sub" "sub"
+      , functionConsDyn "Sub" "subtract"
           (dynamic \(Typed i) -> Typed (Sub i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Mul" "mul"
+      , functionConsDyn "Mul" "multiply with"
           (dynamic \(Typed i) -> Typed (Mul i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Div" "div"
+      , functionConsDyn "Div" "divide by"
           (dynamic \(Typed i) -> Typed (Div i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
       ]
@@ -265,24 +266,24 @@ taskEditor = DynamicEditor
       , functionConsDyn "Disj" "or"
           (dynamic \(Typed b) -> Typed (Disj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Not" "not"
+      , functionConsDyn "Not" "negate"
           (dynamic Typed Not :: Typed Func (Bool -> Bool))
           <<@@@ applyHorizontalLayout
       ]
   , DynamicConsGroup "Comparison"
-      [ functionConsDyn "Gt" "greater than"
+      [ functionConsDyn "Gt" "is greater than"
           (dynamic \(Typed i) -> Typed (Gt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Ge" "greater or equal"
+      , functionConsDyn "Ge" "is greater or equal"
           (dynamic \(Typed i) -> Typed (Ge i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Eq" "equal to"
+      , functionConsDyn "Eq" "is equal to"
           (dynamic \(Typed i) -> Typed (Eq i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Le" "lesser than"
+      , functionConsDyn "Le" "is lesser than"
           (dynamic \(Typed i) -> Typed (Le i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Lt" "lesser than"
+      , functionConsDyn "Lt" "is lesser than"
           (dynamic \(Typed i) -> Typed (Lt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
       ]
@@ -304,7 +305,7 @@ taskEditor = DynamicEditor
                 (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
           )
           <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [Just "with", Just "and"]
+          <<@@@ AddLabels [ Just "with", Just "and" ]
     ]
   // Types
   , DynamicConsGroup "Types"
