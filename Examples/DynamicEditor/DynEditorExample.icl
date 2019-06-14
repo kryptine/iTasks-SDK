@@ -214,9 +214,7 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [Just "message"]
-      ]
-    , DynamicConsGroup "Special"
-      [ functionConsDyn "Done" "done"
+      , functionConsDyn "Done" "done"
           ( dynamic \(Typed expr) -> Typed (Done expr) ::
               A.a:
               (Typed Expr a)
