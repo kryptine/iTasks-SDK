@@ -13,8 +13,6 @@ import iTasks.Extensions.Editors.DynamicEditor
 :: Message :== String
 :: Button :== String
 
-always x :== const True x
-
 cons x xs :== [x:xs]
 
 (>?>) infixl 1 :: (Task a) (List ( Button, a -> Bool, a -> Task b )) -> Task b | iTask a & iTask b
@@ -30,9 +28,9 @@ Start world = doTasks (editTaskExpr Nothing) world
 editTaskExpr :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
 editTaskExpr mv =
   enterOrUpdateExpr ("Contruct a task", info1) mv >?>
-    [ ( "Run", always, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >?>
-        [ ( "Finish", always, \r -> viewInformation ("Done!", info3) [] r >?>
-            [ ( "Back", always, \_ -> editTaskExpr (Just v) ) ]
+    [ ( "Run", const True, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >?>
+        [ ( "Finish", const True, \r -> viewInformation ("Done!", info3) [] r >?>
+            [ ( "Back", const True, \_ -> editTaskExpr (Just v) ) ]
           )
         ]
       )
