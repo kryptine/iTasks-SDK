@@ -18,9 +18,10 @@
 	flex-direction: column;
 }
 
-/* Set base padding */
+/* Set base padding and indent vertical structures horizontally */
 .typedtasks-base {
 	padding: 0.2em 0.4em;
+	margin: 0.8em 1.6em;
 }
 
 /* Center horizontal structures vertically */
@@ -29,9 +30,7 @@
 	margin: 0.2em;
 }
 
-/* Indent vertical structures horizontally */
 .typedtasks-vertical {
-	margin: 0.8em 1.6em;
 }
 
 /* Add background boxes which get darker with nesting */
