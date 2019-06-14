@@ -264,7 +264,7 @@ taskEditor = DynamicEditor
           <<@@@ applyHorizontalClasses
       , functionConsDyn "Not" "not"
           (dynamic Typed Not :: Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalClassesNoBorder
       ]
   , DynamicConsGroup "Comparison"
       [ functionConsDyn "Gt" "greater than"

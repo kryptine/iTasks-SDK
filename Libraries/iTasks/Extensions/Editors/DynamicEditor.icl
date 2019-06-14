@@ -329,13 +329,16 @@ where
                 = editor.Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
         = case res of
             Ok (change, childSt)
-				# change = ChangeUI [] $ [(0, ChangeChild $ ChangeUI [] [(argIdx + if hideCons 0 1, ChangeChild change)])] ++ mbErrorIconChange
+				# change = ChangeUI mbErrorIconAttrChange $ [(0, ChangeChild $ ChangeUI [] [(argIdx + if hideCons 0 1, ChangeChild change)])] ++ mbErrorIconChange
 				// replace state for this child
 				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`), vst)
 			where
-				mbErrorIconChange
+				(mbErrorIconChange, mbErrorIconAttrChange) = mbErrorIconUpd
+				mbErrorIconUpd
 					| typeWasCorrect && isError typeIsCorrect =
-						[(1, InsertChild errorIcon)]
+						( [(1, InsertChild errorIcon)]
+						, [SetAttribute "class" $ JSONArray [JSONString "itasks-container", JSONString "itasks-horizontal", JSONString "itasks-dynamic-editor-error"]]
+						)
 					with
 						errorIcon =
 							UI
@@ -347,8 +350,8 @@ where
 									[]
 								]
 					| not typeWasCorrect && isOk typeIsCorrect =
-						[(1, RemoveChild)]
-					| otherwise = []
+						([(1, RemoveChild)], [SetAttribute "class" $ JSONArray [JSONString "itasks-container", JSONString "itasks-horizontal"]])
+					| otherwise = ([], [])
 				typeIsCorrect = childTypesAreMatching cons.builder (drop 1 childSts`)
 				childSts` = updateAt (argIdx + 1) childSt childSts
             Error e = (Error e, vst)

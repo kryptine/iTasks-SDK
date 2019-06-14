@@ -2,3 +2,6 @@
 	align-self: center;
 	padding: 0.2em;
 }
+.itasks-dynamic-editor-error {
+	background-color: #FFDDDD;
+}
