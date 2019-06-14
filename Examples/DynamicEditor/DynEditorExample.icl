@@ -167,6 +167,14 @@ taskEditor = DynamicEditor
               -> Typed TaskExpr (Task a)
           )
           <<@@@ applyVerticalBoxedLayout
+      , functionConsDyn "Forever" "forever"
+          ( dynamic \(Typed taskExpr) -> Typed (Forever taskExpr) ::
+              A.a:
+              (Typed TaskExpr (Task a))
+              -> Typed TaskExpr (Task a)
+          )
+          <<@@@ applyVerticalBoxedLayout
+      ]
       // , functionConsDyn "When" "guarded sequence"
       //     ( dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
       //       // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
@@ -194,7 +202,7 @@ taskEditor = DynamicEditor
       //     )
       //     <<@@@ HideIfOnlyChoice
       //     <<@@@ AddLabels [Just "name", Just "predicate", Just "continuation"]
-      ]
+      // ]
   , DynamicConsGroup "Editors"
       [ functionConsDyn "Enter" "enter"
           ( dynamic \(Typed ty) s -> Typed (EnterInfo ty s) ::
@@ -261,15 +269,6 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [ Just "message" ]
-      ]
-  , DynamicConsGroup "Special"
-      [ functionConsDyn "Forever" "repeat forever"
-          ( dynamic \(Typed taskExpr) -> Typed (Forever taskExpr) ::
-              A.a:
-              (Typed TaskExpr (Task a))
-              -> Typed TaskExpr (Task a)
-          )
-          <<@@@ applyVerticalBoxedLayout
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
