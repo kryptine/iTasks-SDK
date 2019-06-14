@@ -319,7 +319,7 @@ serverHandleModel svglet state=:{ServerSVGState | model,fonts=font_spans,texts=t
 	    #! attrs = 'Data.Map'.union attrs size_and_model
 	    = (attrs, state, world)
       Right (svg,es,tags)                                                                       // image complete, send it to client
-	    #! string = browserFriendlySVGEltToString svg
+	    #! string = toString svg
 	    #! string = trace_n` ("serverHandleModel generates complete SVG string of size " +++ toString (size string) +++ " Bytes") string
 	    | model_is_new_for_client
 	      #! (attrs,world) = toUIAttributes` svglet (ServerHasSVG string es tags (Just model)) world
@@ -776,7 +776,7 @@ where
 		      Error error           = abort error
 		      Ok (img,masks,markers,paths,spans,grids)
 		        #! svg              = genSVGElt img taskId ('Data.Map'.keys es) masks markers paths spans grids
-		        #! svgStr           = browserFriendlySVGEltToString svg
+		        #! svgStr           = toString svg
 		        #! world            = clientUpdateSVGString svgStr me world
 		        #! world            = clientRegisterEventhandlers` svglet me taskId es tags world
 		        #! world            = timeTrace "clientHandleModel ended at " world
