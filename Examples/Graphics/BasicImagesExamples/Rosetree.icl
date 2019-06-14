@@ -2,13 +2,9 @@ module Rosetree
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdArray, StdList, StdString, StdTuple
-from   StdFunc import id, o, const, seqList, :: St(..)
+import StdFunc, StdList, StdTuple
 
 //	shorthand definitions for the used fonts in these examples
 arial			= normalFontDef "Arial"
@@ -18,12 +14,11 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Rose tree"
-		[ViewUsing id (fromSVGEditor
-			{ initView    = id
-			, renderImage = const roses
-			, updModel    = \_ v = v
-			})] 0) world
+	= doTasks (viewInformation "Rose tree" [ViewUsing id (fromSVGEditor
+															{ initView    = id
+															, renderImage = const roses
+															, updModel    = \_ v = v
+															})] 0) world
 
 
 /** roses model tags = image:

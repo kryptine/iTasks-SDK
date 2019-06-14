@@ -1,4 +1,4 @@
-definition module Trax.UoD
+definition module SinglePlayerTrax.UoD
 
 import iTasks.WF.Definition
 from   iTasks.Extensions.User import :: User
@@ -7,18 +7,19 @@ from   StdClass import class zero, class ~
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenEq, Data.GenLexOrd, Control.GenMap
-
-derive class iTask TraxSt, Coordinate, TileEdge, LineColor
+import iTasks.UI.JS.Encoding
 
 :: TraxTile                             // a tile connects two edges:
 	= { end1 :: !TileEdge               //    the red line at one end and
 	  , end2 :: !TileEdge               //    the red line at the other end
 	  }
-derive   gEditor    TraxTile
-derive   gText      TraxTile
+derive   JSEncode   TraxTile
+derive   JSDecode   TraxTile
 derive   JSONEncode TraxTile
 derive   JSONDecode TraxTile
 derive   gDefault   TraxTile
+derive   gEditor    TraxTile
+derive   gText      TraxTile
 derive   gEq        TraxTile
 derive   gFDomain   TraxTile
 instance fromTuple  TileEdge TileEdge TraxTile
@@ -43,28 +44,35 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 	| East                              //    the east  side of a tile, or at
 	| South                             //    the south side of a tile, or at
 	| West                              //    the west  side of a tile
-derive   gFDomain  TileEdge
-derive   gLexOrd   TileEdge
-instance ==        TileEdge
-instance <         TileEdge
-instance ~         TileEdge
+derive class iTask  TileEdge
+derive   JSEncode   TileEdge
+derive   JSDecode   TileEdge
+derive   gFDomain   TileEdge
+derive   gLexOrd    TileEdge
+instance ==         TileEdge
+instance <          TileEdge
+instance ~          TileEdge
 
 :: LineColor                            // a line color is either:
 	= RedLine                           //    red, or
 	| WhiteLine                         //    white
-derive   gFDomain  LineColor
-instance ==        LineColor
-instance ~         LineColor
+derive class iTask  LineColor
+derive   gFDomain   LineColor
+instance ==         LineColor
+instance ~          LineColor
 
 :: Coordinate                           // a coordinate consists of:
- = { col :: !Int                        //   a column-coordinate
-   , row :: !Int                        //   a row-coordinate
+ = { col :: !Int                        //   a column coordinate
+   , row :: !Int                        //   a row    coordinate
    }
-instance ==        Coordinate
-instance <         Coordinate
-instance zero      Coordinate
-instance fromTuple Int Int Coordinate
-instance toTuple   Int Int Coordinate
+derive class iTask  Coordinate
+derive   JSEncode   Coordinate
+derive   JSDecode   Coordinate
+instance ==         Coordinate
+instance <          Coordinate
+instance zero       Coordinate
+instance fromTuple  Int Int Coordinate
+instance toTuple    Int Int Coordinate
 
 /** col @{col} = col.
 */
@@ -76,12 +84,13 @@ row :: !Coordinate -> Int
 
 
 :: Trax
-derive   gEditor    Trax
-derive   gText      Trax
+derive   JSEncode   Trax
+derive   JSDecode   Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
 derive   gDefault   Trax
-derive   gEq        Trax
+derive   gEditor    Trax
+derive   gText      Trax
 instance ==         Trax
 instance zero       Trax
 
@@ -180,10 +189,12 @@ mandatory_moves :: !Trax !Coordinate -> Trax
 
 :: TraxSt
  = { trax   :: !Trax              // the current set of placed tiles
-   , names  :: ![User]            // the current two players
-   , turn   :: !Bool
+   , turn   :: !Bool              // the turn of the player (True for game initiator, False for invitee)
    , choice :: !Maybe Coordinate
    }
+derive class iTask TraxSt
+derive JSEncode    TraxSt
+derive JSDecode    TraxSt
 
 /** game_over @st:
 		returns True only if the given configuration in @st.trax contains one or more

@@ -1,6 +1,6 @@
-implementation module Trax.UoD
+implementation module SinglePlayerTrax.UoD
 
-import iTasks.Extensions.User
+import StdBool, StdFunctions, StdList, StdTuple
 import PlatformExts.Tuple
 import Data.OrdList
 import StdMisc
@@ -9,31 +9,37 @@ from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
 import Data.GenFDomain
 import Data.GenLexOrd, Control.GenMap, Text.GenPrint
+import iTasks.UI.JS.Encoding
+import iTasks.WF.Definition
 import Text
 
 lookup1 x = fromJust o (lookup x)
 
-derive class iTask TraxSt, Coordinate, TileEdge, LineColor
-derive gMap Maybe
+derive   gMap       Maybe
 
-derive   gEditor    TraxTile
-derive   gText      TraxTile
+derive   JSEncode   TraxTile
+derive   JSDecode   TraxTile
 derive   JSONEncode TraxTile
 derive   JSONDecode TraxTile
 derive   gDefault   TraxTile
-gFDomain{|TraxTile|} = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
-instance fromTuple TileEdge TileEdge TraxTile where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
-instance toTuple   TileEdge TileEdge TraxTile where toTuple   tile    = (tile.end1, tile.end2)
-instance == TraxTile where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
+derive   gEditor    TraxTile
+derive   gText      TraxTile
+gFDomain{|TraxTile|}  = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
 gEq{|TraxTile|} t1 t2 = t1 == t2
-instance toString TraxTile where
-	toString tile = lookup1 tile [(horizontal,"horizontal")
-	                             ,(vertical,  "vertical"  )
-	                             ,(northwest, "northwest" )
-	                             ,(northeast, "northeast" )
-	                             ,(southeast, "southeast" )
-	                             ,(southwest, "southwest" )
-	                             ]
+instance fromTuple TileEdge TileEdge TraxTile
+   where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
+instance toTuple   TileEdge TileEdge TraxTile
+   where toTuple   tile    = (tile.end1, tile.end2)
+instance == TraxTile
+   where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
+instance toString TraxTile
+   where toString tile = lookup1 tile [(horizontal,"horizontal")
+	                                  ,(vertical,  "vertical"  )
+	                                  ,(northwest, "northwest" )
+	                                  ,(northeast, "northeast" )
+	                                  ,(southeast, "southeast" )
+	                                  ,(southwest, "southwest" )
+	                                  ]
 
 horizontal :: TraxTile
 horizontal =: fromTuple (West,East)
@@ -57,61 +63,62 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 other_edge tile edge = if (edge == tile.end1) tile.end2 tile.end1
 
 instance ~ TraxTile where ~ tile = lookup1 tile [(horizontal,vertical  )
-	                                        ,(vertical,  horizontal)
-	                                        ,(northwest, southeast )
-	                                        ,(northeast, southwest )
-	                                        ,(southwest, northeast )
-	                                        ,(southeast, northwest )
-	                                        ]
+	                                            ,(vertical,  horizontal)
+	                                            ,(northwest, southeast )
+	                                            ,(northeast, southwest )
+	                                            ,(southwest, northeast )
+	                                            ,(southeast, northwest )
+	                                            ]
 
-derive   gFDomain  TileEdge
-derive   gLexOrd   TileEdge
-instance ==        TileEdge where == e1 e2 = e1 === e2
-instance <         TileEdge where <  e1 e2 = (e1 =?= e2) === LT
-instance ~         TileEdge where ~  e     = case e of
-                                              North = South
-                                              South = North
-                                              West  = East
-                                              East  = West
+derive class iTask  TileEdge
+derive   JSEncode   TileEdge
+derive   JSDecode   TileEdge
+derive   gFDomain   TileEdge
+derive   gLexOrd    TileEdge
+instance ==         TileEdge where == e1 e2 = e1 === e2
+instance <          TileEdge where <  e1 e2 = (e1 =?= e2) === LT
+instance ~          TileEdge where ~  e     = case e of
+                                                 North = South
+                                                 South = North
+                                                 West  = East
+                                                 East  = West
 
-derive   gFDomain  LineColor
-instance ==        LineColor where == c1 c2 = c1 === c2
-instance ~         LineColor where ~ RedLine    = WhiteLine
-                                   ~ WhiteLine  = RedLine
+derive class iTask  LineColor
+derive   gFDomain   LineColor
+instance ==         LineColor where == c1 c2 = c1 === c2
+instance ~          LineColor where ~ RedLine    = WhiteLine
+                                    ~ WhiteLine  = RedLine
 
-derive   gLexOrd   Coordinate
-instance ==        Coordinate where == c1 c2 = c1 === c2
-instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero      Coordinate where zero     = {col=zero, row=zero}//(zero,zero)
-derive   gPrint    Coordinate
+derive class iTask  Coordinate
+derive   JSEncode   Coordinate
+derive   JSDecode   Coordinate
+derive   gLexOrd    Coordinate
+instance ==         Coordinate where == c1 c2 = c1 === c2
+instance <          Coordinate where <  c1 c2 = (c1 =?= c2) === LT
+instance zero       Coordinate where zero     = {col=zero, row=zero}
+derive   gPrint     Coordinate
 
-instance toString  Coordinate where toString c = printToString c
-instance fromTuple Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
-instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
+instance toString   Coordinate where toString c = printToString c
+instance fromTuple  Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
+instance toTuple    Int Int Coordinate where toTuple   {col,row} = (col,row)
 
 col :: !Coordinate -> Int
 col coordinate = coordinate.col
-//col (col,_) = col
 
 row :: !Coordinate -> Int
 row coordinate = coordinate.row
-//row (_,row) = row
 
 north :: !Coordinate -> Coordinate
 north coordinate = {coordinate & row = coordinate.row-1}
-//north (col,row) = (col, row-1)
 
 south :: !Coordinate -> Coordinate
 south coordinate = {coordinate & row = coordinate.row+1}
-//south (col,row) = (col, row+1)
 
 west :: !Coordinate -> Coordinate
 west coordinate = {coordinate & col = coordinate.col-1}
-//west (col,row) = (col-1, row)
 
 east :: !Coordinate -> Coordinate
 east coordinate = {coordinate & col = coordinate.col+1}
-//east (col,row) = (col+1, row)
 
 go :: !TileEdge -> Coordinate -> Coordinate
 go North = north
@@ -120,17 +127,21 @@ go South = south
 go West  = west
 
 
-:: Trax								    // actually, Trax ought to be opaque
+:: Trax
  = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
-derive   gEditor    Trax
-derive   gText      Trax
+derive   JSEncode   Trax
+derive   JSDecode   Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
 derive   gDefault   Trax
-instance == Trax where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
+derive   gEditor    Trax
+derive   gText      Trax
 gEq{|Trax|} t1 t2 = t1 == t2
-instance zero Trax where zero = { tiles = [] }
+instance == Trax
+   where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
+instance zero Trax
+   where zero = {tiles = []}
 
 class tiles a :: !a -> [(Coordinate,TraxTile)]
 
@@ -218,7 +229,7 @@ fst_smaller (a,_) (b,_)   = a < b
 
 linecolors :: !Trax !Coordinate -> LineColors
 linecolors trax coordinate
-	= [ (edge,gMap{|*->*|} (color_at_tile (~edge)) (tile_at trax (go edge coordinate)))
+	= [ (edge, gMap{|*->*|} (color_at_tile (~ edge)) (tile_at trax (go edge coordinate)))
 	  \\ edge <- gFDomain{|*|}
 	  ]
 
@@ -258,7 +269,7 @@ track trax color edge coordinate
 	= case tile_at trax coordinate of
 	    Nothing   = []                    // tile at coordinate does not exist
 	    Just tile = let edge` = other_edge (perspective color tile) edge
-	                 in [coordinate : track trax color (~edge`) (go edge` coordinate)]
+	                 in [coordinate : track trax color (~ edge`) (go edge` coordinate)]
 
 is_loop :: !Line -> Bool
 is_loop [c:cs] = isMember c cs
@@ -280,7 +291,6 @@ where
 	| otherwise				= loops
 	where
 		line				= track trax color (start_edge tile color) coordinate
-//		loops				= color_loops (removeMembersBy (\(c,t) c` -> c == c`) tiles (cut_loop line)) color
 		loops				= color_loops (deleteFirstsBy (\c` (c,t) -> c == c`) tiles (cut_loop line)) color
 
 /** start_edge @tile @color = @edge:
@@ -303,7 +313,7 @@ where
        if @color is WhiteLine, then @tile` gives the point of view of the white player.
 */
 perspective :: !LineColor !TraxTile -> TraxTile
-perspective colour tile = if (colour == RedLine) tile (~tile)
+perspective colour tile = if (colour == RedLine) tile (~ tile)
 
 winning_lines :: !Trax -> [(LineColor,Line)]
 winning_lines trax
@@ -324,7 +334,7 @@ winning_lines_at trax edge
 	  ,  color     <- [color_at_tile edge tile]
 	  ,  line      <- [track trax color edge coordinate] | not (is_loop line)
 	  ,  end       <- [last line]                        | max == coord end
-	  ,  Just tile <- [tile_at trax end]                 | color_at_tile (~edge) tile == color
+	  ,  Just tile <- [tile_at trax end]                 | color_at_tile (~ edge) tile == color
 	  ]
 where
 	((minx,maxx),(miny,maxy)) = bounds trax
@@ -355,6 +365,11 @@ mandatory_moves trax coordinate
 where
 	move :: !Trax !Coordinate -> Trax
 	move trax filler = add_tile filler (hd (possible_tiles (linecolors trax filler))) trax
+
+
+derive class iTask TraxSt
+derive JSEncode    TraxSt
+derive JSDecode    TraxSt
 
 game_over :: !TraxSt -> Bool
 game_over st=:{trax}

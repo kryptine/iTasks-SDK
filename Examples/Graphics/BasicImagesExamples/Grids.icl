@@ -2,14 +2,9 @@ module Grids
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
-import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdArray, StdEnum, StdList, StdTuple
-from   StdFunc import id, o, const, seqList, :: St(..)
+import StdFunctions, StdList
 import Text
 
 //	shorthand definitions for the used fonts in these examples
@@ -34,7 +29,7 @@ grids model tags
 		   [ grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
 		        [  above (repeat AtMiddleX) [] Nothing []
 		              [ margin (px 5.0,px zero) (grid (Columns 2) (major,x_fill,y_fill) [] [] [] [] discs NoHost)
-		              , txt (" (" <+ major <+ "," <+ x_fill <+ "," <+ y_fill <+ ") ")
+		              , txt (" (" <+++ major <+++ "," <+++ x_fill <+++ "," <+++ y_fill <+++ ") ")
 		              ] NoHost
 		        \\ major  <- [ColumnMajor,RowMajor   ]
 		         , x_fill <- [LeftToRight,RightToLeft]
@@ -66,7 +61,4 @@ where
 discs :: [Image m]
 discs = [circle (px 15.0 + px 8.0 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
 
-derive gPrint GridMajor, GridXLayout, GridYLayout
-instance toString GridMajor where toString x = printToString x
-instance toString GridXLayout where toString x = printToString x
-instance toString GridYLayout where toString x = printToString x
+derive gText GridMajor, GridXLayout, GridYLayout

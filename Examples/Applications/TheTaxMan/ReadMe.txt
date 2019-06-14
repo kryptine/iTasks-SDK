@@ -26,10 +26,7 @@ If you wish to customize it for your demo, then you should check the files in di
 
     <coc number>\t<company name>\n
 
-When running a demo, login as 'root', and perform the administration tasks:
-(1) "SDS setup": 
-    this will read the above files and create the appropriate SDS's for the demo
-(2) "Login Administration": 
-    this will use the above accounts to set-up a population of users
+When running a demo, login as 'root', and perform the "SDS setup" administration tasks.
+This will read the above files and create the appropriate SDS's for the demo.
 
 You can then log out, and re-login as a citizen, company, or tax officer.

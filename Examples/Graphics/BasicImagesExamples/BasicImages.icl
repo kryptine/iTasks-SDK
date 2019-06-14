@@ -2,14 +2,9 @@ module BasicImages
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
-import Text.GenPrint
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdArray, StdEnum, StdList, StdTuple
-from   StdFunc import id, o, const
+import StdFunctions, StdList
 
 //	shorthand definitions for the used fonts in these examples
 lucida			= normalFontDef "Lucida Console"

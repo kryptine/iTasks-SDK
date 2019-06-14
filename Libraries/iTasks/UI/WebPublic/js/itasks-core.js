@@ -36,11 +36,14 @@ itasks.Component = {
 	},
 	initUI: function() {
 		var me=this;
-		if (me.attributes.initUI!=null && me.attributes.initUI!='')
+		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			return ABC.loading_promise.then(function(){
-				var initUI=ABC.deserialize(me.attributes.initUI,me);
-				ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
+				var initUI=ABC.deserialize(me.attributes.initUI);
+				var ref=ABC.share_clean_value(initUI,me);
+				ABC.interpret(SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
+				ABC.clear_shared_clean_value(ref);
 			});
+		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {

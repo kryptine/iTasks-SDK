@@ -2,13 +2,9 @@ module OnClick
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdInt, StdReal
-from   StdFunc import id, const
+import StdArray, StdClass, StdFunctions, StdInt, StdList, StdReal
 import Text
 
 //	shorthand definitions for the used fonts in these examples
@@ -30,13 +26,15 @@ Start world
 	@image displays the number of times that you've clicked on the text. The initial value is @n.
 */
 count :: Int *TagSource -> Image Int
-count n _
-	= margin (px 20.0) (
-	    overlay [(AtMiddleX,AtMiddleY)] []
-	       [ text font (toString n) <@< {fill = white}]
-	       (Host (rect (textxspan font ("  " <+ n)) (px (h + m))))
-	       <@< {onclick = (+), local = False}
-	  )
+count n _ = margin (px 20.0) (beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onNclick = (+), local = False})
+
+digits :: Int -> [Int]
+digits n = [toInt c - toInt '0' \\ c <-: toString n]
+
+digit :: Int -> Image Int
+digit n = overlay [(AtMiddleX,AtMiddleY)] []
+             [ text font (toString n) <@< {fill = white}]
+             (Host (rect (textxspan font (toString n) + px m) (px (h+m))))
 where
 	font = times h
 	h    = 100.0

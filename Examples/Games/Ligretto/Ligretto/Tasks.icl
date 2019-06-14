@@ -17,10 +17,8 @@ play_Ligretto
 
 invite_friends :: Task [User]
 invite_friends
-	=            enterMultipleChoiceWithShared "Select friends to play with" [] users
-	>>= \them -> if (not (isMember (length them) [1..3]))
-	                (viewInformation "Oops" [] "number of friends must be 1, 2, or 3" >>| invite_friends)
-	                (return them)
+	=   enterMultipleChoiceWithShared "Select 1, 2, or 3 friends to play with" [] users
+	>>* [OnAction ActionContinue (withValue (\them -> if (isMember (length them) [1..3]) (Just (return them)) Nothing))]
 
 play_game :: ![(Color,User)] !(Shared sds GameSt) -> Task (Color,String) | RWShared sds
 play_game users game_st
