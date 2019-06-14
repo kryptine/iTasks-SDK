@@ -339,9 +339,13 @@ where
 					with
 						errorIcon =
 							UI
-								UIIcon
-								('Map'.union (iconClsAttr "icon-invalid") (tooltipAttr $ fromError typeIsCorrect))
-								[]
+								UIContainer
+								('Map'.singleton "class" $ JSONString "itasks-dynamic-editor-icon-error-container")
+								[ UI
+									UIIcon
+									('Map'.union (iconClsAttr "icon-invalid") (tooltipAttr $ fromError typeIsCorrect))
+									[]
+								]
 					| not typeWasCorrect && isOk typeIsCorrect =
 						[(1, RemoveChild)]
 					| otherwise = []
