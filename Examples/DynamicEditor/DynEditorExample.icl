@@ -205,6 +205,7 @@ taskEditor = DynamicEditor
               -> Typed TaskFunc (a -> Task b)
           )
           <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [Just "message"]
       , functionConsDyn "UpdateF" "update"
           ( dynamic \s -> Typed (UpdateF s) ::
               A.a:
@@ -212,6 +213,7 @@ taskEditor = DynamicEditor
               -> Typed TaskFunc (a -> Task a)
           )
           <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [Just "message"]
       ]
     , DynamicConsGroup "Special"
       [ functionConsDyn "Done" "done"
@@ -303,6 +305,7 @@ taskEditor = DynamicEditor
                 (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
           )
           <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [Just "with", Just "and"]
     ]
   // Types
   , DynamicConsGroup "Types"
