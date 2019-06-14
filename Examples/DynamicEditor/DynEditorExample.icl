@@ -55,7 +55,7 @@ where
   | Then TaskExpr TaskFunc
   | Both TaskExpr TaskExpr
   | Any TaskExpr TaskExpr
-  | One TaskExpr TaskExpr
+  | One Button TaskExpr Button TaskExpr
 
 :: TaskFunc
   = ThenF TaskFunc TaskFunc
@@ -150,9 +150,11 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyVerticalClasses
       , functionConsDyn "One" "one of"
-          ( dynamic \(Typed task1) (Typed task2) -> Typed (One task1 task2) ::
+          ( dynamic \button1 (Typed task1) button2 (Typed task2) -> Typed (One button1 task1 button2 task2) ::
               A.a b:
+              String
               (Typed TaskExpr (Task a))
+              String
               (Typed TaskExpr (Task a))
               -> Typed TaskExpr (Task a)
           )
@@ -348,8 +350,18 @@ evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 evalTaskExpr (EnterInfo (Ty toValue) msg) = enterInformation msg [] @ toValue
 evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
-evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
 evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
+evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
+evalTaskExpr (One button1 task1 button2 task2)
+= viewInformation "Make a choice" [] () >>*
+  [ OnAction (Action button1) (ifValue (const True) (\_ -> evalTaskExpr task1))
+  , OnAction (Action button2) (ifValue (const True) (\_ -> evalTaskExpr task2))
+  ]
+evalTaskExpr x = abort $ "My brain hurts!" +++ unlines (gText{|*|} AsMultiLine (Just x))
+where
+  unlines :: [String] -> String
+  unlines xs = foldr (\x acc -> x +++ "\n" +++ acc) "" xs
+
 // evalTaskExpr (When task1 options) = evalTaskExpr task1
 //   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
 //       \\ {name, pred, cont} <- options
