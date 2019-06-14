@@ -391,9 +391,9 @@ where
   stringEditor :: Editor String
   stringEditor = gEditor{|*|}
 
-  basicClasses = [ "typedtasks-base", "itasks-wrap-width", "itasks-wrap-height" ]
-  horizontalClasses = [ "typedtasks-horizontal", "itasks-horizontal" ]
-  verticalClasses = [ "typedtasks-vertical", "itasks-vertical" ]
+  basicClasses = [ "typedtasks-base" ]
+  horizontalClasses = [ "typedtasks-horizontal" ]
+  verticalClasses = [ "typedtasks-vertical" ]
   boxedClasses = [ "typedtasks-boxed" ]
 
   applyHorizontalBoxedLayout = ApplyCssClasses $ basicClasses ++ horizontalClasses ++ boxedClasses
