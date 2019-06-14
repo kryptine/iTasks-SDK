@@ -17,7 +17,7 @@ where
 		# world = destroyIWorld iworld
 		= (res,world)
 
-	minimalTask = viewInformation () [] "TEST"
+	minimalTask = viewInformation [] "TEST"
 
 tests = [testCreateTaskInstance]
 

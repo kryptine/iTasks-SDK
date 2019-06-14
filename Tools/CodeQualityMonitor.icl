@@ -56,12 +56,12 @@ inspectCodeQuality
 		)
 where
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithHeader 0 <<@ ApplyLayout (setUIType UIContainer) @! ()
+		= (viewInformation [] header ||- mainTask) <<@ ArrangeWithHeader 0 <<@ ApplyLayout (setUIType UIContainer) @! ()
 
 runInteractiveTests :: Task ()
 runInteractiveTests
-	= (     editSelectionWithShared (Title "Select test") False (SelectInTree fileCollectionToTree selectTest) tests (const []) @? tvHd
-		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
+	= (     (Title "Select test") @>> editSelectionWithShared [SelectMultiple False, SelectInTree fileCollectionToTree selectTest] tests (const []) @? tvHd
+		>&> withSelection (viewInformation [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 where
 	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl") False)
 
@@ -89,11 +89,11 @@ where
 runUnitTests :: Task ()
 runUnitTests = withShared 'DM'.newMap
 	\results ->
-	 ((    ((editSelectionWithShared (Title "Tests") False
-				(SelectInTree toModuleSelectTree selectByIndex)
+	 ((    (((Title "Tests") @>> editSelectionWithShared
+				[SelectMultiple False, SelectInTree toModuleSelectTree selectByIndex]
 				(sdsFocus UNIT_TESTS_PATH moduleList) (const []) @? tvHd)
 			)
-		   >&> withSelection (viewInformation "Select a test" [] ())
+		   >&> withSelection (Hint "Select a test" @>> viewInformation [] ())
                              (viewTest results)
           )
 		@! ()) <<@ ArrangeWithSideBar 0 LeftSide True
@@ -101,9 +101,9 @@ where
 	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
 
 	viewTest results (name,_)
-		= (viewSharedInformation (Title "Code") [ViewUsing (join "\n") aceTextArea] (sdsFocus (UNIT_TESTS_PATH,name) moduleImplementation)
+		= ((Title "Code" @>> viewSharedInformation [ViewUsing (join "\n") aceTextArea] (sdsFocus (UNIT_TESTS_PATH,name) moduleImplementation))
 		-&&-
-		  ((viewSharedInformation (Title "Results") [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get name) results) <<@ ArrangeHorizontal)
+		  (((Title "Results" @>> viewSharedInformation [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get name) results)) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
 						(		runTestModule (UNIT_TESTS_PATH,name) <<@ InWindow
 							>>- \res -> (upd ('DM'.put name res)) results
@@ -149,12 +149,12 @@ where
 
 exploreCode :: Task ()
 exploreCode 
-	= ((    ((editSelectionWithShared (Title "Modules") False
-				(SelectInTree toModuleSelectTree selectByIndex)
+	= ((    (((Title "Modules") @>> editSelectionWithShared 
+				[SelectMultiple False, SelectInTree toModuleSelectTree selectByIndex]
 				(sdsFocus LIBRARY_PATH moduleList) (const []) @? tvHd)
 			 	-|| viewQualityMetrics
 			)
-		   >&> withSelection (viewInformation "Select a module" [] ())
+		   >&> withSelection (Hint "Select a module" @>> viewInformation [] ())
                              viewModule 
           )
 		@! ()) <<@ ArrangeWithSideBar 0 LeftSide True
@@ -163,13 +163,13 @@ where
 
 	viewModule (name,MainModule)
 		= allTasks
-			[viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
+			[(Title "Implementation") @>> viewSharedInformation [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
 			] <<@ ArrangeWithTabs False
 
 	viewModule (name,AuxModule)
 		= allTasks
-			[viewSharedInformation (Title "Definition") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
-			,viewSharedInformation (Title "Implementation") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
+			[(Title "Definition") @>> viewSharedInformation [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
+			,(Title "Implementation") @>> viewSharedInformation [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
 			] <<@ ArrangeWithTabs False
 
 	toCodeTag lines = PreTag [] [CodeTag [] [Html (join "\n" lines)]]
@@ -207,9 +207,10 @@ where
 
 	editSourceCode :: (Shared sds InspectState) -> Task InspectState | RWShared sds
 	editSourceCode state
-		= updateSharedInformation (Title "Edit code")
-			[UpdateUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
+		= Title "Edit code" @>> updateSharedInformation 
+			[UpdateSharedUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
+						 const
                          aceTextArea] state
 
 	buildExecutable :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
@@ -227,7 +228,7 @@ where
 		
 		runBuildTool directory moduleName
 			=   get cpmExecutable 
-			>>- \cpm -> callProcess () [] cpm [addExtension moduleName "prj"] (Just directory) Nothing
+			>>- \cpm -> callProcess [] cpm [addExtension moduleName "prj"] (Just directory) Nothing
 			>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 		
 		setExecutable directory moduleName state
@@ -239,12 +240,12 @@ where
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>-| callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
+						>-| callProcess [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()
 	where
-		makeExecutable path = callProcess () [] "chmod" ["+x",path] Nothing Nothing
+		makeExecutable path = callProcess [] "chmod" ["+x",path] Nothing Nothing
 		view _ = ATag [HrefAttr url,TargetAttr "_blank"] [Text "Running the test program at: ",Text url]
 		where
 			url = "http://localhost:8084"
@@ -289,7 +290,7 @@ where
 viewQualityMetrics :: Task ()
 viewQualityMetrics 
 	= 	analyzeITasksCodeBase
-	>>- viewInformation (Title "Metrics") [ViewAs view]  @! ()
+	>>- \a -> (Title "Metrics") @>> viewInformation [ViewAs view] a @! ()
 where
 	view {numFiles,numLines,numTODO,numFIXME}
 		= UlTag [] [LiTag [] [Text "Number of files: ",Text (toString numFiles)]

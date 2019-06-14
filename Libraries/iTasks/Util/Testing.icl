@@ -83,28 +83,28 @@ filterTestsByName pattern tests = filter (\{UnitTest|name} -> indexOf pattern na
 //UTILITY TASKS
 testEditor :: (Editor a) (EditMode a) -> Task a | iTask a
 testEditor editor mode
-	=   (interactR "Editor test" unitShare {onInit = const ((),mode), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
-	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
+	=   (interactR unitShare {onInit = const ((),mode), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
+	>&> viewSharedInformation [ViewWithTitle "Editor value", ViewAs (toString o toJSON)] @? tvFromMaybe
 	)  <<@ ArrangeHorizontal
 
 testEditorWithShare :: (Editor a) a Bool -> Task a | iTask a
 testEditorWithShare editor model viewMode = (withShared model
 	\smodel ->
-		updateSharedInformation "Edit the shared source" [] smodel
+		(Hint "Edit the shared source" @>> updateSharedInformation [] smodel)
 		||-
-	    interactR "Editor under test" smodel {onInit = \r -> ((),if viewMode View Update $ r)
+	    (Title "Editor under test" @>> interactR smodel {onInit = \r -> ((),if viewMode View Update $ r)
 	                                        ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
-	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
+	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd)
 	) <<@ ArrangeHorizontal
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
-	= 	 enterInformation ("Enter","Enter information of type " +++ typeName) []
-	-||- updateInformation ("Update","Update default value of type " +++ typeName) [] defaultValue
+	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [])
+	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue)
 	-||- (withShared defaultValue
-			\s -> (updateSharedInformation ("Update shared","Update shared value of type " +++ typeName) [] s
+			\s -> ((Title "Update shared" @>> Hint ("Update shared value of type " +++ typeName) @>> updateSharedInformation [] s)
 				   -||
-				   viewSharedInformation ("View shared","View shared value of type " +++ typeName) [] s
+				   (Title "View shared" @>> Hint ("View shared value of type " +++ typeName) @>> viewSharedInformation  [] s)
 				  )
 		 )
 
