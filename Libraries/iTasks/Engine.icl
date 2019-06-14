@@ -111,7 +111,7 @@ where
 			("Specify the HTTP port (default: " +++ toString defaults.serverPort +++ ")")
 		, Option [] ["timeout"] (OptArg (\mp->fmap \o->{o & timeout=fmap toInt mp}) "MILLISECONDS")
 			"Specify the timeout in ms (default: 500)\nIf not given, use an indefinite timeout."
-		, Option [] ["allowed-hosts"] (ReqArg (\p->fmap \o->{o & allowedHosts = split "," p}) "IPADRESSES")
+		, Option [] ["allowed-hosts"] (ReqArg (\p->fmap \o->{o & allowedHosts = if (p == "") [] (split "," p)}) "IPADRESSES")
 			("Specify a comma separated white list of hosts that are allowed to connected to this application\ndefault: "
 			 +++ join "," defaults.allowedHosts)
 		, Option [] ["keepalive"] (ReqArg (\p->fmap \o->{o & keepaliveTime={tv_sec=toInt p,tv_nsec=0}}) "SECONDS")
@@ -273,10 +273,13 @@ where
 	where
 		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
 		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
-			| startsWith "$IWorld:timespec$" snr.reqSDSId && ts.interval <> zero
+			| dependsOnClock snr && ts.interval <> zero
 				# fire = iworldTimespecNextFire now reqTimespec ts
 				= Just (max 0 (toMs fire - toMs now))
 			= mt
 		getTimeoutFromClock` _ = mt
+
+	dependsOnClock :: !SDSNotifyRequest -> Bool
+	dependsOnClock snr = indexOf "$IWorld:timespec$" snr.reqSDSId >= 0
 
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000

@@ -2,6 +2,7 @@ definition module iTasks.Extensions.Email
 /**
 * This module provides basic SMTP email support
 */
+from Text.HTML import :: HtmlTag
 import iTasks
 
 /**
@@ -9,11 +10,22 @@ import iTasks
 *
 * @param Options: Mail server options, when left blank port 25 on localhost is used SMTP server
 * @param Sender: The sender address
-* @param Recipient: The recipient address
+* @param Recipients: The recipient addresses
 * @param Subject: The subject line of the e-mail message
 * @param Body: The body of the e-mail message
 */
-sendEmail :: ![EmailOpt] !String !String !String !String -> Task ()
+sendEmail :: ![EmailOpt] !String ![String] !String !String -> Task ()
+
+/**
+* Send an e-mail message with HTML body.
+*
+* @param Options: Mail server options, when left blank port 25 on localhost is used SMTP server
+* @param Sender: The sender address
+* @param Recipients: The recipient addresses
+* @param Subject: The subject line of the e-mail message
+* @param Body: The HTML body of the e-mail message
+*/
+sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 
 //Options for sendEmail
 :: EmailOpt

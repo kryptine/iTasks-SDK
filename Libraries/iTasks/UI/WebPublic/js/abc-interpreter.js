@@ -389,7 +389,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 	ABC.memory=new WebAssembly.Memory({initial: blocks_needed});
 	ABC.memory_array=new Uint32Array(ABC.memory.buffer);
 
-	for (var i in ABC.prog)
+	for (var i=0; i<ABC.prog.length; i++)
 		ABC.memory_array[i]=ABC.prog[i];
 
 	(function(prog){

@@ -26,32 +26,35 @@ itasks.Component = {
 	init: function() {
 		var me = this;
 		me.lastFire = 0;
-		me.initUI();
-		me.initComponent();
-		me.initChildren();
-		me.renderComponent();
 
-		me.initialized = true;
-		return me;
+		return Promise.resolve()
+			.then(me.initUI.bind(me))
+			.then(me.initComponent.bind(me))
+			.then(me.initChildren.bind(me))
+			.then(me.renderComponent.bind(me))
+			.then(function(){ me.initialized=true; });
 	},
 	initUI: function() {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
-			var initUI=ABC.deserialize(me.attributes.initUI);
-			var ref=ABC.share_clean_value(initUI,me);
-			ABC.interpret(SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
-			ABC.clear_shared_clean_value(ref);
+			return ABC.loading_promise.then(function(){
+				var initUI=ABC.deserialize(me.attributes.initUI);
+				var ref=ABC.share_clean_value(initUI,me);
+				ABC.interpret(SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
+				ABC.clear_shared_clean_value(ref);
+			});
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {
 		var me = this;
-		me.children.forEach(function(spec,i) {
+		return me.children.reduce((promise,spec,i) => promise.then(function(){
 			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
-			me.children[i].init();
-			me.afterChildInsert(i,me.children[i]);
-		});
+			return me.children[i].init().then(function(){
+				me.afterChildInsert(i,me.children[i]);
+			});
+		}), Promise.resolve());
 	},
 	renderComponent: function() {
 		var me = this;
@@ -183,24 +186,29 @@ itasks.Component = {
 		//Add the child to the collection of children
 		me.children.splice(idx,0,child);
 
+		var finish_up=function(){
+			me.afterChildInsert(idx,child);
+			if (child.onResize)
+				child.onResize();
+		};
+
 		if(me.initialized) {
 			//Initialize, if we are already initialized
-			child.init();
-			//Add the child to the dom
-			if(child.domEl) {
-				if(isLast) {
-					me.containerEl.appendChild(child.domEl);
-				} else {
-					me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+			return child.init().then(function(){
+				//Add the child to the dom
+				if(child.domEl) {
+					if(isLast) {
+						me.containerEl.appendChild(child.domEl);
+					} else {
+						me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+					}
+					child.onShow();
 				}
-				child.onShow();
-			}
-		} 
-		me.afterChildInsert(idx,child);
 
-		//When the child is first added, we trigger a resize event
-		if(child.onResize) {
-			child.onResize();
+				finish_up();
+			});
+		} else {
+			finish_up();
 		}
 	},
 	beforeChildInsert: function(idx,spec) {},
@@ -220,7 +228,7 @@ itasks.Component = {
 		var me = this;
 		if(idx >= 0 && idx < me.children.length) {
 			me.removeChild(idx);
-			me.insertChild(idx,spec);
+			return me.insertChild(idx,spec);
 		}
 	},
 	moveChild: function(sidx,didx) {
@@ -267,24 +275,21 @@ itasks.Component = {
 		if(change) {
 			switch(change.type) {
 				case 'replace':
-					me.onReplaceUI(change.definition);
-					break;
+					return me.onReplaceUI(change.definition);
 				case 'change':
-					me.onChangeUI(change.attributes,change.children);
-					break;
+					return me.onChangeUI(change.attributes,change.children);
 			}
 		}
 	},
 	onReplaceUI: function(spec) {
-		var me = this, idx;
-
+		var me = this;
 		if(me.parentCmp) {
-			idx = me.parentCmp.findChild(me);
-			me.parentCmp.replaceChild(idx,spec);
+			var idx = me.parentCmp.findChild(me);
+			return me.parentCmp.replaceChild(idx,spec);
 		}
 	},
 	onChangeUI: function(attributeChanges,childChanges) {
-		var me = this, idx;
+		var me = this;
 
 		//Handle attribute changes
 		if(attributeChanges instanceof Array) {
@@ -294,19 +299,18 @@ itasks.Component = {
 		}
 		//Handle child changes
 		if (childChanges instanceof Array) {
-			childChanges.forEach(function(change) {
+			childChanges.reduce((promise,change) => promise.then(function(){
 				var idx = change[0];
 				switch(change[1]) {
 					case 'change':
 						if(idx >= 0 && idx < me.children.length) {
-							me.children[idx].onUIChange(change[2]);
+							return me.children[idx].onUIChange(change[2]);
 						} else {
 							console.log("UNKNOWN CHILD",idx,me.children.length,change);
 						}
 						break;
 					case 'insert':
-						me.insertChild(idx,change[2]);
-						break;
+						return me.insertChild(idx,change[2]);
 					case 'remove':
 						me.removeChild(idx);
 						break;
@@ -314,7 +318,7 @@ itasks.Component = {
 						me.moveChild(idx,change[2]);
 						break;
 				}
-			});
+			}), Promise.resolve());
 		}
 	},
 	onShow: function() {
@@ -326,6 +330,16 @@ itasks.Component = {
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
+	getViewport: function() {
+		var me = this, vp = me.parentCmp;
+		while(vp) {
+			if(vp.cssCls == 'viewport') { //Bit of a hack...
+				return vp;
+			}
+			vp = vp.parentCmp;
+		}
+		return null;
+	}
 };
 itasks.Loader = {
 	cssCls: 'loader',
@@ -370,6 +384,8 @@ itasks.Viewport = {
 
 		var uiChangeCallback = me.onInstanceUIChange.bind(me);
 		var exceptionCallback = me.onException.bind(me);
+
+		me.changeListeners = [];
 
 		if('instanceNo' in me.attributes) {
 			//Connect to an existing task instance
@@ -438,6 +454,20 @@ itasks.Viewport = {
 				});
 			}
 		}
+		//Trigger changelisteners
+		me.changeListeners.forEach(function(cl) {
+			cl.onViewportChange(change);
+		});
+	},
+	addChangeListener: function(cmp) {
+		var me = this;
+		me.changeListeners.push(cmp);
+	},
+	removeChangeListener: function(cmp) {
+		var me = this;
+		me.changeListeners = me.changeListeners.filter(function(el) {
+			return el != cmp;
+		});
 	},
 	onException: function(exception) {
 		var me = this;
@@ -463,7 +493,7 @@ itasks.Viewport = {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
-	init: function () { return this; },
+	init: function () { return Promise.resolve(); },
 	beforeRemove: function() {},
 	_beforeRemove: function() {},
 };
