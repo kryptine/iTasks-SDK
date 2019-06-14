@@ -28,10 +28,11 @@ Start world = doTasks (editTaskExpr Nothing) world
 editTaskExpr :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
 editTaskExpr mv =
   enterOrUpdateExpr ("Contruct a task", info1) mv >?>
-    [ ( "Run", const True, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >?>
-        [ ( "Finish", const True, \r -> viewInformation ("Done!", info3) [] r >?>
+    [ ( "Run", const True, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >>*
+        [ OnAction (Action "Back") (always (editTaskExpr (Just v)))
+        , OnAction (Action "Finish") (ifValue (const True) (\r -> viewInformation ("Done!", info3) [] r >?>
             [ ( "Back", const True, \_ -> editTaskExpr (Just v) ) ]
-          )
+          ))
         ]
       )
     ]
