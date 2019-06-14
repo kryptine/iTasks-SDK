@@ -15,6 +15,8 @@ import iTasks.Extensions.Editors.DynamicEditor
 
 always x :== const True x
 
+cons x xs :== [x:xs]
+
 (>?>) infixl 1 :: (Task a) (List ( Button, a -> Bool, a -> Task b )) -> Task b | iTask a & iTask b
 (>?>) task options = task >>* map trans options
 where
@@ -56,11 +58,16 @@ where
   | Both TaskExpr TaskExpr
   | Any TaskExpr TaskExpr
   | One Button TaskExpr Button TaskExpr
+  // | Init Ty TaskExpr
+  | Watch String
+  // | Change String
 
 :: TaskFunc
   = ThenF TaskFunc TaskFunc
   | ViewF String Func
   | UpdateF String Func
+  | StoreF
+  | WatchF String
 
 :: Expr
   = Int Int
@@ -87,7 +94,8 @@ where
   | Snd
 
 :: Value
-  = VInt Int
+  = VUnit
+  | VInt Int
   | VBool Bool
   | VString String
   | VTuple Value Value
@@ -102,12 +110,12 @@ derive class iTask TaskExpr, TaskFunc, Expr, Func, Value, Typed
 
 // These instances cannot be auto derived because of the existential quantifier.
 // However, they will be never used, so we make them undefined.
-gDefault{|Ty|} = undef
-gEq{|Ty|} _ _ = undef
-JSONEncode{|Ty|} _ _ = undef
-JSONDecode{|Ty|} _ _ = undef
-gText{|Ty|} _ _ = undef
-gEditor{|Ty|} = undef
+gDefault{|Ty|} = abort "Typed task editor: internal error with gDefault of Ty"
+gEq{|Ty|} _ _ = abort "Typed task editor: internal error with gEq of Ty"
+JSONEncode{|Ty|} _ _ = abort "Typed task editor: internal error with JSONEncode of Ty"
+JSONDecode{|Ty|} _ _ = abort "Typed task editor: internal error with JSONDecode of Ty"
+gText{|Ty|} _ _ = abort "Typed task editor: internal error with gText of Ty"
+gEditor{|Ty|} = abort "Typed task editor: internal error with gEditor of Ty"
 
 
 // Editor //////////////////////////////////////////////////////////////////////
@@ -222,6 +230,37 @@ taskEditor = DynamicEditor
               -> Typed TaskExpr (Task a)
           )
           <<@@@ applyHorizontalBoxedLayout
+      ]
+  // Non-task functions:
+  , DynamicConsGroup "Shares"
+      // [ functionConsDyn "Init" "initialise"
+      //     ( dynamic \(Typed sharedTy) (Typed taskExpr) -> Typed (Init sharedTy taskExpr) ::
+      //         A.s a:
+      //         (Typed Ty s)
+      //         (Typed TaskExpr (Task a))
+      //         -> Typed TaskExpr (Task a)
+      //     )
+      //     <<@@@ applyVerticalBoxedLayout
+      [ functionConsDyn "StoreF" "store"
+          (dynamic Typed StoreF :: Typed TaskFunc (Int -> Task ()))
+          <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [ Just "message" ]
+      , functionConsDyn "Watch" "watch"
+          ( dynamic \msg -> Typed (Watch msg) ::
+              A.a:
+              String
+              -> Typed TaskExpr (Task ())
+          )
+          <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [ Just "message" ]
+      , functionConsDyn "WatchF" "watch"
+          ( dynamic \msg -> Typed (WatchF msg) ::
+              A.a:
+              String
+              -> Typed TaskFunc (a -> Task ())
+          )
+          <<@@@ applyHorizontalBoxedLayout
+          <<@@@ AddLabels [ Just "message" ]
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
@@ -355,17 +394,23 @@ where
 
 // Evaluation //////////////////////////////////////////////////////////////////
 
+// globalValueShare :: SimpleSDSLens ( Ty, List Value )
+// globalValueShare = sharedStore "global share for typed task editor" ( abort "Global share not initialised", [] )
+globalValueShare :: SimpleSDSLens (List Value)
+globalValueShare = sharedStore "global share for typed task editor" []
+
 evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 evalTaskExpr (EnterInfo (Ty toValue) msg) = enterInformation msg [] @ toValue
 evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
 evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
 evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
-evalTaskExpr (One button1 task1 button2 task2)
-= viewInformation "Make a choice" [] () >?>
+evalTaskExpr (One button1 task1 button2 task2) = viewInformation "Make a choice" [] () >?>
   [ ( button1, const True, \_ -> evalTaskExpr task1 )
   , ( button2, const True, \_ -> evalTaskExpr task2 )
   ]
+// evalTaskExpr (Init sharedTy task) = set ( sharedTy, [] ) globalValueShare >>| evalTaskExpr task
+evalTaskExpr (Watch msg) = viewSharedInformation msg [] globalValueShare @ (const VUnit)
 
 // evalTaskExpr (When task1 options) = evalTaskExpr task1
 //   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
@@ -383,7 +428,8 @@ evalTaskExpr (One button1 task1 button2 task2)
 
 
 evalTaskFunc :: TaskFunc Value -> Task Value
-evalTaskFunc (ThenF this next) val = evalTaskFunc this val >>= evalTaskFunc next
+evalTaskFunc (ThenF this next) val =
+  evalTaskFunc this val >>= evalTaskFunc next
 
 evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
@@ -406,6 +452,14 @@ evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
+
+evalTaskFunc (StoreF) val =
+  // upd (\( sharedTy, values ) -> ( sharedTy, cons val values)) globalValueShare @ (const VUnit)
+  upd (cons val) globalValueShare @ (const VUnit)
+
+evalTaskFunc (WatchF msg) val =
+  viewSharedInformation msg [] globalValueShare @ (const VUnit)
+
 
 
 evalExpr :: Expr -> Value
