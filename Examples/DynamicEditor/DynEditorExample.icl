@@ -30,7 +30,7 @@ editTaskExpr mv =
   enterOrUpdateExpr ("Contruct a task", info1) mv >?>
     [ ( "Run", const True, \v -> viewInformation ("Evaluate the task", info2) [] () ||- (evalTaskExpr (toValue taskEditor v) <<@ ApplyLayout frameCompact) >>*
         [ OnAction (Action "Back") (always (editTaskExpr (Just v)))
-        , OnAction (Action "Finish") (ifValue (const True) (\r -> viewInformation ("Done!", info3) [] r >?>
+        , OnAction (Action "Finish") (ifValue (const True) (\r -> viewInformation ("Done!", info3) [] (toString r) >?>
             [ ( "Back", const True, \_ -> editTaskExpr (Just v) ) ]
           ))
         ]
@@ -517,3 +517,12 @@ where
 evalFunc (VTuple x1 x2) func = case func of
   Fst -> x1
   Snd -> x2
+
+
+instance toString Value where
+  toString val = case val of
+    VUnit -> "()"
+    VInt i -> toString i
+    VBool b -> toString b
+    VString s -> toString s
+    VTuple x y -> "( " +++ toString x +++ ", " +++ toString y +++ ")"
