@@ -404,7 +404,7 @@ where
 
 // globalValueShare :: SimpleSDSLens ( Ty, List Value )
 // globalValueShare = sharedStore "global share for typed task editor" ( abort "Global share not initialised", [] )
-globalValueShare :: SimpleSDSLens (List Value)
+globalValueShare :: SimpleSDSLens (List Int)
 globalValueShare = sharedStore "global share for typed task editor" []
 
 evalTaskExpr :: TaskExpr -> Task Value
@@ -462,9 +462,9 @@ evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
     )
       <<@ ApplyLayout arrangeHorizontal
 
-evalTaskFunc (StoreF) val =
+evalTaskFunc (StoreF) (VInt i) =
   // upd (\( sharedTy, values ) -> ( sharedTy, cons val values)) globalValueShare @ (const VUnit)
-  upd (cons val) globalValueShare @ (const VUnit)
+  upd (cons i) globalValueShare @ (const VUnit)
 
 evalTaskFunc (WatchF msg) val =
   viewSharedInformation msg [] globalValueShare @ (const VUnit)
