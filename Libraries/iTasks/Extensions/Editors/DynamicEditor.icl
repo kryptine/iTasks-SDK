@@ -287,7 +287,7 @@ where
                , !*VSt
                )
     // new builder is selected: create a UI for the new builder
-    onEdit dp ([], JSONArray [JSONInt builderIdx]) _ [_: childrenSts] vst
+    onEdit dp ([], JSONArray [JSONInt builderIdx]) st [_: childrenSts] vst
         | builderIdx < 0 || builderIdx >= length matchingConses
             = (Error "Dynamic editor selection out of bounds", vst)
         # (cons, _) = matchingConses !! builderIdx
@@ -299,17 +299,25 @@ where
                 # removals = removeNChildren $ length childrenSts
                 // add "itasks-container" classes as this class always has to be present for containers
                 # uiAttrs = withContainerClassAttr cons.uiAttributes
-                # change = ChangeUI [] [(0, ChangeChild $ ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts))]
+				# attrChange  = if (typeWasInvalid st) removeErrorIconAttrChange []
+				# childChange =
+						if (typeWasInvalid st) removeErrorIconChange []
+					++
+						[(0, ChangeChild $ ChangeUI (uncurry SetAttribute <$> 'Map'.toList uiAttrs) (removals ++ inserts))]
                 # builderChooseState = LeafState {touched = True, state = JSONInt $ length uis}
-                = (Ok (change, Just (cons.consId, type, True), [builderChooseState: childSts]), vst)
+                = (Ok (ChangeUI attrChange childChange, Just (cons.consId, type, True), [builderChooseState: childSts]), vst)
             Error e = (Error e, vst)
 
     // other events targeted directly at this cons
-    onEdit dp ([],e) _ [_: childSts] vst
+    onEdit dp ([],e) st [_: childSts] vst
         | e =: JSONNull || e =: (JSONArray []) // A null or an empty array are accepted as a reset events
             //If necessary remove the fields of the previously selected cons
-            # change = ChangeUI [] [(0, ChangeChild $ ChangeUI [] $ removeNChildren $ length childSts)]
-            = (Ok (change, Nothing, [nullState]), vst)
+            # attrChange  = if (typeWasInvalid st) removeErrorIconAttrChange []
+            # childChange =
+					if (typeWasInvalid st) removeErrorIconChange []
+				++
+					[(0, ChangeChild $ ChangeUI [] $ removeNChildren $ length childSts)]
+            = (Ok (ChangeUI attrChange childChange, Nothing, [nullState]), vst)
         | otherwise
             = (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
 
@@ -350,7 +358,7 @@ where
 									[]
 								]
 					| not typeWasCorrect && isOk typeIsCorrect =
-						([(1, RemoveChild)], [SetAttribute "class" $ JSONArray [JSONString "itasks-container", JSONString "itasks-horizontal"]])
+						(removeErrorIconChange, removeErrorIconAttrChange)
 					| otherwise = ([], [])
 				typeIsCorrect = childTypesAreMatching cons.builder (drop 1 childSts`)
 				childSts` = updateAt (argIdx + 1) childSt childSts
@@ -358,6 +366,11 @@ where
 
     onEdit _ _ _ _ vst = (Error "Invalid edit event for dynamic editor.", vst)
 
+	typeWasInvalid (Just (_, _, False)) = True
+	typeWasInvalid _                    = False
+
+	removeErrorIconChange     = [(1, RemoveChild)]
+	removeErrorIconAttrChange = [SetAttribute "class" $ JSONArray [JSONString "itasks-container", JSONString "itasks-horizontal"]]
 	// add "itasks-container" classes as this class always has to be present for containers
 	withContainerClassAttr attrs = 'Map'.alter (Just o addContainerClass) "class" attrs
 	where
