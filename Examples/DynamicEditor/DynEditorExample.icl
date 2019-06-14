@@ -61,6 +61,7 @@ where
   // | Init Ty TaskExpr
   | Watch String
   // | Change String
+  | Forever TaskExpr
 
 :: TaskFunc
   = ThenF TaskFunc TaskFunc
@@ -231,7 +232,7 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyHorizontalBoxedLayout
       ]
-  // Non-task functions:
+  // Task expressions and functions on shares
   , DynamicConsGroup "Shares"
       // [ functionConsDyn "Init" "initialise"
       //     ( dynamic \(Typed sharedTy) (Typed taskExpr) -> Typed (Init sharedTy taskExpr) ::
@@ -261,6 +262,15 @@ taskEditor = DynamicEditor
           )
           <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [ Just "message" ]
+      ]
+  , DynamicConsGroup "Special"
+      [ functionConsDyn "Forever" "repeat forever"
+          ( dynamic \(Typed taskExpr) -> Typed (Forever taskExpr) ::
+              A.a:
+              (Typed TaskExpr (Task a))
+              -> Typed TaskExpr (Task a)
+          )
+          <<@@@ applyVerticalBoxedLayout
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
@@ -411,6 +421,7 @@ evalTaskExpr (One button1 task1 button2 task2) = viewInformation "Make a choice"
   ]
 // evalTaskExpr (Init sharedTy task) = set ( sharedTy, [] ) globalValueShare >>| evalTaskExpr task
 evalTaskExpr (Watch msg) = viewSharedInformation msg [] globalValueShare @ (const VUnit)
+evalTaskExpr (Forever task) = forever (evalTaskExpr task)
 
 // evalTaskExpr (When task1 options) = evalTaskExpr task1
 //   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
