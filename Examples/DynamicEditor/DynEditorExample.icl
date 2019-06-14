@@ -60,7 +60,7 @@ where
 :: TaskFunc
   = ThenF TaskFunc TaskFunc
   | ViewF String Func
-  | UpdateF String
+  | UpdateF String Func
 
 :: Expr
   = Int Int
@@ -207,10 +207,11 @@ taskEditor = DynamicEditor
           <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [Just "message"]
       , functionConsDyn "UpdateF" "update"
-          ( dynamic \s -> Typed (UpdateF s) ::
-              A.a:
+          ( dynamic \s (Typed func) -> Typed (UpdateF s func) ::
+              A.a b:
               String
-              -> Typed TaskFunc (a -> Task a)
+              (Typed Func (a -> b))
+              -> Typed TaskFunc (a -> Task b)
           )
           <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [Just "message"]
@@ -393,19 +394,18 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
   (VTuple a b) ->
     ( viewInformation msg [] ()
-      ||- evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b
+      ||- (evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b)
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
 
-evalTaskFunc (UpdateF msg) val = case val of
+evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
   (VInt i) -> (updateInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (updateInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (updateInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
   (VTuple a b) ->
     ( viewInformation msg [] ()
-      ||- evalTaskFunc (UpdateF "") a
-      -&&- evalTaskFunc (UpdateF "") b
+      ||- (evalTaskFunc (UpdateF "" Identity) a -&&- evalTaskFunc (UpdateF "" Identity) b)
       @ \(a, b) -> VTuple a b
     )
       <<@ ApplyLayout arrangeHorizontal
