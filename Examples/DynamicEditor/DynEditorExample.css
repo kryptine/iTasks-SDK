@@ -1,9 +1,40 @@
-.typedTaskEditor {
-	padding: 0.2em;
-	margin: 0.4em;
-	align-self: flex-start;
+/*
+ * CSS additions and fixes for typed task editor.
+ */
+
+/* Make labels occupy less space */
+.itasks-label {
+	padding: 0em 1em 0em 0em;
+	width: auto;
 }
 
-.typedTaskEditorWithBorder {
-	border: 1px solid #ccc;
+/* Make containers have their natural sizes */
+.itasks-container {
+	align-self: auto;
+}
+
+/* Make generated labels flow on top */
+.itasks-container.itasks-form-item {
+	flex-direction: column;
+}
+
+/* Set base padding */
+.typedtasks-base {
+	padding: 0.2em 0.4em;
+}
+
+/* Center horizontal structures vertically */
+.typedtasks-horizontal {
+	align-items: center;
+	margin: 0.2em;
+}
+
+/* Indent vertical structures horizontally */
+.typedtasks-vertical {
+	margin: 0.8em 1.6em;
+}
+
+/* Add background boxes which get darker with nesting */
+.typedtasks-boxed {
+	background-color: hsla(0,0%,0%,5%);
 }

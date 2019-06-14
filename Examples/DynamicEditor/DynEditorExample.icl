@@ -125,14 +125,14 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a)) (Typed TaskFunc (a -> Task b))
               -> Typed TaskExpr (Task b)
           )
-          <<@@@ applyVerticalClasses
+          <<@@@ applyVerticalBoxedLayout
       , functionConsDyn "ThenF" "sequence"
           ( dynamic \(Typed taskFunc1) (Typed taskFunc2) -> Typed (ThenF taskFunc1 taskFunc2) ::
               A.a b c:
               (Typed TaskFunc (a -> Task b)) (Typed TaskFunc (b -> Task c))
               -> Typed TaskFunc (a -> Task c)
           )
-          <<@@@ applyVerticalClasses
+          <<@@@ applyVerticalBoxedLayout
       , functionConsDyn "Both" "both"
           ( dynamic \(Typed task1) (Typed task2) -> Typed (Both task1 task2) ::
               A.a b:
@@ -140,7 +140,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task b))
               -> Typed TaskExpr (Task (a, b))
           )
-          <<@@@ applyVerticalClasses
+          <<@@@ applyVerticalBoxedLayout
       , functionConsDyn "Any" "any of"
           ( dynamic \(Typed task1) (Typed task2) -> Typed (Any task1 task2) ::
               A.a b:
@@ -148,7 +148,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a))
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyVerticalClasses
+          <<@@@ applyVerticalBoxedLayout
       , functionConsDyn "One" "one of"
           ( dynamic \button1 (Typed task1) button2 (Typed task2) -> Typed (One button1 task1 button2 task2) ::
               A.a b:
@@ -158,7 +158,7 @@ taskEditor = DynamicEditor
               (Typed TaskExpr (Task a))
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyVerticalClasses
+          <<@@@ applyVerticalBoxedLayout
       // , functionConsDyn "When" "guarded sequence"
       //     ( dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
       //       // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
@@ -168,7 +168,7 @@ taskEditor = DynamicEditor
       //         // (Typed (List (Typed Func (a -> Bool), String, Typed TaskFunc (a -> Task a))) (a -> Task b))
       //         -> Typed TaskExpr (Task b)
       //     )
-      //     <<@@@ applyHorizontalClasses
+      //     <<@@@ applyHorizontalBoxedLayout
       // , listConsDyn "List TaskContExpr" "continuations"
       //     ( dynamic \typedSteps -> Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
       //         A.a b:
@@ -195,7 +195,7 @@ taskEditor = DynamicEditor
               String
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
           <<@@@ AddLabels [Nothing, Just "message"]
       , functionConsDyn "ViewF" "view"
           ( dynamic \s (Typed func) -> Typed (ViewF s func) ::
@@ -204,14 +204,14 @@ taskEditor = DynamicEditor
               (Typed Func (a -> b))
               -> Typed TaskFunc (a -> Task b)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "UpdateF" "update"
           ( dynamic \s -> Typed (UpdateF s) ::
               A.a:
               String
               -> Typed TaskFunc (a -> Task a)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       ]
     , DynamicConsGroup "Special"
       [ functionConsDyn "Done" "done"
@@ -220,13 +220,13 @@ taskEditor = DynamicEditor
               (Typed Expr a)
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       ]
   // Non-task functions:
   , DynamicConsGroup "Basics"
       [ functionConsDyn "Identity" "this value"
           (dynamic Typed Identity :: A.a: Typed Func (a -> a))
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Apply" "apply"
           ( dynamic \(Typed func) (Typed expr) ->
             Typed (Apply func expr) ::
@@ -235,92 +235,92 @@ taskEditor = DynamicEditor
               (Typed Expr a)
               -> Typed Expr b
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Fst" "fst"
           (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Snd" "snd"
           (dynamic Typed Snd :: A.a b: Typed Func ((a, b) -> b))
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       ]
   , DynamicConsGroup "Arithmetic"
       [ functionConsDyn "Add" "add"
           (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Sub" "sub"
           (dynamic \(Typed i) -> Typed (Sub i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Mul" "mul"
           (dynamic \(Typed i) -> Typed (Mul i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Div" "div"
           (dynamic \(Typed i) -> Typed (Div i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       ]
   , DynamicConsGroup "Logic"
       [ functionConsDyn "Conj" "and"
           (dynamic \(Typed b) -> Typed (Conj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Disj" "or"
           (dynamic \(Typed b) -> Typed (Disj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Not" "not"
           (dynamic Typed Not :: Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       ]
   , DynamicConsGroup "Comparison"
       [ functionConsDyn "Gt" "greater than"
           (dynamic \(Typed i) -> Typed (Gt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Ge" "greater or equal"
           (dynamic \(Typed i) -> Typed (Ge i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Eq" "equal to"
           (dynamic \(Typed i) -> Typed (Eq i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Le" "lesser than"
           (dynamic \(Typed i) -> Typed (Le i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       , functionConsDyn "Lt" "lesser than"
           (dynamic \(Typed i) -> Typed (Lt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       ]
   // Non-task expressions:
   , DynamicConsGroup "Values"
       [ functionConsDyn "Int" "the integer"
           (dynamic \i -> Typed (Int i) :: Int -> Typed Expr Int)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Bool" "the boolean"
           (dynamic \b -> Typed (Bool b) :: Bool -> Typed Expr Bool)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "String" "the string"
           (dynamic \s -> Typed (String s) :: String -> Typed Expr String)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Tuple" "the tuple"
           ( dynamic \(Typed a) (Typed b) ->
             Typed (Tuple a b) ::
               A.a b:
                 (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
     ]
   // Types
   , DynamicConsGroup "Types"
       [ functionConsDyn "Ty.Int" "Int"
           (dynamic Typed (Ty VInt) :: Typed Ty Int)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.Bool" "Bool"
           (dynamic Typed (Ty VBool) :: Typed Ty Bool)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
-          <<@@@ applyHorizontalClassesNoBorder
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.Tuple" "Tuple"
           ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VTuple (toValue1 x) (toValue2 y)) ::
               A.a b:
               (Typed Ty a) (Typed Ty b) -> Typed Ty (a, b)
           )
-          <<@@@ applyHorizontalClasses
+          <<@@@ applyHorizontalBoxedLayout
       ]
   // Internal helper editors
   , DynamicConsGroup "Helpers"
@@ -339,9 +339,15 @@ where
   stringEditor :: Editor String
   stringEditor = gEditor{|*|}
 
-  applyHorizontalClasses         = ApplyCssClasses ["typedTaskEditor", "itasks-horizontal", "itasks-wrap-width", "itasks-wrap-height", "typedTaskEditorWithBorder"]
-  applyHorizontalClassesNoBorder = ApplyCssClasses ["typedTaskEditor", "itasks-horizontal", "itasks-wrap-width", "itasks-wrap-height"]
-  applyVerticalClasses           = ApplyCssClasses ["typedTaskEditor", "itasks-vertical", "itasks-wrap-width", "itasks-wrap-height", "typedTaskEditorWithBorder"]
+  basicClasses = [ "typedtasks-base", "itasks-wrap-width", "itasks-wrap-height" ]
+  horizontalClasses = [ "typedtasks-horizontal", "itasks-horizontal" ]
+  verticalClasses = [ "typedtasks-vertical", "itasks-vertical" ]
+  boxedClasses = [ "typedtasks-boxed" ]
+
+  applyHorizontalBoxedLayout = ApplyCssClasses $ basicClasses ++ horizontalClasses ++ boxedClasses
+  applyVerticalBoxedLayout = ApplyCssClasses $ basicClasses ++ verticalClasses ++ boxedClasses
+  applyHorizontalLayout = ApplyCssClasses $ basicClasses ++ horizontalClasses
+  applyVerticalLayout = ApplyCssClasses $ basicClasses ++ verticalClasses
 
 
 // Evaluation //////////////////////////////////////////////////////////////////
