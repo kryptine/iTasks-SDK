@@ -35,7 +35,7 @@ const ABC={
 	code_offset: undefined,
 
 	stack_size: (512<<10)*2,
-	hp_size: 2<<22,
+	hp_size: 8<<20,
 
 	util: undefined,
 	interpreter: undefined,
@@ -66,7 +66,7 @@ const ABC={
 		// finalizers and/or when WebAssembly has GC access.
 		while (free_words < needed_words) {
 			console.warn('gc from js');
-			ABC.util.instance.exports.gc();
+			ABC.util.instance.exports.gc(ABC.interpreter.instance.exports.get_asp());
 
 			var new_free_words=ABC.interpreter.instance.exports.get_hp_free();
 			if (new_free_words<=free_words)
@@ -418,7 +418,6 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 				delete ABC.active_js;
 			},
 
-			get_asp: () => ABC.interpreter.instance.exports.get_asp(),
 			set_hp: hp => ABC.interpreter.instance.exports.set_hp(hp),
 			set_hp_free: free => ABC.interpreter.instance.exports.set_hp_free(free),
 
