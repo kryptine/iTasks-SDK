@@ -559,8 +559,8 @@ where
 				_                         =
 					Error $
 						concat
-							[ "\"", toString (argOf $ typeCodeOfDynamic cons), "\" and \""
-							, toString (typeCodeOfDynamic nextArg), "\" cannot be unified."
+							[ "Could not unify\n    ", toString (argOf $ typeCodeOfDynamic cons), "\nwith\n    "
+							, toString (typeCodeOfDynamic nextArg)
 							]
 
 		childValueOf :: !(!EditState, !E) -> Maybe Dynamic

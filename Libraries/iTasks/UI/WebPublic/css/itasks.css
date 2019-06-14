@@ -272,7 +272,7 @@ div.itasks-exception {
   padding: 8px 10px;
   font-size: 12px;
   line-height: 12px;
-  white-space: nowrap;
+  white-space: pre;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
 }
 *.itasks-viewport [data-tooltip]:before {
