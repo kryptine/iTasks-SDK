@@ -1,0 +1,9 @@
+.typedTaskEditor {
+	padding: 0.2em;
+	margin: 0.4em;
+	align-self: flex-start;
+}
+
+.typedTaskEditorWithBorder {
+	border: 1px solid #ccc;
+}
