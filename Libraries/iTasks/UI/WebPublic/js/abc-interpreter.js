@@ -327,9 +327,30 @@ const ABC={
 		return result;
 	},
 
-	get_clean_string: function (hp_ptr) {
-		var size=ABC.memory_array[hp_ptr/4+2];
-		var string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16, size);
+	get_clean_string: function (hp_ptr, string_may_be_discarded) {
+		const size=ABC.memory_array[hp_ptr/4+2];
+
+		if (string_may_be_discarded) {
+			// Try to clean up the Clean heap by discarding the string sent to JS.
+			const hp=ABC.interpreter.instance.exports.get_hp();
+			const string_bytes=16+(((size+7)>>3)<<3);
+			if (hp_ptr+string_bytes==hp) {
+				// The string is at the end of the heap. Simply move the heap pointer back.
+				ABC.interpreter.instance.exports.set_hp(hp_ptr);
+				ABC.interpreter.instance.exports.set_hp_free(ABC.interpreter.instance.exports.get_hp_free()+string_bytes/8);
+			} else {
+				const asp=ABC.interpreter.instance.exports.get_asp();
+				if (hp_ptr+string_bytes+24==hp && ABC.memory_array[asp/4-2]==hp-24) {
+					ABC.memory_array[asp/4-2]=hp_ptr;
+					ABC.interpreter.instance.exports.set_hp(hp_ptr+24);
+					ABC.interpreter.instance.exports.set_hp_free(ABC.interpreter.instance.exports.get_hp_free()+string_bytes/8);
+				} else if (ABC_DEBUG) {
+					console.warn('get_clean_string: could not clean up heap:',hp_ptr,hp,string_bytes);
+				}
+			}
+		}
+
+		const string_buffer=new Uint8Array(ABC.memory.buffer, hp_ptr+16, size);
 		if (typeof TextDecoder!='undefined') {
 			return new TextDecoder('x-user-defined').decode(string_buffer);
 		} else {
@@ -455,8 +476,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 						case 0: /* evaluation finished */
 							return 0;
 						case 1: /* iTasks.UI.JS.Interface: set_js */
-							var v=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							var x=ABC.get_clean_string(ABC.memory_array[asp/4-2]);
+							var v=ABC.get_clean_string(ABC.memory_array[asp/4], true);
+							var x=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
 							if (ABC_DEBUG)
 								console.log(v,'.=',x);
 							try {
@@ -470,13 +491,13 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							Function(v+'='+x)();
 							break;
 						case 2: /* iTasks.UI.JS.Interface: eval_js */
-							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
+							var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							Function(string)();
 							break;
 						case 3: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
-							var string=ABC.get_clean_string(ABC.memory_array[asp/4]);
+							var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
 							if (ABC_DEBUG)
 								console.log('eval',string);
 							var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
@@ -512,7 +533,7 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							ABC.initialized=true;
 							break;
 						case 10: /* iTasks.UI.JS.Interface: add CSS */
-							var url=ABC.get_clean_string(ABC.memory_array[asp/4]);
+							var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
 							var css=document.createElement('link');
 							css.rel='stylesheet';
 							css.type='text/css';
@@ -521,8 +542,8 @@ ABC.loading_promise=fetch('js/app.pbc').then(function(resp){
 							document.head.appendChild(css);
 							break;
 						case 11: /* iTasks.UI.JS.Interface: add JS */
-							var url=ABC.get_clean_string(ABC.memory_array[asp/4]);
-							var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2]);
+							var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
+							var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
 							var js=document.createElement('script');
 							js.type='text/javascript';
 							js.async=false;
