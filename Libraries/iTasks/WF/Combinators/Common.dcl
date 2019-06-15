@@ -191,7 +191,7 @@ foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 * @param Predicate: The predicate that has to hold
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type !(a -> Task a) (a -> Bool) -> Task a | iTask a
+* @type (a -> Bool) !(a -> Task a) -> Task a | iTask a
 */
 foreverIf pred task :== foreverStIf pred gDefault{|*|} \_->task
 
@@ -201,7 +201,7 @@ foreverIf pred task :== foreverStIf pred gDefault{|*|} \_->task
 * @param State: The initial state
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type !(a -> Task a) a -> Task a | iTask a
+* @type a !(a -> Task a) -> Task a | iTask a
 */
 foreverSt initialState task :== foreverStIf (\_->True) initialState task
 
