@@ -2,6 +2,7 @@
  * CSS additions and fixes for typed task editor.
  */
 
+
 /* Make labels occupy less space */
 .itasks-label {
 	padding: 0em 1em 0em 0em;
@@ -13,24 +14,22 @@
 	align-self: auto;
 }
 
-/* Make generated labels flow on top 
+/* Make generated labels flow on top */
 .itasks-container.itasks-form-item {
 	flex-direction: column;
 }
-*/
 
 /* Set base padding and indent vertical structures horizontally */
 .typedtasks-base {
 	flex: 0 0 auto;
 	padding: 0.2em 0.4em;
-	margin: 0.8em 1.6em;
+	margin: 0.2em 1.6em;
 }
 
 /* Center horizontal structures vertically */
 .typedtasks-horizontal {
 	flex-direction: row;
 	align-items: center;
-	margin: 0.2em;
 }
 
 .typedtasks-vertical {
