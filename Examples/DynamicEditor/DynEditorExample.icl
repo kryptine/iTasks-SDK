@@ -527,4 +527,4 @@ instance toString Value where
     VInt i -> toString i
     VBool b -> toString b
     VString s -> toString s
-    VTuple x y -> "( " +++ toString x +++ ", " +++ toString y +++ ")"
+    VTuple x y -> "( " +++ toString x +++ ", " +++ toString y +++ " )"
