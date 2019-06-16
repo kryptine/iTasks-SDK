@@ -75,7 +75,7 @@ where
   = Int Int
   | Bool Bool
   | String String
-  | Tuple Expr Expr
+  | Pair Expr Expr
   | Apply Func Expr
 
 :: Func
@@ -100,7 +100,7 @@ where
   | VInt Int
   | VBool Bool
   | VString String
-  | VTuple Value Value
+  | VPair Value Value
 
 :: Ty
   = E.a: Ty (a -> Value) & iTask a
@@ -347,9 +347,9 @@ taskEditor = DynamicEditor
       , functionConsDyn "String" "the string"
           (dynamic \s -> Typed (String s) :: String -> Typed Expr String)
           <<@@@ applyHorizontalLayout
-      , functionConsDyn "Tuple" "the tuple"
+      , functionConsDyn "Pair" "the pair"
           ( dynamic \(Typed a) (Typed b) ->
-            Typed (Tuple a b) ::
+            Typed (Pair a b) ::
               A.a b:
                 (Typed Expr a) (Typed Expr b) -> Typed Expr (a, b)
           )
@@ -358,17 +358,17 @@ taskEditor = DynamicEditor
     ]
   // Types
   , DynamicConsGroup "Types"
-      [ functionConsDyn "Ty.Int" "Int"
+      [ functionConsDyn "Ty.Int" "Integer"
           (dynamic Typed (Ty VInt) :: Typed Ty Int)
           <<@@@ applyHorizontalLayout
-      , functionConsDyn "Ty.Bool" "Bool"
+      , functionConsDyn "Ty.Bool" "Boolean"
           (dynamic Typed (Ty VBool) :: Typed Ty Bool)
           <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
           <<@@@ applyHorizontalLayout
-      , functionConsDyn "Ty.Tuple" "Tuple"
-          ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VTuple (toValue1 x) (toValue2 y)) ::
+      , functionConsDyn "Ty.Pair" "Pair"
+          ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VPair (toValue1 x) (toValue2 y)) ::
               A.a b:
               (Typed Ty a) (Typed Ty b) -> Typed Ty (a, b)
           )
@@ -413,7 +413,7 @@ evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 evalTaskExpr (EnterInfo (Ty toValue) msg) = enterInformation msg [] @ toValue
 evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
-evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VTuple a b
+evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VPair a b
 evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
 evalTaskExpr (One button1 task1 button2 task2) = viewInformation "Make a choice" [] () >?>
   [ ( button1, const True, \_ -> evalTaskExpr task1 )
@@ -446,10 +446,10 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (viewInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
-  (VTuple a b) ->
+  (VPair a b) ->
     ( viewInformation msg [] ()
       ||- (evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b)
-      @ \(a, b) -> VTuple a b
+      @ \(a, b) -> VPair a b
     )
       <<@ ApplyLayout arrangeHorizontal
 
@@ -457,10 +457,10 @@ evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
   (VInt i) -> (updateInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (updateInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (updateInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
-  (VTuple a b) ->
+  (VPair a b) ->
     ( viewInformation msg [] ()
       ||- (evalTaskFunc (UpdateF "" Identity) a -&&- evalTaskFunc (UpdateF "" Identity) b)
-      @ \(a, b) -> VTuple a b
+      @ \(a, b) -> VPair a b
     )
       <<@ ApplyLayout arrangeHorizontal
 
@@ -477,7 +477,7 @@ evalExpr :: Expr -> Value
 evalExpr (Int i) = VInt i
 evalExpr (Bool b) = VBool b
 evalExpr (String s) = VString s
-evalExpr (Tuple fstExpr sndExpr) = VTuple (evalExpr fstExpr) (evalExpr sndExpr)
+evalExpr (Pair fstExpr sndExpr) = VPair (evalExpr fstExpr) (evalExpr sndExpr)
 evalExpr (Apply func expr) = evalFunc (evalExpr expr) func
 
 
@@ -516,7 +516,7 @@ where
   evalString expr = case evalExpr expr of
     (VString s) -> s
 
-evalFunc (VTuple x1 x2) func = case func of
+evalFunc (VPair x1 x2) func = case func of
   Fst -> x1
   Snd -> x2
 
@@ -527,4 +527,4 @@ instance toString Value where
     VInt i -> toString i
     VBool b -> toString b
     VString s -> toString s
-    VTuple x y -> "( " +++ toString x +++ ", " +++ toString y +++ " )"
+    VPair x y -> "( " +++ toString x +++ ", " +++ toString y +++ " )"
