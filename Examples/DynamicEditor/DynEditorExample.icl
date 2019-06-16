@@ -4,6 +4,7 @@ import StdEnv
 import Data.Func
 import Data.Functor
 import iTasks
+import iTasks.Extensions.DateTime
 import iTasks.Extensions.Editors.DynamicEditor
 
 
@@ -75,6 +76,7 @@ where
   = Int Int
   | Bool Bool
   | String String
+  | Date Date
   | Pair Expr Expr
   | Apply Func Expr
 
@@ -100,6 +102,7 @@ where
   | VInt Int
   | VBool Bool
   | VString String
+  | VDate Date
   | VPair Value Value
 
 :: Ty
@@ -347,6 +350,9 @@ taskEditor = DynamicEditor
       , functionConsDyn "String" "the string"
           (dynamic \s -> Typed (String s) :: String -> Typed Expr String)
           <<@@@ applyHorizontalLayout
+      , functionConsDyn "Date" "the date"
+          (dynamic \d -> Typed (Date d) :: Date -> Typed Expr Date)
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Pair" "the pair"
           ( dynamic \(Typed a) (Typed b) ->
             Typed (Pair a b) ::
@@ -367,6 +373,9 @@ taskEditor = DynamicEditor
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
           <<@@@ applyHorizontalLayout
+      , functionConsDyn "Ty.Date" "Date"
+          (dynamic Typed (Ty VDate) :: Typed Ty Date)
+          <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.Pair" "Pair"
           ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VPair (toValue1 x) (toValue2 y)) ::
               A.a b:
@@ -379,6 +388,7 @@ taskEditor = DynamicEditor
     [ customEditorCons "int" "(enter integer)" intEditor <<@@@ HideIfOnlyChoice
     , customEditorCons "bool" "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
     , customEditorCons "string" "(enter string )" stringEditor <<@@@ HideIfOnlyChoice
+    , customEditorCons "date" "(enter date )" dateEditor <<@@@ HideIfOnlyChoice
     ]
   ]
 where
@@ -390,6 +400,9 @@ where
 
   stringEditor :: Editor String
   stringEditor = gEditor{|*|}
+
+  dateEditor :: Editor Date
+  dateEditor = gEditor{|*|}
 
   basicClasses = [ "typedtasks-base" ]
   horizontalClasses = [ "typedtasks-horizontal" ]
@@ -446,6 +459,7 @@ evalTaskFunc (ViewF msg func) val = case evalFunc val func of
   (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (viewInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
+  (VDate s) -> (viewInformation msg [] s @ VDate) <<@ ApplyLayout arrangeHorizontal
   (VPair a b) ->
     ( viewInformation msg [] ()
       ||- (evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b)
@@ -457,6 +471,7 @@ evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
   (VInt i) -> (updateInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
   (VBool b) -> (updateInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
   (VString s) -> (updateInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
+  (VDate s) -> (updateInformation msg [] s @ VDate) <<@ ApplyLayout arrangeHorizontal
   (VPair a b) ->
     ( viewInformation msg [] ()
       ||- (evalTaskFunc (UpdateF "" Identity) a -&&- evalTaskFunc (UpdateF "" Identity) b)
@@ -477,6 +492,7 @@ evalExpr :: Expr -> Value
 evalExpr (Int i) = VInt i
 evalExpr (Bool b) = VBool b
 evalExpr (String s) = VString s
+evalExpr (Date d) = VDate d
 evalExpr (Pair fstExpr sndExpr) = VPair (evalExpr fstExpr) (evalExpr sndExpr)
 evalExpr (Apply func expr) = evalFunc (evalExpr expr) func
 
@@ -516,6 +532,18 @@ where
   evalString expr = case evalExpr expr of
     (VString s) -> s
 
+evalFunc (VDate d1) func = case func of
+  (Eq expr) -> VBool $ d1 == evalDate expr
+  (Gt expr) -> VBool $ d1 > evalDate expr
+  (Ge expr) -> VBool $ d1 >= evalDate expr
+  (Eq expr) -> VBool $ d1 == evalDate expr
+  (Le expr) -> VBool $ d1 <= evalDate expr
+  (Lt expr) -> VBool $ d1 < evalDate expr
+where
+  evalDate :: Expr -> Date
+  evalDate expr = case evalExpr expr of
+    (VDate d) -> d
+
 evalFunc (VPair x1 x2) func = case func of
   Fst -> x1
   Snd -> x2
@@ -527,4 +555,5 @@ instance toString Value where
     VInt i -> toString i
     VBool b -> toString b
     VString s -> toString s
+    VDate d -> toString d
     VPair x y -> "( " +++ toString x +++ ", " +++ toString y +++ " )"
