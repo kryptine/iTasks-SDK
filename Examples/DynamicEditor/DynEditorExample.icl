@@ -31,7 +31,7 @@ editTaskExpr mv =
   enterOrUpdateExpr ("Contruct a task", info1) mv >?>
     [ ( "Run", const True, \v ->
           viewInformation ("Evaluate the task", info2) [] ()
-            ||- (set [] globalValueShare >>| evalTaskExpr (toValue taskEditor v)) >>*
+            ||- evalTaskExpr (toValue taskEditor v) >>*
         [ OnAction (Action "Back") (always (editTaskExpr (Just v)))
         , OnAction (Action "Finish") (ifValue (const True) (\r -> viewInformation ("Done!", info3) [] (toString r) >?>
             [ ( "Back", const True, \_ -> editTaskExpr (Just v) ) ]
@@ -55,54 +55,19 @@ where
 
 :: TaskExpr
   = Done Expr
-  | EnterInfo Ty String
-  | Then TaskExpr TaskFunc
-  | Both TaskExpr TaskExpr
-  | Any TaskExpr TaskExpr
-  | One Button TaskExpr Button TaskExpr
-  // | Init Ty TaskExpr
-  | Watch String
-  // | Change String
-  | Forever TaskExpr
-
-:: TaskFunc
-  = ThenF TaskFunc TaskFunc
-  | ViewF String Func
-  | UpdateF String Func
-  | StoreF
-  | WatchF String
+  // | E.a: Bind TaskExpr (a -> TaskExpr)
 
 :: Expr
   = Int Int
   | Bool Bool
   | String String
-  | Date Date
   | Pair Expr Expr
-  | Apply Func Expr
-
-:: Func
-  = Identity
-  | Conj Expr
-  | Disj Expr
-  | Not
-  | Gt Expr
-  | Ge Expr
-  | Eq Expr
-  | Le Expr
-  | Lt Expr
-  | Add Expr
-  | Sub Expr
-  | Mul Expr
-  | Div Expr
-  | Fst
-  | Snd
 
 :: Value
   = VUnit
   | VInt Int
   | VBool Bool
   | VString String
-  | VDate Date
   | VPair Value Value
 
 :: Ty
@@ -111,7 +76,7 @@ where
 :: Typed a b
   =: Typed a
 
-derive class iTask TaskExpr, TaskFunc, Expr, Func, Value, Typed
+derive class iTask TaskExpr, Expr, Value, Typed
 
 // These instances cannot be auto derived because of the existential quantifier.
 // However, they will be never used, so we make them undefined.
@@ -131,212 +96,20 @@ taskEditor = DynamicEditor
     DynamicCons
       $ functionConsDyn "TaskExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskExpr a) -> TaskExpr)
       <<@@@ HideIfOnlyChoice
-  , DynamicConsGroup "Combinators"
-      [ functionConsDyn "Then" "sequence"
-          ( dynamic \(Typed task) (Typed taskFunc) -> Typed (Then task taskFunc) ::
-              A.a b:
-              (Typed TaskExpr (Task a)) (Typed TaskFunc (a -> Task b))
-              -> Typed TaskExpr (Task b)
-          )
-          <<@@@ applyVerticalBoxedLayout
-      , functionConsDyn "ThenF" "sequence"
-          ( dynamic \(Typed taskFunc1) (Typed taskFunc2) -> Typed (ThenF taskFunc1 taskFunc2) ::
-              A.a b c:
-              (Typed TaskFunc (a -> Task b)) (Typed TaskFunc (b -> Task c))
-              -> Typed TaskFunc (a -> Task c)
-          )
-          <<@@@ applyVerticalBoxedLayout
-      , functionConsDyn "Both" "both"
-          ( dynamic \(Typed task1) (Typed task2) -> Typed (Both task1 task2) ::
-              A.a b:
-              (Typed TaskExpr (Task a))
-              (Typed TaskExpr (Task b))
-              -> Typed TaskExpr (Task (a, b))
-          )
-          <<@@@ applyVerticalBoxedLayout
-      , functionConsDyn "Any" "any of"
-          ( dynamic \(Typed task1) (Typed task2) -> Typed (Any task1 task2) ::
-              A.a b:
-              (Typed TaskExpr (Task a))
-              (Typed TaskExpr (Task a))
-              -> Typed TaskExpr (Task a)
-          )
-          <<@@@ applyVerticalBoxedLayout
-      , functionConsDyn "One" "one of"
-          ( dynamic \button1 (Typed task1) button2 (Typed task2) -> Typed (One button1 task1 button2 task2) ::
-              A.a b:
-              String
-              (Typed TaskExpr (Task a))
-              String
-              (Typed TaskExpr (Task a))
-              -> Typed TaskExpr (Task a)
-          )
-          <<@@@ applyVerticalBoxedLayout
-      , functionConsDyn "Forever" "forever"
-          ( dynamic \(Typed taskExpr) -> Typed (Forever taskExpr) ::
-              A.a:
-              (Typed TaskExpr (Task a))
-              -> Typed TaskExpr (Task a)
-          )
-          <<@@@ applyVerticalBoxedLayout
-      ]
-      // , functionConsDyn "When" "guarded sequence"
-      //     ( dynamic \(Typed task1) (Typed steps) -> Typed (When task1 steps) ::
-      //       // Typed (When task1 [(expr, pred, tfExpr) \\ (Typed expr, pred, Typed tfExpr) <- steps]) ::
-      //         A.a b:
-      //         (Typed TaskExpr (Task a))
-      //         (Typed (List TaskContExpr) (a -> Task b))
-      //         // (Typed (List (Typed Func (a -> Bool), String, Typed TaskFunc (a -> Task a))) (a -> Task b))
-      //         -> Typed TaskExpr (Task b)
-      //     )
-      //     <<@@@ applyHorizontalBoxedLayout
-      // , listConsDyn "List TaskContExpr" "continuations"
-      //     ( dynamic \typedSteps -> Typed ((\(Typed expr) -> expr) <$> typedSteps) ::
-      //         A.a b:
-      //         (List (Typed TaskContExpr (a -> Task b)))
-      //         -> Typed (List TaskContExpr) (a -> Task b)
-      //     )
-      //     <<@@@ HideIfOnlyChoice
-      // , functionConsDyn "TaskContExpr" "continuation"
-      //     ( dynamic \s (Typed func) (Typed taskFunc) -> Typed {name = s, pred = func, cont = taskFunc} ::
-      //         A.a b:
-      //         String
-      //         (Typed Func a)
-      //         (Typed TaskFunc (a -> Task b))
-      //         -> Typed TaskContExpr (a -> Task b)
-      //     )
-      //     <<@@@ HideIfOnlyChoice
-      //     <<@@@ AddLabels [Just "name", Just "predicate", Just "continuation"]
-      // ]
-  , DynamicConsGroup "Editors"
-      [ functionConsDyn "Enter" "enter"
-          ( dynamic \(Typed ty) s -> Typed (EnterInfo ty s) ::
-              A.a:
-              (Typed Ty a)
-              String
-              -> Typed TaskExpr (Task a)
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [Nothing, Just "message"]
-      , functionConsDyn "ViewF" "view"
-          ( dynamic \s (Typed func) -> Typed (ViewF s func) ::
-              A.a b:
-              String
-              (Typed Func (a -> b))
-              -> Typed TaskFunc (a -> Task b)
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [Just "message"]
-      , functionConsDyn "UpdateF" "update"
-          ( dynamic \s (Typed func) -> Typed (UpdateF s func) ::
-              A.a b:
-              String
-              (Typed Func (a -> b))
-              -> Typed TaskFunc (a -> Task b)
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [ Just "message" ]
-      , functionConsDyn "Done" "done"
+  , DynamicConsGroup "Basics"
+  //     [ functionConsDyn "Bind" "sequence"
+  //         ( dynamic \(Typed task) (Typed taskFunc) -> Typed (Bind task taskFunc) ::
+  //             A.a b:
+  //             (Typed TaskExpr (Task a)) (Typed TaskFunc (a -> Task b))
+  //             -> Typed TaskExpr (Task b)
+  //         )
+  //         <<@@@ applyVerticalBoxedLayout
+      [ functionConsDyn "Done" "done"
           ( dynamic \(Typed expr) -> Typed (Done expr) ::
               A.a:
               (Typed Expr a)
               -> Typed TaskExpr (Task a)
           )
-          <<@@@ applyHorizontalBoxedLayout
-      ]
-  // Task expressions and functions on shares
-  , DynamicConsGroup "Shares"
-      // [ functionConsDyn "Init" "initialise"
-      //     ( dynamic \(Typed sharedTy) (Typed taskExpr) -> Typed (Init sharedTy taskExpr) ::
-      //         A.s a:
-      //         (Typed Ty s)
-      //         (Typed TaskExpr (Task a))
-      //         -> Typed TaskExpr (Task a)
-      //     )
-      //     <<@@@ applyVerticalBoxedLayout
-      [ functionConsDyn "StoreF" "store"
-          (dynamic Typed StoreF :: Typed TaskFunc (Int -> Task ()))
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [ Just "message" ]
-      , functionConsDyn "Watch" "watch"
-          ( dynamic \msg -> Typed (Watch msg) ::
-              A.a:
-              String
-              -> Typed TaskExpr (Task ())
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [ Just "message" ]
-      , functionConsDyn "WatchF" "watch"
-          ( dynamic \msg -> Typed (WatchF msg) ::
-              A.a:
-              String
-              -> Typed TaskFunc (a -> Task ())
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [ Just "message" ]
-      ]
-  // Non-task functions:
-  , DynamicConsGroup "Basics"
-      [ functionConsDyn "Identity" "this value"
-          (dynamic Typed Identity :: A.a: Typed Func (a -> a))
-          <<@@@ applyHorizontalLayout
-      , functionConsDyn "Apply" "apply"
-          ( dynamic \(Typed func) (Typed expr) ->
-            Typed (Apply func expr) ::
-              A.a b:
-              (Typed Func (a -> b))
-              (Typed Expr a)
-              -> Typed Expr b
-          )
-          <<@@@ applyHorizontalBoxedLayout
-          <<@@@ AddLabels [ Just "the function", Just "to" ]
-      , functionConsDyn "Fst" "first element"
-          (dynamic Typed Fst :: A.a b: Typed Func ((a, b) -> a))
-          <<@@@ applyHorizontalLayout
-      , functionConsDyn "Snd" "second element"
-          (dynamic Typed Snd :: A.a b: Typed Func ((a, b) -> b))
-          <<@@@ applyHorizontalLayout
-      ]
-  , DynamicConsGroup "Arithmetic"
-      [ functionConsDyn "Add" "add"
-          (dynamic \(Typed i) -> Typed (Add i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Sub" "subtract"
-          (dynamic \(Typed i) -> Typed (Sub i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Mul" "multiply with"
-          (dynamic \(Typed i) -> Typed (Mul i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Div" "divide by"
-          (dynamic \(Typed i) -> Typed (Div i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      ]
-  , DynamicConsGroup "Logic"
-      [ functionConsDyn "Conj" "and"
-          (dynamic \(Typed b) -> Typed (Conj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Disj" "or"
-          (dynamic \(Typed b) -> Typed (Disj b) :: (Typed Expr Bool) -> Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Not" "negate"
-          (dynamic Typed Not :: Typed Func (Bool -> Bool))
-          <<@@@ applyHorizontalLayout
-      ]
-  , DynamicConsGroup "Comparison"
-      [ functionConsDyn "Gt" "is greater than"
-          (dynamic \(Typed i) -> Typed (Gt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Ge" "is greater or equal"
-          (dynamic \(Typed i) -> Typed (Ge i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Eq" "is equal to"
-          (dynamic \(Typed i) -> Typed (Eq i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Le" "is lesser than"
-          (dynamic \(Typed i) -> Typed (Le i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
-          <<@@@ applyHorizontalBoxedLayout
-      , functionConsDyn "Lt" "is lesser than"
-          (dynamic \(Typed i) -> Typed (Lt i) :: (Typed Expr Int) -> Typed Func (Int -> Int))
           <<@@@ applyHorizontalBoxedLayout
       ]
   // Non-task expressions:
@@ -349,9 +122,6 @@ taskEditor = DynamicEditor
           <<@@@ applyHorizontalLayout
       , functionConsDyn "String" "the string"
           (dynamic \s -> Typed (String s) :: String -> Typed Expr String)
-          <<@@@ applyHorizontalLayout
-      , functionConsDyn "Date" "the date"
-          (dynamic \d -> Typed (Date d) :: Date -> Typed Expr Date)
           <<@@@ applyHorizontalLayout
       , functionConsDyn "Pair" "the pair"
           ( dynamic \(Typed a) (Typed b) ->
@@ -373,9 +143,6 @@ taskEditor = DynamicEditor
       , functionConsDyn "Ty.String" "String"
           (dynamic Typed (Ty VString) :: Typed Ty String)
           <<@@@ applyHorizontalLayout
-      , functionConsDyn "Ty.Date" "Date"
-          (dynamic Typed (Ty VDate) :: Typed Ty Date)
-          <<@@@ applyHorizontalLayout
       , functionConsDyn "Ty.Pair" "Pair"
           ( dynamic \(Typed (Ty toValue1)) (Typed (Ty toValue2)) -> Typed (Ty \(x, y) -> VPair (toValue1 x) (toValue2 y)) ::
               A.a b:
@@ -388,7 +155,6 @@ taskEditor = DynamicEditor
     [ customEditorCons "int" "(enter integer)" intEditor <<@@@ HideIfOnlyChoice
     , customEditorCons "bool" "(enter boolean)" boolEditor <<@@@ HideIfOnlyChoice
     , customEditorCons "string" "(enter string )" stringEditor <<@@@ HideIfOnlyChoice
-    , customEditorCons "date" "(enter date )" dateEditor <<@@@ HideIfOnlyChoice
     ]
   ]
 where
@@ -400,9 +166,6 @@ where
 
   stringEditor :: Editor String
   stringEditor = gEditor{|*|}
-
-  dateEditor :: Editor Date
-  dateEditor = gEditor{|*|}
 
   basicClasses = [ "typedtasks-base" ]
   horizontalClasses = [ "typedtasks-horizontal" ]
@@ -417,136 +180,17 @@ where
 
 // Evaluation //////////////////////////////////////////////////////////////////
 
-// globalValueShare :: SimpleSDSLens ( Ty, List Value )
-// globalValueShare = sharedStore "global share for typed task editor" ( abort "Global share not initialised", [] )
-globalValueShare :: SimpleSDSLens (List Int)
-globalValueShare = sharedStore "global share for typed task editor" []
-
 evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
-evalTaskExpr (EnterInfo (Ty toValue) msg) = enterInformation msg [] @ toValue
-evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
-evalTaskExpr (Both task1 task2) = (evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VPair a b
-evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
-evalTaskExpr (One button1 task1 button2 task2) = viewInformation "Make a choice" [] () >?>
-  [ ( button1, const True, \_ -> evalTaskExpr task1 )
-  , ( button2, const True, \_ -> evalTaskExpr task2 )
-  ]
-// evalTaskExpr (Init sharedTy task) = set ( sharedTy, [] ) globalValueShare >>| evalTaskExpr task
-evalTaskExpr (Watch msg) = viewSharedInformation msg [] globalValueShare @ (const VUnit)
-evalTaskExpr (Forever task) = forever (evalTaskExpr task)
-
-// evalTaskExpr (When task1 options) = evalTaskExpr task1
-//   >>* [ OnAction (Action name) (ifValue (test pred) (evalTaskFunc cont))
-//       \\ {name, pred, cont} <- options
-//       ]
-// where
-//   test pred (VInt i) = case pred of
-//     Lt (VInt j) -> i < j
-//     Gt (VInt j) -> i > j
-//     Eq (VInt j) -> i == j
-//   test pred (VBool i) = case pred of
-//     Eq (VBool j) -> i == j
-//     Lt (VBool j) -> False
-//     Gt (VBool j) -> False
-
-
-evalTaskFunc :: TaskFunc Value -> Task Value
-evalTaskFunc (ThenF this next) val =
-  evalTaskFunc this val >>= evalTaskFunc next
-
-evalTaskFunc (ViewF msg func) val = case evalFunc val func of
-  (VInt i) -> (viewInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
-  (VBool b) -> (viewInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
-  (VString s) -> (viewInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
-  (VDate s) -> (viewInformation msg [] s @ VDate) <<@ ApplyLayout arrangeHorizontal
-  (VPair a b) ->
-    ( viewInformation msg [] ()
-      ||- (evalTaskFunc (ViewF "" Identity) a -&&- evalTaskFunc (ViewF "" Identity) b)
-      @ \(a, b) -> VPair a b
-    )
-      <<@ ApplyLayout arrangeHorizontal
-
-evalTaskFunc (UpdateF msg func) val = case evalFunc val func of
-  (VInt i) -> (updateInformation msg [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
-  (VBool b) -> (updateInformation msg [] b @ VBool) <<@ ApplyLayout arrangeHorizontal
-  (VString s) -> (updateInformation msg [] s @ VString) <<@ ApplyLayout arrangeHorizontal
-  (VDate s) -> (updateInformation msg [] s @ VDate) <<@ ApplyLayout arrangeHorizontal
-  (VPair a b) ->
-    ( viewInformation msg [] ()
-      ||- (evalTaskFunc (UpdateF "" Identity) a -&&- evalTaskFunc (UpdateF "" Identity) b)
-      @ \(a, b) -> VPair a b
-    )
-      <<@ ApplyLayout arrangeHorizontal
-
-evalTaskFunc (StoreF) (VInt i) =
-  // upd (\( sharedTy, values ) -> ( sharedTy, cons val values)) globalValueShare @ (const VUnit)
-  upd (cons i) globalValueShare @ (const VUnit)
-
-evalTaskFunc (WatchF msg) val =
-  viewSharedInformation msg [] globalValueShare @ (const VUnit)
-
+// evalTaskExpr (Bind task fund) = ... //evalTaskExpr task >>= evalTaskFunc taskFunc
 
 
 evalExpr :: Expr -> Value
 evalExpr (Int i) = VInt i
 evalExpr (Bool b) = VBool b
 evalExpr (String s) = VString s
-evalExpr (Date d) = VDate d
 evalExpr (Pair fstExpr sndExpr) = VPair (evalExpr fstExpr) (evalExpr sndExpr)
-evalExpr (Apply func expr) = evalFunc (evalExpr expr) func
 
-
-evalFunc :: Value Func -> Value
-evalFunc val Identity = val
-
-evalFunc (VInt i1) func = case func of
-  (Gt expr) -> VBool $ i1 > evalInt expr
-  (Ge expr) -> VBool $ i1 >= evalInt expr
-  (Eq expr) -> VBool $ i1 == evalInt expr
-  (Le expr) -> VBool $ i1 <= evalInt expr
-  (Lt expr) -> VBool $ i1 < evalInt expr
-  (Add expr) -> VInt $ i1 + evalInt expr
-  (Sub expr) -> VInt $ i1 - evalInt expr
-  (Mul expr) -> VInt $ i1 * evalInt expr
-  (Div expr) -> VInt $ i1 / evalInt expr
-where
-  evalInt :: Expr -> Int
-  evalInt expr = case evalExpr expr of
-    (VInt i) -> i
-
-evalFunc (VBool b1) func = case func of
-  (Eq expr) -> VBool $ b1 == evalBool expr
-  (Conj expr) -> VBool $ b1 && evalBool expr
-  (Disj expr) -> VBool $ b1 || evalBool expr
-  (Not) -> VBool $ not b1
-where
-  evalBool :: Expr -> Bool
-  evalBool expr = case evalExpr expr of
-    (VBool b) -> b
-
-evalFunc (VString s1) func = case func of
-  (Eq expr) -> VBool $ s1 == evalString expr
-where
-  evalString :: Expr -> String
-  evalString expr = case evalExpr expr of
-    (VString s) -> s
-
-evalFunc (VDate d1) func = case func of
-  (Eq expr) -> VBool $ d1 == evalDate expr
-  (Gt expr) -> VBool $ d1 > evalDate expr
-  (Ge expr) -> VBool $ d1 >= evalDate expr
-  (Eq expr) -> VBool $ d1 == evalDate expr
-  (Le expr) -> VBool $ d1 <= evalDate expr
-  (Lt expr) -> VBool $ d1 < evalDate expr
-where
-  evalDate :: Expr -> Date
-  evalDate expr = case evalExpr expr of
-    (VDate d) -> d
-
-evalFunc (VPair x1 x2) func = case func of
-  Fst -> x1
-  Snd -> x2
 
 
 instance toString Value where
@@ -555,5 +199,4 @@ instance toString Value where
     VInt i -> toString i
     VBool b -> toString b
     VString s -> toString s
-    VDate d -> toString d
     VPair x y -> "( " +++ toString x +++ ", " +++ toString y +++ " )"
