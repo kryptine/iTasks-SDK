@@ -4,7 +4,8 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
 import StdMisc, Data.Tuple, Data.Error, Data.Func, Text, Data.Functor
 import qualified Data.Map as DM
-from Text.HTML import instance toString HtmlTag, instance toString SVGElt
+//from Text.HTML import instance toString HtmlTag, instance toString SVGElt
+import Text.HTML
 from Text.Encodings.Base64 import base64Encode
 from iTasks.UI.Editor.Common import diffChildren, :: ChildUpdate (..)
 import StdArray
@@ -57,6 +58,8 @@ leafletObjectIdOf (Window w)    = w.windowId
     //Updating windows
     | LDRemoveWindow    !LeafletObjectID
     | LDUpdateObject    !LeafletObjectID !LeafletObjectUpdate
+	//Events 
+	| LDMapClick        !LeafletLatLng
 
 :: LeafletObjectUpdate
 	= UpdatePolyline  ![LeafletLatLng]
@@ -74,7 +77,10 @@ openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 leafletEditor :: Editor LeafletMap
-leafletEditor = leafEditorToEditor
+leafletEditor = leafEditorToEditor leafletEditor`
+
+leafletEditor` :: LeafEditor [LeafletEdit] LeafletMap LeafletMap
+leafletEditor` =
 	{ LeafEditor
     | genUI          = withClientSideInit initUI genUI
     , onEdit         = onEdit
@@ -233,11 +239,11 @@ where
 		# (editorId,world)  = me .# "attributes.editorId" .? world
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (clickPos,world)  = args.[0] .# "latlng" .? world
-		# (cursor,world)    = toLatLng clickPos world
-		# edit              = toJSON [LDSetCursor cursor]
+		# (position,world)  = toLatLng clickPos world
+		# edit              = toJSON [LDMapClick position,LDSetCursor position]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		//Update cursor position on the map
-		# world             = setMapCursor me mapObj (toJS cursor) world
+		# world             = setMapCursor me mapObj (toJS position) world
 		= world
 
 	onMarkerClick me markerId args world
@@ -253,6 +259,7 @@ where
 			Just "center"  = setMapCenter mapObj args.[1] world
 			Just "zoom"    = setMapZoom mapObj args.[1] world
 			Just "cursor"  = setMapCursor me mapObj args.[1] world
+			Just "icons"   = setMapIcons me mapObj args.[1] world
 			_              = world
 
 	onAfterChildInsert viewMode me args world
@@ -645,7 +652,7 @@ where
 	where
 		app m (LDSetZoom zoom)          = {LeafletMap|m & perspective = {m.perspective & zoom = zoom}}
 		app m (LDSetCenter center)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & center = center}}
-		app m (LDSetCursor cursor)      = {LeafletMap|m & perspective = {m.perspective & cursor = Just cursor}}
+		app m (LDSetCursor cursor)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & cursor = Just cursor}}
 		app m (LDSetBounds bounds)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & bounds = Just bounds}}
 		app m (LDSelectMarker markerId) = {LeafletMap|m & objects = map (sel markerId) m.LeafletMap.objects}
 		where
@@ -680,14 +687,16 @@ where
 		= (Ok (ChangeUI attrChanges childChanges, newMap),vst)
 	where
 		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
-		diffAttributes {LeafletMap|perspective=p1} {LeafletMap|perspective=p2}
+		diffAttributes {LeafletMap|perspective=p1,icons=i1} {LeafletMap|perspective=p2,icons=i2}
 			//Center
 			# center = if (p2.LeafletPerspective.center === p1.LeafletPerspective.center) [] [SetAttribute "center" (toJSON p2.LeafletPerspective.center)]
 			//Zoom
 			# zoom = if (p2.LeafletPerspective.zoom === p1.LeafletPerspective.zoom) [] [SetAttribute "zoom" (toJSON p2.LeafletPerspective.zoom)]
 			//Cursor
 			# cursor = if (p2.LeafletPerspective.cursor === p1.LeafletPerspective.cursor) [] [SetAttribute "cursor" (maybe JSONNull toJSON p2.LeafletPerspective.cursor)]
-			= center ++ zoom ++ cursor
+			//Icons
+			# icons = if (i2 === i1) [] [SetAttribute "icons" (JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- i2])]
+			= center ++ zoom ++ cursor ++ icons
 
 		updateFromOldToNew :: !LeafletObject !LeafletObject -> ChildUpdate
 		updateFromOldToNew (Window old) (Window new) | old.windowId === new.windowId && not (isEmpty changes) =
@@ -722,10 +731,73 @@ gDefault{|LeafletPerspective|}
 //Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
 gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
+simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
+simpleStateEventHandlers = 
+	{ onMapClick = \position (l,s) -> (addCursorMarker position l,{LeafletSimpleState|s & cursor = Just position})
+	}
+where
+	addCursorMarker position l=:{LeafletMap|objects,icons} = {l & objects = addCursorObject objects, icons=addCursorIcon icons}
+	where
+		addCursorObject [] = [cursor position]
+		addCursorObject [o=:(Marker {LeafletMarker|markerId}):os] 
+			| markerId =: (LeafletObjectID "cursor") = [cursor position:os]
+			| otherwise = [o:addCursorObject os]
+		addCursorIcon [] = [icon]
+		addCursorIcon [i=:{iconId}:is]
+			| iconId =: (LeafletIconID "cursor") = [i:is]
+			| otherwise = [i:addCursorIcon is]
+
+	cursor position = Marker {LeafletMarker|markerId=LeafletObjectID "cursor", position= position, icon = Just (LeafletIconID "cursor"),title=Nothing,popup=Nothing,selected=False}
+	icon = {LeafletIcon|iconId=LeafletIconID "cursor", iconUrl= svgIconURL (CircleElt hattrs sattrs) (10,10), iconSize = (10,10)}
+	where
+        sattrs = [CxAttr ("5",PX),CyAttr ("5",PX),RAttr ("3",PX)]
+		hattrs = [StyleAttr "fill:none;stroke:#00;stroke-width:2"]
+
+customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor handlers = leafEditorToEditor (customLeafletEditor` handlers)
+
+customLeafletEditor` ::(LeafletEventHandlers s) -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
+customLeafletEditor` handlers = 
+	{ LeafEditor
+    | genUI          = genUI
+    , onEdit         = onEdit
+    , onRefresh      = onRefresh
+    , valueFromState = valueFromState
+    }
+where
+	genUI attributes datapath mode vst = case leafletEditor`.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
+		(Error e, vst) = (Error e, vst)
+		(Ok (ui,mapState),vst) = (Ok (ui,(mapState,defaultValue)),vst)
+
+	onEdit datapath edit (mapState,customState) vst = case leafletEditor`.LeafEditor.onEdit datapath edit mapState vst of
+		(Error e, vst) = (Error e, vst)
+		(Ok (mapChange,mapState), vst) 
+			//Apply event handlers
+			# (newMapState,customState) = updateCustomState handlers datapath edit (mapState,customState)
+			//Determine the change to the map
+		 	= case leafletEditor`.LeafEditor.onRefresh datapath newMapState mapState vst of
+				(Error e, vst) = (Error e, vst)
+				(Ok (mapRefreshChange,mapState),vst)	
+					= (Ok (mergeUIChanges mapChange mapRefreshChange, (mapState,customState)),vst)
+		
+	onRefresh datapath (newMapState,newCustomState) (curMapState,curCustomState) vst
+		 = case leafletEditor`.LeafEditor.onRefresh datapath newMapState curMapState vst of
+			(Error e, vst) = (Error e, vst)
+			(Ok (mapChange,mapState),vst) = (Ok (mapChange,(mapState,newCustomState)),vst)	
+
+	valueFromState s = Just s
+
+	updateCustomState {onMapClick} datapath (target,edits) state
+		| target <> datapath = state
+		| otherwise = foldl update state edits
+	where
+		update state (LDMapClick position) = onMapClick position state
+		update state _ = state
+
 derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
 derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
 derive gDefault   LeafletLatLng
 derive gEq        LeafletMap, LeafletPerspective
 derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
 derive gEditor    LeafletPerspective, LeafletLatLng
-derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletAreaStyle, LeafletObjectID, CSSClass, LeafletIconID, LeafletCircle, LeafletObjectUpdate, LeafletRectangle
+derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletAreaStyle, LeafletObjectID, CSSClass, LeafletIconID, LeafletCircle, LeafletObjectUpdate, LeafletRectangle, LeafletSimpleState

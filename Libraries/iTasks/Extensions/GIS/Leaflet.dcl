@@ -2,6 +2,7 @@ definition module iTasks.Extensions.GIS.Leaflet
 
 import iTasks
 from Text.HTML import :: SVGElt
+from Data.Set import :: Set
 
 leafletEditor :: Editor LeafletMap
 
@@ -114,6 +115,23 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 
 :: LeafletWindowPos = { x :: !Int, y :: !Int }
 
+//Event handlers allow the customization of the map editor behaviour
+:: LeafletEventHandlers s =
+	{ onMapClick :: LeafletLatLng (!LeafletMap,!s) -> (!LeafletMap,!s)
+	}
+
+//A minimal state for tracking a set of selected markers
+//and the last place that the map was clicked
+:: LeafletSimpleState =
+	{ cursor    :: Maybe LeafletLatLng
+	, selection :: [LeafletObjectID]
+	}
+
+simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
+
+//Customization of editors
+customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
+
 //Inline SVG based icons can be encoded as 'data uri's' which can be used instead of a url to an external icon image
 svgIconURL :: !SVGElt !(!Int,!Int) -> String
 
@@ -126,4 +144,4 @@ derive gDefault   LeafletMap, LeafletPerspective, LeafletLatLng
 derive gEq        LeafletMap, LeafletPerspective
 derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
 derive gEditor    LeafletMap, LeafletPerspective, LeafletLatLng
-derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletAreaStyle, LeafletObjectID
+derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletAreaStyle, LeafletObjectID, LeafletSimpleState
