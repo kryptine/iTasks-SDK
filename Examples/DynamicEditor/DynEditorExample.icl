@@ -53,9 +53,12 @@ where
 
 // Data ////////////////////////////////////////////////////////////////////////
 
+:: Name
+  :== String
+
 :: TaskExpr
   = Done Expr
-  // | E.a: Bind TaskExpr (a -> TaskExpr)
+  | Bind TaskExpr Name TaskExpr
 
 :: Expr
   = Int Int
@@ -97,14 +100,16 @@ taskEditor = DynamicEditor
       $ functionConsDyn "TaskExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskExpr a) -> TaskExpr)
       <<@@@ HideIfOnlyChoice
   , DynamicConsGroup "Basics"
-  //     [ functionConsDyn "Bind" "sequence"
-  //         ( dynamic \(Typed task) (Typed taskFunc) -> Typed (Bind task taskFunc) ::
-  //             A.a b:
-  //             (Typed TaskExpr (Task a)) (Typed TaskFunc (a -> Task b))
-  //             -> Typed TaskExpr (Task b)
-  //         )
-  //         <<@@@ applyVerticalBoxedLayout
-      [ functionConsDyn "Done" "done"
+      [ functionConsDyn "Bind" "bind"
+          ( dynamic \(Typed task) (Typed name) (Typed cont) -> Typed (Bind task name cont) ::
+              A.a b:
+              (Typed TaskExpr (Task a))
+              (Typed String a)
+              (Typed TaskExpr (a -> Task b))
+              -> Typed TaskExpr (Task b)
+          )
+          <<@@@ applyVerticalBoxedLayout
+      , functionConsDyn "Done" "done"
           ( dynamic \(Typed expr) -> Typed (Done expr) ::
               A.a:
               (Typed Expr a)
