@@ -14,6 +14,10 @@
 	align-self: auto;
 }
 
+.typedtasks-evaluator {
+  align-self: unset;
+}
+
 /* Make generated labels flow on top */
 .itasks-container.itasks-form-item {
 	flex-direction: column;
