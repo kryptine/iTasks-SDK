@@ -6,7 +6,7 @@ import iTasks.UI.Definition
 import StdFunctions, Data.List, Text.HTML
 
 playWithMaps :: Task ()
-playWithMaps = withShared ({defaultValue & icons = shipIcons},defaultValue) (\m ->
+playWithMaps = withShared ({defaultValue & icons = shipIcons, tilesUrls = ["/tiles/{z}/{x}/{y}.png"]},defaultValue) (\m ->
 	((allTasks [managePerspective m, manageState m, manageMapObjects m]) <<@ ScrollContent)
 	-&&-
 	manipulateMap m
@@ -51,7 +51,7 @@ where
 		>>- \marker -> upd (\(l=:{LeafletMap|objects},s) -> ({LeafletMap|l & objects = objects ++ [marker]},s)) m
 
 	toRandomMarker (rLat,rLng)
-		= Marker {markerId = LeafletObjectID markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False, popup = Nothing}
+		= Marker {markerId = LeafletObjectID markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, popup = Nothing}
 	where
 		lat = 52.0 + (toReal (500 + (rLat rem 1000)) / 1000.0)
 		lng = 6.0 + (toReal (500 + (rLng rem 1000)) / 1000.0)
@@ -82,13 +82,13 @@ where
 		points objects = [position \\ Marker {LeafletMarker|position} <- objects]
 
 	addMarkerAtCursor m
-		= upd (\(l=:{LeafletMap|perspective={LeafletPerspective|cursor},objects},s) -> ({LeafletMap|l & objects = withMarkerFromCursor cursor objects},s)) m
+		= upd (\(l=:{LeafletMap|objects},s=:{LeafletSimpleState|cursor}) -> ({LeafletMap|l & objects = withMarkerFromCursor cursor objects},s)) m
 	where
 		withMarkerFromCursor Nothing objects = objects
-		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = LeafletObjectID "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
+		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = LeafletObjectID "CURSOR", position= position, title = Nothing, icon = Nothing, popup = Nothing}]
 
 	addCircleAtCursor m
-		= upd (\(l=:{LeafletMap|perspective={LeafletPerspective|cursor},objects},s) -> ({LeafletMap|l & objects = withCircleFromCursor cursor objects},s)) m
+		= upd (\(l=:{LeafletMap|objects},s=:{LeafletSimpleState|cursor}) -> ({LeafletMap|l & objects = withCircleFromCursor cursor objects},s)) m
 	where
 		withCircleFromCursor Nothing objects = objects
 		withCircleFromCursor (Just position) objects = objects ++ [Circle {circleId = LeafletObjectID "CIRCLE_CURSOR", center = position, radius = 100000.0, editable = True, style = []}]

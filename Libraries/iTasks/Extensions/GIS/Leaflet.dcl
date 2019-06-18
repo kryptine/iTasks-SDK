@@ -6,17 +6,20 @@ from Data.Set import :: Set
 
 leafletEditor :: Editor LeafletMap
 
+//Customization of editors
+customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
+
+
 :: LeafletMap =
     { perspective   :: !LeafletPerspective
 	, tilesUrls     :: ![String]
 	, objects       :: ![LeafletObject]    //Markers, lines and polygon
-    , icons         :: ![LeafletIcon]      //Custom icons used by markers. They are indexed by 'iconId' string and cannot be changed once the map is loaded
+    , icons         :: ![LeafletIcon]      //Custom icons used by markers. They are referenced using their 'iconId' string.
     }
 
 :: LeafletPerspective =
     { center        :: !LeafletLatLng
     , zoom          :: !Int
-    , cursor        :: !Maybe LeafletLatLng
     , bounds        :: !Maybe LeafletBounds
     }
 
@@ -52,9 +55,8 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
     { markerId      :: !LeafletObjectID
     , position      :: !LeafletLatLng
     , title         :: !Maybe String
-    , icon          :: !Maybe LeafletIconID// Id of the list of icons defined for the map
+    , icon          :: !Maybe LeafletIconID //Reference to an icon defined for this map
     , popup         :: !Maybe HtmlTag
-    , selected      :: !Bool
     }
 
 :: LeafletPolyline =
@@ -91,7 +93,7 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
     , initPosition   :: !LeafletWindowPos
     , title          :: !String
     , content        :: !HtmlTag
-    , relatedMarkers :: ![(!LeafletObjectID, ![LeafletStyleDef LeafletLineStyle])] // connecting lines are drawn between the window and the markers
+    , relatedMarkers :: ![(LeafletObjectID, [LeafletStyleDef LeafletLineStyle])] // connecting lines are drawn between the window and the markers
                                                                                  // to visualise the relation
     }
 
@@ -117,7 +119,8 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 
 //Event handlers allow the customization of the map editor behaviour
 :: LeafletEventHandlers s =
-	{ onMapClick :: LeafletLatLng (!LeafletMap,!s) -> (!LeafletMap,!s)
+	{ onMapClick    :: LeafletLatLng (LeafletMap,s) -> (LeafletMap,s)
+	, onMarkerClick :: LeafletObjectID (LeafletMap,s) -> (LeafletMap,s)
 	}
 
 //A minimal state for tracking a set of selected markers
@@ -129,14 +132,14 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 
 simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
 
-//Customization of editors
-customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
-
 //Inline SVG based icons can be encoded as 'data uri's' which can be used instead of a url to an external icon image
 svgIconURL :: !SVGElt !(!Int,!Int) -> String
 
 //Public tileserver of openstreetmaps
 openStreetMapTiles :: String
+
+instance == LeafletObjectID
+instance == LeafletIconID
 
 derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
 derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng

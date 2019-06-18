@@ -26,17 +26,11 @@ LEAFLET_CSS_WINDOW   :== "leaflet-window.css"
     , zoomControl           :: !Bool
     , editable              :: !Bool
     }
-:: CursorOptions =
-    { color     :: !String
-    , opacity   :: !Real
-    , radius    :: !Int
-    }
 
 derive JSONEncode IconOptions
 
-derive gToJS CursorOptions, MapOptions, LeafletLatLng
+derive gToJS MapOptions, LeafletLatLng
 
-CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
 MAP_OPTIONS     :== {attributionControl = False, zoomControl = True, editable = True}
 
 leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
@@ -51,15 +45,13 @@ leafletObjectIdOf (Window w)    = w.windowId
     //Perspective
     = LDSetZoom         !Int
     | LDSetCenter       !LeafletLatLng
-    | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
-    //Updating markers
-    | LDSelectMarker    !LeafletObjectID
     //Updating windows
     | LDRemoveWindow    !LeafletObjectID
     | LDUpdateObject    !LeafletObjectID !LeafletObjectUpdate
 	//Events 
 	| LDMapClick        !LeafletLatLng
+    | LDMarkerClick     !LeafletObjectID
 
 :: LeafletObjectUpdate
 	= UpdatePolyline  ![LeafletLatLng]
@@ -89,12 +81,11 @@ leafletEditor` =
     }
 where
 	genUI attr dp mode world
-		# val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrls,objects,icons} =
+		# val=:{LeafletMap|perspective={center,zoom},tilesUrls,objects,icons} =
 			fromMaybe gDefault{|*|} $ editModeValue mode
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
-			,("cursor", maybe JSONNull toJSON cursor)
 			,("tilesUrls", toJSON tilesUrls)
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
@@ -151,10 +142,7 @@ where
 		//Set perspective
 		# (center,world)    = me .# "attributes.center" .? world
 		# (zoom,world)      = me .# "attributes.zoom" .? world
-		# (cursor,world)    = me .# "attributes.cursor" .? world
         # world             = (mapObj .# "setView" .$! (center,zoom)) world
-		//Set initial cursor
-        # world             = setMapCursor me mapObj cursor world
         //Add icons
 		# world             = setMapIcons me mapObj (me .# "attributes.icons") world
 		//Create tile layer
@@ -240,16 +228,14 @@ where
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (clickPos,world)  = args.[0] .# "latlng" .? world
 		# (position,world)  = toLatLng clickPos world
-		# edit              = toJSON [LDMapClick position,LDSetCursor position]
+		# edit              = toJSON [LDMapClick position]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
-		//Update cursor position on the map
-		# world             = setMapCursor me mapObj (toJS position) world
 		= world
 
 	onMarkerClick me markerId args world
 		# (taskId,world)    = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
-		# edit              = toJSON [LDSelectMarker markerId]
+		# edit              = toJSON [LDMarkerClick markerId]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
@@ -258,7 +244,6 @@ where
 		= case jsValToString args.[0] of
 			Just "center"  = setMapCenter mapObj args.[1] world
 			Just "zoom"    = setMapZoom mapObj args.[1] world
-			Just "cursor"  = setMapCursor me mapObj args.[1] world
 			Just "icons"   = setMapIcons me mapObj args.[1] world
 			_              = world
 
@@ -344,28 +329,6 @@ where
 	setMapCenter mapObj center world
 		# world     = (mapObj .# "panTo" .$! center) world
 		= world
-
-	setMapCursor me mapObj position world
-		# (cursor,world) = me .# "cursor" .? world
-		| jsIsUndefined cursor
-			| jsIsNull position //Nothing to do
-				= world
-			| otherwise
-				//Create the cursor
-				# (l, world)      = jsGlobal "L" .? world
-				# (cursor,world)  = (l .# "circleMarker" .$ (position, CURSOR_OPTIONS)) world
-				# world           = (cursor .# "addTo" .$! mapObj) world
-				# world           = (me .# "cursor" .= cursor) world
-				= world
-		| otherwise //Update the position
-			| jsIsNull position
-				//Destroy the cursor
-				# world           = (mapObj .# "removeLayer" .$! cursor) world
-				# world           = jsDelete (me .# "cursor") world
-				= world
-			| otherwise
-        		# world           = (cursor .# "setLatLng" .$! position) world
-				= world
 
 	addMapTilesLayer me mapObj _ tilesUrl world
 		| jsIsNull tilesUrl = world
@@ -652,12 +615,7 @@ where
 	where
 		app m (LDSetZoom zoom)          = {LeafletMap|m & perspective = {m.perspective & zoom = zoom}}
 		app m (LDSetCenter center)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & center = center}}
-		app m (LDSetCursor cursor)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & cursor = Just cursor}}
 		app m (LDSetBounds bounds)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & bounds = Just bounds}}
-		app m (LDSelectMarker markerId) = {LeafletMap|m & objects = map (sel markerId) m.LeafletMap.objects}
-		where
-			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId === x}
-			sel x o = o
         app m (LDRemoveWindow idToRemove) = {LeafletMap|m & objects = filter notToRemove m.LeafletMap.objects}
         where
             notToRemove (Window {windowId}) = windowId =!= idToRemove
@@ -686,17 +644,15 @@ where
 		# childChanges = diffChildren oldMap.LeafletMap.objects newMap.LeafletMap.objects updateFromOldToNew encodeUI
 		= (Ok (ChangeUI attrChanges childChanges, newMap),vst)
 	where
-		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
+		//Only center and zoom are synced to the client, bounds are only synced from client to server
 		diffAttributes {LeafletMap|perspective=p1,icons=i1} {LeafletMap|perspective=p2,icons=i2}
 			//Center
 			# center = if (p2.LeafletPerspective.center === p1.LeafletPerspective.center) [] [SetAttribute "center" (toJSON p2.LeafletPerspective.center)]
 			//Zoom
 			# zoom = if (p2.LeafletPerspective.zoom === p1.LeafletPerspective.zoom) [] [SetAttribute "zoom" (toJSON p2.LeafletPerspective.zoom)]
-			//Cursor
-			# cursor = if (p2.LeafletPerspective.cursor === p1.LeafletPerspective.cursor) [] [SetAttribute "cursor" (maybe JSONNull toJSON p2.LeafletPerspective.cursor)]
 			//Icons
 			# icons = if (i2 === i1) [] [SetAttribute "icons" (JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- i2])]
-			= center ++ zoom ++ cursor ++ icons
+			= center ++ zoom ++ icons
 
 		updateFromOldToNew :: !LeafletObject !LeafletObject -> ChildUpdate
 		updateFromOldToNew (Window old) (Window new) | old.windowId === new.windowId && not (isEmpty changes) =
@@ -723,10 +679,10 @@ gEditor{|LeafletMap|} = leafletEditor
 gDefault{|LeafletMap|}
 	= {LeafletMap|perspective=defaultValue, tilesUrls = [openStreetMapTiles], objects = [Marker homeMarker], icons = []}
 where
-	homeMarker = {markerId = LeafletObjectID "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
+	homeMarker = {markerId = LeafletObjectID "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing}
 
 gDefault{|LeafletPerspective|}
-    = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
+    = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, bounds = Nothing}
 
 //Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
 gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
@@ -734,6 +690,7 @@ gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng
 simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
 simpleStateEventHandlers = 
 	{ onMapClick = \position (l,s) -> (addCursorMarker position l,{LeafletSimpleState|s & cursor = Just position})
+	, onMarkerClick = \markerId (l,s) -> (l,{LeafletSimpleState|s & selection = toggle markerId s.LeafletSimpleState.selection})
 	}
 where
 	addCursorMarker position l=:{LeafletMap|objects,icons} = {l & objects = addCursorObject objects, icons=addCursorIcon icons}
@@ -747,11 +704,16 @@ where
 			| iconId =: (LeafletIconID "cursor") = [i:is]
 			| otherwise = [i:addCursorIcon is]
 
-	cursor position = Marker {LeafletMarker|markerId=LeafletObjectID "cursor", position= position, icon = Just (LeafletIconID "cursor"),title=Nothing,popup=Nothing,selected=False}
+	cursor position = Marker 
+		{LeafletMarker|markerId=LeafletObjectID "cursor", position= position
+		,icon = Just (LeafletIconID "cursor"),title=Nothing,popup=Nothing}
 	icon = {LeafletIcon|iconId=LeafletIconID "cursor", iconUrl= svgIconURL (CircleElt hattrs sattrs) (10,10), iconSize = (10,10)}
 	where
         sattrs = [CxAttr ("5",PX),CyAttr ("5",PX),RAttr ("3",PX)]
-		hattrs = [StyleAttr "fill:none;stroke:#00;stroke-width:2"]
+		hattrs = [StyleAttr "fill:none;stroke:#00f;stroke-width:2"]
+
+	toggle (LeafletObjectID "cursor") xs = xs //The cursor can't be selected
+	toggle x xs = if (isMember x xs) (removeMember x xs) ([x:xs])
 
 customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
 customLeafletEditor handlers = leafEditorToEditor (customLeafletEditor` handlers)
@@ -787,12 +749,16 @@ where
 
 	valueFromState s = Just s
 
-	updateCustomState {onMapClick} datapath (target,edits) state
+	updateCustomState {onMapClick,onMarkerClick} datapath (target,edits) state
 		| target <> datapath = state
 		| otherwise = foldl update state edits
 	where
 		update state (LDMapClick position) = onMapClick position state
+		update state (LDMarkerClick markerId) = onMarkerClick markerId state
 		update state _ = state
+
+instance == LeafletObjectID where (==) (LeafletObjectID x) (LeafletObjectID y) = x == y
+instance == LeafletIconID where (==) (LeafletIconID x) (LeafletIconID y) = x == y
 
 derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
 derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
