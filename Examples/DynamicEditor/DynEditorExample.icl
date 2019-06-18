@@ -26,7 +26,7 @@ where
 
 Start world = doTasks (editTaskExpr Nothing) world
 
-editTaskExpr :: (Maybe (DynamicEditorValue TaskExpr)) -> Task (Maybe (DynamicEditorValue TaskExpr))
+editTaskExpr :: (Maybe (DynamicEditorValue Expr)) -> Task (Maybe (DynamicEditorValue Expr))
 editTaskExpr mv =
   enterOrUpdateExpr ("Contruct a task", info1) mv >?>
     [ ( "Run", const True, \v ->
@@ -55,13 +55,15 @@ where
 
 :: Name
   :== String
-
-:: TaskExpr
-  = Done Expr
-  | Bind TaskExpr Name TaskExpr
+:: Id
+  :== ( Name, Value )
 
 :: Expr
-  = Int Int
+  = Done Expr           // Done :: a -> Task a
+  | Bind Expr Name Expr // Bind :: Task a -> String -> (( String, a ) -> Task b) -> Task b
+  | Var Name            // Var :: String -> a
+  | Identity Expr       // Identity :: a -> a
+  | Int Int
   | Bool Bool
   | String String
   | Pair Expr Expr
@@ -79,7 +81,7 @@ where
 :: Typed a b
   =: Typed a
 
-derive class iTask TaskExpr, Expr, Value, Typed
+derive class iTask Expr, Value, Typed
 
 // These instances cannot be auto derived because of the existential quantifier.
 // However, they will be never used, so we make them undefined.
@@ -93,27 +95,48 @@ gEditor{|Ty|} = abort "Typed task editor: internal error with gEditor of Ty"
 
 // Editor //////////////////////////////////////////////////////////////////////
 
-taskEditor :: DynamicEditor TaskExpr
+taskEditor :: DynamicEditor Expr
 taskEditor = DynamicEditor
-  [ // This cons is used to provide untyped `TaskExpr` values.
+  [ // This cons is used to provide untyped `Expr` values.
     DynamicCons
-      $ functionConsDyn "TaskExpr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed TaskExpr a) -> TaskExpr)
+      $ functionConsDyn "Expr" "(enter task)" (dynamic \(Typed taskExpr) -> taskExpr ::  A.a: (Typed Expr a) -> Expr)
       <<@@@ HideIfOnlyChoice
   , DynamicConsGroup "Basics"
       [ functionConsDyn "Bind" "bind"
-          ( dynamic \(Typed task) (Typed name) (Typed cont) -> Typed (Bind task name cont) ::
+          ( dynamic \(Typed task) name (Typed cont) -> Typed (Bind task name cont) ::
               A.a b:
-              (Typed TaskExpr (Task a))
-              (Typed String a)
-              (Typed TaskExpr (a -> Task b))
-              -> Typed TaskExpr (Task b)
+              (Typed Expr (Task a))
+              String
+              (Typed Expr (a -> Task b))
+              -> Typed Expr (Task b)
           )
           <<@@@ applyVerticalBoxedLayout
       , functionConsDyn "Done" "done"
           ( dynamic \(Typed expr) -> Typed (Done expr) ::
               A.a:
               (Typed Expr a)
-              -> Typed TaskExpr (Task a)
+              -> Typed Expr (Task a)
+          )
+          <<@@@ applyHorizontalBoxedLayout
+      , functionConsDyn "DoneF" "done"
+          ( dynamic \(Typed expr) -> Typed (Done expr) ::
+              A.a b:
+              (Typed Expr (a -> b))
+              -> Typed Expr (a -> Task b)
+          )
+          <<@@@ applyHorizontalBoxedLayout
+      , functionConsDyn "Identity" "identity"
+          ( dynamic \(Typed expr) -> Typed (Identity expr) ::
+              A.a:
+              (Typed Expr a)
+              -> Typed Expr a
+          )
+          <<@@@ applyHorizontalBoxedLayout
+      , functionConsDyn "Var" "variable"
+          ( dynamic \name -> Typed (Var name) ::
+              A.a:
+              String
+              -> Typed Expr a
           )
           <<@@@ applyHorizontalBoxedLayout
       ]
@@ -185,7 +208,7 @@ where
 
 // Evaluation //////////////////////////////////////////////////////////////////
 
-evalTaskExpr :: TaskExpr -> Task Value
+evalTaskExpr :: Expr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 // evalTaskExpr (Bind task fund) = ... //evalTaskExpr task >>= evalTaskFunc taskFunc
 
