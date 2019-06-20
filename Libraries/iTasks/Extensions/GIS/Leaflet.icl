@@ -52,6 +52,7 @@ leafletObjectIdOf (Window w)    = w.windowId
 	//Events 
 	| LDMapClick        !LeafletLatLng
     | LDMarkerClick     !LeafletObjectID
+	| LDHtmlEvent       !String
 
 :: LeafletObjectUpdate
 	= UpdatePolyline  ![LeafletLatLng]
@@ -179,6 +180,8 @@ where
 		# world            = (vp .# "addChangeListener" .$! me) world
 		# (cb,world)       = jsWrapFun (\a w -> beforeRemove me w) me world
 		# world            = (me .# "beforeRemove" .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onHtmlEvent me a w) me world
+		# world            = (me .# "onHtmlEvent" .= cb) world
 		# world = case viewMode of
             True
 				= world
@@ -246,6 +249,17 @@ where
 			Just "zoom"    = setMapZoom mapObj args.[1] world
 			Just "icons"   = setMapIcons me mapObj args.[1] world
 			_              = world
+
+	onHtmlEvent me args world
+		# (taskId,world)    = me .# "attributes.taskId" .? world
+		# (editorId,world)  = me .# "attributes.editorId" .? world
+		= case (jsValToString args.[0]) of
+			Just event
+				# edit = toJSON [LDHtmlEvent event]
+				# world = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
+				= world
+			_	= world
+
 
 	onAfterChildInsert viewMode me args world
 		# (l, world)      	= jsGlobal "L" .? world
@@ -691,6 +705,7 @@ simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
 simpleStateEventHandlers = 
 	{ onMapClick = \position (l,s) -> (addCursorMarker position l,{LeafletSimpleState|s & cursor = Just position})
 	, onMarkerClick = \markerId (l,s) -> (l,{LeafletSimpleState|s & selection = toggle markerId s.LeafletSimpleState.selection})
+	, onHtmlEvent = \msg (l,s) -> (l,s)
 	}
 where
 	addCursorMarker position l=:{LeafletMap|objects,icons} = {l & objects = addCursorObject objects, icons=addCursorIcon icons}
@@ -749,12 +764,13 @@ where
 
 	valueFromState s = Just s
 
-	updateCustomState {onMapClick,onMarkerClick} datapath (target,edits) state
+	updateCustomState {onMapClick,onMarkerClick,onHtmlEvent} datapath (target,edits) state
 		| target <> datapath = state
 		| otherwise = foldl update state edits
 	where
 		update state (LDMapClick position) = onMapClick position state
 		update state (LDMarkerClick markerId) = onMarkerClick markerId state
+		update state (LDHtmlEvent event) = onHtmlEvent event state
 		update state _ = state
 
 instance == LeafletObjectID where (==) (LeafletObjectID x) (LeafletObjectID y) = x == y

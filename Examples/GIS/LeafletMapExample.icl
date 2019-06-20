@@ -13,8 +13,13 @@ playWithMaps = withShared ({defaultValue & icons = shipIcons, tilesUrls = ["/til
 	) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 
 manipulateMap :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manipulateMap m = updateSharedInformation () [UpdateUsing id (flip const) (customLeafletEditor simpleStateEventHandlers)] m
+manipulateMap m = updateSharedInformation () [UpdateUsing id (flip const) (customLeafletEditor eventHandlers)] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
+where
+	eventHandlers = {simpleStateEventHandlers & onHtmlEvent = onHtmlEvent}
+
+	onHtmlEvent "closewindows" (l,s) = ({LeafletMap|l & objects = [o \\ o <- l.LeafletMap.objects | not (o =: (Window _))]},s)
+	onHtmlEvent _ (l,s) = (l,s)
 
 managePerspective :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
 managePerspective m = updateSharedInformation (Title "Perspective") [] 
@@ -106,7 +111,10 @@ where
 			{ windowId       = LeafletObjectID "WINDOW"
 			, initPosition   = {x = 100, y = 100}
 			, title          = "Test Window"
-			, content        = H1Tag [] [Text "This is test content!"]
+			, content        = DivTag []
+				[H1Tag [] [Text "This is test content!"]
+				,ATag [HrefAttr "#",OnclickAttr "itasks.htmlEvent('closewindows')"] [Text "Close windows"]
+				]
 			, relatedMarkers = [(LeafletObjectID "home", [])]
 			}
 

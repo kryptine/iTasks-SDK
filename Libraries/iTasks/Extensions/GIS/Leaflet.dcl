@@ -121,6 +121,7 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 :: LeafletEventHandlers s =
 	{ onMapClick    :: LeafletLatLng (LeafletMap,s) -> (LeafletMap,s)
 	, onMarkerClick :: LeafletObjectID (LeafletMap,s) -> (LeafletMap,s)
+	, onHtmlEvent   :: String (LeafletMap,s) -> (LeafletMap,s)
 	}
 
 //A minimal state for tracking a set of selected markers
