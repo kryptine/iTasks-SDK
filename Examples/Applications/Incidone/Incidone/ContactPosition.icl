@@ -94,7 +94,7 @@ where
     eqBounds _ _ = False
 
 gDefault{|ContactMapPerspective|}
-    =  {ContactMapPerspective|center = (52.948300, 4.776007), zoom = 7, cursor = Nothing, bounds = Nothing} //(Full coast centered on Den Helder)
+    =  {ContactMapPerspective|center = (52.948300, 4.776007), zoom = 7, bounds = Nothing, cursor = Nothing} //(Full coast centered on Den Helder)
 
 
 contactToMapMarker :: Bool Bool Contact -> ContactMapMarker
@@ -142,8 +142,8 @@ where
 	tilesUrls layers = [url \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
 
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers | hasLatLng position]
-    conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = Nothing /* fmap (\t -> iconIndex heading t selected) type */, selected = selected, popup = Nothing}
+    conv {ContactMapMarker|markerId,title,position,heading,type}
+        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = Nothing /* fmap (\t -> iconIndex heading t selected) type */, popup = Nothing}
 
     pos (PositionLatLng (lat,lng)) = {LeafletLatLng|lat=lat,lng=lng}
     pos (PositionDescription _ (Just(lat,lng))) = {LeafletLatLng|lat=lat,lng=lng}
@@ -183,7 +183,7 @@ where
 
 toLeafletPerspective :: ContactMapPerspective -> LeafletPerspective
 toLeafletPerspective {ContactMapPerspective|center,zoom,cursor,bounds}
-    = {LeafletPerspective|center=toLeafletLatLng center,zoom=zoom,cursor=fmap toLeafletLatLng cursor,bounds=fmap toLeafletBounds bounds}
+    = {LeafletPerspective|center=toLeafletLatLng center,zoom=zoom,bounds=fmap toLeafletBounds bounds}
 
 toLeafletLatLng :: !(!Real,!Real) -> LeafletLatLng
 toLeafletLatLng (lat,lng) = {LeafletLatLng|lat=lat,lng=lng}
@@ -199,8 +199,8 @@ fromLeafletMap contactMap leafletMap
       }
 
 fromLeafletPerspective :: LeafletPerspective -> ContactMapPerspective
-fromLeafletPerspective {LeafletPerspective|center,cursor,zoom,bounds}
-    = {ContactMapPerspective|center=fromLeafletLatLng center,zoom=zoom,cursor=fmap fromLeafletLatLng cursor,bounds=fmap fromLeafletBounds bounds}
+fromLeafletPerspective {LeafletPerspective|center,zoom,bounds}
+    = {ContactMapPerspective|center=fromLeafletLatLng center,zoom=zoom,cursor=Nothing,bounds=fmap fromLeafletBounds bounds}
 
 /*
 fromLeafletLayer :: ContactMapLayer LeafletLayer -> ContactMapLayer
@@ -216,8 +216,8 @@ fromLeafletLayer cl ll = cl
 */
 
 selectionFromLeafletMap :: LeafletMap -> [LeafletObjectID]
-selectionFromLeafletMap {LeafletMap|objects} =
-    [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
+selectionFromLeafletMap {LeafletMap|objects} = []
+    //[markerId \\ Marker {LeafletMarker|markerId} <- objects | selected]
 
 fromLeafletLatLng :: !LeafletLatLng -> (!Real,!Real)
 fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)

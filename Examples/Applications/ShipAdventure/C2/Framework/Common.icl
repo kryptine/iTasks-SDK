@@ -96,9 +96,9 @@ mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (
     # mid = toInt contactMarker.ContactMapMarker.markerId
     = case 'DIS'.get mid markers of
         Just m
-          # st = if contactMarker.ContactMapMarker.selected
-                   {st & selection = mid}
-                   st
+          //# st = if contactMarker.ContactMapMarker.selected
+           //        {st & selection = mid}
+            //       st
           //= ('DIS'.put mid {Entity | m & selected = contactMarker.ContactMapMarker.selected} markers, st) // TODO FIXME
           = (markers, st)
         _ = (markers, st)
@@ -120,9 +120,9 @@ mapView sh radarWorks currentUser es = (updateSharedInformation () [UpdateAs toM
     # mid = toInt contactMarker.ContactMapMarker.markerId
     = case 'DIS'.get mid markers of
         Just m
-          # st = if contactMarker.ContactMapMarker.selected
-                   {st & selection = mid}
-                   st
+          //# st = if contactMarker.ContactMapMarker.selected
+           //        {st & selection = mid}
+            //       st
           //= ('DIS'.put mid {Entity | m & selected = contactMarker.ContactMapMarker.selected} markers, st) TODO FIXME
           = (markers, st)
         _ = (markers, st)
