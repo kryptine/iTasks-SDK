@@ -99,6 +99,10 @@ itasks.Panel = {
 					case 'right': me.domEl.style['width'] = (startSize + (ev.clientX - startPos)) + 'px'; break;
 					case 'left': me.domEl.style['width'] = (startSize + (startPos - ev.clientX)) + 'px'; break;
 				}
+				//Trigger resize event on all siblings
+				me.parentCmp.children.forEach(function(child) {
+					child.onResize();
+				});
 			};
 
 			window.addEventListener('mousemove', resize, false);
