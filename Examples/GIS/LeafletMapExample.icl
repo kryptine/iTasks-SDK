@@ -113,7 +113,7 @@ where
 			, title          = "Test Window"
 			, content        = DivTag []
 				[H1Tag [] [Text "This is test content!"]
-				,ATag [HrefAttr "#",OnclickAttr "itasks.htmlEvent('closewindows')"] [Text "Close windows"]
+				,ATag [HrefAttr "#",OnclickAttr "itasks.htmlEvent(event, 'closewindows')"] [Text "Close windows"]
 				]
 			, relatedMarkers = [(LeafletObjectID "home", [])]
 			}

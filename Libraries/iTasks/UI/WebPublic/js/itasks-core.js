@@ -688,7 +688,7 @@ itasks.ConnectionPool = {
 };
 
 //Global functions that you can use to trigger edit events from pieces of html code displayed by components
-itasks.htmlEvent = function(msg) {
+itasks.htmlEvent = function(event, msg) {
 	var domEl = event.target;
 	var component = null;
 
