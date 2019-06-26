@@ -1,9 +1,14 @@
-//Test script for new itasks embedding style
+//Global itasks namespace
 itasks = {};
 
-//auxiliary definitions for sending Maybe values to server
+//Auxiliary definitions for sending Maybe values to server
 const Nothing = ["Nothing"];
 function Just(x) { return["Just", x]; }
+
+//Global lookup table of itask components indexed by their dom element.
+//This makes it possible to find the managing itask component object for arbitrary dom elements.
+//Because it is a WeakMap, we can register components without having to unregister them.
+itasks.components = new WeakMap();
 
 //Core behavior
 itasks.Component = {
@@ -32,6 +37,7 @@ itasks.Component = {
 			.then(me.initComponent.bind(me))
 			.then(me.initChildren.bind(me))
 			.then(me.renderComponent.bind(me))
+			.then(me.registerComponent.bind(me))
 			.then(function(){ me.initialized=true; });
 	},
 	initUI: function() {
@@ -91,6 +97,11 @@ itasks.Component = {
 				me.containerEl.appendChild(child.domEl);
 			}
 		});
+	},
+	registerComponent: function() {
+		if(this.domEl !== null) {
+			itasks.components.set(this.domEl,this);
+		}	
 	},
 	initDOMEl: function() {},
 
@@ -329,6 +340,8 @@ itasks.Component = {
 	},
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
+	},
+	onHtmlEvent: function(msg) { //Abstract
 	},
 	getViewport: function() {
 		var me = this, vp = me.parentCmp;
@@ -674,3 +687,17 @@ itasks.ConnectionPool = {
 	}
 };
 
+//Global functions that you can use to trigger edit events from pieces of html code displayed by components
+itasks.htmlEvent = function(event, msg) {
+	var domEl = event.target;
+	var component = null;
+
+	event.preventDefault();
+
+	while(domEl !== null && (component = itasks.components.get(domEl)) == null) {
+		domEl = domEl.parentElement;
+	}
+	if(component !== null) {
+		component.onHtmlEvent(msg);
+	}
+}
