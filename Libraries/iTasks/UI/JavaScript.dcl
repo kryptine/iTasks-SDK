@@ -12,7 +12,7 @@ definition module iTasks.UI.JavaScript
  * with JavaScript (where indicated in documentation below).
  *
  * The JavaScript interfacing with this module can be found in itasks-core.js
- * and abc-interpreter.js.
+ * and itasks-abc-interpreter.js.
  */
 
 import StdGeneric
@@ -51,7 +51,7 @@ jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
 
 /**
  * Remove a Clean value from the JavaScript heap. The value must have been
- * shared using `jsMakeCleanReference` or `jsWrapFun`. For example:
+ * shared using `jsMakeCleanReference` or `jsWrapFun`.
  */
 jsFreeCleanReference :: !JSVal !*JSWorld -> *JSWorld
 
