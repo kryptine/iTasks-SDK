@@ -391,6 +391,8 @@ itasks.Viewport = {
 		//Create a temporary root element
 		me.insertChild(0,{type:'Loader', parentCmp: me});
 
+		me.parentViewport = me.getViewport();
+
 		//Get a connection
 		me.taskUrl = me.determineTaskEndpoint();
 		me.connection = itasks.ConnectionPool.getConnection(me.taskUrl);
@@ -414,16 +416,15 @@ itasks.Viewport = {
 				uiChangeCallback,
 				exceptionCallback);	
 		}
+
+		me.addWindowResizeListener();
 	},
-	getParentViewport: function() {
-		var me = this, parentVp = me.parentCmp;
-		while(parentVp) {
-			if(parentVp.cssCls == 'viewport') { //Bit of a hack...
-				return parentVp;
-			}
-			parentVp = parentVp.parentCmp;
+	addWindowResizeListener: function() {
+		var me = this;
+		if(me.parentViewport !== null) { //Only listen to window changes as the top level
+			return;
 		}
-		return null;
+		window.addEventListener('resize',me.onResize.bind(me));
 	},
 	determineTaskEndpoint: function() {
 		var me = this;
@@ -434,12 +435,11 @@ itasks.Viewport = {
 				return 'ws://' + location.host + me.taskUrl + (me.taskUrl.endsWith('/') ? '' : '/') + 'gui-wsock';
 			}
 		} 
-		var parentVp = me.getParentViewport();
-		if(parentVp === null) {
+		if(me.parentViewport === null) {
 			//If there is no parent, use the default url
 			return 'ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock';
 		} else {
-			return parentVp.determineTaskEndpoint();
+			return me.parentViewport.determineTaskEndpoint();
 		}
 	},
 	doEditEvent: function (taskId, editorId, value) {
