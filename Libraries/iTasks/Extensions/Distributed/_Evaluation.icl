@@ -53,7 +53,7 @@ where
     eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
             # (val,iworld)  = readRegister taskId value_share iworld
             = case val of
-                  Ok (ReadingDone val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap} (rep event) tree, iworld)
+                  Ok (ReadingDone val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (rep event) tree, iworld)
                   Error e           = (ExceptionResult e,iworld)
 
     rep ResetEvent = ReplaceUI (ui UIEmpty)
