@@ -22,6 +22,8 @@ Save the file using `File -> Save myprogram.icl` from the main menu.
 ### Step 2: Creating a project file ###
 You now need to create a project file. A project file contains all search paths and compilation settings for building a Clean program.
 The iTask framework provides a template with default settings for an iTask project. You can create your own project file using this template by choosing `File -> New Project Using Template...` from the main menu.
+You are then asked to select a project template (.prt) file. You can find the `iTasks.prt` template file in the `Config` subdirectory of your Clean system.
+After selecting the template file you are asked to choose a name for the project file. By default it will be `myprogram.prj` (for the module `myprogram.icl`) which you don't have to change.
 
 ### Step 3: Building and running your project ###
 You can build and run your program by choosing `Project -> Update and Run` from the main menu. After compilation is completed you should see a console window displaying an URL that you can open in your web browser.
