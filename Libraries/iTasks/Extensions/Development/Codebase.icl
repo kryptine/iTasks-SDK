@@ -12,13 +12,14 @@ where
 	toString Icl = ".icl"
 
 moduleList :: SDSSource FilePath [(ModuleName,ModuleType)] ()
-moduleList = worldShare read write
+moduleList = worldShare read write notify
 where
 	read path world = case scanPaths [path] world of
 		(Ok paths,world) = (Ok (determineModules path paths), world)
 		(Error e,world) = (Error (snd e), world)
 
 	write path () world = (Ok (),world)
+	notify p1 _ p2 = p1 == p2
 
 	scanPaths [] world = (Ok [],world)
 	scanPaths [p:ps] world = case getFileInfo p world of
