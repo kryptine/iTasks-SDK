@@ -186,14 +186,14 @@ sequence	:: ![Task a] 						-> Task [a]		| iTask a
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 
 /**
-* Repeats a task until while a predicate holds
+* Repeats a task while a predicate holds
 *
 * @param Predicate: The predicate that has to hold
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type !(a -> Task a) (a -> Bool) -> Task a | iTask a
+* @type (a -> Bool) !(a -> Task a) -> Task a | iTask a
 */
-foreverIf pred task :== foreverStIf pred gDefault{|*|} \_->task
+foreverIf pred task :== (foreverStIf (maybe True pred) Nothing \_->task @ Just) @? tvFromMaybe
 
 /**
 * Repeats a task indefinitely while carrying a state
@@ -201,7 +201,7 @@ foreverIf pred task :== foreverStIf pred gDefault{|*|} \_->task
 * @param State: The initial state
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type !(a -> Task a) a -> Task a | iTask a
+* @type a !(a -> Task a) -> Task a | iTask a
 */
 foreverSt initialState task :== foreverStIf (\_->True) initialState task
 
@@ -212,7 +212,7 @@ foreverSt initialState task :== foreverStIf (\_->True) initialState task
 * @return The combined task
 * @type (Task a) -> Task a | iTask a
 */
-forever task :== foreverSt gDefault{|*|} \_->task
+forever task :== (foreverSt Nothing \_->task @ Just) @? tvFromMaybe
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.

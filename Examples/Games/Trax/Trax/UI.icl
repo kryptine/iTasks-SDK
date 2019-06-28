@@ -2,9 +2,8 @@ implementation module Trax.UI
 
 import StdBool, StdList
 from   StdFunc import const, flip, id
-import Data.List
+from   Data.List import lookup
 import iTasks.WF.Tasks.Interaction
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
@@ -40,9 +39,9 @@ where
 
 board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
-| nr_of_tiles trax == zero
+| no_of_tiles trax == zero
 	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] [] []
-								   [  tileImage d tile <@< {onclick = const (start_with_this tile), local = False}
+								   [  tileImage d tile <@< {onclick = start_with_this tile, local = False}
 								   \\ tile <- gFDomain{|*|}
 								   ] NoHost
 	| otherwise					= voidImage d
@@ -52,7 +51,7 @@ board it_is_my_turn d st=:{trax}
 							              Just tile = tileImage d tile
 							       \\ row <- [miny - 1 .. maxy + 1]
 							        , col <- [minx - 1 .. maxx + 1]
-							        , let coord = /*fromTuple*/ (col,row)
+							        , let coord = fromTuple (col,row)
 							       ] NoHost
 where
 	((minx,maxx),(miny,maxy))	= bounds trax
@@ -67,12 +66,12 @@ freeImage d coord {trax,choice}
 | maybe True (\c -> coord <> c) choice
 								= unselected
 | otherwise						= above (repeat AtMiddleX) [] (Just d) []
-								        [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates]
+								        [tileImage (d /. nr_of_candidates) tile <@< {onclick = settile coord tile, local = False} \\ tile <- candidates]
 								        (Host unselected)
 where
 	candidates					= possible_tiles (linecolors trax coord)
 	nr_of_candidates			= length candidates
-	unselected					= tileShape d <@< {fill = freeTileColor} <@< {onclick = const (setcell coord), local = False}
+	unselected					= tileShape d <@< {fill = freeTileColor} <@< {onclick = setcell coord, local = False}
 
 tileImage :: Span TraxTile -> Image a
 tileImage d tile				= fromJust (lookup tile [ (horizontal,rotate (deg 0.0)   horizontal_tile)
@@ -95,12 +94,5 @@ where
 tileShape :: Span -> Image a
 tileShape d						= square d <@< {xradius = d /. 10} <@< {yradius = d /. 10}
 
-font							= { fontfamily  = "Arial"
-							      , fontysize   = 14.0
-							      , fontstretch = ""
-							      , fontstyle   = ""
-							      , fontvariant = ""
-							      , fontweight  = ""
-							      }
-
+font							= normalFontDef "Arial" 14.0
 tileSize						= px 50.0

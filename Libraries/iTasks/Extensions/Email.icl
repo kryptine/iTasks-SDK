@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Email
 
 import iTasks
-import Data.Functor
+import Data.Functor, Data.Func
 import Text, Text.HTML
 
 sendEmail :: ![EmailOpt] !String ![String] !String !String -> Task ()
@@ -51,7 +51,11 @@ where
 
 sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 sendHtmlEmail opts sender recipients subject body =
-	sendEmail [EmailOptExtraHeaders [("content-type", "text/html")]: opts] sender recipients subject (toString body)
+	sendEmail [EmailOptExtraHeaders [("content-type", "text/html")]: opts] sender recipients subject htmlString
+where
+	// avoid too long lines (SMTP allows a max length of 1000 characters only)
+	// by inserting a newline (\r\n is required for mails) after each tag
+	htmlString = replaceSubString ">" ">\r\n" $ toString body
 
 // SMTP messages
 smtpHelo = "HELO localhost\r\n"

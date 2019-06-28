@@ -1,7 +1,6 @@
 implementation module C2.Apps.ShipAdventure.Editor
 
-import iTasks
-import iTasks.Extensions.SVG.SVGEditor
+from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
 import iTasks.Extensions.JSONFile
 import iTasks.Internal.IWorld
 import iTasks.UI.Layout, iTasks.UI.Definition
@@ -17,10 +16,8 @@ import Data.Map.GenJSON
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
 
-import Graphics.Scalable.Image => qualified grid
+from   Graphics.Scalable.Image import class margin(..), instance margin (!Span,!Span), above, :: Host(..)
 import Graphics.Scalable.Types
-//from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
-//from Graphics.Scalable import :: ImageOffset, :: Host(..)
 
 shipEditorTabs		:: Task ()
 shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"

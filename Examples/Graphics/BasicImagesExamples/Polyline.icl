@@ -2,24 +2,20 @@ module Polyline
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-from   StdFunc import id, const
+import StdFunctions
 
 //	shorthand definitions for the used colours in these examples
 white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Polyline"
-		[ViewUsing id (fromSVGEditor
-			{ initView    = id
-			, renderImage = const polyline_in_host
-			, updModel    = \_ v = v
-			})] 0) world
+	= doTasks (viewInformation "Polyline" [ViewUsing id (fromSVGEditor
+														{ initView    = id
+														, renderImage = const polyline_in_host
+														, updModel    = \_ v = v
+														})] 0) world
 
 /** polyline_in_host model tags = image:
 	@image shows a polyline within a host.

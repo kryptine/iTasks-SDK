@@ -2,22 +2,17 @@ module Rotates
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.Common
-import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import StdEnum, StdReal
-from   StdFunc import id
+import StdEnum, StdFunctions, StdReal
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Rotates"
-		[ViewUsing id (fromSVGEditor
-	    	{ initView    = id
-	        , renderImage = const rotates
-	        , updModel    = \_ v = v
-	        })] 0) world
+	= doTasks (viewInformation "Rotates" [ViewUsing id (fromSVGEditor
+												    	{ initView    = id
+												        , renderImage = const rotates
+												        , updModel    = \_ v = v
+												        })] 0) world
 
 /** rotates model tags = image:
 	@image displays a sequence of rotated rectangles

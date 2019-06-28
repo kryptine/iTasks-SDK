@@ -1,9 +1,14 @@
-//Test script for new itasks embedding style
+//Global itasks namespace
 itasks = {};
 
-//auxiliary definitions for sending Maybe values to server
+//Auxiliary definitions for sending Maybe values to server
 const Nothing = ["Nothing"];
 function Just(x) { return["Just", x]; }
+
+//Global lookup table of itask components indexed by their dom element.
+//This makes it possible to find the managing itask component object for arbitrary dom elements.
+//Because it is a WeakMap, we can register components without having to unregister them.
+itasks.components = new WeakMap();
 
 //Core behavior
 itasks.Component = {
@@ -32,15 +37,19 @@ itasks.Component = {
 			.then(me.initComponent.bind(me))
 			.then(me.initChildren.bind(me))
 			.then(me.renderComponent.bind(me))
+			.then(me.registerComponent.bind(me))
 			.then(function(){ me.initialized=true; });
 	},
 	initUI: function() {
 		var me=this;
-		if (me.attributes.initUI!=null && me.attributes.initUI!='')
-			return ABC.loading_promise.then(function(){
-				var initUI=ABC.deserialize(me.attributes.initUI,me);
-				ABC.interpret(initUI, [me, ABC.initialized ? 0 : 1]);
+		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
+			return ABC_loading_promise.then(function(){
+				var initUI=ABC.deserialize(me.attributes.initUI);
+				var ref=ABC.share_clean_value(initUI,me);
+				ABC.interpret(new SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
+				ABC.clear_shared_clean_value(ref);
 			});
+		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {
@@ -88,6 +97,11 @@ itasks.Component = {
 				me.containerEl.appendChild(child.domEl);
 			}
 		});
+	},
+	registerComponent: function() {
+		if(this.domEl !== null) {
+			itasks.components.set(this.domEl,this);
+		}	
 	},
 	initDOMEl: function() {},
 
@@ -327,6 +341,8 @@ itasks.Component = {
 	onResize: function() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
+	onHtmlEvent: function(msg) { //Abstract
+	},
 	getViewport: function() {
 		var me = this, vp = me.parentCmp;
 		while(vp) {
@@ -375,6 +391,8 @@ itasks.Viewport = {
 		//Create a temporary root element
 		me.insertChild(0,{type:'Loader', parentCmp: me});
 
+		me.parentViewport = me.getViewport();
+
 		//Get a connection
 		me.taskUrl = me.determineTaskEndpoint();
 		me.connection = itasks.ConnectionPool.getConnection(me.taskUrl);
@@ -398,16 +416,15 @@ itasks.Viewport = {
 				uiChangeCallback,
 				exceptionCallback);	
 		}
+
+		me.addWindowResizeListener();
 	},
-	getParentViewport: function() {
-		var me = this, parentVp = me.parentCmp;
-		while(parentVp) {
-			if(parentVp.cssCls == 'viewport') { //Bit of a hack...
-				return parentVp;
-			}
-			parentVp = parentVp.parentCmp;
+	addWindowResizeListener: function() {
+		var me = this;
+		if(me.parentViewport !== null) { //Only listen to window changes as the top level
+			return;
 		}
-		return null;
+		window.addEventListener('resize',me.onResize.bind(me));
 	},
 	determineTaskEndpoint: function() {
 		var me = this;
@@ -418,12 +435,11 @@ itasks.Viewport = {
 				return 'ws://' + location.host + me.taskUrl + (me.taskUrl.endsWith('/') ? '' : '/') + 'gui-wsock';
 			}
 		} 
-		var parentVp = me.getParentViewport();
-		if(parentVp === null) {
+		if(me.parentViewport === null) {
 			//If there is no parent, use the default url
 			return 'ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock';
 		} else {
-			return parentVp.determineTaskEndpoint();
+			return me.parentViewport.determineTaskEndpoint();
 		}
 	},
 	doEditEvent: function (taskId, editorId, value) {
@@ -490,7 +506,7 @@ itasks.Viewport = {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
-	init: function () { },
+	init: function () { return Promise.resolve(); },
 	beforeRemove: function() {},
 	_beforeRemove: function() {},
 };
@@ -671,3 +687,17 @@ itasks.ConnectionPool = {
 	}
 };
 
+//Global functions that you can use to trigger edit events from pieces of html code displayed by components
+itasks.htmlEvent = function(event, msg) {
+	var domEl = event.target;
+	var component = null;
+
+	event.preventDefault();
+
+	while(domEl !== null && (component = itasks.components.get(domEl)) == null) {
+		domEl = domEl.parentElement;
+	}
+	if(component !== null) {
+		component.onHtmlEvent(msg);
+	}
+}

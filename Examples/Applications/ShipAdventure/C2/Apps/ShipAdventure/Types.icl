@@ -4,8 +4,7 @@ implementation module C2.Apps.ShipAdventure.Types
 
 import iTasks.Internal.Tonic
 import iTasks.Extensions.Admin.TonicAdmin
-import iTasks.Extensions.SVG.SVGEditor
-//import Graphics.Scalable
+from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
 import qualified Data.List as DL
 from Data.Func import mapSt
 import StdArray
@@ -17,7 +16,7 @@ import qualified Data.Set as DS
 import Text.HTML
 
 import C2.Framework.MapEnvironment
-from C2.Framework.Logging import addLog
+from   C2.Framework.Logging import addLog
 import C2.Apps.ShipAdventure.PathFinding
 import C2.Apps.ShipAdventure.Images
 import C2.Apps.ShipAdventure.Editor

@@ -8,7 +8,7 @@ import Data.Maybe
 import Data.GenFDomain
 import Data.GenEq, Data.GenLexOrd, Control.GenMap
 
-derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
+derive class iTask TraxSt, Coordinate, TileEdge, LineColor
 
 :: TraxTile                             // a tile connects two edges:
 	= { end1 :: !TileEdge               //    the red line at one end and
@@ -40,33 +40,31 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 
 :: TileEdge                             // an edge is either at:
 	= North	                            //    the north side of a tile, or at
-	| East                              //    the east side of a tile, or at
+	| East                              //    the east  side of a tile, or at
 	| South                             //    the south side of a tile, or at
-	| West                              //    the west side of a tile
-derive   gFDomain TileEdge
-derive   gLexOrd  TileEdge
-instance ==       TileEdge
-instance <        TileEdge
-instance ~        TileEdge
+	| West                              //    the west  side of a tile
+derive   gFDomain  TileEdge
+derive   gLexOrd   TileEdge
+instance ==        TileEdge
+instance <         TileEdge
+instance ~         TileEdge
 
 :: LineColor                            // a line color is either:
 	= RedLine                           //    red, or
 	| WhiteLine                         //    white
-derive   gFDomain LineColor
-instance ==       LineColor
-instance ~        LineColor
+derive   gFDomain  LineColor
+instance ==        LineColor
+instance ~         LineColor
 
-:: Coordinate :== (Int,Int)				// debugging: use tuple instead of record
-/*
 :: Coordinate                           // a coordinate consists of:
  = { col :: !Int                        //   a column-coordinate
    , row :: !Int                        //   a row-coordinate
-   }*/
+   }
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate
-//instance fromTuple Int Int Coordinate
-//instance toTuple   Int Int Coordinate
+instance fromTuple Int Int Coordinate
+instance toTuple   Int Int Coordinate
 
 /** col @{col} = col.
 */
@@ -77,9 +75,7 @@ col :: !Coordinate -> Int
 row :: !Coordinate -> Int
 
 
-:: Trax								    // actually, Trax ought to be opaque
- = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
-   }
+:: Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
@@ -89,7 +85,6 @@ derive   gEq        Trax
 instance ==         Trax
 instance zero       Trax
 
-
 class tiles a :: !a -> [(Coordinate,TraxTile)]
 
 /** tiles @trax = @tiles`:
@@ -98,27 +93,28 @@ class tiles a :: !a -> [(Coordinate,TraxTile)]
 instance tiles Trax
 instance tiles TraxSt
 
-/** nr_of_tiles @trax = @nr_of_tiles:
-        returns the current number of tiles (@nr_of_tiles) in @trax.
+/** no_of_tiles @trax:
+        returns the current number of tiles in @trax.
 */
-nr_of_tiles :: !Trax -> Int
+no_of_tiles :: !Trax -> Int
 
 /** bounds @trax = ((@minx,@maxx),(@miny,@maxy)):
         returns the mimimum x-coordinate @minx and minimum y-coordinate @miny
         and the maximum x-coordinate @maxx and maximum y-coordinate @maxy of @trax.
-        It is assumed that (nr_of_tiles @trax > 0).
+        It is assumed that (no_of_tiles @trax > 0).
 */
 bounds :: !Trax -> (!(!Int,!Int), !(!Int,!Int))
 
 /** dimension @trax = (@nr_of_cols,@nr_of_rows):
        returns the @nr_of_cols and @nr_of_rows of the collection of @trax.
-       It is assumed that (nr_of_tiles @trax > 0).
+       It is assumed that (no_of_tiles @trax > 0).
 */
 dimension :: !Trax -> (!Int,!Int)
 
 /** add_tile @coordinate @tile @trax = @trax`:
-        only if (tile_at @trax @coordinate) = Nothing and linecolors_match (linecolors @trax @coordinate) (tilecolors @tile)
-        then (@coordinate,@tile) is added to @trax, resulting in @trax`.
+        only if (tile_at @trax @coordinate) = Nothing and the line colors of @tile match with the
+        line endings of the neighbouring tiles of @coordinate in @trax, then (@coordinate,@tile) 
+        is added to @trax, resulting in @trax`.
         In any other case, @trax` = @trax.
 */
 add_tile :: !Coordinate !TraxTile !Trax -> Trax
@@ -182,15 +178,33 @@ winning_lines :: !Trax -> [(LineColor,Line)]
 */
 mandatory_moves :: !Trax !Coordinate -> Trax
 
-
 :: TraxSt
- = { trax   :: Trax              // the current set of placed tiles
-   , names  :: [User]            // the current two players
-   , turn   :: Bool
-   , choice :: Maybe Coordinate
+ = { trax   :: !Trax              // the current set of placed tiles
+   , names  :: ![User]            // the current two players
+   , turn   :: !Bool
+   , choice :: !Maybe Coordinate
    }
 
-game_over :: TraxSt -> Bool
-start_with_this :: TraxTile TraxSt -> TraxSt
-setcell :: Coordinate TraxSt -> TraxSt
-settile :: Coordinate TraxTile TraxSt -> TraxSt
+/** game_over @st:
+		returns True only if the given configuration in @st.trax contains one or more
+		lines that connect opposite board edges, or one or more closed loops.
+*/
+game_over :: !TraxSt -> Bool
+
+/** start_with_this @tile @st = @st`:
+		@st` has @tile added to @st.trax, assuming that @st.trax is empty; 
+		@st` toggles @st.turn, allowed the other player to put a tile.
+*/
+start_with_this :: !TraxTile !TraxSt -> TraxSt
+
+/** setcell @choice @st:
+		sets @st.choice to (Just @choice).
+*/
+setcell :: !Coordinate !TraxSt -> TraxSt
+
+/** settile @c @t @st = @st`:
+		@st` has tile @t added to @st.trax on coordinate @c.
+		In addition, all the mandatory moves have been played as well.
+		The turn is given to the other player.
+*/
+settile :: !Coordinate !TraxTile !TraxSt -> TraxSt

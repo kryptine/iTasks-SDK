@@ -1,8 +1,7 @@
 implementation module C2.Apps.ShipAdventure.Core
 
 import iTasks.Extensions.DateTime
-import iTasks.Extensions.SVG.SVGEditor
-//import Graphics.Scalable
+from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import Data.Map.GenJSON

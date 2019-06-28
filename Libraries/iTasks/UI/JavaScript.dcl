@@ -12,7 +12,7 @@ definition module iTasks.UI.JavaScript
  * with JavaScript (where indicated in documentation below).
  *
  * The JavaScript interfacing with this module can be found in itasks-core.js
- * and abc-interpreter.js.
+ * and itasks-abc-interpreter.js.
  */
 
 import StdGeneric
@@ -41,13 +41,19 @@ toJS x :== gToJS{|*|} x
  * @param A reference to an iTasks component.
  * @result A JavaScript reference to the Clean value.
  */
-jsMakeCleanReference :: a !JSVal -> JSVal
+jsMakeCleanReference :: a !JSVal !*JSWorld -> *(!JSVal, !*JSWorld)
 
 /**
  * Retrieve a Clean value from the JavaScript heap. The value must have been
  * shared using `jsMakeCleanReference`.
  */
 jsGetCleanReference :: !JSVal !*JSWorld -> *(!Maybe b, !*JSWorld)
+
+/**
+ * Remove a Clean value from the JavaScript heap. The value must have been
+ * shared using `jsMakeCleanReference` or `jsWrapFun`.
+ */
+jsFreeCleanReference :: !JSVal !*JSWorld -> *JSWorld
 
 jsTypeOf :: !JSVal -> JSVal
 
@@ -191,21 +197,18 @@ jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JS
  * receiving an array of JavaScript values) so that it can be called using the
  * `initUI` step from `itasks-core.js`. Internally, this also sets up part of
  * the WebAssembly backend. The first argument to the wrapped function is a
- * reference to an iTasks component which can be used in `jsWrapFun`,
- * `jsMakeCleanReference`, and `jsDeserializeGraph`.
+ * reference to an iTasks component which can be used in `jsWrapFun` and
+ * `jsMakeCleanReference`.
  */
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 
 /**
  * Deserialize a graph that was serialized using the tools in
- * `iTasks.Internal.Client.Serialization`. The graph must be associated to an
- * iTasks component (typically given by `wrapInitUIFunction`). When the iTasks
- * component is destroyed, the graph may eventually be garbage collected.
+ * `iTasks.Internal.Client.Serialization`.
  * @param The string to deserialize.
- * @param The iTasks component to link the graph to.
  * @result The deserialized value.
  */
-jsDeserializeGraph :: !String !JSVal !*JSWorld -> *(!.a, !*JSWorld)
+jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
 
 /**
  * Load external CSS stylesheet by its URL.
