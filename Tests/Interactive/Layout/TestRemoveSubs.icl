@@ -2,7 +2,7 @@ module TestRemoveSubs
 import iTasks
 
 test :: Task ()
-test = (updateInformation () [] "Test for removing a sub ui" @! () >>= return) <<@ ApplyLayout layout
+test = (updateInformation [] "Test for removing a sub ui" @! () >>= return) <<@ ApplyLayout layout
 where
     layout = removeSubUIs (SelectByPath [1])
 

@@ -1,8 +1,8 @@
 module BasicImages
 
 import iTasks.Engine
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions, StdList
 
@@ -15,7 +15,7 @@ none			= toSVGColor "none"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Basic Images"
+	= doTasks (Title "Basic Images" @>> viewInformation 
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const basic_images

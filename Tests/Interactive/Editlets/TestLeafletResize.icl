@@ -2,8 +2,8 @@ module TestLeafletResize
 import iTasks
 import iTasks.Extensions.GIS.Leaflet
 
-test =  (viewInformation "Map resizing" [] {LeafletMap|perspective=defaultValue,objects=objects,tilesUrls=[],icons=[]} <<@ FlexInner <<@ AddCSSClass "itasks-flex-height")
-	-|| (updateInformation "List to force resizing" [] [1,2,3,4] <<@ AddCSSClass "itasks-wrap-height")
+test =  ((Hint "Map resizing" @>> viewInformation [] {LeafletMap|perspective=defaultValue,objects=objects,tilesUrls=[],icons=[]}) <<@ FlexInner <<@ AddCSSClass "itasks-flex-height")
+	-|| ((Hint "List to force resizing" @>> updateInformation  [] [1,2,3,4]) <<@ AddCSSClass "itasks-wrap-height")
 
 where
 	objects = [Polygon {polygonId = LeafletObjectID "poly", points = points,style=[], editable = True}]
