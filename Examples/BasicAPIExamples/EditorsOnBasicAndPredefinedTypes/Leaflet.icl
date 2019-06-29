@@ -13,5 +13,5 @@ main = leafletMap @! ()
 
 leafletMap :: Task LeafletMap
 leafletMap
-	=   enterInformation [EnterWithHint "Enter a Leaflet map:"]
-	>>= viewInformation [ViewWithHint "You entered:", ViewAs (gText{|*|} AsMultiLine o Just)]
+	=   Hint "Enter a Leaflet map:" @>> enterInformation []
+	>>= \result -> Hint "You entered:" @>> viewInformation [ViewAs (gText{|*|} AsMultiLine o Just)] result

@@ -218,17 +218,17 @@ utcDateTimeToTimestamp {DateTime|day,mon,year,hour,min,sec} =
 
 waitForTime :: !Time -> Task Time
 waitForTime time
-	= viewSharedInformation [ViewWithTitle "Wait for time", ViewWithHint ("Wait until " +++ toString time)] currentTime
+	= Title "Wait for time" @>> Hint ("Wait until " +++ toString time) @>> viewSharedInformation [] currentTime
 	>>* [OnValue (ifValue (\now -> time < now) return)]
 
 waitForDate :: !Date -> Task Date
 waitForDate date
-	= viewSharedInformation [ViewWithTitle "Wait for date", ViewWithHint ("Wait until " +++ toString date)] currentDate
+	= Title "Wait for date" @>> Hint ("Wait until " +++ toString date) @>> viewSharedInformation [] currentDate
 	>>* [OnValue (ifValue (\now -> date < now) return)]
 	
 waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime
-	= viewSharedInformation [ViewWithTitle "Wait for date and time", ViewWithHint ("Wait until " +++ toString datetime)] currentDateTime
+	= Title "Wait for date and time" @>> Hint ("Wait until " +++ toString datetime) @>> viewSharedInformation [] currentDateTime
 	>>* [OnValue (ifValue (\now -> datetime < now) return)]
 
 waitForTimer :: !Int -> Task DateTime

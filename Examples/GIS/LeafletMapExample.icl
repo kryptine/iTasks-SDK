@@ -13,7 +13,7 @@ playWithMaps = withShared ({defaultValue & icons = shipIcons, tilesUrls = ["/til
 	) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 
 manipulateMap :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manipulateMap m = updateSharedInformation () [UpdateUsing id (flip const) (customLeafletEditor eventHandlers)] m
+manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) const (customLeafletEditor eventHandlers)] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 where
 	eventHandlers = {simpleStateEventHandlers & onHtmlEvent = onHtmlEvent}
@@ -22,23 +22,23 @@ where
 	onHtmlEvent _ (l,s) = (l,s)
 
 managePerspective :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-managePerspective m = updateSharedInformation (Title "Perspective") [] 
+managePerspective m = Title "Perspective" @>> updateSharedInformation  [] 
 	(mapReadWrite (\(x,s) -> x.LeafletMap.perspective, \p (x,s) -> Just ({x & perspective = p},s)) Nothing m) @! ()
 
 manageState :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manageState m = updateSharedInformation (Title "State") [] 
+manageState m = Title "State" @>> updateSharedInformation  [] 
 	(mapReadWrite (\(x,s) -> s, \sn (x,s) -> Just (x,sn)) Nothing m) @! ()
 
 // objects can currently only be viewed, as the editor for `HtmlTag` only works in view mode
 manageMapObjects :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manageMapObjects m = viewSharedInformation (Title "View objects") [ViewAs toPrj] m
+manageMapObjects m = Title "View objects" @>> viewSharedInformation [ViewAs toPrj] m
 				   -|| addDemoObjects m
 				   @! ()
 where
 	toPrj (m,_) = m.LeafletMap.objects
 
 	addDemoObjects m
-		= enterChoiceAs "Add objects:" [ChooseFromCheckGroup fst] options snd
+		=  Hint "Add objects:" @>> enterChoiceAs [ChooseFromCheckGroup fst] options snd
 		>^* [OnAction (Action "Add") (hasValue id)]
 	where
 	 	options =

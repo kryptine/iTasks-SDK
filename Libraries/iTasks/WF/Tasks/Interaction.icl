@@ -23,53 +23,10 @@ import Text.HTML
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
 //Boilerplate access functions
-viewAttributes :: [ViewOption a] -> UIAttributes
-viewAttributes options = foldr addOption 'DM'.newMap options
-where
-	addOption (ViewWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (ViewWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (ViewWithLabel label) attr = 'DM'.union (labelAttr label) attr
-	addOption _ attr = attr
-
-enterAttributes :: [EnterOption a] -> UIAttributes
-enterAttributes options = foldr addOption 'DM'.newMap options
-where
-	addOption (EnterWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (EnterWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (EnterWithLabel label) attr = 'DM'.union (labelAttr label) attr
-	addOption _ attr = attr
-
-updateAttributes :: [UpdateOption a] -> UIAttributes
-updateAttributes options = foldr addOption 'DM'.newMap options
-where
-	addOption (UpdateWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (UpdateWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (UpdateWithLabel label) attr = 'DM'.union (labelAttr label) attr
-	addOption _ attr = attr
-
-updateSharedAttributes :: [UpdateSharedOption a b] -> UIAttributes
-updateSharedAttributes options = foldr addOption 'DM'.newMap options
-where
-	addOption (UpdateSharedWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (UpdateSharedWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (UpdateSharedWithLabel label) attr = 'DM'.union (labelAttr label) attr
-	addOption _ attr = attr
-
 selectAttributes :: [SelectOption a b] -> UIAttributes
 selectAttributes options = foldr addOption 'DM'.newMap options
 where
-	addOption (SelectWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (SelectWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (SelectWithLabel label) attr = 'DM'.union (labelAttr label) attr
 	addOption (SelectMultiple multiple) attr = 'DM'.union (multipleAttr multiple) attr
-	addOption _ attr = attr
-
-choiceAttributes :: [ChoiceOption a] -> UIAttributes
-choiceAttributes options = foldr addOption 'DM'.newMap options
-where
-	addOption (ChooseWithHint hint) attr = 'DM'.union (hintAttr hint) attr
-	addOption (ChooseWithTitle title) attr = 'DM'.union (titleAttr title) attr
-	addOption (ChooseWithLabel label) attr = 'DM'.union (labelAttr label) attr
 	addOption _ attr = attr
 
 viewEditor :: [ViewOption m] -> ViewOption m | iTask m
@@ -119,9 +76,6 @@ where
 	selectOptions` _ [ChooseFromCheckGroup f:os] = [SelectInCheckGroup (toTexts f)  (findSelection target):selectOptions` True os]
 	selectOptions` _ [ChooseFromList f:os] = [SelectInList (toTexts f) (findSelection target):selectOptions` True os]
 	selectOptions` _ [ChooseFromGrid f:os] = [SelectInGrid (toGrid f) (findSelection target):selectOptions` True os]
-	selectOptions` hasEditorOption [ChooseWithTitle t:os] = [SelectWithTitle t:selectOptions` hasEditorOption os]
-	selectOptions` hasEditorOption [ChooseWithHint t:os] = [SelectWithHint t:selectOptions` hasEditorOption os]
-	selectOptions` hasEditorOption [ChooseWithLabel t:os] = [SelectWithLabel t:selectOptions` hasEditorOption os]
 	selectOptions` True [] = []
 	selectOptions` False [] = [SelectInDropdown (toTexts id) (findSelection target)]
 
@@ -136,38 +90,38 @@ findSelection :: (o -> s) [o] [Int] -> [s]
 findSelection target options idxs = target <$> getItems options idxs
 
 enterInformation :: ![EnterOption m] -> Task m | iTask m
-enterInformation options = enterInformation` (enterAttributes options) (enterEditor options)
-enterInformation` attributes (EnterUsing fromf editor)
-	= attributes @>> interactRW unitShare handlers editor @ (\((),v) -> fromf v)
+enterInformation options = enterInformation` (enterEditor options)
+enterInformation` (EnterUsing fromf editor)
+	= interactRW unitShare handlers editor @ (\((),v) -> fromf v)
 where
 	handlers = {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} 
 
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
-viewInformation options m = viewInformation` (viewAttributes options) (viewEditor options) m
-viewInformation` attributes (ViewUsing tof editor) m
-	= attributes @>> interactR unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
+viewInformation options m = viewInformation`  (viewEditor options) m
+viewInformation` (ViewUsing tof editor) m
+	= interactR unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
 
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
-updateInformation options m = updateInformation` (updateAttributes options) (updateEditor options) m
-updateInformation` attributes (UpdateUsing tof fromf editor) m
-	= attributes @>> interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
+updateInformation options m = updateInformation` (updateEditor options) m
+updateInformation` (UpdateUsing tof fromf editor) m
+	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
 		editor @ (\((),v) -> fromf m v)
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
-updateSharedInformation options sds = updateSharedInformation` (updateSharedAttributes options) (updateSharedEditor options) sds
-updateSharedInformation` attributes (UpdateSharedUsing tof fromf conflictf editor) sds
-	= attributes @>> interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
+updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
+updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
+	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
 		editor @ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
-viewSharedInformation options sds = viewSharedInformation` (viewAttributes options) (viewEditor options) sds
-viewSharedInformation` attributes (ViewUsing tof editor) sds
-	= attributes @>> interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
+viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
+viewSharedInformation` (ViewUsing tof editor) sds
+	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
-updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedAttributes options) (updateSharedEditor options) sds m
-updateInformationWithShared` attributes (UpdateSharedUsing tof fromf conflictf editor) sds m
-	= attributes @>> interactRW sds
+updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
+updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
+	= interactRW sds
 		{onInit = \r -> ((r,m), Update $ tof (r,m))
 		,onEdit = \v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing)
 		,onRefresh = \r (_,m) _ -> ((r,m),tof (r,m),Nothing)
@@ -357,7 +311,7 @@ chooseAction actions
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
 
 viewTitle :: !a -> Task a | iTask a
-viewTitle a = viewInformation [ViewWithTitle title, ViewAs view] a
+viewTitle a = Title title @>> viewInformation [ViewAs view] a
 where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
@@ -379,14 +333,14 @@ crudWith choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = go
         , OnAction (Action "Delete") (hasValue deleteItem)
         ]
   newItem
-    =            enterInformation [EnterWithTitle "New item":enterOpts]
+    =            Title "New item" @>> enterInformation enterOpts
     >>= \item -> upd (putItem item) sh
     >>|          goCRUD
   viewItem x
-    =            viewInformation [ViewWithTitle "View item":viewOpts] x
+    =            Title "View item" @>> viewInformation viewOpts x
     >>|          goCRUD
   editItem x
-    =            updateInformation [UpdateWithTitle "Edit item":updateOpts] x
+    =            Title "Edit item" @>> updateInformation updateOpts x
     >>= \item -> upd (putItem item) sh
     >>|          goCRUD
   deleteItem x

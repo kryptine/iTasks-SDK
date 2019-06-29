@@ -13,10 +13,10 @@ main = myExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) players)
-	>>|				viewInformation [ViewWithHint "Login under one of the following names (password = login name)"]
-						(foldl (+++) "" (map (\n -> n +++ ", ") players))
+	>>|				(Hint "Login under one of the following names (password = login name)" @>> viewInformation []
+						(foldl (+++) "" (map (\n -> n +++ ", ") players)))
 					-||-
-					viewInformation [ViewWithHint "and then Select \"new\" to create a new Task..."] ""
+					(Hint "and then Select \"new\" to create a new Task..." @>> viewInformation [] "")
 	>>|				installWorkflows [wf "chat"]	
 	>>|				loginAndManageWork "Chat_4_2 Example" Nothing Nothing False
 where
@@ -32,7 +32,7 @@ myExample
 	= createChatSession enter update
 where
 	enter :: Task String
-	enter = enterInformation [EnterWithHint "Type in a message"]
+	enter = Hint "Type in a message" @>> enterInformation []
 
 	update :: User String -> Task String
 	update user chat = return (toString user +++ " says : " +++ chat)
@@ -40,7 +40,7 @@ where
 createChatSession :: (Task a) (User a -> Task b) -> Task [b] | iTask a & iTask b
 createChatSession enter update
    =           		get currentUser
-   >>= \me ->  		enterMultipleChoiceWithShared [ChooseWithHint "select chatters", ChooseFromCheckGroup id] users
+   >>= \me ->  		Hint "select chatters" @>> enterMultipleChoiceWithShared [ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 
 startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds
@@ -50,7 +50,7 @@ startChats enter update chatters chatStore
 
 chatWith :: User (Task a) (User a -> Task b) (Shared sds [b]) -> Task () | iTask a & iTask b & RWShared sds
 chatWith me enter update chatStore
-	=  	viewSharedInformation [ViewWithHint "Chat History:"] chatStore
+	=  	Hint "Chat History:" @>> viewSharedInformation [] chatStore
 	   	||-
 		oneChat
 where

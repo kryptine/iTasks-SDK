@@ -12,7 +12,7 @@ main = calculateSumStepwise @! ()
 
 calculateSumStepwise :: Task Int
 calculateSumStepwise
-  	=   			enterInformation [EnterWithTitle "Number 1", EnterWithHint "Enter a number"]
-  	>>= \num1 ->	enterInformation [EnterWithTitle "Number 2", EnterWithHint "Enter another number"]
-  	>>= \num2 ->    viewInformation [ViewWithTitle "Sum", ViewWithHint "The sum of those numbers is:"] (num1 + num2)
+  	=   			Title "Number 1" @>> Hint "Enter a number" @>> enterInformation []
+  	>>= \num1 ->	Title "Number 2" @>> Hint "Enter another number" @>> enterInformation []
+  	>>= \num2 ->    Title "Sum" @>> Hint "The sum of those numbers is:" @>> viewInformation [] (num1 + num2)
 	>>= 			return

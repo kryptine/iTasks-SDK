@@ -35,7 +35,7 @@ outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite 
 
   read :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
        -> MaybeError TaskException (TaskId, Int, Task (), TStability)
-  read oid=:(tid, _) trtMap = maybe (Ok (TaskId 0 0, 0, viewInformation [ViewWithTitle "Notice"] ("No task value for the selected task. Try entering or updating a value in its editor.") @! (), TNoVal))
+  read oid=:(tid, _) trtMap = maybe (Ok (TaskId 0 0, 0, Title "Notice" @>> viewInformation [] ("No task value for the selected task. Try entering or updating a value in its editor.") @! (), TNoVal))
                           Ok ('DM'.get oid trtMap)
 
   write :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
@@ -176,7 +176,7 @@ storeTaskOutputViewer tr nid parentTaskId childTaskId iworld // = iworld // TODO
   | otherwise = iworld
 
 resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Task (), !TStability) | iTask a
-resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInformation [ViewWithTitle ("Value for task " +++ toString tid)] v @! (), if s TStable TUnstable)
-resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, viewInformation [ViewWithTitle ("Value for task " +++ toString tid)] "No value" @! (), TNoVal)
-resultToOutput newN tid _                               = (tid, newN, viewInformation [ViewWithTitle "Error"] ("No task value for task " +++ toString tid) @! (), TNoVal)
+resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, Title ("Value for task " +++ toString tid) @>> viewInformation [] v @! (), if s TStable TUnstable)
+resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, Title ("Value for task " +++ toString tid) @>> viewInformation [] "No value" @! (), TNoVal)
+resultToOutput newN tid _                               = (tid, newN, Title "Error" @>> viewInformation [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 

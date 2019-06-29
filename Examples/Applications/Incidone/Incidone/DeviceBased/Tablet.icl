@@ -48,9 +48,10 @@ where
             @!  WallClock
         configure "Countdown"
             =   get currentDateTime
-            >>- updateInformation [UpdateWithTitle title,UpdateWithHint "Set the countdown date and time"]
+            >>- \datetime ->
+				Title title @>> Hint "Set the countdown date and time" @>> updateInformation [] datetime
             @   WallCountDown
         configure _
-            = viewInformation [ViewWithTitle title, ViewWithHint "This option is not available yet..."] () @? const NoValue
+            = Title title @>> Hint "This option is not available yet..." @>> viewInformation [] () @? const NoValue
 
     bigLabel l = SpanTag [StyleAttr "font-size: 24px; font-weight: bold; margin-bottom: 5px;"] [Text (toSingleLineText l)]

@@ -11,5 +11,5 @@ main :: Task ()
 main = runProcess @! ()
 
 runProcess :: Task Int
-runProcess = enterInformation [EnterWithHint "Command"] -&&- enterInformation [EnterWithHint "Arguments"]
+runProcess = (Hint "Command" @>> enterInformation []) -&&- (Hint "Arguments" @>> enterInformation [])
 	>>= \(cmd, args)->runProcessInteractive zero cmd args Nothing

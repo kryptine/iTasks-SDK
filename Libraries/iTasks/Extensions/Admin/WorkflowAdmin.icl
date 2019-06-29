@@ -116,11 +116,14 @@ loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
 		(((	identifyApplication applicationName loginMessage
 			||-
 			(anyTask [
-	 				enterInformation [EnterWithTitle "Authenticated access", EnterWithHint "Enter your credentials and login"] @ Just
+	 				Title "Authenticated access" @>> Hint "Enter your credentials and login" @>> enterInformation [] @ Just
 				>>* [OnAction (Action "Login")  (hasValue return)]
 				:if allowGuests
-					[viewInformation [ViewWithTitle "Guest access", ViewWithHint "Alternatively, you can continue anonymously as guest user"] ()
-					 >>| (return Nothing)
+					[
+						Title "Guest access" @>>
+						Hint "Alternatively, you can continue anonymously as guest user" @>>
+						viewInformation [] ()
+					 	>>| (return Nothing)
 					]
 					[]
 				] <<@ ArrangeHorizontal)
@@ -132,7 +135,7 @@ where
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorkOfCurrentUser welcomeMessage)
-			Nothing		= (viewInformation [ViewWithTitle "Login failed"] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
+			Nothing		= (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
 	browse Nothing
 		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorkOfCurrentUser welcomeMessage)
 
@@ -178,7 +181,7 @@ manageSession =
 where
 	view user	= "Welcome " +++ toString user
 
-chooseWhatToDo welcomeMessage = updateChoiceWithShared [ChooseWithTitle "Menu",ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
+chooseWhatToDo welcomeMessage = Title "Menu" @>> updateChoiceWithShared [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
 where
 	addManageWork wfs = [manageWorkWf:wfs]
 	manageWorkWf = transientWorkflow "My Tasks" "Manage your worklist"  (manageWork welcomeMessage)
@@ -214,7 +217,7 @@ where
 		]
 
 viewWelcomeMessage :: HtmlTag -> Task ()
-viewWelcomeMessage html = viewInformation [ViewWithTitle "Welcome"] html @! ()
+viewWelcomeMessage html = Title "Welcome" @>> viewInformation [] html @! ()
 	
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list
@@ -225,7 +228,7 @@ addNewTask list
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [SelectWithTitle "Tasks", SelectMultiple False, SelectInTree toTree fromTree] allowedPersistentWorkflows (const []) 
+	=  Title "Tasks" @>> editSelectionWithShared [SelectMultiple False, SelectInTree toTree fromTree] allowedPersistentWorkflows (const []) 
 	@? tvHd
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
@@ -258,7 +261,7 @@ where
 
 viewWorkflowDetails :: !(sds () (Maybe Workflow) ()) -> Task Workflow | RWShared sds
 viewWorkflowDetails sel
-	= viewSharedInformation [ViewWithTitle "Task description", ViewUsing view textView] sel
+	= Title "Task description" @>> viewSharedInformation [ViewUsing view textView] sel
 	@? onlyJust
 where
 	view = maybe "" (\wf -> wf.Workflow.description)
@@ -284,7 +287,7 @@ where
     userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
-unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation [EnterWithHint "Enter parameters"] >>= tf @! ())
+unwrapWorkflowTask (ParamWorkflowTask tf) = (Hint "Enter parameters" @>> enterInformation [] >>= tf @! ())
 
 openTask :: !(SharedTaskList ()) !TaskId -> Task ()
 openTask taskList taskId
@@ -293,7 +296,7 @@ openTask taskList taskId
 workOnTask :: !TaskId -> Task ()
 workOnTask taskId
     =   (workOn taskId <<@ ApplyLayout (setUIAttributes (heightAttr FlexSize))
-    >>* [OnValue    (ifValue (\v. case v of (ASExcepted _) = True; _ = False) (\(ASExcepted excs) -> viewInformation [ViewWithHint "Error: An exception occurred in this task"] excs >>| return ()))
+    >>* [OnValue    (ifValue (\v. case v of (ASExcepted _) = True; _ = False) (\(ASExcepted excs) -> Hint "Error: An exception occurred in this task" @>> viewInformation [] excs >>| return ()))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return ()))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return ())) //If the task is stable, there is no need to work on it anymore
@@ -301,7 +304,7 @@ workOnTask taskId
         ] ) <<@ ApplyLayout (copySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
-        =   viewInformation [ViewWithTitle "Error"] "This this task is incompatible with the current application version. Restart?"
+        =   Title "Error" @>> viewInformation [] "This this task is incompatible with the current application version. Restart?"
         >>* [OnAction ActionYes (always restartTask)
             ,OnAction ActionNo (always (return ()))
             ]
@@ -310,7 +313,7 @@ where
         =   findReplacement taskId
         >>- \mbReplacement -> case mbReplacement of
             Nothing
-                =   viewInformation [ViewWithTitle "Error"] "Sorry, this task is no longer available in the workflow catalog"
+                =   Title "Error" @>> viewInformation [] "Sorry, this task is no longer available in the workflow catalog"
                 >>| return ()
             Just replacement
                 =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
@@ -364,7 +367,7 @@ restrictedTransientWorkflow path description roles task = toWorkflow path descri
 
 inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
 inputWorkflow name desc inputdesc tfun
-	= workflow name desc (enterInformation [EnterWithHint inputdesc] >>= tfun)
+	= workflow name desc (Hint inputdesc @>> enterInformation [] >>= tfun)
 
 instance toWorkflow (Task a) | iTask a
 where

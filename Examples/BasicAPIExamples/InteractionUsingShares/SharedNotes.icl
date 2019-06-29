@@ -14,14 +14,18 @@ main = sharedNotes @! ()
 
 sharedNotes :: Task String
 sharedNotes
-	= withShared ""																									// create an initial empty shared string
-		(\note -> 	viewSharedInformation [ViewWithHint "View on note", ViewUsing id textArea] note								// one to view the resulting string
-					-||-
-					(	updateSharedInformation [UpdateSharedWithHint "Update shared note 1", UpdateSharedUsing id (const id) const textArea] note	// an editor to update the shared string
-					 	-||-
-					 	updateSharedInformation [UpdateSharedWithHint "Update shared note 2", UpdateSharedUsing id (const id) const textArea] note	// and an other updating editor
-					 		<<@ ArrangeHorizontal 
-					 )
+	// create an initial empty shared string
+	= withShared ""
+		(\note -> // one to view the resulting string
+			(Hint "View on note" @>> viewSharedInformation [ViewUsing id textArea] note)
+			-||-
+			// an editor to update the shared string
+			((Hint "Update shared note 1" @>> updateSharedInformation [UpdateSharedUsing id (const id) const textArea] note)	
+			  -||-
+			// and an other updating editor
+			 (Hint "Update shared note 2" @>> updateSharedInformation [UpdateSharedUsing id (const id) const textArea] note)	
+					 		
+			) <<@ ArrangeHorizontal 
 		)
-	>>= viewInformation [ViewWithHint "Resulting string is:", ViewUsing id textArea]
+	>>= \result -> Hint "Resulting string is:" @>> viewInformation [ViewUsing id textArea] result
 	>>= return

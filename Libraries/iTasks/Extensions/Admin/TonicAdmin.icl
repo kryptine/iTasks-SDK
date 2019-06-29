@@ -53,7 +53,7 @@ tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browse
 tonicStaticBrowser :: [TaskAppRenderer] -> Task ()
 tonicStaticBrowser rs
   =                withShared [] (
-      \navstack -> (updateSharedInformation [UpdateSharedWithHint "Display settings"] staticDisplaySettings
+      \navstack -> (Hint "Display settings" @>> updateSharedInformation [] staticDisplaySettings
               -&&- (allBlueprints
   >>- \allbps   -> (selectModule
                >&> withSelection noModuleSelection (
@@ -62,7 +62,7 @@ tonicStaticBrowser rs
          )) <<@ ArrangeWithSideBar 0 LeftSide True
          )) ) @! ()
   where
-  selectModule      = getTonicModules >>- enterChoice [ChooseWithHint "Select a module",ChooseFromDropdown id]
+  selectModule      = getTonicModules >>- \modules -> Hint "Select a module" @>> enterChoice [ChooseFromDropdown id] modules
   noModuleSelection = viewInformation [] "Select module..."
 
 tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared sds NavStack) TonicModule -> Task () | RWShared sds
@@ -72,7 +72,7 @@ tonicBrowseWithModule allbps rs navstack tm
   \tn       -> maybe (return ()) (
   \tt       ->   whileUnchanged staticDisplaySettings (
   \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tf_comments <> "")
-                    (viewInformation [ViewWithHint "Task comments"] tt.tf_comments @! ())
+                    (Hint "Task comments" @>> viewInformation [] tt.tf_comments @! ())
                     (return ()))
                  -&&-
                  viewStaticTask allbps rs navstack { BlueprintIdent
@@ -83,7 +83,7 @@ tonicBrowseWithModule allbps rs navstack tm
      )) <<@ ArrangeWithSideBar 0 LeftSide True
         @! ()
   where
-  selectTask tm   = enterChoice [ChooseWithHint "Select task", ChooseFromDropdown id] (getTasks tm)
+  selectTask tm   = Hint "Select task" @>> enterChoice [ChooseFromDropdown id] (getTasks tm)
   noTaskSelection = viewInformation [] "Select task..."
 
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared sds NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task () | RWShared sds
@@ -112,7 +112,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
       =   Just (upd pop navstack
       >>| getModule bpident_moduleName
       >>* [ OnValue (onNavVal bpident_compName)
-          , OnAllExceptions (const (viewInformation [ViewWithHint "Error"] "Something went wrong with navigating backwards" @! ()))
+          , OnAllExceptions (const (Hint "Error" @>> viewInformation [] "Something went wrong with navigating backwards" @! ()))
           ] @! ())
       where
       onNavVal bpident_compName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack {bpr_moduleName = bpident_moduleName, bpr_taskName = bpident_compName} tm` tt` depth compact @! ()) (getTonicFunc tm` bpident_compName)
@@ -186,7 +186,7 @@ showStaticBlueprint rs bpref task compact depth
     }
 
 enterQuery :: Task (Maybe BlueprintQuery)
-enterQuery = enterInformation [EnterWithHint "Enter filter query"]
+enterQuery = Hint "Enter filter query" @>> enterInformation []
 
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
@@ -206,7 +206,7 @@ tonicDynamicBrowser rs
     supportArea = arrangeWithSideBar 0 TopSide 200 False [settingsTask, filterTask, usersTask] []
 */
 
-  filterQuery = updateSharedInformation [UpdateSharedWithTitle "Filter query"] queryShare @! ()
+  filterQuery = Title "Filter query" @>> updateSharedInformation [] queryShare @! ()
 
   taskViewer = whileUnchanged dynamicDisplaySettings (
             \{show_task_value} -> if show_task_value
@@ -216,22 +216,22 @@ tonicDynamicBrowser rs
     where
     viewDetail (Just (Left { click_origin_mbbpident = Just {bpident_compId = Just tid}
                            , click_origin_mbnodeId  = Just nid })) = whileUnchanged (sdsFocus (comp2TaskId tid, nid) outputForTaskId) (\(_, _, x, _) -> x)
-    viewDetail (Just (Left {click_target_bpident = {bpident_compId = Nothing}}))  = viewInformation [ViewWithTitle "Notice"] "No data available for selected task. " @! ()
+    viewDetail (Just (Left {click_target_bpident = {bpident_compId = Nothing}}))  = Title "Notice" @>> viewInformation [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) =                get (sdsFocus (mn, tn, comp2TaskId tid) paramsForTaskInstance)
                                                       >>~ \params -> case getN params argIdx of
-                                                                       Just (_, _, vi) -> viewInformation [ViewWithTitle ("Selected argument (" +++ toString tid +++ ")")] () ||- vi
-                                                                       _               -> viewInformation [ViewWithTitle "Notice"] "Argument value not found" @! ()
+                                                                       Just (_, _, vi) -> Title ("Selected argument (" +++ toString tid +++ ")") @>> viewInformation [] () ||- vi
+                                                                       _               -> Title "Notice" @>> viewInformation [] "Argument value not found" @! ()
       where
       getN []     _ = Nothing
       getN [x:_]  0 = Just x
       getN [_:xs] n
         | n < 0     = Nothing
         | otherwise = getN xs (n - 1)
-    viewDetail _ = viewInformation [ViewWithTitle "Task viewer"] "Select dynamic task" @! ()
+    viewDetail _ = Title "Task viewer" @>> viewInformation [] "Select dynamic task" @! ()
 
   settingsViewer :: Task ()
   settingsViewer
-    =   updateSharedInformation [UpdateSharedWithTitle "Settings"] dynamicDisplaySettings @! ()
+    =   Title "Settings" @>> updateSharedInformation [] dynamicDisplaySettings @! ()
 
   windowIf True t = t <<@ InWindow
   windowIf _    _ = return ()
@@ -281,10 +281,10 @@ tonicDynamicBrowser` :: [TaskAppRenderer] (Shared sds NavStack) -> Task () | RWS
 tonicDynamicBrowser` rs navstack =
   ((activeBlueprintInstances -&&- blueprintViewer) /* <<@ ArrangeVertical */) @! ()
 where
-  activeBlueprintInstances = editSharedChoiceWithSharedAs
-                               [ChooseWithTitle "Active blueprint instances",ChooseFromGrid customView]
+  activeBlueprintInstances = (Title "Active blueprint instances" @>> editSharedChoiceWithSharedAs
+                               [ChooseFromGrid customView]
                                (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |*| queryShare))
-                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide True
+                               setTaskId selectedBlueprint) <<@ ArrangeWithSideBar 0 TopSide True
   where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing
@@ -338,7 +338,7 @@ where
          =   Just (upd pop navstack
          >>| getModule bpident_moduleName
          >>* [ OnValue (onNavVal bpident_compName)
-             , OnAllExceptions (const (viewInformation [ViewWithHint "Error"] "Something went wrong with navigating backwards" @! ()))
+             , OnAllExceptions (const (Hint "Error" @>> viewInformation [] "Something went wrong with navigating backwards" @! ()))
              ] @! ())
          where
          onNavVal bpident_compName (Value tm` _) = fmap (\tt` -> allBlueprints >>- \allbps -> viewStaticTask allbps rs navstack {bpr_moduleName = bpident_moduleName, bpr_taskName = bpident_compName} tm` tt` dynSett.DynamicDisplaySettings.unfold_depth dynSett.DynamicDisplaySettings.display_compact @! ()) (getTonicFunc tm` bpident_compName)
@@ -379,7 +379,7 @@ viewInstance :: ![TaskAppRenderer] !(Shared sds NavStack) !DynamicDisplaySetting
              -> Task () | RWShared sds
 viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskName}} selDetail meta=:{click_target_bpident = {bpident_compId = Just tid}}
   = (if (dynSett.DynamicDisplaySettings.show_comments && bpinst.bpi_blueprint.tf_comments <> "")
-       (viewInformation [ViewWithHint "Task comments"] bpinst.bpi_blueprint.tf_comments @! ())
+       (Hint "Task comments" @>> viewInformation [] bpinst.bpi_blueprint.tf_comments @! ())
        (return ()))
     -&&-
     ((whileUnchanged (sdsFocus bpinst.bpi_taskId tonicActionsForTaskID) (

@@ -9,8 +9,8 @@ import Trax.UoD
 
 :: RenderMode = ViewMode | PlayMode
 
-updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
-updateTraxEditor turn = UpdateUsing id (const id) (fromSVGEditor
+updateTraxEditor :: Bool -> UpdateSharedOption TraxSt TraxSt
+updateTraxEditor turn = UpdateSharedUsing id (const id) const (fromSVGEditor
 									{ initView    = id
 									, renderImage = \_ -> toImage PlayMode turn
 									, updModel    = flip const

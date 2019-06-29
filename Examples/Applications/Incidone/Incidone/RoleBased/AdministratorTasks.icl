@@ -48,7 +48,7 @@ where
         =   whileUnchanged databaseConfig
         \config ->
             checkDatabaseConfig config
-        >>- viewInformation [ViewWithTitle "Database configuration", ViewAs databaseStatusView]
+        >>- \status -> Title "Database configuration" @>> viewInformation [ViewAs databaseStatusView] status
 
     databaseStatusView (Ok InternalSQLiteDB)            = (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
     databaseStatusView (Ok (ExternalMySQLDB _))         = (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
@@ -119,7 +119,9 @@ where
 
     createIncidoneTables db
         =   (sequence [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
-        >>- viewInformation [ViewWithHint "Incidone schema created"]) <<@ Title "Creating Incidone tables..."
+             >>- \result ->
+			 Hint "Incidone schema created" @>> viewInformation [] result
+			) <<@ Title "Creating Incidone tables..."
         >>* [OnAction ActionOk (always (return ()))]
 
     emptyDatabase db
@@ -128,7 +130,8 @@ where
             get (sdsFocus db sqlTables)
         >>- \tables ->
             sequence [sqlExecuteDropTable db table \\ table <- tables]
-        >>- viewInformation [ViewWithTitle "Empty database",ViewWithHint "All data deleted"]
+        >>- \result -> 
+			Title "Empty database" @>> Hint "All data deleted" @>> viewInformation [] result
         >>* [OnAction ActionOk (always (return ()))]
 
 manageUsers :: Task ()
@@ -243,7 +246,7 @@ where
         =   doOrClose (
                 get (webLinksConfig |*| currentDateTime)
             >>- \(config,now) -> createJSONFile ("Incidone-weblinks-" +++ paddedDateTimeString now +++ ".json") config
-            >>- viewInformation [ViewWithHint "An export file has been created"]
+            >>- \result -> Hint "An export file has been created" @>> viewInformation [] result
             @!  ()
             ) <<@ Title "Export web links"
 	where
@@ -257,7 +260,7 @@ where
                     importJSONDocument doc
                 >>- \config ->
                     set config webLinksConfig
-                >-| viewInformation [ViewWithHint "Succesfully imported web links"] () @! ()
+                >-| Hint "Succesfully imported web links" @>> viewInformation [] () @! ()
                 ) (\e -> (Hint "Failed import of web links" @>> viewInformation [] e) @! ())
             ) <<@ Title "Import web links"
     where

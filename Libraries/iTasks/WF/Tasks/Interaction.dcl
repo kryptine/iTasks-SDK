@@ -11,26 +11,14 @@ from Data.Functor import class Functor
 :: ViewOption a
 	= E.v: ViewAs 	    (a -> v) & iTask v
 	| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v
-	//Common attributes as option
-	| ViewWithHint     !String
-	| ViewWithTitle    !String
-	| ViewWithLabel    !String
 
 :: EnterOption a
 	= E.v: EnterAs      (v -> a) & iTask v
 	| E.v: EnterUsing 	(v -> a) (Editor v) & iTask v
-	//Common attributes as option
-	| EnterWithHint     !String
-	| EnterWithTitle    !String
-	| EnterWithLabel    !String
 
 :: UpdateOption a
 	= E.v: UpdateAs     (a -> v) (a v -> a)	& iTask v
 	| E.v: UpdateUsing  (a -> v) (a v -> a) (Editor v) & iTask v
-	//Common attributes as option
-	| UpdateWithHint     !String
-	| UpdateWithTitle    !String
-	| UpdateWithLabel    !String
 
 //When using an update option for a task that uses a shared data source
 //you can use UpdateWithShared instead of UpdateWith which allows you
@@ -40,10 +28,6 @@ from Data.Functor import class Functor
 :: UpdateSharedOption a b 
 	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v) & iTask v
     | E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
-	//Common attributes as option
-	| UpdateSharedWithHint     !String
-	| UpdateSharedWithTitle    !String
-	| UpdateSharedWithLabel    !String
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s
@@ -54,9 +38,6 @@ from Data.Functor import class Functor
     | SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
 	| E.v: SelectUsing   (c -> v) (c [Int] -> [s]) (Editor (v, [Int])) & iTask v
 	//Common attributes as option
-	| SelectWithHint     !String
-	| SelectWithTitle    !String
-	| SelectWithLabel    !String
 	| SelectMultiple     !Bool
 
 //Choosing from lists
@@ -65,10 +46,6 @@ from Data.Functor import class Functor
 	| E.v: ChooseFromCheckGroup (o -> v) & iTask v
 	| E.v: ChooseFromList (o -> v)       & iTask v
 	| E.v: ChooseFromGrid (o -> v)       & iTask v
-	//Common attributes as option
-	| ChooseWithHint     !String
-	| ChooseWithTitle    !String
-	| ChooseWithLabel    !String
 
 /*** General input/update/output tasks ***/
 

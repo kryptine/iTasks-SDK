@@ -22,5 +22,5 @@ derive class iTask Person, Gender
 
 enterPerson :: Task Person
 enterPerson
-	=   enterInformation [EnterWithHint "Enter a person:"]
-	>>= viewInformation [ViewWithHint "You Entered:"]
+	=   Hint "Enter a person:" @>> enterInformation []
+	>>= \result -> Hint "You Entered:" @>> viewInformation [] result

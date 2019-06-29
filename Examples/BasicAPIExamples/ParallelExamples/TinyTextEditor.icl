@@ -24,7 +24,7 @@ derive class iTask Statistics, Replace
 
 editWithStatistics :: Task ()
 editWithStatistics
- =						enterInformation [EnterWithHint "Give name of text file you want to edit..."]
+ =						Hint "Give name of text file you want to edit..." @>> enterInformation []
 	>>= \fileName -> 	let file = sharedStore fileName ""
 						in	editFile fileName file
 							-||-
@@ -34,10 +34,10 @@ editWithStatistics
 
 editFile :: String (Shared sds String)  -> Task () | RWShared sds
 editFile fileName sharedFile
-	=	updateSharedInformation [UpdateSharedWithHint ("edit " +++ fileName), UpdateSharedUsing id (const id) const textArea] sharedFile @! ()
+	= Hint ("edit " +++ fileName) @>> updateSharedInformation [UpdateSharedUsing id (const id) const textArea] sharedFile @! ()
 
 showStatistics :: (Shared sds String) -> Task () | RWShared sds
-showStatistics sharedFile = viewSharedInformation [ViewWithHint "Statistics:", ViewAs stat] sharedFile @! ()
+showStatistics sharedFile = Hint "Statistics:" @>> viewSharedInformation [ViewAs stat] sharedFile @! ()
 where
 	stat text = {lineCount = lengthLines text, wordCount = lengthWords text}
 	where
@@ -49,7 +49,7 @@ where
 
 replace :: Replace (Shared sds String) -> Task () | RWShared sds
 replace cmnd sharedFile
- = 	(	updateInformation [UpdateWithHint "Replace:"] cmnd
+ = 	(	Hint "Replace:" @>> updateInformation [] cmnd
 	>>*	[ OnAction (Action "Replace") (hasValue substitute)
 		]
 	)

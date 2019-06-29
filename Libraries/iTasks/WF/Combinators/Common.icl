@@ -21,6 +21,7 @@ import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.SDS
 import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Overloaded
+import iTasks.UI.Definition
 import iTasks.UI.Tune
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
@@ -248,7 +249,7 @@ appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
 
 compute :: !String a -> Task a | iTask a
-compute s a = enterInformation [EnterWithHint s, EnterUsing id ed] >>~ \_->return a
+compute s a = Hint s @>> enterInformation [EnterUsing id ed] >>~ \_->return a
 where
 	ed :: Editor Bool
 	ed = fieldComponent UILoader Nothing (\_ _ -> True)

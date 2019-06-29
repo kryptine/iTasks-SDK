@@ -14,7 +14,7 @@ main = browseAndViewLeafletMap @! ()
 browseAndViewLeafletMap :: Task LeafletMap
 browseAndViewLeafletMap
 	= withShared defaultValue 												// create shared default value for the map
-		(\smap -> 	updateSharedInformation [UpdateSharedWithHint "Browse Map"] smap 			// update it here
+		(\smap -> 	(Hint "Browse Map" @>> updateSharedInformation [] smap) 			// update it here
 					-||
-					viewSharedInformation [ViewWithHint "View Browsing Map"] smap )		// while viewing it here
-	>>= viewInformation [ViewWithHint "Resulting map looks as follows"]					// show final result
+					(Hint "View Browsing Map" @>> viewSharedInformation [] smap) )		// while viewing it here
+	>>= \result -> Hint "Resulting map looks as follows" @>> viewInformation [] result					// show final result

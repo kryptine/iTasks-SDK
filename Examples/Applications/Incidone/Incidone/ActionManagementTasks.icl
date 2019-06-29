@@ -448,7 +448,7 @@ where
             (viewSharedInformation [ViewAs (\{ActionStatus|description} -> description)] status
             -&&-
             //View communications tried to complete this action
-            (enterChoiceWithShared [ChooseWithHint "Attempts:",ChooseFromGrid viewAttempt] attempts
+            (Hint "Attempts:" @>> enterChoiceWithShared [ChooseFromGrid viewAttempt] attempts
             >^* [OnAction (Action "Make Phone Call") (always (addPhoneCall status attempts))
                 ,OnAction (Action "Send P2000 Message") (always (addP2000Message status attempts))
                 ]
@@ -793,7 +793,7 @@ where
         =   doOrClose (
                 (get userActionCatalog -&&- get currentDateTime)
             >>- \(catalog,now) -> createJSONFile ("Incidone-actions-" +++ paddedDateTimeString now +++ ".json") catalog
-            >>- viewInformation [ViewWithHint "An export file has been created"]
+            >>- \file -> Hint "An export file has been created" @>> viewInformation [] file
             @!  ()
             ) <<@ Title "Export actions"
 	where
