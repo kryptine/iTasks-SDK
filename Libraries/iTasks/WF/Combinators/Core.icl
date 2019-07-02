@@ -127,13 +127,13 @@ where
 		# (resa, iworld) 	= evala event (extendCallTrace taskId evalOpts) treea iworld
         # mbAction          = matchAction taskId event
 		# mbCont			= case resa of
-			ValueResult val info rep ntreea = case searchContValue val mbAction conts of
+			ValueResult val info change ntreea = case searchContValue val mbAction conts of
 				Nothing
 					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 					# actions = contActions taskId val conts
 					# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-					= Left (ValueResult value info (doBeforeStepLayout taskId evalOpts event actions prevEnabledActions rep val)
+					= Left (ValueResult value info (wrapStepUI taskId evalOpts event actions prevEnabledActions val change)
 								(TCStep taskId info.TaskEvalInfo.lastEvent (Left (ntreea,curEnabledActions))))
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
 			ExceptionResult e = case searchContException e conts of
@@ -152,7 +152,7 @@ where
 				= case resb of
 					ValueResult val info change=:(ReplaceUI _) nstateb
 						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
-						= (ValueResult val info (doAfterStepLayout ResetEvent change) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+						= (ValueResult val info change (TCStep taskId info.TaskEvalInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
 					ValueResult val info change nstateb
 						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
@@ -165,7 +165,7 @@ where
 				= case resb of
 					ValueResult val info change ntreeb
 						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-						= (ValueResult val info (doAfterStepLayout event change) (TCStep taskId info.TaskEvalInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+						= (ValueResult val info change (TCStep taskId info.TaskEvalInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
 			Nothing
 				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
@@ -180,21 +180,25 @@ where
 		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 
-	doBeforeStepLayout taskId evalOpts event actions prevEnabled change val
-		= case (event,change) of
-			//On reset generate a new step UI
-			(ResetEvent,ReplaceUI rui)
-				= ReplaceUI (uic UIStep [rui:contActions taskId val conts])
-			//Otherwise create a compound change definition
-			_
-				= ChangeUI [] [(0,ChangeChild change):actionChanges]
+	wrapStepUI taskId evalOpts event actions prevEnabled val change 
+		| actionUIs =: []
+			= case (event,change) of
+				(ResetEvent,ReplaceUI (UI type attributes items)) //Mark the ui as a step
+					= ReplaceUI (UI type (addClassAttr "step" attributes) items)
+				_
+					= change
+		| otherwise	//Wrap in a container
+			= case (event,change) of
+				(ResetEvent,ReplaceUI ui) //On reset generate a new step UI
+					= ReplaceUI (uiac UIContainer (classAttr ["step-actions"]) [ui:actionUIs])
+				_  //Otherwise create a compound change definition
+					= ChangeUI [] [(0,ChangeChild change):actionChanges]
 	where
+		actionUIs = contActions taskId val conts
 		actionChanges = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [1..]]
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
-
-	doAfterStepLayout event change = change
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -637,12 +641,14 @@ genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UICha
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 	= case event of
 		ResetEvent
-			= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
+			= ReplaceUI (uiac UIContainer (classAttr [className]) ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
 		_
 			# (idx,iChanges) = itemChanges 0 prevNumBranches results
 			# aChanges       = actionChanges idx
 			= ChangeUI [] (iChanges ++ aChanges)
 where
+	className = if (actions =: []) "parallel" "parallel-actions"
+
 	itemChanges i numExisting [] = (i,[])
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
 		| i < numExisting

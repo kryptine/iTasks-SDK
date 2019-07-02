@@ -15,6 +15,11 @@ from iTasks.UI.Tune import class tune
 addCSSClass :: String -> LayoutRule
 
 /**
+* Remove a CSS class (to prevent standard styling)
+*/
+removeCSSClass :: String -> LayoutRule
+
+/**
 * Create a tabset with all child items as separate tabs
 * The flag denotes whether close buttons should be lifted to the tabs
 */

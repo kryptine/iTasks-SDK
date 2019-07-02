@@ -560,8 +560,16 @@ nodeSelected_ ruleNo (SelectByType t) _ lui moves = fromMaybe False
 	(fmap (\n -> nodeType_ ruleNo n === t) (selectNode_ ruleNo True fst (lui,moves)))
 nodeSelected_ ruleNo (SelectByHasAttribute k) _ lui moves = fromMaybe False
 	(fmap (\n -> isJust ('DM'.get k (nodeAttributes_ ruleNo n))) (selectNode_ ruleNo True fst (lui,moves)))
+
 nodeSelected_ ruleNo (SelectByAttribute k p) _ lui moves = fromMaybe False
 	(fmap (\n -> maybe False p ('DM'.get k (nodeAttributes_ ruleNo n)))	(selectNode_ ruleNo True fst (lui,moves)))
+
+nodeSelected_ ruleNo (SelectByClass c) _ lui moves = fromMaybe False
+	(fmap (\n -> maybe False (hasClass c) ('DM'.get "class" (nodeAttributes_ ruleNo n))) (selectNode_ ruleNo True fst (lui,moves)))
+where
+	hasClass name (JSONArray items) = isMember name [item \\ JSONString item <- items]
+	hasClass _ _ = False
+
 nodeSelected_ ruleNo (SelectByNumChildren num) _ lui moves = fromMaybe False
 	//TODO: selectChildNodes should also have selectable before/after effect
 	(fmap (\(LUINode node,m) -> length (selectChildNodes_ ruleNo (node.items,m)) == num)
@@ -584,6 +592,7 @@ nodeSelected_ ruleNo (SelectAND sell selr) path ui moves = nodeSelected_ ruleNo 
 nodeSelected_ ruleNo (SelectOR sell selr) path ui moves = nodeSelected_ ruleNo sell path ui moves || nodeSelected_ ruleNo selr path ui moves
 nodeSelected_ ruleNo (SelectNOT sel) path ui moves = not (nodeSelected_ ruleNo sel path ui moves)
 nodeSelected_ ruleNo _ _ _ moves = False
+
 
 matchAttributeKey_ :: !UIAttributeSelection !UIAttributeKey -> Bool
 matchAttributeKey_ (SelectAll) _ = True

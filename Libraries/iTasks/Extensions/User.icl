@@ -222,10 +222,10 @@ workAs asUser task
 	= 	get currentUser
 	>>- \prevUser -> 
 		set asUser currentUser
-	>>| ((task 
+	>>| (task 
 	>>- \tvalue -> //TODO: What if the wrapped task never becomes stable? And what if the composition is terminated early because of a step?
 		set prevUser currentUser
-	@!	tvalue) <<@ ApplyLayout unwrapUI)
+	@!	tvalue)
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.

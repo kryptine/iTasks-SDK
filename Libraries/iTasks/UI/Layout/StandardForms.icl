@@ -15,26 +15,27 @@ standardFormsSessionLayout = sequenceLayouts
 	]
 
 layoutCombinatorContainers = sequenceLayouts
-	[layoutSubUIs (SelectByAttribute "task-type" ((==) (JSONString "interact"))) layoutInteract
-	,layoutSubUIs (SelectByType UIStep) layoutStep
-	,layoutSubUIs (SelectByType UIParallel) layoutParallel
+	[layoutSubUIs (SelectByClass "interact") layoutInteract
+	,layoutSubUIs (SelectByClass "step-actions") layoutStepWithActions
+	,layoutSubUIs (SelectByClass "parallel-actions") layoutParallelWithActions
 	//There can still be buttons (e.g. when a parallel has been transformed to a tabset
 	,layoutSubUIs (SelectByType UIAction) layoutAsButton
 	]
 
-layoutStep = sequenceLayouts
-	[layoutSubUIs (SelectAND SelectDescendents (SelectByType UIStep)) layoutStep
+layoutStepWithActions = sequenceLayouts
+	[layoutSubUIs (SelectAND SelectDescendents (SelectByClass "step-actions")) layoutStepWithActions
 	,layoutSubUIs SelectNestedStep removeDisabledActions
-	,layoutSubUIs (SelectAND NotYetTransformed HasActions) layoutWithActions
-	,layoutSubUIs NotYetTransformed layoutWithoutActions
+	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIContainer)) (setUIType UIPanel) 
+	,addButtonBar
+	,modifyUIAttributes (SelectKeys ["class"]) (removeClassAttr "step-actions")
 	]
 where
 	SelectNestedStep =
 		(SelectAND                             // (Nested)
-			(SelectByType UIStep)              // Steps (are steps)
+			(SelectByClass "step-actions")     // Steps (are steps)
 				$ SelectByContains             // having
 					$ SelectAND
-						(SelectByType UIStep)  // steps
+						(SelectByClass "step-actions")  // steps
 						SelectDescendents)     // under them
 
 	SelectDisabledAction =
@@ -47,48 +48,30 @@ where
 
 	removeDisabledActions = layoutSubUIs SelectDisabledAction hideUI
 
-	NotYetTransformed = SelectAND (SelectByPath []) (SelectByType UIStep)
-	HasActions = SelectByContains (SelectAND SelectChildren (SelectByType UIAction))
-
-	layoutWithoutActions = sequenceLayouts
-		[copySubUIAttributes SelectAll [] [0]
-		,unwrapUI
-		]
-	layoutWithActions = sequenceLayouts
-		[setUIType UIPanel
-		,addButtonBar
-		]
-		
-layoutParallel = sequenceLayouts
-	[layoutSubUIs (SelectAND NotYetTransformed HasActions) layoutWithActions
-	,layoutSubUIs NotYetTransformed layoutWithoutActions
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIParallel)) layoutParallel
+layoutParallelWithActions = sequenceLayouts
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIContainer)) (setUIType UIPanel) 
+	,addToolBar
+	,modifyUIAttributes (SelectKeys ["class"]) (removeClassAttr "parallel-actions")
 	]
-where
-	NotYetTransformed = SelectAND (SelectByPath []) (SelectByType UIParallel)
-	HasActions = SelectByContains (SelectAND SelectChildren (SelectByType UIAction))
-
-	layoutWithoutActions = setUIType UIContainer
-	layoutWithActions = sequenceLayouts [setUIType UIPanel, addToolBar]
 
 layoutInteract = sequenceLayouts
-	[delUIAttributes (SelectKeys ["task-type"]) //Make sure the rule won't trigger twice
+	[modifyUIAttributes (SelectKeys ["class"]) (removeClassAttr "interact") //Make sure the rule won't trigger twice
 	,layoutEditor
 	,decorateEditor
 	]
 where
 	layoutEditor = sequenceLayouts
 		[layoutSubUIs SelectFormElement layoutFormItem
-		,layoutSubUIs (SelectByType UIRecord) layoutRecord
-		,layoutSubUIs (SelectByType UICons) layoutCons
-		,layoutSubUIs (SelectByType UIVarCons) layoutVarCons
+		,layoutSubUIs (SelectByClass "record") layoutRecord
+		,layoutSubUIs (SelectByClass "var-cons") layoutVarCons
 		,layoutSubUIs (SelectByType UIList) layoutList
-		,layoutSubUIs (SelectByType UIPair) layoutPair
 		]
 	layoutFormItem = sequenceLayouts
 		[toFormItem
 		,layoutSubUIs (SelectAND SelectDescendents SelectFormElement) layoutFormItem
 		]
+
+	SelectFormElement = SelectByHasAttribute "label"
 
 	decorateEditor = layoutSubUIs (SelectOR hasTitle hasPrompt) wrapEditor
 	where
@@ -111,35 +94,17 @@ where
 		where
 			promptToValue attr = 'DM'.fromList [("value",JSONString (maybe "" (\(JSONString s) -> escapeStr s) ('DM'.get "hint" attr)))]
 
-SelectFormElement = SelectByHasAttribute LABEL_ATTRIBUTE
-
-//TODO: consider flattening PAIRs somehow?
-layoutPair = sequenceLayouts
-	[setUIType UIContainer
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIPair)) layoutPair
-	]
-
 //Different types of editor containers
 layoutRecord :: LayoutRule
 layoutRecord = sequenceLayouts
-	[setUIType UIContainer
-	,setUIAttributes (heightAttr WrapSize)
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIRecord)) layoutRecord
-	]
-
-layoutCons :: LayoutRule
-layoutCons = sequenceLayouts
-	[setUIType UIContainer
-	,addCSSClass "itasks-cons"
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UICons)) layoutCons
+	[setUIAttributes (heightAttr WrapSize)
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByClass "record")) layoutRecord
 	]
 
 layoutVarCons :: LayoutRule
 layoutVarCons = sequenceLayouts
-	[setUIType UIContainer
-	,addCSSClass "itasks-var-cons"
-	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
-	,layoutSubUIs (SelectAND SelectDescendents (SelectByType UIVarCons)) layoutVarCons
+	[layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
+	,layoutSubUIs (SelectAND SelectDescendents (SelectByClass "var-cons")) layoutVarCons
 	]
 
 layoutList :: LayoutRule

@@ -23,8 +23,6 @@ from StdOverloaded import class <
 // we want to keep only minimal state. Using an opaque function would require
 // keeping track of the full state
 
-//Only match children
-SelectChildren :== SelectByDepth 1
 :: UISelection
 	//Select only nodes matching the exact path
 	= SelectByPath !UIPath
@@ -38,6 +36,8 @@ SelectChildren :== SelectByDepth 1
 	| SelectByAttribute !String !(JSONNode -> Bool)
 	//Match nodes that have the attribute
 	| SelectByHasAttribute !String
+	//Match nodes that have a specific 'class' attribute
+	| SelectByClass !String
 	//Match nodes with exactly the given number of children
 	| SelectByNumChildren !Int
 	//Match nodes that match the given selection on traversal of the given path
@@ -62,6 +62,11 @@ SelectChildren :== SelectByDepth 1
 :: UIAttributeSelection
 	= SelectAll
 	| SelectKeys ![String]
+
+//Only match children
+SelectChildren :== SelectByDepth 1
+
+
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.

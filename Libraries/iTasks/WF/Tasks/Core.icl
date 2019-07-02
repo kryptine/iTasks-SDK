@@ -120,7 +120,7 @@ interactAwaitReadRefresh shared handlers editor (RefreshEvent taskIds reason) ev
 					= withVSt taskId (\vst. case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
 						(Error e, vst)		= (ExceptionResult (exception e), vst)
 						(Ok (UI type attr items, st), vst)
-							# change 	= ReplaceUI (UI type ('DM'.unions [taskTypeAttr "interact", attr]) items)
+							# change 	= ReplaceUI (UI type (addClassAttr "interact" attr) items)
 					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
                 			# value 	= maybe NoValue (\v -> Value (l, v) False) mbV
 					        = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON mbV) st (mode =: View _)), vst)) iworld
@@ -177,7 +177,7 @@ interactEvents shared handlers editor event evalOpts tree modifyFun iworld=:{cur
 	| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 	| mbd =:(Ok (Right _)) = case mbd of
 		(Ok (Right (taskId, ts, sds)))
-			= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (ReplaceUI (uia UIProgressBar ('DM'.unions [textAttr "Getting data",taskTypeAttr "interact"]))) (TCAwait Read taskId taskTime tree), iworld)
+			= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (ReplaceUI (uia UIProgressBar ('DM'.unions [textAttr "Getting data",classAttr ["interact"]]))) (TCAwait Read taskId taskTime tree), iworld)
 	# (Left (taskId,ts,l,v,st,viewMode)) = fromOk mbd
 	# (mbRes, iworld) = case event of
 		EditEvent eTaskId name edit | eTaskId == taskId =
@@ -191,7 +191,7 @@ interactEvents shared handlers editor event evalOpts tree modifyFun iworld=:{cur
 			= withVSt taskId
 				( \vst -> case editor.Editor.genUI 'DM'.newMap [] resetMode vst of
 					(Ok (UI type attr items ,st),vst) =
-						let change = ReplaceUI (UI type ('DM'.unions [taskTypeAttr "interact",attr]) items) in
+						let change = ReplaceUI (UI type (addClassAttr "interact" attr) items) in
 							(Ok (Left (l,editor.Editor.valueFromState st,change,st,taskTime)), vst)
 					(Error e, vst)  = (Error (exception e), vst)
 				)

@@ -157,21 +157,18 @@ manageWorkOfCurrentUser welcomeMessage
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
 	layout = sequenceLayouts
-		[unwrapUI //Get rid of the step
-		,arrangeWithHeader 0
+		[arrangeWithHeader 0
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
-		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts [unwrapUI,layoutWhatToDo])
+		,layoutSubUIs (SelectByPath [1]) layoutWhatToDo
 		//Use maximal screen space
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
 	layoutManageSession = sequenceLayouts
-		[layoutSubUIs SelectChildren actionToButton
-		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
-		,setUIType UIContainer
-		,addCSSClass "manage-work-header"
+		[removeCSSClass "step-actions" //Don't layout as a regular step
+		,addCSSClass "manage-work-header" 
 		]
-	layoutWhatToDo = sequenceLayouts [arrangeWithSideBar 0 LeftSide True, layoutSubUIs (SelectByPath [1]) unwrapUI]
+	layoutWhatToDo = sequenceLayouts [unwrapUI, arrangeWithSideBar 0 LeftSide True]
 
 manageSession :: Task ()
 manageSession =
@@ -181,7 +178,8 @@ manageSession =
 where
 	view user	= "Welcome " +++ toString user
 
-chooseWhatToDo welcomeMessage = Title "Menu" @>> updateChoiceWithShared [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
+chooseWhatToDo welcomeMessage
+	= Title "Menu" @>> updateChoiceWithShared [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
 where
 	addManageWork wfs = [manageWorkWf:wfs]
 	manageWorkWf = transientWorkflow "My Tasks" "Manage your worklist"  (manageWork welcomeMessage)
@@ -346,7 +344,6 @@ removeWhenStable task slist
     =   (task
     >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]
     @?  const NoValue)
-	<<@ ApplyLayout unwrapUI
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional

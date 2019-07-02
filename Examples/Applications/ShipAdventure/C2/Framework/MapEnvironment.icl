@@ -341,18 +341,19 @@ uiToRefs :: UI -> TaskUITree
 uiToRefs (UI _ _ subs) = case recurse [] subs of
                            [x : _] -> x
                            _       -> Ed []
-  where
-  uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
-  uiToRefs` path (i, UI UIParallel _ subs)
-    # curPath = path ++ [i]
-    = [Par curPath (recurse curPath subs)]
-  uiToRefs` path (i, UI UIStep _ subs)
-    # curPath = path ++ [i]
-    = [Step curPath (recurse curPath subs)]
-  uiToRefs` path (i, _)
-    # curPath = path ++ [i]
-    = [Ed curPath]
-  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+where
+	uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
+  	uiToRefs` path (i, UI type attr subs)
+		# curPath = path ++ [i]
+		| hasClass "parallel" attr || hasClass "parallel-actions" attr = [Par curPath (recurse curPath subs)]
+		| hasClass "step" attr || hasClass "step-actions" attr = [Step curPath (recurse curPath subs)]
+		| otherwise = [Ed curPath]
+	where
+		hasClass name attr = case 'DM'.get "class" attr of
+			(Just (JSONArray items)) = isMember name [item \\ JSONString item <- items]
+			_ = False
+
+	recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
 
 getSubTree :: UI [Int] -> Maybe UI
 getSubTree ui [] = Just ui

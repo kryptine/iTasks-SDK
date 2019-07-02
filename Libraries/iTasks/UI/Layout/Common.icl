@@ -26,9 +26,16 @@ where
 		(\(JSONArray classNames) -> JSONArray (classNames ++ [JSONString className]))
 		('DM'.get "class" attr)) attr
 
+removeCSSClass :: String -> LayoutRule
+removeCSSClass className = modifyUIAttributes (SelectKeys ["class"]) remove
+where
+	remove attr = case 'DM'.get "class" attr of
+		(Just (JSONArray items)) = 'DM'.put "class" (JSONArray [item \\ item=:(JSONString name) <- items | name <> className]) attr
+		_ = attr
+
 arrangeWithTabs :: Bool -> LayoutRule
 arrangeWithTabs closeable = layoutSubUIs
-	(SelectAND (SelectByPath []) (SelectByType UIParallel))
+	(SelectAND (SelectByPath []) (SelectOR (SelectByClass "parallel") (SelectByClass "parallel-actions")))
 	(sequenceLayouts
 		[setUIType UITabSet
 		,layoutSubUIs SelectChildren scrollContent
@@ -199,20 +206,12 @@ scrollContent = addCSSClass "itasks-scroll-content"
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
 	[wrapUI UIWindow
-	,interactToWindow
 	//Move title and class attributes to window
-	,copySubUIAttributes (SelectKeys ["title","class"]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title","class"]))
+	,copySubUIAttributes (SelectKeys ["title"]) [0] []
+	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title"]))
 	//Set window specific attributes
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
-where
-	//If the first child is an interact, move the title one level up
-	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
-		(sequenceLayouts [copySubUIAttributes (SelectKeys ["title"]) [0,0] []
-							 ,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
-							 ])
-
 
 insertToolBar :: [String] -> LayoutRule
 insertToolBar actions = sequenceLayouts
