@@ -57,22 +57,22 @@ other_edge :: !TraxTile !TileEdge -> TileEdge
 other_edge tile edge = if (edge == tile.end1) tile.end2 tile.end1
 
 instance ~ TraxTile where ~ tile = lookup1 tile [(horizontal,vertical  )
-	                                        ,(vertical,  horizontal)
-	                                        ,(northwest, southeast )
-	                                        ,(northeast, southwest )
-	                                        ,(southwest, northeast )
-	                                        ,(southeast, northwest )
-	                                        ]
+		                                        ,(vertical,  horizontal)
+		                                        ,(northwest, southeast )
+		                                        ,(northeast, southwest )
+		                                        ,(southwest, northeast )
+		                                        ,(southeast, northwest )
+		                                        ]
 
 derive   gFDomain  TileEdge
 derive   gLexOrd   TileEdge
 instance ==        TileEdge where == e1 e2 = e1 === e2
 instance <         TileEdge where <  e1 e2 = (e1 =?= e2) === LT
 instance ~         TileEdge where ~  e     = case e of
-                                              North = South
-                                              South = North
-                                              West  = East
-                                              East  = West
+                                                North = South
+                                                South = North
+                                                West  = East
+                                                East  = West
 
 derive   gFDomain  LineColor
 instance ==        LineColor where == c1 c2 = c1 === c2
@@ -82,7 +82,7 @@ instance ~         LineColor where ~ RedLine    = WhiteLine
 derive   gLexOrd   Coordinate
 instance ==        Coordinate where == c1 c2 = c1 === c2
 instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero      Coordinate where zero     = {col=zero, row=zero}//(zero,zero)
+instance zero      Coordinate where zero     = {col=zero, row=zero}
 derive   gPrint    Coordinate
 
 instance toString  Coordinate where toString c = printToString c
@@ -91,27 +91,21 @@ instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
 
 col :: !Coordinate -> Int
 col coordinate = coordinate.col
-//col (col,_) = col
 
 row :: !Coordinate -> Int
 row coordinate = coordinate.row
-//row (_,row) = row
 
 north :: !Coordinate -> Coordinate
 north coordinate = {coordinate & row = coordinate.row-1}
-//north (col,row) = (col, row-1)
 
 south :: !Coordinate -> Coordinate
 south coordinate = {coordinate & row = coordinate.row+1}
-//south (col,row) = (col, row+1)
 
 west :: !Coordinate -> Coordinate
 west coordinate = {coordinate & col = coordinate.col-1}
-//west (col,row) = (col-1, row)
 
 east :: !Coordinate -> Coordinate
 east coordinate = {coordinate & col = coordinate.col+1}
-//east (col,row) = (col+1, row)
 
 go :: !TileEdge -> Coordinate -> Coordinate
 go North = north
@@ -120,7 +114,7 @@ go South = south
 go West  = west
 
 
-:: Trax								    // actually, Trax ought to be opaque
+:: Trax
  = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
 derive   gEditor    Trax
@@ -244,9 +238,12 @@ color_at_tile :: !TileEdge !TraxTile -> LineColor
 color_at_tile edge tile
 	= fromJust (lookup1 edge (tilecolors tile))
 
-possible_tiles :: !LineColors -> [TraxTile]
-possible_tiles colors
-	= [tile \\ tile <- gFDomain{|*|} | linecolors_match colors (tilecolors tile)]
+possible_tiles :: !Trax !Coordinate -> [TraxTile]
+possible_tiles trax free
+	= matching_tiles
+where
+	tile_pattern   = linecolors trax free
+	matching_tiles = [tile \\ tile <- gFDomain{|*|} | linecolors_match tile_pattern (tilecolors tile)]
 
 /** track @trax @color @edge @coordinate = @line:
        computes the entire reachable @line, starting at @coordinate in @trax, and starting
@@ -280,7 +277,6 @@ where
 	| otherwise				= loops
 	where
 		line				= track trax color (start_edge tile color) coordinate
-//		loops				= color_loops (removeMembersBy (\(c,t) c` -> c == c`) tiles (cut_loop line)) color
 		loops				= color_loops (deleteFirstsBy (\c` (c,t) -> c == c`) tiles (cut_loop line)) color
 
 /** start_edge @tile @color = @edge:
@@ -334,27 +330,56 @@ where
 	                                         , (South,(maxy,miny,row))
 	                                         ]
 
-/** mandatory_tiles @trax @coordinate = @candidates:
-       @candidates are those immediate, free, neighbours of the tile at @coordinate in @trax
-       at which two of the same line colors end.
+:: MoveStatus			// a move status is either:
+	= ForcedMove		//	a    forced move (two identical edge colors)
+	| IllegalMove		//	an  illegal move (more than two identical edge colors)
+	| UnforcedMove		//	an unforced move (less than two identical edge colors, for both line colors)
+derive gEq MoveStatus
+instance == MoveStatus where == s1 s2 = s1 === s2
+
+/** tiles_status @trax @coordinate = @tiles:
+       @tiles are the immediate, free, neighbours of the tile at @coordinate in @trax
+       together with information about their MoveStatus.
 */
-mandatory_tiles :: !Trax !Coordinate -> [Coordinate]
-mandatory_tiles trax coordinate
+tiles_status :: !Trax !Coordinate -> [(MoveStatus,Coordinate)]
+tiles_status trax coordinate
 	= case tile_at trax coordinate of
 	     Nothing = []
-	     _       = [free \\ free <- free_neighbours trax coordinate
-	                     |  hasDup (filter isJust (map snd (linecolors trax free)))
-	               ]
+	     _       = [(move_status trax free,free) \\ free <- free_neighbours trax coordinate]
+where
+	move_status :: !Trax !Coordinate -> MoveStatus
+	move_status trax free
+	| no_of_reds == 2 || no_of_whites == 2	= ForcedMove
+	| no_of_reds >  2 || no_of_whites >  2	= IllegalMove
+	| otherwise								= UnforcedMove
+	where
+		edge_colors  = [c \\ (_,Just c) <- linecolors trax free]
+		no_of_reds   = length (filter ((==) RedLine)   edge_colors)
+		no_of_whites = length (filter ((==) WhiteLine) edge_colors)
 
-mandatory_moves :: !Trax !Coordinate -> Trax
+mandatory_moves :: !Trax !Coordinate -> Maybe Trax
 mandatory_moves trax coordinate
 | isNothing (tile_at trax coordinate)
 	= abort ("Trax.UoD.mandatory_moves: a tile is expected at coordinate " <+ coordinate <+ "\n")
 | otherwise
-	= qfoldl mandatory_tiles move trax (mandatory_tiles trax coordinate)
+	= qfoldl mandatory_tiles` move (Just trax) (tiles_status trax coordinate)
 where
-	move :: !Trax !Coordinate -> Trax
-	move trax filler = add_tile filler (hd (possible_tiles (linecolors trax filler))) trax
+	move :: !(Maybe Trax) !(!MoveStatus,!Coordinate) -> Maybe Trax
+	move (Just trax) (ForcedMove,filler)
+	| isEmpty matches = Nothing
+	| otherwise       = Just (add_tile filler (hd matches) trax)
+	where
+		matches       = possible_tiles trax filler
+	move (Just trax) (UnforcedMove,_)
+	                  = Just trax
+	move _ _          = Nothing
+	
+	mandatory_tiles` :: !(Maybe Trax) !(!MoveStatus,!Coordinate) -> [(MoveStatus,Coordinate)]
+	mandatory_tiles` (Just trax) (ForcedMove,coordinate) = tiles_status trax coordinate
+	mandatory_tiles` _ _ = []
+
+derive gPrint Trax, TraxTile, TileEdge
+instance toString Trax where toString trax = printToString trax
 
 game_over :: !TraxSt -> Bool
 game_over st=:{trax}
@@ -372,4 +397,9 @@ setcell coord st
 
 settile :: !Coordinate !TraxTile !TraxSt -> TraxSt
 settile coord tile st=:{trax,turn}
-	= {st & trax = mandatory_moves (add_tile coord tile trax) coord, choice = Nothing, turn = not turn}
+| isNothing trax`
+	= abort ("Trax.UoD.settile: adding this tile is an illegal move.\n")
+| otherwise
+	= {st & trax = fromJust trax`, choice = Nothing, turn = not turn}
+where
+	trax` = mandatory_moves (add_tile coord tile trax) coord
