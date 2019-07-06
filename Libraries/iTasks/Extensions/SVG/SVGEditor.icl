@@ -440,13 +440,18 @@ where
 
 //	generate the entire SVG element from an Img with all spans resolved:
 genSVGElt :: !Img !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> SVGElt
-genSVGElt img taskId interactive_imgs masks markers paths spans grids
+genSVGElt img=:{Img | uniqId} taskId interactive_imgs masks markers paths spans grids
   #! mask_defs      = genSVGMasks masks taskId interactive_imgs markers paths spans grids
   #! svg_elems      = genSVGElts  img   taskId interactive_imgs markers paths spans grids
-  #! (imXSp,imYSp)  = getImgRootSize img spans
-  #! imXSp          = to2decString imXSp
-  #! imYSp          = to2decString imYSp
-  = SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns] [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp] (mask_defs ++ svg_elems)
+  = case 'Data.Map'.find uniqId spans of
+      (PxSpan w,PxSpan h)
+                    = SVGElt [ WidthAttr (toString w)
+                             , HeightAttr (toString h)
+                             , XmlnsAttr svgns
+                             ] 
+                             [ VersionAttr "1.1"
+                             , ViewBoxAttr "0" "0" (toString w) (toString h)
+                             ] (mask_defs ++ svg_elems)
 
 //	update the DOM element with the new SVG content, represented as a string:
 clientUpdateSVGString :: !String !JSVal !*JSWorld -> *JSWorld
@@ -471,13 +476,6 @@ clientUpdateSVGString svgStr me world
   #! world           = (me .# "refs" .= jsRefs) world
   #! world           = timeTrace "clientUpdateSVGString (with freeing of callbacks) ended at " world
   = world
-
-//	return the dimensions of the root image:
-getImgRootSize :: !Img !ImgSpans -> (!Real,!Real)
-getImgRootSize img=:{Img | uniqId} spans
-	= case 'Data.Map'.find uniqId spans of
-	    (PxSpan w,PxSpan h) = (w,h)
-	    _                   = abort "Unexpected error in module SVGEditor (getImgRootSize): size of root image is undetermined."
 
 //	generate the svg-defs for the masks used in this image:
 genSVGMasks :: !ImgMasks !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
@@ -504,8 +502,11 @@ where
 		loadCachedFontSpan :: !JSVal !*(!FontSpans,!ImgFonts,!*JSWorld) !FontDef -> *(!FontSpans,!ImgFonts,!*JSWorld)
 		loadCachedFontSpan jsWebStorage (cached,new,world) font
 		  #! (v,world)     = (jsWebStorage `getItem` (FONT_WEB_STORAGE_KEY font)) (jsTrace` ("loadCachedFontSpan \"" +++ FONT_WEB_STORAGE_KEY font +++ "\"") world)
-		  | jsIsNull v     = jsTrace` ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved null value ") (cached,new,world)                                                              // font metric not in cache, need to measure (remains in new)
-		  | otherwise      = ('Data.Map'.put font (jsValToReal` (getfontysize` font) v) cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
+		  | jsIsNull v     = jsTrace` ("(loadCachedFontSpan " +++ FONT_WEB_STORAGE_KEY font +++ ") retrieved null value ") (cached,new,world)     // font metric not in cache, need to measure (remains in new)
+		  #! v`            = case jsValToReal v of
+		                        Just v  = toMilliInt v
+		                        nothing = getfontysize` font
+		  | otherwise      = ('Data.Map'.put font v` cached,'Data.Set'.delete font new,world)   // font metric in cache, no need to measure (remove from new)
 
 // store new font dimensions
 	storeFontsSpansToCache :: !FontSpans !*JSWorld -> *JSWorld
@@ -538,10 +539,10 @@ where
 		  #! (fd, world) = calcFontDescent elem (getfontysize fontdef) world
 		  = ('Data.Map'.put fontdef fd font_spans, world)
 		
-		calcFontDescent :: !JSVal !Real !*JSWorld -> (!Real, !*JSWorld)
+		calcFontDescent :: !JSVal !MilliInt !*JSWorld -> (!MilliInt, !*JSWorld)
 		// same heuristic as used below (at function 'genSVGBasicHostImg'), must be replaced by proper determination of descent of current font
 		calcFontDescent elem fontysize world
-		  = (fontysize * 0.25,world)
+		  = (fontysize / toMilliInt 4,world)
 
 //	measure text dimensions:
 getNewTextsSpans :: !ImgTexts !JSVal !*JSWorld -> (!TextSpans,!*JSWorld)
@@ -566,7 +567,7 @@ where
 			loadCachedTextSpan jsWebStorage font (cached,new,world) str
 			  #! (v,world) = (jsWebStorage `getItem` (TEXT_WEB_STORAGE_KEY font str)) (jsTrace` ("loadCachedTextSpan \"" +++ TEXT_WEB_STORAGE_KEY font str +++ "\"") world)
 			  | jsIsNull v = jsTrace` ("(loadCachedTextSpan " +++ TEXT_WEB_STORAGE_KEY font str +++ ") retrieved null value ") (cached,new,world)
-			  | otherwise  = ('Data.Map'.alter (merge ('Data.Map'.singleton str (jsValToReal` zero v))) font cached,'Data.Map'.alter (remove str) font new,world)
+			  | otherwise  = ('Data.Map'.alter (merge ('Data.Map'.singleton str (toMilliInt (jsValToReal` zero v)))) font cached,'Data.Map'.alter (remove str) font new,world)
 			where
 				remove :: !String !(Maybe (Set String)) -> Maybe (Set String)
 				remove str (Just set)
@@ -616,7 +617,7 @@ where
 		calcTextLength elem str (text_spans, world)
 		  #! world        = (elem .# "textContent" .= str) world
 		  #! (ctl, world) = (elem `getComputedTextLength` ()) world
-		  = ('Data.Map'.put str (jsValToReal` 0.0 ctl) text_spans, world)
+		  = ('Data.Map'.put str (toMilliInt (jsValToReal` 0.0 ctl)) text_spans, world)
 
 	merge :: !(Map String TextSpan) !(Maybe (Map String TextSpan)) -> Maybe (Map String TextSpan)
 	merge ws` (Just ws) = Just ('Data.Map'.union ws` ws)
@@ -915,7 +916,7 @@ getNewTrueCoords me evt world
   = (newTrueCoordsX, newTrueCoordsY, world)
 
 point2Vec :: !(!Span, !Span) -> Vector Span
-point2Vec (x, y) = {x, y, px 1.0}
+point2Vec (x, y) = {x, y, mpx 1}
 
 appTF :: !(Matrix Span) !(!Span, !Span) -> (!Span, !Span)
 appTF m p
@@ -924,38 +925,38 @@ appTF m p
 
 translateTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 translateTF sx sy p
-  = appTF { {px 1.0, px 0.0, sx}
-          , {px 0.0, px 1.0, sy}
-          , {px 0.0, px 0.0, px 1.0}
+  = appTF { {mpx 1, mpx 0, sx}
+          , {mpx 0, mpx 1, sy}
+          , {mpx 0, mpx 0, mpx 1}
           } p
 
 scaleTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 scaleTF sx sy p
-  = appTF { {sx,     px 0.0, px 0.0}
-          , {px 0.0, sy,     px 0.0}
-          , {px 0.0, px 0.0, px 1.0}
+  = appTF { {sx,    mpx 0, mpx 0}
+          , {mpx 0, sy,    mpx 0}
+          , {mpx 0, mpx 0, mpx 1}
           } p
 
 rotateTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 rotateTF a p
   #! a = toRad a
-  = appTF { {px (cos a), px (0.0 - sin a), px 0.0}
-          , {px (sin a), px (cos a),       px 0.0}
-          , {px 0.0,     px 0.0,           px 1.0}
+  = appTF { {mpx (cos a), mpx (0.0 - sin a), mpx 0}
+          , {mpx (sin a), mpx (cos a),       mpx 0}
+          , {mpx 0,       mpx 0,             mpx 1}
           } p
 
 skewXTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewXTF a p
-  = appTF { {px 1.0, px (tan (toRad a)), px 0.0}
-          , {px 0.0, px 1.0,             px 0.0}
-          , {px 0.0, px 0.0,             px 1.0}
+  = appTF { {mpx 1, mpx (tan (toRad a)), mpx 0}
+          , {mpx 0, mpx 1,               mpx 0}
+          , {mpx 0, mpx 0,               mpx 1}
           } p
 
 skewYTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewYTF a p
-  = appTF { {px 1.0,             px 0.0, px 0.0}
-          , {px (tan (toRad a)), px 1.0, px 0.0}
-          , {px 0.0,             px 0.0, px 1.0}
+  = appTF { {mpx 1,               mpx 0, mpx 0}
+          , {mpx (tan (toRad a)), mpx 1, mpx 0}
+          , {mpx 0,               mpx 0, mpx 1}
           } p
 
 mkMaskId :: !String !Int -> String
@@ -972,9 +973,6 @@ mkUniqId editletId uniqId = "uniqId-" +++ editletId +++ toString uniqId
 
 mkUrl :: !String -> String
 mkUrl ref = "url(#" +++ ref +++ ")"
-
-mkWH :: !ImageSpanReal -> [HtmlAttr]
-mkWH (imXSp, imYSp) = [WidthAttr (to2decString imXSp), HeightAttr (to2decString imYSp)]
 
 to2decString :: !Real -> String
 to2decString r = toString (to2dec r)
@@ -995,13 +993,13 @@ where
 	  = [attr]
 	where
 		imgSpan     = case 'Data.Map'.get img.Img.uniqId spans of
-			            Just (PxSpan w, PxSpan h) = (w,h)
-			            Just _                    = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unresolvedErrorMsg  "image")
-			            nothing                   = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unavailableErrorMsg "image")
+			            Just (PxSpan w,PxSpan h) = (w,h)
+			            Just _                   = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unresolvedErrorMsg  "image")
+			            nothing                  = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unavailableErrorMsg "image")
 		
-		genTransform :: !ImageSpanReal !ImgTransform !String -> SVGAttr
+		genTransform :: !(!MilliInt,!MilliInt) !ImgTransform !String -> SVGAttr
 		genTransform (xsp, ysp) (RotateImg imAn) _
-		  #! attr = RotateTransform (to2decString (toDeg imAn)) (Just (to2decString (xsp / 2.0), to2decString (ysp / 2.0)))
+		  #! attr = RotateTransform (to2decString (toDeg imAn)) (Just (toString (xsp / toMilliInt 2), toString (ysp / (toMilliInt 2))))
 		  = TransformAttr [attr]
 		genTransform _ (SkewXImg imAn) _
 		  #! attr = SkewXTransform (toString (toDeg imAn))
@@ -1014,7 +1012,7 @@ where
 		  = TransformAttr [attr]
 		where
 			(fx,fy)      = case (spx,spy) of
-			                 (PxSpan rx, PxSpan ry) = (to2decString (rx / xsp), to2decString (ry / ysp))
+			                 (PxSpan rx, PxSpan ry) = (toString (rx / xsp), toString (ry / ysp))
 			                 _                      = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg  "fit"))
 		genTransform (xsp, ysp) (FitXImg sp) _
 		  #! attr = ScaleTransform fxy fxy
@@ -1023,7 +1021,7 @@ where
 			fx          = case sp of
 			                PxSpan rx = rx / xsp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fitx"))
-			fxy         = if (xsp > 0.0) (to2decString fx) "1.0"
+			fxy         = if (xsp > toMilliInt 0) (toString fx) "1.0"
 		genTransform (xsp, ysp) (FitYImg sp) _
 		  #! attr = ScaleTransform fxy fxy
 		  = TransformAttr [attr]
@@ -1031,16 +1029,16 @@ where
 			fy          = case sp of
 			                PxSpan ry = ry / ysp
 			                _         = abort (lookupSpanErrorMsg "genTransform" (unresolvedErrorMsg "fity"))
-			fxy         = if (ysp > 0.0) (to2decString fy) "1.0"
+			fxy         = if (ysp > toMilliInt 0) (toString fy) "1.0"
 		genTransform (_, ysp) (ScaleImg fx fy) _
 		  #! attr = ScaleTransform (to2decString fx) (to2decString fy)
 		  = TransformAttr [attr]
 		genTransform (xsp, ysp) FlipXImg _
-		  #! attr0 = TranslateTransform (to2decString xsp) "0"
+		  #! attr0 = TranslateTransform (toString xsp) "0"
 		  #! attr1 = ScaleTransform "-1" "1"
 		  = TransformAttr [attr0, attr1]
 		genTransform (xsp, ysp) FlipYImg _
-		  #! attr0 = TranslateTransform "0" (to2decString ysp)
+		  #! attr0 = TranslateTransform "0" (toString ysp)
 		  #! attr1 = ScaleTransform "1" "-1"
 		  = TransformAttr [attr0, attr1]
 		genTransform _ (MaskImg uniqId) taskId
@@ -1087,22 +1085,23 @@ where
 	  = []
 	genSVGBasicHostImg no (TextImg fontdef txt) attrs taskId es markers paths spans grids
 	  #! elt = TextElt [XmlspaceAttr "preserve"] 
-		           (keepTransformAttrsTogether (TransformAttr [TranslateTransform (toString 0.0) (toString (getfontysize fontdef * 0.75))]) (attrs ++ svgFontDefAttrs fontdef)) txt
+		           (keepTransformAttrsTogether (TransformAttr [TranslateTransform "0.0" (toString (getfontysize fontdef * toMilliInt 0.75))]) (attrs ++ svgFontDefAttrs fontdef)) txt
 	  = [elt]
 	genSVGBasicHostImg no RectImg attrs taskId es markers paths spans grids
 	  #! elt = RectElt sizeAtts attrs
 	  = [elt]
 	where
 		sizeAtts          = case 'Data.Map'.get no spans of
-		                      Just (PxSpan w, PxSpan h) = mkWH (w,h)
+		                      Just (PxSpan w, PxSpan h) = [WidthAttr (toString w), HeightAttr (toString h)]
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "rect"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "rect"))
+
 	genSVGBasicHostImg no CircleImg attrs taskId es markers paths spans grids
 	  #! elt = CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]
 	  = [elt]
 	where
 		radius            = case 'Data.Map'.get no spans of
-		                      Just (PxSpan w,h)         = to2decString (w / 2.0)
+		                      Just (PxSpan w,h)         = toString (w / toMilliInt 2)
 		                      Just (_,_)                = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "circle"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "circle"))
 	genSVGBasicHostImg no EllipseImg attrs taskId es markers paths spans grids
@@ -1110,7 +1109,7 @@ where
 	  = [elt]
 	where
 		(xradius,yradius) = case 'Data.Map'.get no spans of
-		                      Just (PxSpan w, PxSpan h) = (to2decString (w / 2.0), to2decString (h / 2.0))
+		                      Just (PxSpan w, PxSpan h) = (toString (w / toMilliInt 2), toString (h / toMilliInt 2))
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "ellipse"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "ellipse"))
 	genSVGBasicHostImg no PolylineImg attrs taskId es markers` paths spans grids
@@ -1153,7 +1152,7 @@ where
 			              [ OrientAttr       "auto"
                           , ViewBoxAttr      "0" "0" wStr hStr
                           , RefXAttr         (wStr, PX)
-                          , RefYAttr         (to2decString (h / 2.0), PX)
+                          , RefYAttr         (toString (h / toMilliInt 2), PX)
                           , MarkerHeightAttr (hStr, PX)
                           , MarkerWidthAttr  (wStr, PX)
                           ]
@@ -1166,8 +1165,8 @@ where
 			          Just (PxSpan w, PxSpan h) = (w,h)
 			          Just _                    = abort (lookupSpanErrorMsg "genSVGLineMarkers" (unresolvedErrorMsg  elt))
 			          nothing                   = abort (lookupSpanErrorMsg "genSVGLineMarkers" (unavailableErrorMsg elt))
-			wStr = to2decString w
-        	hStr = to2decString h
+			wStr = toString w
+        	hStr = toString h
 
 	genSVGOverlays :: ![Img] ![ImageOffset] !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 	genSVGOverlays overlays offsets taskId es markers paths spans grids
@@ -1181,13 +1180,14 @@ where
 		
 		mkTransformTranslateAttr :: !ImageOffset -> [SVGAttr]
 		mkTransformTranslateAttr (PxSpan dx,PxSpan dy)
-		| dx == 0.0 && dy == 0.0   = []
-		#! transform               = TranslateTransform (to2decString dx) (to2decString dy)
+		| dx == toMilliInt 0 && dy == toMilliInt 0
+		                           = []
+		#! transform               = TranslateTransform (toString dx) (toString dy)
 		| otherwise                = [TransformAttr [transform]]
 		mkTransformTranslateAttr _ = abort (lookupSpanErrorMsg "genSVGOverlays" (unresolvedErrorMsg "Img"))
 	
 	polypointToPointsAttr :: !String !ImageOffset -> (!String,!String)
-	polypointToPointsAttr elt (PxSpan dx,PxSpan dy) = (to2decString dx, to2decString dy)
+	polypointToPointsAttr elt (PxSpan dx,PxSpan dy) = (toString dx, toString dy)
 	polypointToPointsAttr elt _                     = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg elt))
 		
 	unresolvedErrorMsg :: !String -> String

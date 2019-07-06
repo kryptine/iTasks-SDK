@@ -26,7 +26,7 @@ Start world
 */
 sequence :: Int *TagSource -> Image Int
 sequence n tags
-	= margin (px 10.0) (
+	= margin (mpx 10) (
 		grid (Columns 100) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) (repeat (r+m)) (repeat (r+m)) []
 			(take n
 		        [  circle r <@< {stroke = none}
@@ -38,6 +38,6 @@ sequence n tags
 	  ) <@< {onclick=((+) c),local=False}
 where
 	c    = 100
-	r    = px 6.0
-	m    = px 2.0
-	host = Host (rect (px 800.0) (px (toReal (8*(n/100+1)))) <@< {fill=white})
+	r    = mpx 6
+	m    = mpx 2
+	host = Host (rect (mpx 800) (mpx (8*(n/100+1))) <@< {fill=white})

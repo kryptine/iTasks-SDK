@@ -16,18 +16,18 @@ from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import qualified Graphics.Scalable.Image as GS
 from Graphics.Scalable.Image import :: Image, :: TagSource (..), :: TagRef (..), :: ImageTag, :: Span, :: Angle (..)
-from Graphics.Scalable.Image import px, text, class toSVGColor(..), instance toSVGColor String, beside, <@<, textxspan, class tuneImage(..)
+from Graphics.Scalable.Image import mpx, text, class toSVGColor(..), instance toSVGColor String, beside, <@<, textxspan, class tuneImage(..)
 from Graphics.Scalable.Image import instance tuneImage YRadiusAttr, instance tuneImage XRadiusAttr, instance tuneImage StrokeAttr
 from Graphics.Scalable.Image import instance tuneImage StrokeWidthAttr, instance tuneImage FillAttr, instance tuneImage OnClickAttr, instance tuneImage OnNClickAttr
 from Graphics.Scalable.Image import instance tuneImage DashAttr
 from Graphics.Scalable.Image import overlay, polygon, xline, rect, deg, rotate, yline, tag, imageyspan, imagexspan, maxSpan
 from Graphics.Scalable.Image import empty, above, class margin(..), circle, tuneIf
 from Graphics.Scalable.Image import instance margin Span, instance margin (Span,Span), instance margin (Span,Span,Span,Span)
-from Graphics.Scalable.Image import instance + Span, instance - Span, instance ~ Span, instance zero Span, instance *. Span, instance /. Span
+from Graphics.Scalable.Image import instance + Span, instance - Span, instance ~ Span, instance zero Span
 from Graphics.Scalable.Image import :: FontDef(..), :: Host(..), :: YAlign(..), :: XAlign(..), :: ImageOffset(..), :: DashAttr(..), :: FillAttr(..)
 from Graphics.Scalable.Image import :: XYAlign(..), :: StrokeAttr(..), :: LineEndMarker(..), :: LineMidMarker(..), :: LineStartMarker(..), :: GridMajor(..), :: GridXLayout(..), :: GridYLayout(..)
 from Graphics.Scalable.Image import :: GridDimension(..), :: StrokeWidthAttr(..), :: OnClickAttr(..), :: OnNClickAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
-from Graphics.Scalable.Image import class *.(..), class /.(..)
+from Graphics.Scalable.Image import *., /.
 import Graphics.Scalable.Internal.Image`
 import Graphics.Scalable.Internal.Types
 import iTasks.Internal.Tonic.AbsSyn
@@ -284,7 +284,7 @@ tFApp inh eid fn args assoc tsrc
       , tsrc)
   | otherwise
       #! pp  = ppTExpr (TFApp eid fn args assoc)
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + mpx 10) (mpx (getfontysize ArialRegular10px + toMilliInt 10)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -294,8 +294,8 @@ tFApp inh eid fn args assoc tsrc
 
 tArrowTip :: !(Maybe SVGColor) -> Image ModelTy
 tArrowTip color
-  = polygon [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ] <@< { stroke = TonicBlack }
-                                                                     <@< { fill   = fromMaybe TonicBlack color }
+  = polygon [ (mpx 0, mpx 0), (mpx 8, mpx 4), (mpx 0, mpx 8) ] <@< { stroke = TonicBlack }
+                                                               <@< { fill   = fromMaybe TonicBlack color }
 
 fillColorFromStatStab (TNotActive, _) = Nothing
 fillColorFromStatStab (_, TNoVal)     = Just TonicWhite
@@ -303,12 +303,12 @@ fillColorFromStatStab (_, TStable)    = Just TonicBlue
 fillColorFromStatStab (_, TUnstable)  = Just TonicGreen
 
 tHorizConn :: !(Maybe SVGColor) -> Image ModelTy
-tHorizConn Nothing  = xline (px 8.0)
-tHorizConn (Just c) = rect (px 8.0) (px 3.0) <@< { fill = c }
+tHorizConn Nothing  = xline (mpx 8)
+tHorizConn (Just c) = rect (mpx 8) (mpx 3) <@< { fill = c }
 
 tShortHorizConn :: !(Maybe SVGColor) -> Image ModelTy
-tShortHorizConn Nothing  = xline (px 4.0)
-tShortHorizConn (Just c) = rect (px 4.0) (px 3.0) <@< { fill = c }
+tShortHorizConn Nothing  = xline (mpx 4)
+tShortHorizConn (Just c) = rect (mpx 4) (mpx 3) <@< { fill = c }
 
 tHorizConnArr :: !(Maybe SVGColor) -> Image ModelTy
 tHorizConnArr status = beside (repeat AtMiddleY) [] Nothing [] [tHorizConn status, tArrowTip status] NoHost
@@ -332,7 +332,7 @@ tPPExpr inh pp tsrc
           }
         , tsrc)
   | otherwise
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + mpx 10) (mpx (getfontysize ArialRegular10px + toMilliInt 10)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -361,7 +361,7 @@ tVar inh eid pp ptr tsrc
           }
         , tsrc)
   | otherwise
-      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (getfontysize ArialRegular10px + 10.0)) <@< { dash = [5, 5] }
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + mpx 10) (mpx (getfontysize ArialRegular10px + toMilliInt 10)) <@< { dash = [5, 5] }
       #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, txtImg] NoHost
       = ( { syn_img       = img
           , syn_status    = TNotActive
@@ -434,12 +434,12 @@ tCaseDiamond :: !(InhMkImg i) !(Image ModelTy) !*TagSource -> *(!Image ModelTy, 
 tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
   #! exprImg      = tag uDiamondTag exprImg
   #! imgHeight    = imageyspan diamondTag
-  #! imgWidth     = maxSpan [px 50.0, imagexspan diamondTag]
+  #! imgWidth     = maxSpan [mpx 50, imagexspan diamondTag]
   #! edgeMargin   = imgHeight *. 2.0
   #! centerX      = (imgWidth /. 2.0) + edgeMargin
-  #! leftCorner   = (px 0.0, px 0.0)
+  #! leftCorner   = (mpx 0, mpx 0)
   #! topCorner    = (centerX, ~ edgeMargin)
-  #! rightCorner  = (centerX *. 2.0, px 0.0)
+  #! rightCorner  = (centerX *. 2, mpx 0)
   #! bottomCorner = (centerX, edgeMargin)
   #! diamond      = polygon [leftCorner, topCorner, rightCorner, bottomCorner]
                       <@< { fill   = TonicWhite }
@@ -458,26 +458,26 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
         #! binds           = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
         #! letText         = tag uTxtTag ('GS'.grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] [] [] binds NoHost)
-        #! letWidth        = imagexspan txttag + px 8.0
-        #! letHeight       = imageyspan txttag + px 8.0
+        #! letWidth        = imagexspan txttag + mpx 8
+        #! letHeight       = imageyspan txttag + mpx 8
         #! letBox          = rect letWidth letHeight
                                <@< { fill   = TonicWhite }
                                <@< { stroke = TonicBlack }
         #! letImg          = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] NoHost
         #! linePart        = case t.syn_status of
-                               TNotActive -> xline ((letWidth - px 8.0) /. 2.0)
-                               _          -> rect  ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = case inh.inh_prev_statstab of
-                                                                                                        (_, TUnstable) -> TonicGreen
-                                                                                                        (_, TStable)   -> TonicBlue
-                                                                                                        _              -> TonicWhite }
+                               TNotActive -> xline ((letWidth - mpx 8) /. 2)
+                               _          -> rect  ((letWidth - mpx 8) /. 2) (mpx 3) <@< { fill = case inh.inh_prev_statstab of
+                                                                                                    (_, TUnstable) -> TonicGreen
+                                                                                                    (_, TStable)   -> TonicBlue
+                                                                                                    _              -> TonicWhite }
         #! lineAct              = case t.syn_status of
                                     TNotActive -> Nothing
                                     _          -> case inh.inh_prev_statstab of
                                                     (_, TStable)   -> Just TonicBlue
                                                     (_, TUnstable) -> Just TonicGreen
                                                     _              -> Just TonicWhite
-        #! connBox         = beside (repeat AtMiddleY) [] Nothing [] [linePart, rect (px 8.0) (px 8.0), linePart] NoHost
-        #! letImg          = above  (repeat AtMiddleX) [] Nothing [] [letImg, yline (px 8.0), connBox, empty zero (letHeight + px 8.0)] NoHost
+        #! connBox         = beside (repeat AtMiddleY) [] Nothing [] [linePart, rect (mpx 8) (mpx 8), linePart] NoHost
+        #! letImg          = above  (repeat AtMiddleX) [] Nothing [] [letImg, yline (mpx 8), connBox, empty zero (letHeight + mpx 8)] NoHost
         #! img             = beside (repeat AtMiddleY) [] Nothing [] [letImg, tHorizConnArr lineAct, t.syn_img] NoHost
         = ( { syn_img       = img
             , syn_status    = t.syn_status
@@ -563,14 +563,14 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                                 && bpident_compId == fmap getComputationId inh.inh_bpinst
                                 && click_origin_mbnodeId == Just eid
                            _ = False
-  #! valAnchor         = rect (px 8.0) (px 8.0) <@< { onNclick = openDetails clickMeta, local = False }
-                                                <@< { fill = case stability of
+  #! valAnchor         = rect (mpx 8) (mpx 8) <@< { onNclick = openDetails clickMeta, local = False }
+                                              <@< { fill = case stability of
                                                                TNoVal    -> TonicWhite
                                                                TStable   -> TonicBlue
                                                                TUnstable -> TonicGreen
-                                                    }
-                                                <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
-                                                <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+                                                  }
+                                              <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
+                                              <@< { strokewidth = if valNodeIsSelected (mpx 3) (mpx 1) }
   #! inclArr           = beside (repeat AtMiddleY) [] Nothing [] (if isDynamic [taskApp, valAnchor] [taskApp]) NoHost
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
@@ -581,13 +581,13 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
   tParApp :: !Bool !ExprId !ModuleName !FuncName !FuncName !SynMkImg !*TagSource
           -> *(!Image ModelTy, !*TagSource)
   tParApp isCompact eid parentModName parentFuncName taskName syn_branches [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-    #! taskNameImg = tag uTnTag (margin (px 2.5, px 5.0) (text ArialBold10px taskName))
+    #! taskNameImg = tag uTnTag (margin (mpx 2.5, mpx 5) (text ArialBold10px taskName))
     #! taskNameImg = tag uContextTag taskNameImg
     #! maxXSpan    = maxSpan [imagexspan tntag, imagexspan argstag]
     #! content     = above (repeat AtLeft) [] Nothing [] [taskNameImg, xline maxXSpan, tag uArgsTag syn_branches.syn_img] NoHost
     #! bgRect      = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = TonicWhite }
                                                                                    <@< { stroke = TonicBlack }
-                                                                                   <@< { strokewidth = px 1.0 }
+                                                                                   <@< { strokewidth = mpx 1 }
     #! img         = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] NoHost
     = (img, tsrc)
 
@@ -616,7 +616,7 @@ tTaskDef :: !(InhMkImg i) !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(
 tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
   #! userImg      = case inh.inh_bpinst of
                       Just bpi -> case getCurrentUser bpi of
-                                    Just cu -> beside (repeat AtMiddleY) [] Nothing [] [margin (px 0.0, px 0.0, px 0.0, px 8.0) littleman, text ArialRegular10px (" " +++ cu)] NoHost
+                                    Just cu -> beside (repeat AtMiddleY) [] Nothing [] [margin (mpx 0, mpx 0, mpx 0, mpx 8) littleman, text ArialRegular10px (" " +++ cu)] NoHost
                                     _       -> empty zero zero
                       _        -> empty zero zero
   #! taskIdStr    = case inh.inh_bpinst of
@@ -628,13 +628,13 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                                                             , userImg] NoHost
   #! taskNameImg  = case inh.inh_bpinst of
                       Just bpi -> case getCurrentUser bpi of
-                                    Just _ -> tag uNameTag (margin (px 2.0, px 5.0) taskNameImg)
-                                    _      -> tag uNameTag (margin (px 5.0) taskNameImg)
-                      _ -> tag uNameTag (margin (px 5.0) taskNameImg)
+                                    Just _ -> tag uNameTag (margin (mpx 2, mpx 5) taskNameImg)
+                                    _      -> tag uNameTag (margin (mpx 5) taskNameImg)
+                      _ -> tag uNameTag (margin (mpx 5) taskNameImg)
   #! binds        = flatten (strictTRZipWith3 mkArgAndTy args [0..] (strictTRMap Just argvars ++ repeat Nothing))
-  #! argsText     = 'GS'.grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] [] [] (strictTRMap (margin (px 1.0, px 0.0)) binds) NoHost
-  #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
-  #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
+  #! argsText     = 'GS'.grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] [] [] (strictTRMap (margin (mpx 1, mpx 0)) binds) NoHost
+  #! argsImg      = tag uArgsTag (margin (mpx 5) argsText)
+  #! taskBodyImgs = tag uBodyTag (margin (mpx 5) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
   #! maxXLine     = xline maxX
   #! bgRect       = tRoundedRect maxX (imageyspan nameTag + imageyspan argsTag + imageyspan bdytag)
@@ -753,14 +753,14 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                                  && bpident_compId == fmap getComputationId inh.inh_bpinst
                                  && click_origin_mbnodeId == Just eid
                             _ -> False
-  #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onNclick = openDetails clickMeta, local = False }
-                                                 <@< { fill = case stability of
+  #! valAnchor          = rect (mpx 8) (mpx 8) <@< { onNclick = openDetails clickMeta, local = False }
+                                               <@< { fill = case stability of
                                                                 TNoVal    -> TonicWhite
                                                                 TStable   -> TonicBlue
                                                                 TUnstable -> TonicGreen
-                                                     }
-                                                 <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
-                                                 <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+                                                   }
+                                               <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
+                                               <@< { strokewidth = if valNodeIsSelected (mpx 3) (mpx 1) }
   #! inclArr            = beside (repeat AtMiddleY) [] Nothing [] (if isDynamic [taskApp, valAnchor] [taskApp]) NoHost
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
@@ -781,9 +781,9 @@ tRoundedRect width height
   = rect width height
       <@< { fill        = TonicWhite }
       <@< { stroke      = TonicBlack }
-      <@< { strokewidth = px 1.0 }
-      <@< { xradius     = px 5.0 }
-      <@< { yradius     = px 5.0 }
+      <@< { strokewidth = mpx 1 }
+      <@< { xradius     = mpx 5 }
+      <@< { yradius     = mpx 5 }
 
 tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                 !ModuleName !FuncName ![TExpr] ![Image ModelTy] ![Image ModelTy] !*TagSource
@@ -846,14 +846,14 @@ tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !
                  !ModuleName !FuncName ![Image ModelTy] ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
 tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-  #! taskNameImg       = tag uTnTag (margin (px 2.5, px 5.0) (beside (repeat AtMiddleY) [] Nothing [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] NoHost))
+  #! taskNameImg       = tag uTnTag (margin (mpx 2.5, mpx 5) (beside (repeat AtMiddleY) [] Nothing [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] NoHost))
   #! bgColor           = appColor isActive wasActive isInAccessible
   #! futureUnreachable = isUnreachable && not isInAccessible
   #! futureReachable   = not isUnreachable && not isInAccessible && not (isActive || wasActive)
   #! strokeColor       = if isDynamic
                            (if futureUnreachable TonicRed (if (futureReachable && inBranch) TonicGreen TonicBlack))
                            TonicBlack
-  #! strokeWidth       = if (isDynamic && (futureUnreachable || futureReachable) && inBranch) (px 3.0) (px 1.0)
+  #! strokeWidth       = if (isDynamic && (futureUnreachable || futureReachable) && inBranch) (mpx 3) (mpx 1)
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
@@ -861,11 +861,11 @@ tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isU
                                                                        <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] NoHost, tsrc)
       taskArgs
-        #! argsImg   = tag uArgsTag (margin (px 2.5, px 5.0) (above (repeat AtLeft) [] Nothing [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) NoHost))
+        #! argsImg   = tag uArgsTag (margin (mpx 2.5, mpx 5) (above (repeat AtLeft) [] Nothing [] (strictTRMap (margin (mpx 1, mpx 0)) taskArgs) NoHost))
         #! maxXSpan  = maxSpan [imagexspan tntag, imagexspan argstag]
-        #! txtBgRect = tRoundedRect maxXSpan (px 15.0) <@< { fill = bgColor }
-                                                       <@< { stroke = strokeColor }
-                                                       <@< { strokewidth = strokeWidth }
+        #! txtBgRect = tRoundedRect maxXSpan (mpx 15) <@< { fill = bgColor }
+                                                      <@< { stroke = strokeColor }
+                                                      <@< { strokewidth = strokeWidth }
         #! content   = above (repeat AtLeft) [] Nothing [] [overlay (repeat (AtMiddleX, AtMiddleY)) [] [txtBgRect, taskNameImg] NoHost, argsImg] NoHost
         #! bgRect    = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = TonicWhite }
                                                                                      <@< { stroke = strokeColor }
@@ -878,17 +878,17 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
                               (TFApp _ "_Tuple2" [usr, str : _] _) -> (ppTExpr str, mkUser usr)
                               usr                                  -> ("", mkUser usr)
   #! (assignedTask, tsrc) = tExpr2Image inh assignedTask tsrc
-  #! assignedTaskImg      = tag uAssignTaskTag (margin (px 5.0) assignedTask.syn_img)
+  #! assignedTaskImg      = tag uAssignTaskTag (margin (mpx 5) assignedTask.syn_img)
   #! maxXSpan             = maxSpan [imagexspan headerTag, imagexspan assignTaskTag]
-  #! taskNameImg          = margin (px 5.0) (text ArialBold10px (user +++ if (desc == "") "" (": " +++ desc)))
+  #! taskNameImg          = margin (mpx 5) (text ArialBold10px (user +++ if (desc == "") "" (": " +++ desc)))
   #! assignHeader         = tag uHeaderTag (beside (repeat AtMiddleY) [] Nothing [] [littleman, taskNameImg] NoHost)
   #! content              = above (repeat AtMiddleX) [] Nothing [] [assignHeader, xline maxXSpan, assignedTaskImg] NoHost
   #! bgRect               = rect maxXSpan (imageyspan headerTag + imageyspan assignTaskTag)
                               <@< { fill        = TonicWhite }
                               <@< { stroke      = TonicBlack }
-                              <@< { strokewidth = px 1.0 }
-                              <@< { xradius     = px 5.0 }
-                              <@< { yradius     = px 5.0 }
+                              <@< { strokewidth = mpx 1 }
+                              <@< { xradius     = mpx 5 }
+                              <@< { yradius     = mpx 5 }
                               <@< { dash        = [5, 5] }
   #! img                  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] NoHost
   = ( { syn_img       = img
@@ -1072,14 +1072,14 @@ stepArrActivity inh syn
 
 addAction :: !(Maybe (!String, !Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just (action, enabled)) arr (t, uT)
-  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] Nothing [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] NoHost))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY))  [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
-                                                                                                             <@< {strokewidth = px 1.0}
-                                                                                                             <@< {stroke      = toSVGColor (if enabled "#000" "#ccc")}
-                                                                                                             <@< {dash        = if enabled [] [5, 5] }
+  #! l = tag uT (margin (mpx 3) (beside (repeat AtMiddleY) [] Nothing [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] NoHost))
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY))  [] [ rect (imagexspan t + mpx 5) (imageyspan t + mpx 5) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
+                                                                                                           <@< {strokewidth = mpx 1}
+                                                                                                           <@< {stroke      = toSVGColor (if enabled "#000" "#ccc")}
+                                                                                                           <@< {dash        = if enabled [] [5, 5] }
                                                                 , l] NoHost
   = beside (repeat AtMiddleY) [] Nothing [] [l`, arr] NoHost
-addAction _ _ _ = empty (px 0.0) (px 0.0)
+addAction _ _ _ = empty (mpx 0) (mpx 0)
 
 hasValueFilter :: Image ModelTy
 hasValueFilter = beside (repeat AtMiddleY) [] Nothing [] [ tStableBox, tUnstableBox, text ArialBold10px " Has value"] NoHost
@@ -1133,14 +1133,14 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
                           = beside (repeat AtMiddleY) [] Nothing [] [tHorizConn lhsLineAct, textBox, tHorizConnArr lhsLineAct, syn.syn_img] NoHost
     #! img          = case showRhs of
                         True
-                          #! lhs       = tag uImgTag (margin (px 2.5, px 0.0) lhs)
-                          #! lineWidth = (maxXSpan - imagexspan imgTag) + px 8.0
+                          #! lhs       = tag uImgTag (margin (mpx 2.5, mpx 0) lhs)
+                          #! lineWidth = (maxXSpan - imagexspan imgTag) + mpx 8
                           #! rhs       = case syn.syn_status of
                                            TAllDone ->
                                              case syn.syn_stability of
-                                               TNoVal    -> rect lineWidth (px 3.0) <@< { fill = TonicWhite }
-                                               TStable   -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
-                                               TUnstable -> rect lineWidth (px 3.0) <@< { fill = TonicGreen }
+                                               TNoVal    -> rect lineWidth (mpx 3) <@< { fill = TonicWhite }
+                                               TStable   -> rect lineWidth (mpx 3) <@< { fill = TonicBlue }
+                                               TUnstable -> rect lineWidth (mpx 3) <@< { fill = TonicGreen }
                                                _         -> xline lineWidth
                           = beside (repeat AtMiddleY) [] Nothing [] [lhs, rhs] NoHost
                         _ = lhs
@@ -1158,13 +1158,13 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
 
   mkVertConn :: ![ImageTag] -> Image ModelTy
   mkVertConn ts
-    | length ts < 2 = empty (px 0.0) (px 0.0)
+    | length ts < 2 = empty (mpx 0) (mpx 0)
     | otherwise
         #! firstTag   = hd ts
         #! lastTag    = last ts
-        #! allYSpans  = foldl (\acc x -> imageyspan x + acc) (px 0.0) ts
-        #! halfFirstY = imageyspan firstTag /. 2.0
-        #! halfLastY  = imageyspan lastTag /. 2.0
+        #! allYSpans  = foldl (\acc x -> imageyspan x + acc) (mpx 0) ts
+        #! halfFirstY = imageyspan firstTag /. 2
+        #! halfLastY  = imageyspan lastTag  /. 2
         = above (repeat AtMiddleX) [] Nothing []
             [ yline halfFirstY <@< { stroke = TonicWhite }
             , yline (allYSpans - halfFirstY - halfLastY) <@< { stroke = TonicBlack }
@@ -1179,39 +1179,39 @@ someActivity _               = False
 
 tTextWithGreyBackground :: !FontDef !String -> Image ModelTy
 tTextWithGreyBackground font txt
-  #! textWidth = textxspan font txt + px 10.0
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (px (getfontysize font + 10.0)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}, text font txt] NoHost
+  #! textWidth = textxspan font txt + mpx 10
+  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [rect textWidth (mpx (getfontysize font + toMilliInt 10)) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = mpx 0}, text font txt] NoHost
 
 littleman :: Image a
 littleman
-  #! head      = circle (px 8.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
-  #! shoulders = rect (px 16.0) (px 4.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
-                                         <@< { xradius     = px 5.0 }
-                                         <@< { yradius     = px 5.0 }
-  #! arm       = rect (px 3.0) (px 6.0)  <@< {StrokeWidthAttr | strokewidth = px 0.0}
-  #! vline     = yline (px 4.0)          <@< {StrokeAttr | stroke = TonicWhite}
-                                         <@< {StrokeWidthAttr | strokewidth = px 2.0}
-  #! chest     = rect (px 10.0) (px 5.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
-  #! arms      = beside [] [] Nothing [(px 0.0, px (-2.0)), (px 0.0, px 0.0), (px 0.0, px (-1.0)), (px 0.0, px 0.0), (px 0.0, px (-2.0))] [arm, vline, chest, vline, arm] NoHost
+  #! head      = circle (mpx 8) <@< {StrokeWidthAttr | strokewidth = mpx 0}
+  #! shoulders = rect (mpx 16) (mpx 4) <@< {StrokeWidthAttr | strokewidth = mpx 0}
+                                       <@< { xradius     = mpx 5 }
+                                       <@< { yradius     = mpx 5 }
+  #! arm       = rect (mpx 3) (mpx 6)  <@< {StrokeWidthAttr | strokewidth = mpx 0}
+  #! vline     = yline (mpx 4)         <@< {StrokeAttr | stroke = TonicWhite}
+                                       <@< {StrokeWidthAttr | strokewidth = mpx 2}
+  #! chest     = rect (mpx 10) (mpx 5) <@< {StrokeWidthAttr | strokewidth = mpx 0}
+  #! arms      = beside [] [] Nothing [(mpx 0, mpx -2), (mpx 0, mpx 0), (mpx 0, mpx -1), (mpx 0, mpx 0), (mpx 0, mpx -2)] [arm, vline, chest, vline, arm] NoHost
   = above (repeat AtMiddleX) [] Nothing [] [head, shoulders, arms] NoHost
 
 tException :: Image ModelTy
 tException = beside (repeat AtMiddleY) [] Nothing [] [ tExceptionBox, text ArialBold10px " Exception"] NoHost
 
-tExceptionBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicRed }
+tExceptionBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (mpx 8) (mpx 8) <@< { fill = TonicRed }
                                                            , text ArialBold6px "E" ] NoHost
 
 tStable :: Image ModelTy
 tStable = beside (repeat AtMiddleY) [] Nothing [] [tStableBox, text ArialBold10px " Stable"] NoHost
 
-tStableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicBlue }
+tStableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (mpx 8) (mpx 8) <@< { fill = TonicBlue }
                                                         , text ArialBold6px "S" ] NoHost
 
 
 tUnstable :: Image ModelTy
 tUnstable = beside (repeat AtMiddleY) [] Nothing [] [tUnstableBox, text ArialBold10px " Unstable"] NoHost
 
-tUnstableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicGreen }
+tUnstableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (mpx 8) (mpx 8) <@< { fill = TonicGreen }
                                                           , text ArialBold6px "U" ] NoHost
 
 
