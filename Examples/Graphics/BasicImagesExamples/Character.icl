@@ -16,6 +16,6 @@ Start world
 
 char :: Char *TagSource -> Image Char
 char c tags
-	= margin (px 20.0) (
-         text (normalFontDef "Times New Roman" 72.0) (toString c)
+	= margin (px 20) (
+         text (normalFontDef "Times New Roman" 72) (toString c)
 	  )

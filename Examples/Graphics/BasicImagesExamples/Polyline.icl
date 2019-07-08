@@ -22,8 +22,8 @@ Start world
 */
 polyline_in_host :: m *TagSource -> Image m
 polyline_in_host _ _
-	= overlay [] [(px 10.0,px 10.0)]
-			[polyline [(px 0.0,px 0.0),(px 25.0,px 25.0),(px 50.0,px 0.0),(px 75.0,px 25.0),(px 100.0,px 0.0),(px 85.0,px 100.0),(px 15.0,px 100.0),(px 0.0,px 0.0)]
-			    <@< {stroke = white} <@< {strokewidth = px 3.0}
+	= overlay [] [(px 10,px 10)]
+			[polyline [(px 0,px 0),(px 25,px 25),(px 50,px 0),(px 75,px 25),(px 100,px 0),(px 85,px 100),(px 15,px 100),(px 0,px 0)]
+			    <@< {stroke = white} <@< {strokewidth = px 3}
 			]
-			(Host (rect (px 120.0) (px 120.0)))
+			(Host (rect (px 120) (px 120)))

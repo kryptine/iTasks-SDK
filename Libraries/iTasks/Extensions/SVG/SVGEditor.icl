@@ -452,6 +452,7 @@ genSVGElt img=:{Img | uniqId} taskId interactive_imgs masks markers paths spans 
                              [ VersionAttr "1.1"
                              , ViewBoxAttr "0" "0" (toString w) (toString h)
                              ] (mask_defs ++ svg_elems)
+      _                   = abort "Unexpected error in module SVGEditor (genSVGElt): size of root image is undetermined."
 
 //	update the DOM element with the new SVG content, represented as a string:
 clientUpdateSVGString :: !String !JSVal !*JSWorld -> *JSWorld
@@ -542,7 +543,7 @@ where
 		calcFontDescent :: !JSVal !MilliInt !*JSWorld -> (!MilliInt, !*JSWorld)
 		// same heuristic as used below (at function 'genSVGBasicHostImg'), must be replaced by proper determination of descent of current font
 		calcFontDescent elem fontysize world
-		  = (fontysize / toMilliInt 4,world)
+		  = (fontysize * toMilliInt 0.25,world)
 
 //	measure text dimensions:
 getNewTextsSpans :: !ImgTexts !JSVal !*JSWorld -> (!TextSpans,!*JSWorld)
@@ -916,7 +917,7 @@ getNewTrueCoords me evt world
   = (newTrueCoordsX, newTrueCoordsY, world)
 
 point2Vec :: !(!Span, !Span) -> Vector Span
-point2Vec (x, y) = {x, y, mpx 1}
+point2Vec (x, y) = {x, y, px 1}
 
 appTF :: !(Matrix Span) !(!Span, !Span) -> (!Span, !Span)
 appTF m p
@@ -925,38 +926,38 @@ appTF m p
 
 translateTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 translateTF sx sy p
-  = appTF { {mpx 1, mpx 0, sx}
-          , {mpx 0, mpx 1, sy}
-          , {mpx 0, mpx 0, mpx 1}
+  = appTF { {px 1, px 0, sx}
+          , {px 0, px 1, sy}
+          , {px 0, px 0, px 1}
           } p
 
 scaleTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 scaleTF sx sy p
-  = appTF { {sx,    mpx 0, mpx 0}
-          , {mpx 0, sy,    mpx 0}
-          , {mpx 0, mpx 0, mpx 1}
+  = appTF { {sx,   px 0, px 0}
+          , {px 0, sy,   px 0}
+          , {px 0, px 0, px 1}
           } p
 
 rotateTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 rotateTF a p
   #! a = toRad a
-  = appTF { {mpx (cos a), mpx (0.0 - sin a), mpx 0}
-          , {mpx (sin a), mpx (cos a),       mpx 0}
-          , {mpx 0,       mpx 0,             mpx 1}
+  = appTF { {px (cos a), px (0.0 - sin a), px 0}
+          , {px (sin a), px (cos a),       px 0}
+          , {px 0,       px 0,             px 1}
           } p
 
 skewXTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewXTF a p
-  = appTF { {mpx 1, mpx (tan (toRad a)), mpx 0}
-          , {mpx 0, mpx 1,               mpx 0}
-          , {mpx 0, mpx 0,               mpx 1}
+  = appTF { {px 1, px (tan (toRad a)), px 0}
+          , {px 0, px 1,               px 0}
+          , {px 0, px 0,               px 1}
           } p
 
 skewYTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewYTF a p
-  = appTF { {mpx 1,               mpx 0, mpx 0}
-          , {mpx (tan (toRad a)), mpx 1, mpx 0}
-          , {mpx 0,               mpx 0, mpx 1}
+  = appTF { {px 1,               px 0, px 0}
+          , {px (tan (toRad a)), px 1, px 0}
+          , {px 0,               px 0, px 1}
           } p
 
 mkMaskId :: !String !Int -> String

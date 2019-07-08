@@ -23,21 +23,21 @@ Start world
 */
 overlays :: m *TagSource -> Image m
 overlays model tags
-	= margin (px 10.0) (
+	= margin (px 10) (
 		above [] [] Nothing []
 		   [ grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
 		        [ beside (repeat AtMiddleY) [] Nothing []
-		                 [ margin (px 5.0) (overlay (repeat (x_align,y_align)) [] discs NoHost)
+		                 [ margin (px 5) (overlay (repeat (x_align,y_align)) [] discs NoHost)
 		                 , txt ("(" <+++ x_align <+++ "," <+++ y_align <+++ ")*")
 		                 ] NoHost
 		        \\ x_align <- [AtLeft,AtMiddleX,AtRight]
 		         , y_align <- [AtTop, AtMiddleY,AtBottom]
 		        ] NoHost
-		   , margin (px 10.0) disclist
+		   , margin (px 10) disclist
 		   ] NoHost
 	  )
 where
-	txt s = text (lucida 10.0) s
+	txt s = text (lucida 10) s
 
 /**	disclist = image:
 	@image displays discs similar to a list notation.
@@ -51,12 +51,12 @@ disclist
 		]
 	  ) NoHost
 where
-	txt s = text (lucida 10.0) s
+	txt s = text (lucida 10) s
 
 /**	discs = images:
 	@images is a list of circles of decreasing span and fading red colors.
 */
 discs :: [Image m]
-discs = [circle (px 15.0 + px 8.0 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
+discs = [circle (px 15 + px 8 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
 
 derive gText XAlign, YAlign

@@ -24,11 +24,11 @@ Start world
 box2 :: m *TagSource -> Image m
 box2 _ tags = pair (arrow, arrow`) tags
 where
-	arrow  = polygon [(px  0.0,px -10.0),(px 55.0,px -10.0),(px 50.0,px -30.0),(px 85.0,px 0.0)
-	                 ,(px 50.0,px  30.0),(px 55.0,px  10.0),(px  0.0,px  10.0)
+	arrow  = polygon [(px  0,px -10),(px 55,px -10),(px 50,px -30),(px 85,px 0)
+	                 ,(px 50,px  30),(px 55,px  10),(px  0,px  10)
 	                 ]
-	arrow` = polygon [(px -10.0,px  0.0),(px -10.0,px 55.0),(px -30.0,px 50.0),(px 0.0,px 85.0)
-	                 ,(px  30.0,px 50.0),(px  10.0,px 55.0),(px  10.0,px  0.0)
+	arrow` = polygon [(px -10,px  0),(px -10,px 55),(px -30,px 50),(px 0,px 85)
+	                 ,(px  30,px 50),(px  10,px 55),(px  10,px  0)
 	                 ]
 
 /**	pair (img1,img2) tags = image:

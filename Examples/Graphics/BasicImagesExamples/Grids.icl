@@ -24,18 +24,18 @@ Start world
 */
 grids :: m *TagSource -> Image m
 grids model tags
-	= margin (px zero) (
+	= margin (px 0) (
 		above [] [] Nothing []
 		   [ grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
 		        [  above (repeat AtMiddleX) [] Nothing []
-		              [ margin (px 5.0,px zero) (grid (Columns 2) (major,x_fill,y_fill) [] [] [] [] discs NoHost)
+		              [ margin (px 5,px 0) (grid (Columns 2) (major,x_fill,y_fill) [] [] [] [] discs NoHost)
 		              , txt (" (" <+++ major <+++ "," <+++ x_fill <+++ "," <+++ y_fill <+++ ") ")
 		              ] NoHost
 		        \\ major  <- [ColumnMajor,RowMajor   ]
 		         , x_fill <- [LeftToRight,RightToLeft]
 		         , y_fill <- [TopToBottom,BottomToTop]
 		        ] NoHost
-		   , margin (px 10.0) disclist
+		   , margin (px 10) disclist
 		   ] NoHost
 	  )
 where
@@ -53,12 +53,12 @@ disclist
 		]
 	  ) NoHost
 where
-	txt s = text (lucida 10.0) s
+	txt s = text (lucida 10) s
 
 /**	discs = images:
 	@images is a list of circles of decreasing span and fading red colors.
 */
 discs :: [Image m]
-discs = [circle (px 15.0 + px 8.0 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
+discs = [circle (px 15 + px 8 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
 
 derive gText GridMajor, GridXLayout, GridYLayout

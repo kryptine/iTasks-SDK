@@ -21,8 +21,8 @@ rotates :: m *TagSource -> Image m
 rotates _ _
 	= beside [] [] Nothing []
 	     [  rotate (deg angle)
-	            (rect (px 30.0) (px 60.0) <@< {fill = toSVGColor {r=150,g=toInt (255.0 * (angle / 360.0)),b=toInt (255.0 * (360.0-angle / 360.0))}}
-	                                      <@< {stroke = toSVGColor "none"}
+	            (rect (px 30) (px 60) <@< {fill = toSVGColor {r=150,g=toInt (255.0 * (angle / 360.0)),b=toInt (255.0 * (360.0-angle / 360.0))}}
+	                                  <@< {stroke = toSVGColor "none"}
 	            )
 	     \\ angle <- [0.0, 30.0 .. 360.0]
 	     ] NoHost

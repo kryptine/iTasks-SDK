@@ -26,7 +26,7 @@ Start world
 */
 linears :: m *TagSource -> Image m
 linears model tags
-	= margin (px 10.0) (
+	= margin (px 10) (
 		above [] [] Nothing []
 		   [ beside (repeat AtTop) [] Nothing []
 		         [ beside (repeat AtMiddleY) [] Nothing []
@@ -50,11 +50,11 @@ linears model tags
 		                  ] NoHost
 		              ] NoHost
 		         ] NoHost
-		   , margin (px 10.0) disclist
+		   , margin (px 10) disclist
 		   ] NoHost
 	  )
 where
-	txt s = text (lucida 10.0) s
+	txt s = text (lucida 10) s
 
 /**	disclist = image:
 	@image displays discs similar to a list notation.
@@ -74,6 +74,6 @@ where
 	@images is a list of circles of decreasing span and fading red colors.
 */
 discs :: [Image m]
-discs = [circle (px 15.0 + px 8.0 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
+discs = [circle (px 15 + px 8 *. d) <@< {fill = toSVGColor {r=255-d*25,g=210-d*70,b=210-d*70}} \\ d <- [3,2,1,0]]
 
 derive gText XAlign, YAlign

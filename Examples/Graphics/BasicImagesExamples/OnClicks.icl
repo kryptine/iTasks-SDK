@@ -71,17 +71,17 @@ on_click label sds
 */
 count :: Who Toggles *TagSource -> Image Toggles
 count label toggles _
-	= margin (px 20.0) (
+	= margin (px 20) (
 		beside (repeat AtMiddleY) [] Nothing [] (
 		  [ beside [] [] Nothing [] (map digit (digits n)) NoHost <@< {onclick = toggleIncr, local = toggleOf label toggles}
-		  , margin (px 10.0) (
-		       circle (h /. 5) 
+		  , margin (px 10) (
+		       circle (px h /. 5) 
 		           <@< {onclick     = toggle label, local = False}
 		           <@< {stroke      = if (toggleOf label toggles) black none}
-		           <@< {strokewidth = if (toggleOf label toggles) (h /. 25) (h /. 50)}
+		           <@< {strokewidth = if (toggleOf label toggles) (px h /. 25) (px h /. 50)}
 		           <@< {fill        = yellow}
 		    )
-		  , margin (px 10.0) (text small_font (if (toggleOf label toggles) "local edits ON" "local edits OFF"))
+		  , margin (px 10) (text small_font (if (toggleOf label toggles) "local edits ON" "local edits OFF"))
 		  ]) NoHost
 	  )
 where

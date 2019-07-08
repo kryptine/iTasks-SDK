@@ -25,10 +25,10 @@ Start world
 	@image shows the use of @tags to display an arbitrary rose tree structure.
 */
 roses :: m *TagSource -> Image m
-roses _ tags = margin (px 10.0) (fst (show_rose show_my_node my_rose_tree tags))
+roses _ tags = margin (px 10) (fst (show_rose show_my_node my_rose_tree tags))
 where
 	show_my_node txt ts
-		= (margin (px zero,px zero,px bottom,px zero) (
+		= (margin (px 0,px 0,px bottom,px 0) (
 		      overlay [(AtMiddleX,AtMiddleY)] []
 		          [text font txt]
 		          (Host (rect (textxspan font txt + textxspan font "MM") (px (height + text_y_margin)) <@< {fill = white})))
@@ -36,9 +36,9 @@ where
 		  )
 	where
 		font          = arial height
-		height        = 10.0
-		text_y_margin = 5.0
-		bottom        = 5.0
+		height        = 10
+		text_y_margin = 5
+		bottom        = 5
 
 /**	show_rose show_node (Rose r []):
 		is the function that only displays @r, using @show_node.
@@ -59,7 +59,7 @@ show_rose show_node (Rose r rs)
 		                   [ yline (imageyspan t1 - imageyspan t2)
 		                   , tag ut1
 		                        (grid (Columns 2) (ColumnMajor,LeftToRight,TopToBottom) [] [] [] []
-		                              (repeatn (length rs) (xline (px 10.0)) ++ init images ++ [tag ut2 (last images)])
+		                              (repeatn (length rs) (xline (px 10)) ++ init images ++ [tag ut2 (last images)])
 		                              NoHost
 		                        )
 		                   ] NoHost
