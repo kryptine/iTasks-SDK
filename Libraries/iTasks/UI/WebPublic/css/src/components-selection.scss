@@ -135,8 +135,9 @@
             font-size: 12px;
             padding-left: 37px;
             background-color: #fff;
-            background-position: 15px 1px;
+            background-position: 15px 0px;
             background-repeat: no-repeat;
+            height: 16px;
         }
         label.#{$prefix}default-folder {
             background-image: url('#{$icon-path}folder.png');

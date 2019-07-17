@@ -1113,8 +1113,9 @@ div.itasks-exception {
   font-size: 12px;
   padding-left: 37px;
   background-color: #fff;
-  background-position: 15px 1px;
+  background-position: 15px 0px;
   background-repeat: no-repeat;
+  height: 16px;
 }
 .itasks-choicetree li label.itasks-default-folder {
   background-image: url("/css/icons/folder.png");
