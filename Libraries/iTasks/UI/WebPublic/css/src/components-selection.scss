@@ -86,18 +86,14 @@
             position: absolute;
             top: 0;
             left: 0;
-            margin-left: 0;
+            margin: 0;
             opacity: 0;
-            z-index: 2;
             cursor: pointer;
-            height: 1em;
-            width: 1em;
 
             + ol {
                 margin: -15px 0 0 -44px;
-                display: block;
-                height: 1em;
-                background: url('#{$icon-path}toggle-small-expand.png') 42px -3px no-repeat;
+                height: 16px;
+                background: url('#{$icon-path}toggle-small-expand.png') 44px 0 no-repeat;
 
                 > li {
                     display: none;
@@ -106,10 +102,9 @@
                 }
             }
             &:checked + ol {
-                margin: -20px 0 0 -44px;
                 padding: 20px 0 0 80px;
                 height: auto;
-                background: url('#{$icon-path}toggle-small.png') 42px 0 no-repeat;
+                background: url('#{$icon-path}toggle-small.png') 44px 0 no-repeat;
 
                 > li {
                     display: block;
