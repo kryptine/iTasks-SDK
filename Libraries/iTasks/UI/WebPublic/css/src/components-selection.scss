@@ -83,17 +83,21 @@
         list-style: none;
 
         input {
-            position: absolute;
-            top: 0;
-            left: 0;
-            margin: 0;
-            opacity: 0;
-            cursor: pointer;
+            display: none;
 
-            + ol {
-                margin: -15px 0 0 -44px;
+            + label {
+                display: inline-block;
+                background: url("/css/icons/toggle-small-expand.png") no-repeat;
+                width: 16px;
                 height: 16px;
-                background: url('#{$icon-path}toggle-small-expand.png') 44px 0 no-repeat;
+                position: absolute;
+                top: 0;
+                left: 0;
+                padding: 0;
+            }
+
+            ~ ol {
+                margin: 0 0 0 -44px;
 
                 > li {
                     display: none;
@@ -101,10 +105,14 @@
                     padding-left: 1px;
                 }
             }
-            &:checked + ol {
-                padding: 20px 0 0 80px;
+            &:checked {
+              + label {
+                background: url("/css/icons/toggle-small.png") no-repeat;
+              }
+
+              ~ ol {
+                padding: 0 0 0 80px;
                 height: auto;
-                background: url('#{$icon-path}toggle-small.png') 44px 0 no-repeat;
 
                 > li {
                     display: block;
@@ -114,6 +122,7 @@
                         margin: 0 0 1px;
                     }
                 }
+              }
             }
         }
         &.#{$prefix}leaf > label {
