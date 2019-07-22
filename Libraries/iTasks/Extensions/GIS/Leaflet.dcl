@@ -6,8 +6,14 @@ from Data.Set import :: Set
 
 leafletEditor :: Editor LeafletMap
 
-//Customization of editors
-customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
+/*
+ * Customization of editors
+ *
+ * @param handlers
+ * @param initial value
+ * @result editor
+ */
+customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
 
 
 :: LeafletMap =

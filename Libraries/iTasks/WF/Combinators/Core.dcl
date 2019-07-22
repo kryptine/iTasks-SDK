@@ -64,6 +64,7 @@ ActionClose		:==	Action "Close"
     , includeAttributes :: !Bool
     , includeProgress   :: !Bool
     }
+derive gDefault TaskListFilter
 
 /**
 * State of another task instance.

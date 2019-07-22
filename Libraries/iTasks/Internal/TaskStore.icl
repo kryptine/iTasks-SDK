@@ -37,7 +37,8 @@ derive JSONEncode Queue, Event
 derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode Queue, Event
 
-derive gDefault TIMeta, TIType
+derive gDefault InstanceFilter
+
 derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
