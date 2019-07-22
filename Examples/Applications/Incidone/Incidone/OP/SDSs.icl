@@ -10,8 +10,6 @@ import Data.Functor, Data.Either, Data.Tuple, Data.Func
 
 derive class iTask ContactFilter
 derive gDefault PhoneCall, RadioCall, EmailMessage, P2000Message, WeatherData, PersonDetails, VesselDetails, SurferDetails, DiverDetails, AirplaneDetails, HelicopterDetails, CommunicationMean, WeatherType, Gender, VesselType, CommunicationMeanType, Feet, Knots, Meters, Temperature, Degrees, Miles
-//CloudBase, SeaTemperature, AirTemperature, WaveHeight, SwellDirection, Visibility, WindSpeed, VesselRange
-
 
 dbReadSDS :: String -> SDSSequence QueryDef [r] () | mbFromSQL r & TC r
 dbReadSDS notifyId = databaseDef >++> sqlReadSDS notifyId

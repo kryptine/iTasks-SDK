@@ -27,7 +27,6 @@ pay
 	>>|				viewInformation "Payments performed on:" [] today
 	>>|				pay
 
-
 viewSelectedCitizen :: Task ()
 viewSelectedCitizen
 	=				(enterChoiceWithShared () [ChooseFromGrid (\{Citizen|name,ssn} -> "" <+++ name <+++ " (" <+++ ssn <+++ ")") ] citizens

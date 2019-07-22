@@ -778,7 +778,6 @@ instance == LeafletIconID where (==) (LeafletIconID x) (LeafletIconID y) = x == 
 
 derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
 derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
-//derive gDefault   LeafletMap, LeafletPerspective, LeafletLatLng
 derive gDefault   LeafletLatLng
 derive gEq        LeafletMap, LeafletPerspective
 derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
