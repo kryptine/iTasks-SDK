@@ -29,6 +29,15 @@ gText{|IncidentShort|} _   i = [maybe "" incidentTitle i]
 derive JSONEncode   Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive JSONDecode   Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gEditor      Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
-derive gDefault     Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
+//derive gDefault     Temperature, Meters, Feet, Miles, Knots, Degrees, IncidentShort
 derive gEq          Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 
+////derive gDefault Contact, ContactGeo, CommunicationMean, NewCommunicationMean, ContactType, Contact
+//
+//derive gDefault DSCMessage, DSCCategory, INMARSATCMessage, PhoneCall, RadioCall, EmailMessage, P2000Message
+//derive gDefault Communication, CommunicationDetails, CommunicationType, CommunicationDirection, CommunicationStatus
+//derive gDefault EmergencyPhase, Incident, IncidentType, Contact, ContactType, ContactAccessLevel, ContactStatus, ContactPhoto, ContactAvatar, VesselType
+//derive gDefault PersonDetails, VesselDetails, SurferDetails, DiverDetails, AirplaneDetails, HelicopterDetails
+//derive gDefault WeatherData, WeatherType,LogEntry, Gender
+//derive gDefault AISContact, AIVDMCNB, AIVDM5
+//derive gDefault CommunicationMean, CommunicationMeanType, TelephoneDetails, VHFRadioDetails, EmailAccountDetails, P2000ReceiverDetails, XCommunicationMean

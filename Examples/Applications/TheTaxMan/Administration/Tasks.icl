@@ -9,6 +9,8 @@ import System.Directory, System.FilePath
 import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS
 import StdArray, StdFile
 
+derive gDefault Date
+
 batchProcessing :: Task ()
 batchProcessing
 	=				pay
@@ -24,6 +26,7 @@ pay
 	>>|				addToStore pay_now collectionsProcessed
 	>>|				viewInformation "Payments performed on:" [] today
 	>>|				pay
+
 
 viewSelectedCitizen :: Task ()
 viewSelectedCitizen

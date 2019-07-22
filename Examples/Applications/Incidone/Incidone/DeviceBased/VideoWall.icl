@@ -7,6 +7,8 @@ import Text, Text.HTML, Data.List, iTasks.Internal.HtmlUtil
 
 derive class iTask WallContent
 
+derive gDefault ContactMap, ContactMapLayer, ContactMapLayerDefinition, ContactMapMarker, ContactMapRegion, ContactTrack, ContactMapMarkerType, DateTime
+
 wallContent :: SimpleSDSLens WallContent
 wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 

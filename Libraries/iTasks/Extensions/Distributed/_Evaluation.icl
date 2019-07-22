@@ -17,7 +17,6 @@ from iTasks.SDS.Combinators.Common import sdsFocus
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
-from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.GenEq import generic gEq
 
