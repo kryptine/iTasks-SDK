@@ -11,6 +11,7 @@ ACE_DEFAULT_THEME :== "ace/theme/chrome"
 ACE_DEFAULT_MODE  :== "ace/mode/text"
 
 derive class iTask AceState, AceRange
+derive gDefault AceState, AceRange
 
 derive gEditor AceOptions
 derive gEq AceOptions
