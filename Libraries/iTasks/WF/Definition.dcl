@@ -17,7 +17,6 @@ from System.Time import :: Timestamp, :: Timespec
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
-from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.GenJSON import generic JSONEncode, generic JSONDecode
 from Data.GenEq import generic gEq
 from StdString import class toString, class fromString
@@ -117,7 +116,6 @@ class iTask a
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}
 	//Data
-	, gDefault{|*|}
 	, gEq{|*|}
 	, TC a
 

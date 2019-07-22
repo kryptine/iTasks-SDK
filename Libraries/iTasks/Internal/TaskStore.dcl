@@ -29,6 +29,7 @@ from System.Time    import :: Timestamp
 	, includeProgress   :: !Bool
 	, includeAttributes :: !Bool
 	}
+derive gDefault InstanceFilter
 
 :: InstanceData :== (!InstanceNo,!Maybe InstanceConstants,!Maybe InstanceProgress,!Maybe TaskAttributes)
 

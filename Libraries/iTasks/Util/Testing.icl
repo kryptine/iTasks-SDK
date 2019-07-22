@@ -97,7 +97,7 @@ testEditorWithShare editor model viewMode = (withShared model
 	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
 	) <<@ ArrangeHorizontal
 
-testCommonInteractions :: String -> Task a | iTask a
+testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
 testCommonInteractions typeName
 	= 	 enterInformation ("Enter","Enter information of type " +++ typeName) []
 	-||- updateInformation ("Update","Update default value of type " +++ typeName) [] defaultValue

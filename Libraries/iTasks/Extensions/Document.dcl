@@ -23,7 +23,6 @@ instance toString	FileException
 //Necessary generics to be able to handle documents in tasks
 derive JSONEncode		Document
 derive JSONDecode		Document
-derive gDefault			Document
 derive gEq				Document
 derive gText	        Document
 derive gEditor			Document

@@ -4,6 +4,9 @@ import Incidone.OP.Concepts
 import Text, Text.HTML
 import iTasks.Extensions.DateTime
 
+derive gDefault ContactGeo, CommunicationMean, NewCommunicationMean, ContactStatus, ContactAccessLevel, Credentials, ContactPhoto, ContactTrack, ContactType
+derive gDefault DateTime, Contact, Degrees, CommunicationMeanType, Document
+
 class contactTitle a :: a -> String
 instance contactTitle Contact
 where

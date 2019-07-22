@@ -5,6 +5,8 @@ import Incidone.OP.IncidentManagementTasks
 import Incidone.OP.ContactManagementTasks
 import Incidone.OP.CommunicationManagementTasks
 
+derive gDefault NewContact, IncidentShort, ContactType
+
 generateTestIncident :: Bool -> Task IncidentNo
 generateTestIncident closed
     =   randomChoice [YachtEngineProblems,YachtAground,Medevac]

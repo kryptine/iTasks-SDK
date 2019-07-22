@@ -13,6 +13,8 @@ import Data.Map.GenJSON
 import Text, Text.HTML, Data.Either, Data.Functor
 import iTasks.UI.Editor.Controls
 
+derive gDefault Contact, ContactMap, ContactStatus, ContactAccessLevel, Credentials, ContactPhoto, ContactTrack, ContactType, Degrees, Document, ContactMapLayer, DateTime, ContactMapLayerDefinition, ContactMapMarker, ContactMapRegion, ContactMapMarkerType
+
 CONVERT_BIN :== "/opt/local/bin/convert"
 //CONVERT_BIN :== "/usr/bin/convert"
 

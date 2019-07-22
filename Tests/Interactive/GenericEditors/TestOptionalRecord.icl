@@ -6,6 +6,7 @@ import iTasks, iTasks.Util.Testing
     , second    :: String
     }
 derive class iTask TwoFieldRecord
+derive gDefault TwoFieldRecord
 
 test :: Task (Maybe TwoFieldRecord)
 test = testCommonInteractions "Optional record"

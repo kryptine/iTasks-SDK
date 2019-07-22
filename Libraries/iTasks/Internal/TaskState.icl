@@ -15,6 +15,8 @@ import Data.Error, Data.Either
 derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
 derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
 
+derive gDefault TIMeta, InstanceProgress, TIType, TaskId, ValueStatus
+
 instance toString DeferredJSON where
     toString (DeferredJSON x)        = toString $ toJSON x
     toString (DeferredJSONNode json) = toString json

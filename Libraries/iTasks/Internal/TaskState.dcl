@@ -9,6 +9,7 @@ from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditState
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUINo, :: LUIEffectStage
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenDefault import generic gDefault
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Data.Queue import :: Queue
@@ -35,6 +36,7 @@ derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
     //Identification and classification information
 	, attributes    :: !TaskAttributes      //Arbitrary meta-data
 	}
+derive gDefault TIMeta
 
 :: TIType
 	= TIStartup

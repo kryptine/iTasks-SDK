@@ -11,7 +11,7 @@ from StdFunc import const, o
 import System.OS
 
 from iTasks.WF.Definition import class iTask
-from iTasks.Internal.Task import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
+from iTasks.Internal.Task import :: Task, generic gEq, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
 from Data.Maybe import :: Maybe
 from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint, instance toString UserConstraint, instance toUserConstraint User, instance toString UserConstraint, instance toString User
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode

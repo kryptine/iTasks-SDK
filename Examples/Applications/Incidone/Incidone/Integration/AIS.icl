@@ -7,6 +7,8 @@ import Incidone.Util.TaskPatterns
 import qualified Data.Map as DM
 import Data.Functor
 
+derive gDefault AISContact, DateTime, ContactTrack, Degrees, AIVDM5, AIVDMCNB
+
 syncAISStream :: Task ()
 syncAISStream = withShared ([],False,[],False) (\channel -> (sync channel -&&- consume channel) @! ())
 where

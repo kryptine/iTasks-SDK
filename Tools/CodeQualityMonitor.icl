@@ -40,7 +40,6 @@ EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
 derive class iTask EndEventType, Expression
 
 derive gEditor EndEvent, FailReason, FailedAssertion, CounterExample, Relation
-derive gDefault EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 derive gEq EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 derive gText EndEvent, FailReason, FailedAssertion, CounterExample, Relation
 

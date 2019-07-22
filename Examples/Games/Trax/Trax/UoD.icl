@@ -20,7 +20,6 @@ derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
 derive   JSONDecode TraxTile
-derive   gDefault   TraxTile
 gFDomain{|TraxTile|} = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
 instance fromTuple TileEdge TileEdge TraxTile where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
 instance toTuple   TileEdge TileEdge TraxTile where toTuple   tile    = (tile.end1, tile.end2)
@@ -121,7 +120,6 @@ derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
-derive   gDefault   Trax
 instance == Trax where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
 gEq{|Trax|} t1 t2 = t1 == t2
 instance zero Trax where zero = { tiles = [] }

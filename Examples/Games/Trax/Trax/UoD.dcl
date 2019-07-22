@@ -18,7 +18,6 @@ derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
 derive   JSONDecode TraxTile
-derive   gDefault   TraxTile
 derive   gEq        TraxTile
 derive   gFDomain   TraxTile
 instance fromTuple  TileEdge TileEdge TraxTile
@@ -79,7 +78,6 @@ derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
-derive   gDefault   Trax
 derive   gEq        Trax
 instance ==         Trax
 instance zero       Trax

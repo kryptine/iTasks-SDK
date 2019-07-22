@@ -66,6 +66,7 @@ derive gEq ParallelTaskChange
     , includeAttributes :: !Bool
     , includeProgress   :: !Bool
     }
+derive gDefault TaskListFilter, TaskId
 
 instance toString AttachException
 where
