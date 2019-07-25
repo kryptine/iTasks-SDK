@@ -109,7 +109,7 @@ where
 			Nothing				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
 
 	eval event evalOpts (TCInit taskId ts) iworld
-		# iworld = if (length (removeDupBy actionEq conts) <> length conts)
+		# iworld = if (length (removeDupBy actionEq conts) == length conts)
 			iworld
 			(printStdErr "Duplicate actions in step" iworld)
 		# (taskIda,iworld)	= getNextTaskId iworld
