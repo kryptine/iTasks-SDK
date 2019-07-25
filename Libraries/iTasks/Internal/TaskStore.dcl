@@ -162,7 +162,7 @@ queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 /**
 * Dequeue a task event
 */
-dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
+dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
 
 /**
 * Queue ui change task output
