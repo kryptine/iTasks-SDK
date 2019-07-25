@@ -44,7 +44,7 @@ throw :: !e -> Task a | iTask a & iTask, toString e
 *
 * @gin False
 */
-appWorld :: !(*World -> *World)			-> Task () //TODO (All of these versions should be one core)
+appWorld :: !(*World -> *World)			-> Task ()
 
 /**
 * Evaluate a "World" function that also returns a value once.
