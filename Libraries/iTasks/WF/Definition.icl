@@ -4,6 +4,7 @@ from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from System.Time import :: Timestamp, :: Timespec
+import iTasks.WF.Derives
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Generic

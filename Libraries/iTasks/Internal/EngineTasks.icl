@@ -19,9 +19,9 @@ from Data.Map import newMap, member
 everyTick :: (*IWorld -> *(!MaybeError TaskException (), !*IWorld)) -> Task ()
 everyTick f = Task eval
 where
-	eval DestroyEvent evalOpts tree iworld
+	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, iworld)
-	eval event evalOpts tree=:(TCInit taskId ts) iworld
+	eval event {TaskEvalOpts|taskId,ts} iworld
 		# (merr, iworld) = f iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		# (merr, iworld) = readRegister taskId tick iworld
@@ -30,7 +30,7 @@ where
 				NoValue
 				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap}
 				NoChange
-				(TCInit taskId ts)
+				(Task eval)
 			, iworld)
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions

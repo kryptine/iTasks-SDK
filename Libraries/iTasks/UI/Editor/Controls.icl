@@ -5,6 +5,7 @@ import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.GenEq, Data.Error, Text.GenJSON, Text.HTML, Data.Func, Data.Functor, Data.Tuple, Data.List, Data.Maybe, Data.Map.GenJSON
 import qualified Data.Map as DM
 
+import iTasks.WF.Derives
 import iTasks.UI.Definition
 import iTasks.UI.Editor.Modifiers
 

@@ -122,3 +122,21 @@ where
 
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
 	rep _          = NoChange
+
+wrapOldStyleTask :: (Event -> TaskEvalOpts -> TaskTree -> *IWorld -> *(TaskResult` a, *IWorld))
+	-> (Event -> TaskEvalOpts -> *IWorld -> *(TaskResult a, *IWorld)) | iTask a
+wrapOldStyleTask eval = evalinit
+where
+	//This first pass is required to get the taskid and the timestamp
+	evalinit event eo=:{TaskEvalOpts|taskId,ts} iworld
+		= evalactual (TCInit taskId ts) event eo iworld
+
+	//The actual evaluation
+	evalactual tree event eo=:{TaskEvalOpts|taskId,ts} iworld
+		# (res, iworld) = eval event eo tree iworld
+		# res = case res of
+			ValueResult` tv tei ui tree = ValueResult tv tei ui (Task (evalactual tree))
+			ExceptionResult` exc        = ExceptionResult exc
+			DestroyedResult`            = DestroyedResult
+		= (res, iworld)
+

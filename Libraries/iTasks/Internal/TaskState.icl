@@ -6,14 +6,14 @@ import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 
 from iTasks.Internal.Task	import exception
-from iTasks.Internal.TaskEval import :: TaskTime, :: TaskEvalInfo(..), :: TonicOpts(..)
-from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
+from iTasks.Internal.TaskEval import :: TaskTime, :: TaskEvalInfo(..)
 import iTasks.Internal.Serialization, iTasks.Internal.Generic.Visualization
 import Data.CircularStack
 import Data.Error, Data.Either
+import iTasks.WF.Derives
 
-derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
-derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
+derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
+derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
 
 derive gDefault TIMeta, InstanceProgress, TIType, TaskId, ValueStatus
 

@@ -43,6 +43,11 @@ from StdOverloaded import class ==
    //If a task finalizes and cleaned up it gives this result
    | DestroyedResult
 
+:: TaskResult` a
+   = ValueResult` !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree
+   | ExceptionResult` !TaskException
+   | DestroyedResult`
+
 //* Task results
 :: TaskValue a		= NoValue				
 					| Value !a !Stability 

@@ -4,7 +4,6 @@ definition module iTasks.Internal.Task
 */
 
 import iTasks.WF.Definition
-from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 from iTasks.WF.Tasks.IO import :: ConnectionHandlers
 
 from iTasks.Internal.TaskState			import :: TaskTree
@@ -48,3 +47,5 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 */
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 
+wrapOldStyleTask :: (Event -> TaskEvalOpts -> TaskTree -> *IWorld -> *(TaskResult` a, *IWorld))
+	-> (Event -> TaskEvalOpts -> *IWorld -> *(TaskResult a, *IWorld)) | iTask a

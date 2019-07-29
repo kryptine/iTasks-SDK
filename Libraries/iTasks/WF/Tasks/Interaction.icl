@@ -7,6 +7,7 @@ from Data.List import isMemberGen, findIndex, instance Functor [], getItems
 from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor, Data.Maybe, StdString
+import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Combinators.Overloaded

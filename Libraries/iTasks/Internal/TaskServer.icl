@@ -18,6 +18,7 @@ import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
 import iTasks.WF.Definition
+import iTasks.WF.Derives
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels

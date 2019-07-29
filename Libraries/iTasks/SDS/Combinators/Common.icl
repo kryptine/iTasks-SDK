@@ -13,6 +13,7 @@ import Data.Maybe, Data.Error, Data.Either, StdString
 import Text.GenJSON
 import System.FilePath
 import iTasks.Internal.SDS
+import iTasks.WF.Derives
 
 sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & JSONEncode{|*|} p & TC p & TC r & TC w & RWShared sds
 sdsFocus p sds = sdsTranslate ("("+++ toString (toJSON p)+++")/") (const p) sds

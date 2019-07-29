@@ -25,6 +25,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.System
+import iTasks.WF.Derives
 
 import qualified Data.Map as DM
 

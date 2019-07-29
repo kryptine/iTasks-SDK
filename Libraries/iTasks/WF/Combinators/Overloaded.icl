@@ -1,5 +1,6 @@
 implementation module iTasks.WF.Combinators.Overloaded
 
+import iTasks.WF.Derives
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Combinators.Core

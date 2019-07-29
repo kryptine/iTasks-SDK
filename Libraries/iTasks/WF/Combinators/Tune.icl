@@ -15,18 +15,21 @@ import qualified iTasks.Internal.SDS as SDS
 class addConstantAttribute f :: !String !b !(f a) -> f a | toAttribute b
 instance addConstantAttribute Task
 where
-	addConstantAttribute attrName value task=:(Task evala) = Task eval
+	//TODO: port
+	addConstantAttribute attrName value task=:(Task evala) = task /*Task eval
 	where
 		eval event evalOpts tree iworld
 			# (result,iworld) = evala event evalOpts tree iworld
 			# attrValue = toAttribute value
 			# (result,iworld) = addAttributeChange attrName attrValue attrValue result iworld 
 			= (result,iworld)
+*/
 
 class addValueAttribute f :: !String ((Maybe a) -> b) !(f a) -> f a | toAttribute b
 instance addValueAttribute Task
 where
-	addValueAttribute attrName attrValueFun task=:(Task evala) = Task eval
+	//TODO: port
+	addValueAttribute attrName attrValueFun task=:(Task evala) = task /*Task eval
 	where
 		//Destroy
 		eval DestroyEvent evalOpts (TCAttribute _ _ tree) iworld = evala DestroyEvent evalOpts tree iworld
@@ -47,12 +50,14 @@ where
 		where
 			refreshAttribute (ValueResult (Value v _) _ _ _) = toAttribute (attrValueFun (Just v))
 			refreshAttribute _ = toAttribute (attrValueFun Nothing)
+*/
 
 
 class addSDSAttribute f :: !String (sds () r w) (r -> b) !(f a) -> f a | toAttribute b & TC r & TC w & Registrable, Readable sds
 instance addSDSAttribute Task
 where
-	addSDSAttribute attrName sds attrValueFun task=:(Task evala) = Task (eval sds attrValueFun task)
+	//TODO: port
+	addSDSAttribute attrName sds attrValueFun task=:(Task evala) = task /*Task (eval sds attrValueFun task)
 	where
 		//Init
 		eval :: (sds () r w) (r -> b) (Task a) Event TaskEvalOpts TaskTree !*IWorld -> (TaskResult a, !*IWorld) | toAttribute b & TC r & TC w & Registrable sds & Readable sds
@@ -88,6 +93,7 @@ where
 					= (fmap (toAttribute o attrValueFun o directResult) mbr,iworld)
 			refreshAttribute taskId cur _ iworld
 				= (Ok cur,iworld)
+*/
 
 //Shared helper functions
 addAttributeChange attrName _ new (ValueResult value info (ReplaceUI (UI type attr items)) tree) iworld
@@ -132,34 +138,35 @@ where tune (ApplyAttribute k v) task = addConstantAttribute k v task
 instance tune (ApplySDSAttribute a r w) Task | toAttribute a & TC r & TC w
 where tune (ApplySDSAttribute k sds f) task = addSDSAttribute k sds f task
 
+//TODO port
 applyLayout :: LayoutRule (Task a) -> Task a
-applyLayout rule task=:(Task evala) = Task eval
-	where
-		ruleNo = LUINo [0]
-
-		eval DestroyEvent evalOpts (TCLayout s tt) iworld //Cleanup duty simply passed to inner task
-			= evala DestroyEvent evalOpts tt iworld
-
-		eval event evalOpts tt=:(TCInit _ _) iworld
-			//On initialization, we need to do a reset to be able to apply the layout
-			= eval ResetEvent evalOpts (TCLayout (initLUI (ui UIEmpty),initLUIMoves) tt) iworld 
-
-		//On Reset events, we (re-)apply the layout
-		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
-			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
-				= (ValueResult value info change (TCLayout state tt), iworld)		
-            (res,iworld) = (res,iworld)
-
-		eval event evalOpts (TCLayout state tt) iworld = case evala event evalOpts tt iworld of
-	        (ValueResult value info change tt,iworld) 
-				# state = applyUpstreamChange change state
-				# state = rule ruleNo state
-				# (change,state) = extractDownstreamChange state
-				= (ValueResult value info change (TCLayout state tt), iworld)
-            (res,iworld) = (res,iworld)
-		
-		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
+applyLayout rule task=:(Task evala) = task
+//	where
+//		ruleNo = LUINo [0]
+//
+//		eval DestroyEvent evalOpts (TCLayout s tt) iworld //Cleanup duty simply passed to inner task
+//			= evala DestroyEvent evalOpts tt iworld
+//
+//		eval event evalOpts tt=:(TCInit _ _) iworld
+//			//On initialization, we need to do a reset to be able to apply the layout
+//			= eval ResetEvent evalOpts (TCLayout (initLUI (ui UIEmpty),initLUIMoves) tt) iworld 
+//
+//		//On Reset events, we (re-)apply the layout
+//		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
+//			(ValueResult value info (ReplaceUI ui) tt,iworld)
+//				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
+//				= (ValueResult value info change (TCLayout state tt), iworld)		
+//            (res,iworld) = (res,iworld)
+//
+//		eval event evalOpts (TCLayout state tt) iworld = case evala event evalOpts tt iworld of
+//	        (ValueResult value info change tt,iworld) 
+//				# state = applyUpstreamChange change state
+//				# state = rule ruleNo state
+//				# (change,state) = extractDownstreamChange state
+//				= (ValueResult value info change (TCLayout state tt), iworld)
+//            (res,iworld) = (res,iworld)
+//		
+//		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
 instance tune ApplyLayout Task
 where tune (ApplyLayout l) task = applyLayout l task

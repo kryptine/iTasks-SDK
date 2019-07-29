@@ -1,6 +1,6 @@
 definition module iTasks.Internal.TaskState
 
-from iTasks.Internal.TaskEval import :: TonicOpts, :: TaskTime
+from iTasks.Internal.TaskEval import :: TaskTime
 
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: Event
 from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress
@@ -45,8 +45,6 @@ derive gDefault TIMeta
 
 :: TIReduct =
 	{ task			:: !Task DeferredJSON               //Main task definition
-    , tree          :: !TaskTree                        //Main task state
-    , tonicRedOpts  :: !TonicOpts                       //Tonic data
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
 	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
     // TODO Remove from reduct!

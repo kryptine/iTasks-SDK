@@ -38,7 +38,11 @@ readSymbols shareValue = fst (copy_from_string (base64Decode shareValue))
 withSymbols :: ({#Symbol} -> Task a) -> Task a | iTask a
 withSymbols taskfun = Task eval
 where
-	eval event evalOpts state iworld
-    # (val, iworld) = read symbolsShare EmptyContext iworld
-    = case val of
-        Ok (ReadingDone val)          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld
+	eval event evalOpts iworld
+	# (mval, iworld) = read symbolsShare EmptyContext iworld
+	= case mval of
+		(Error e) = (ExceptionResult e, iworld)
+		(Ok (ReadingDone val))
+			# (Task task) = taskfun (readSymbols val)
+			= task event evalOpts iworld
+		(Ok _) = (ExceptionResult (exception "Async symbol share unsupported"), iworld)

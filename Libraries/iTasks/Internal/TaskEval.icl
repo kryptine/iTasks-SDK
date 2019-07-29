@@ -10,6 +10,7 @@ import iTasks.Internal.Util
 import iTasks.Internal.EngineTasks
 
 from iTasks.WF.Combinators.Core import :: SharedTaskList
+import iTasks.WF.Derives
 from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del
 from Data.Queue import :: Queue (..)
@@ -27,27 +28,9 @@ mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
   { TaskEvalOpts
   | noUI        = False
-  , tonicOpts   = defaultTonicOpts
+  , taskId      = TaskId 0 0
+  , ts          = 0
   }
-
-defaultTonicOpts :: TonicOpts
-defaultTonicOpts = { TonicOpts
-				   | inAssignNode            = Nothing
-				   , inParallel              = Nothing
-				   , captureParallel         = False
-				   , currBlueprintModuleName = ""
-				   , currBlueprintFuncName   = ""
-				   , currBlueprintTaskId     = TaskId 0 0
-				   , currBlueprintExprId     = []
-				   , callTrace               = 'DCS'.newStack 1024
-				   }
-
-extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
-extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
-  = case 'DCS'.peek xs of
-	  Just topTaskId
-		| taskId == topTaskId = repOpts
-	  _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
@@ -80,7 +63,7 @@ where
 	| isError curReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) curReduct) iworld
 	# curReduct = directResult (fromOk curReduct)
 	| curReduct =: Nothing      = exitWithException instanceNo ("Task instance does not exist" <+++ instanceNo) iworld
-	# curReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromJust curReduct
+	# curReduct=:{TIReduct|task=(Task eval),nextTaskNo=curNextTaskNo,nextTaskTime,tasks} = fromJust curReduct
 	// Determine the task type (startup,session,local) 
 	# (type,iworld)             = determineInstanceType instanceNo iworld
 	// Determine the progress of the instance
@@ -105,10 +88,10 @@ where
 			, nextTaskNo = curReduct.TIReduct.nextTaskNo
 		}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
-	# tree = case newResult of
-		(ValueResult _ _ _ newTree)  = newTree
-		_                            = tree
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & ts=curReduct.TIReduct.nextTaskTime, taskId = taskId} iworld
+	# newTask = case newResult of
+		(ValueResult _ _ _ newTask)  = newTask
+		_                            = Task eval
 	# destroyed = newResult =: DestroyedResult
 	//Reset necessary 'current' values in iworld
 	# iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
@@ -124,7 +107,7 @@ where
 			//Store or remove reduct
 			# (nextTaskNo,iworld)		= getNextTaskNo iworld
 			# (_,iworld)                =
-				 (modify (maybe Nothing (\r -> if destroyed Nothing (Just {TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})))
+				 (modify (maybe Nothing (\r -> if destroyed Nothing (Just {TIReduct|r & task = newTask, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})))
 					(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld)
 					//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
 			//Store or delete value

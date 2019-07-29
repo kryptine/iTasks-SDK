@@ -16,6 +16,7 @@ from iTasks.Extensions.DateTime import waitForTimer
 from iTasks.UI.Definition import :: UIType(UILoader)
 
 import iTasks.Internal.SDS
+import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
