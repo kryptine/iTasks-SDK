@@ -288,7 +288,7 @@ required type w. The reducer has the job to turn this ws into w.
  */
 :: SimpleSDSCache a :== SDSCache () a a
 
-:: SDSCache p r w = E. sds: SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & iTask p & TC r & TC w
+:: SDSCache p r w = E. sds: SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & gText{|*|}, TC p & TC r & TC w
 :: SDSCacheOptions p r w  =
 	{ write :: !p (Maybe r) (Maybe w) w -> (!Maybe r, !SDSCacheWrite)
 	}
