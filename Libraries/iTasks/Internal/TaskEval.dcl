@@ -21,6 +21,8 @@ from Data.CircularStack import :: CircularStack
 :: TaskEvalOpts	=
 	{ noUI              :: Bool
 	, tonicOpts         :: TonicOpts
+	, taskId            :: TaskId
+	, ts                :: TaskTime
 	}
 
 :: TonicOpts =
