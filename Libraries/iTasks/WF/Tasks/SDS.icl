@@ -7,6 +7,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
+import iTasks.WF.Tasks.Core
 import qualified iTasks.Internal.SDS as SDS
 import StdString, Data.Func, Data.Error, StdBool
 import qualified Data.Set as DS
@@ -19,45 +20,31 @@ where
 derive class iTask SharedException
 
 get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
-get shared = Task (wrapOldStyleTask (eval shared))
+get sds = Task (eval sds)
 where
-	eval :: (sds () a w) Event TaskEvalOpts TaskTree !*IWorld -> (TaskResult` a, !*IWorld) | TC w & TC a & Readable sds & iTask a
-	eval _ DestroyEvent opts tree iworld=:{sdsEvalStates}
-	# sdsEvalStates = 'DM'.del (fromOk (taskIdFromTaskTree tree)) sdsEvalStates
-	= (DestroyedResult`, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval shared event opts tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	= case 'SDS'.read shared ('SDS'.TaskContext taskId) iworld of
-		// Remote read is queued, enter AwaitRead state and show loading UI.
-		(Ok (Reading sds), iworld)
-			# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
-			# newState = TCAwait Read taskId ts tree
-			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.read sds ('SDS'.TaskContext taskId))) sdsEvalStates
-			= (ValueResult` NoValue (tei ts) ui newState, {iworld & sdsEvalStates = sdsEvalStates})
-		// Remote read not necessary, return result directly.
-		(Ok (ReadingDone val), iworld)
-		# tree = TCStable taskId ts (DeferredJSON val)
-		# result = ValueResult` (Value val True) (tei ts) (ReplaceUI (ui UIEmpty)) tree
-		= (result, iworld)
-		(Error e, iworld) 				= (ExceptionResult` e, iworld)
-
-	eval shared event opts tree=:(TCAwait Read taskId ts subtree) iworld=:{IWorld|sdsEvalStates}
-	= case 'DM'.get taskId sdsEvalStates of
-		Nothing 				= (ExceptionResult` (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		(Just val) 				= case val iworld of
-			(Error e, iworld) = (ExceptionResult` e, iworld)
-			(Ok (res :: AsyncRead a^ w^), iworld)
-			= case res of
-				(ReadingDone val) = (ValueResult` (Value val True) (tei ts) (ReplaceUI (ui UIEmpty)) subtree, iworld)
-				(Reading sds)
-				# ui = NoChange
-				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.read sds ('SDS'.TaskContext taskId))) sdsEvalStates
-				= (ValueResult` NoValue (tei ts) ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval _ event opts s=:(TCStable taskId ts enc) iworld
-	= case fromDeferredJSON enc of
-		Just a	= (ValueResult` (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
-		Nothing	= (ExceptionResult` (exception "Corrupt task result"), iworld)
+	//Initial evaluation
+	eval :: !(sds () a w) !Event !TaskEvalOpts !*IWorld -> *(TaskResult a, *IWorld) | iTask a & Readable sds & TC w
+	eval sds DestroyEvent opts iworld
+		= (DestroyedResult, iworld)
+	eval sds event {TaskEvalOpts|taskId,ts} iworld
+		= case 'SDS'.read sds ('SDS'.TaskContext taskId) iworld of
+			// Remote read is queued, enter AwaitRead state and show loading UI.
+			(Ok (Reading newsds), iworld)
+				# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
+				= (ValueResult
+					NoValue
+					(tei ts)
+					ui
+					(Task (eval newsds))
+				, iworld)
+			(Ok (ReadingDone val), iworld)
+				= (ValueResult
+					(Value val True)
+					(tei ts)
+					(ReplaceUI (ui UIEmpty))
+					(treturn val)
+				, iworld)
+			(Error e, iworld) = (ExceptionResult e, iworld)
 
 set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 set val shared = Task (wrapOldStyleTask (eval val shared))
