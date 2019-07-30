@@ -52,6 +52,7 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
+import Debug.Trace
 //TODO To be ported to new style
 interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
@@ -72,6 +73,7 @@ where
 	
 	//Regular refresh and edit events
 	eval prompt shared handlers editor event evalOpts tree iworld
+		# (_, tree) = trace_stdout ("interacttree: ", tree)
 		= interactEvents prompt shared handlers editor event evalOpts tree (interactModifyShareAsync shared) iworld
 
 interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
