@@ -24,8 +24,8 @@ get sds = Task (eval sds)
 where
 	//Initial evaluation
 	eval :: !(sds () a w) !Event !TaskEvalOpts !*IWorld -> *(TaskResult a, *IWorld) | iTask a & Readable sds & TC w
-	eval sds DestroyEvent opts iworld
-		= (DestroyedResult, iworld)
+	eval _ DestroyEvent _ iworld = (DestroyedResult, iworld)
+
 	eval sds event {TaskEvalOpts|taskId,ts} iworld
 		= case 'SDS'.read sds ('SDS'.TaskContext taskId) iworld of
 			// Remote read is queued, enter AwaitRead state and show loading UI.
@@ -40,7 +40,7 @@ where
 				= (ValueResult
 					(Value val True)
 					(tei ts)
-					(ReplaceUI (ui UIEmpty))
+					(rep event)
 					(treturn val)
 				, iworld)
 			(Error e, iworld) = (ExceptionResult e, iworld)
@@ -49,8 +49,8 @@ set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 set val sds = Task (eval val sds)
 where
 	eval :: a (sds () r a) Event TaskEvalOpts *IWorld -> (TaskResult a, !*IWorld) | iTask a & TC r & Writeable sds
-	eval _ _ DestroyEvent _ iworld
-		= (DestroyedResult, iworld)
+	eval _ _ DestroyEvent _ iworld = (DestroyedResult, iworld)
+
 	eval val sds event {TaskEvalOpts|taskId, ts} iworld
 	# evalInfo = {lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 	= case 'SDS'.write val sds ('SDS'.TaskContext taskId) iworld of
@@ -71,41 +71,29 @@ where
 		(Error e, iworld) = (ExceptionResult e, iworld)
 
 upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
-upd fun shared = Task (wrapOldStyleTask (eval fun shared))
+upd fun sds = Task (eval fun sds)
 where
-	eval :: (r -> w) (sds () r w) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult` w, !*IWorld) | iTask r & iTask w & RWShared sds
-	eval fun shared DestroyEvent _ tree iworld=:{sdsEvalStates}
-	# sdsEvalStates = 'DM'.del (fromOk (taskIdFromTaskTree tree)) sdsEvalStates
-	= (DestroyedResult`, {iworld & sdsEvalStates = sdsEvalStates})
+	eval :: (r -> w) (sds () r w) Event TaskEvalOpts *IWorld -> (TaskResult w, !*IWorld) | iTask r & iTask w & Modifiable sds
+	eval fun shared DestroyEvent opts iworld
+		= (DestroyedResult, iworld)
 
-	eval fun shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	= case 'SDS'.modify fun shared ('SDS'.TaskContext taskId) iworld of
-		(Error (d, s), iworld) 						= (ExceptionResult` (d, s), iworld)
-		(Ok (ModifyingDone w), iworld)
-		# result = ValueResult` (Value w True) (tei ts) (rep event) (TCStable taskId ts (DeferredJSON w))
-		= (result, iworld)
-		(Ok (Modifying sds _), iworld)
-		# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
-		# tree = TCAwait Modify taskId ts (TCInit taskId ts)
-		# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify fun sds ('SDS'.TaskContext taskId))) sdsEvalStates
-		= (ValueResult` NoValue (tei ts) ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval fun shared event _ tree=:(TCAwait Modify taskId ts subtree) iworld=:{sdsEvalStates} =  case 'DM'.get taskId sdsEvalStates of
-		Nothing 				= (ExceptionResult` (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		(Just val) 				= case val iworld of
-			(Error e, iworld) = (ExceptionResult` e, iworld)
-			(Ok (res :: AsyncModify r^ w^), iworld) = case res of
-				ModifyingDone w
-				# result = ValueResult` (Value w True) (tei ts) NoChange (TCStable taskId ts (DeferredJSON w))
-				= (result, iworld)
-				Modifying sds f
-				# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify f sds ('SDS'.TaskContext taskId))) sdsEvalStates
-				# result = ValueResult` NoValue (tei ts) NoChange tree
-				= (result, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
-		Just a	= (ValueResult` (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
-		Nothing	= (ExceptionResult` (exception "Corrupt task result"), iworld)
+	eval fun sds event {TaskEvalOpts|taskId,ts} iworld
+		= case 'SDS'.modify fun sds ('SDS'.TaskContext taskId) iworld of
+			(Ok (Modifying sds _), iworld)
+				= (ValueResult
+					NoValue
+					(tei ts)
+					(ReplaceUI (uia UIProgressBar (textAttr "Getting data")))
+					(Task (eval fun sds))
+				, iworld)
+			(Ok (ModifyingDone val), iworld)
+				= (ValueResult
+					(Value val True)
+					(tei ts)
+					(rep event)
+					(treturn val)
+				, iworld)
+			(Error e, iworld) = (ExceptionResult e, iworld)
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch shared = Task (wrapOldStyleTask (eval shared))

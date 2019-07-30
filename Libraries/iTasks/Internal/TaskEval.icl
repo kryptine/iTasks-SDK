@@ -1,5 +1,7 @@
 implementation module iTasks.Internal.TaskEval
 
+import Debug.Trace
+
 import StdList, StdBool, StdTuple, StdMisc, StdString
 import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.GenJSON
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.SDS, iTasks.Internal.AsyncSDS
@@ -50,6 +52,7 @@ processEvents max iworld
 					(Error msg,iworld=:{IWorld|world})
 						= (Ok (),{IWorld|iworld & world = world})
 
+import StdDebug
 derive gText InstanceType
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
@@ -58,6 +61,7 @@ evalTaskInstance instanceNo event iworld
 	= (res,iworld)
 where
 	evalTaskInstance` instanceNo event destroy iworld=:{clock,current}
+	# (_, event) = trace_stdout ("evalTaskInstance`: ", event)
 	// Read the task reduct. If it does not exist, the task has been deleted.
 	# (curReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
 	| isError curReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) curReduct) iworld
@@ -90,7 +94,7 @@ where
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & ts=curReduct.TIReduct.nextTaskTime, taskId = taskId} iworld
 	# newTask = case newResult of
-		(ValueResult _ _ _ newTask)  = newTask
+		(ValueResult val _ _ newTask) = newTask
 		_                            = Task eval
 	# destroyed = newResult =: DestroyedResult
 	//Reset necessary 'current' values in iworld

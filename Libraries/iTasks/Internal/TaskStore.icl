@@ -198,8 +198,8 @@ where
 	toJSONTask (Task eval) = Task \event repOpts iworld->case eval event repOpts iworld of
 		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)   = (DestroyedResult, iworld)
-		(ValueResult val ts rep eval, iworld)
-			= (ValueResult (fmap DeferredJSON val) ts rep (toJSONTask eval), iworld)
+		(ValueResult val ts rep neweval, iworld)
+			= (ValueResult (fmap DeferredJSON val) ts rep (toJSONTask neweval), iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
