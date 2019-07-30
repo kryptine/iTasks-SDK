@@ -49,3 +49,5 @@ mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -
 
 wrapOldStyleTask :: (Event -> TaskEvalOpts -> TaskTree -> *IWorld -> *(TaskResult` a, *IWorld))
 	-> (Event -> TaskEvalOpts -> *IWorld -> *(TaskResult a, *IWorld)) | iTask a
+
+recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a

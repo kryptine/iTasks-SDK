@@ -143,3 +143,7 @@ where
 				= (ValueResult tv tei ui (Task (evalactual newtree)), iworld)
 			ExceptionResult` exc = (ExceptionResult exc, iworld)
 			DestroyedResult`     = (DestroyedResult, iworld)
+
+recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
+recTask tf (ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
+recTask _ a = a
