@@ -30,11 +30,10 @@ where
 		= case 'SDS'.read sds ('SDS'.TaskContext taskId) iworld of
 			// Remote read is queued, enter AwaitRead state and show loading UI.
 			(Ok (Reading newsds), iworld)
-				# ui = ReplaceUI (uia UIProgressBar (textAttr "Getting data"))
 				= (ValueResult
 					NoValue
 					(tei ts)
-					ui
+					(ReplaceUI (uia UIProgressBar (textAttr "Getting data")))
 					(Task (eval newsds))
 				, iworld)
 			(Ok (ReadingDone val), iworld)
@@ -47,37 +46,29 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 
 set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
-set val shared = Task (wrapOldStyleTask (eval val shared))
+set val sds = Task (eval val sds)
 where
-	eval :: a (sds () r a) Event TaskEvalOpts TaskTree *IWorld -> (TaskResult` a, !*IWorld) | iTask a & TC r & Writeable sds
-	eval _ _ DestroyEvent _ tree iworld=:{sdsEvalStates}
-	# sdsEvalStates = 'DM'.del (fromOk (taskIdFromTaskTree tree)) sdsEvalStates
-	= (DestroyedResult`, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval val shared event _ tree=:(TCAwait Write taskId ts st) iworld=:{sdsEvalStates}
+	eval :: a (sds () r a) Event TaskEvalOpts *IWorld -> (TaskResult a, !*IWorld) | iTask a & TC r & Writeable sds
+	eval _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	eval val sds event {TaskEvalOpts|taskId, ts} iworld
 	# evalInfo = {lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
-	= case 'DM'.get taskId sdsEvalStates of
-		Nothing = (ExceptionResult` (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		(Just f) = case f iworld of
-			(Error e, iworld) = (ExceptionResult` e, iworld)
-			(Ok (res :: AsyncWrite r^ a^), iworld) = case res of
-				WritingDone = (ValueResult` (Value val True) evalInfo (ReplaceUI (ui UIEmpty)) (TCStable taskId ts (DeferredJSON val)), {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates})
-				Writing sds = (ValueResult` NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
-
-	eval val shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	# evalInfo = {lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
-	= case 'SDS'.write val shared ('SDS'.TaskContext taskId) iworld of
-		(Error e, iworld) 		= (ExceptionResult` e, iworld)
+	= case 'SDS'.write val sds ('SDS'.TaskContext taskId) iworld of
 		(Ok (Writing sds), iworld)
-			# ui = ReplaceUI (uia UIProgressBar (textAttr "Writing data"))
-			# tree = TCAwait Write taskId ts (TCInit taskId ts)
-			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates
-			= (ValueResult` NoValue evalInfo ui tree, {iworld & sdsEvalStates = sdsEvalStates})
-		(Ok WritingDone, iworld) 			= (ValueResult` (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
-
-	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
-		Just a	= (ValueResult` (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
-		Nothing	= (ExceptionResult` (exception "Corrupt task result"), iworld)
+			= (ValueResult
+				NoValue
+				evalInfo
+				(ReplaceUI (uia UIProgressBar (textAttr "Writing data")))
+				(Task (eval val sds))
+			, iworld)
+		(Ok WritingDone, iworld)
+			= (ValueResult
+				(Value val True)
+				(tei ts)
+				(rep event)
+				(treturn val)
+			, iworld)
+		(Error e, iworld) = (ExceptionResult e, iworld)
 
 upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 upd fun shared = Task (wrapOldStyleTask (eval fun shared))
