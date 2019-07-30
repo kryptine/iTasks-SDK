@@ -1,5 +1,6 @@
 implementation module iTasks.WF.Tasks.SDS
 
+import iTasks.WF.Derives
 import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.SDS.Definition
@@ -96,69 +97,41 @@ where
 			(Error e, iworld) = (ExceptionResult e, iworld)
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
-watch shared = Task (wrapOldStyleTask (eval shared))
+watch origsds = Task (eval origsds NoValue origsds)
 where
-	eval :: (sds () r w) Event TaskEvalOpts TaskTree *IWorld
-		-> (TaskResult` r, !*IWorld) | iTask r & TC w & Readable, Registrable sds
-	eval _ DestroyEvent _ ttree iworld=:{sdsEvalStates}
-		# taskId = fromOk $ taskIdFromTaskTree ttree
-		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ taskId) iworld
-		# iworld = {iworld & sdsEvalStates = 'DM'.del taskId sdsEvalStates}
-		= (DestroyedResult`,iworld)
+	eval :: (sds1 () r w) (TaskValue r) (sds2 () r w) Event TaskEvalOpts *IWorld
+		-> (TaskResult r, !*IWorld) | iTask r & TC w & Readable, Registrable sds1 & Readable, Registrable sds2
+	eval _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
+		# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
+		= (DestroyedResult,iworld)
 
-	eval shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	= case 'SDS'.readRegister taskId shared iworld of
-		(Error e, iworld) = (ExceptionResult` e, iworld)
-		(Ok (ReadingDone val), iworld)
-			# tree = TCBasic taskId ts (DeferredJSON val) False
-			= (ValueResult` (Value val False) (tei ts) (rep event) tree, iworld)
-		(Ok (Reading sds), iworld)
-			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-			# result = ValueResult` NoValue (tei ts) (rep event) (TCAwait Read taskId ts tree)
-			= (result, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval shared event _ tree=:(TCBasic taskId ts val stable) iworld=:{sdsEvalStates}
-	| not (isRefreshForTask event tree) = case fromDeferredJSON val of
-		Nothing = (ExceptionResult` (exception "Corrupt task result"), iworld)
-		Just v = (ValueResult` (Value v False) (tei ts) NoChange tree, iworld)
-	= case 'SDS'.readRegister taskId shared iworld of
-		(Error e, iworld) = (ExceptionResult` e, iworld)
-		(Ok (ReadingDone val), iworld)
-			# tree = TCBasic taskId ts (DeferredJSON val) False
-			= (ValueResult` (Value val False) (tei ts) (rep event) tree, iworld)
-		(Ok (Reading sds), iworld) = case fromDeferredJSON val of
-			Nothing = (ExceptionResult` (exception "Corrupt task result"), iworld)
-			Just v
-			# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-			# result = ValueResult` (Value v False) (tei ts) (rep event) (TCAwait Read taskId ts tree)
-			= (result, {iworld & sdsEvalStates = sdsEvalStates})
-
-	eval _ event=:(RefreshEvent taskIds reason) _ tree=:(TCAwait Read taskId ts subtree) iworld=:{sdsEvalStates}
-	# oldValue = case subtree of
-		(TCInit _ _) = NoValue
-		(TCBasic _ _ val _) = case fromDeferredJSON val of
-			Nothing = NoValue
-			Just v = Value v False
-	| not (isRefreshForTask event tree) = (ValueResult` oldValue (tei ts) NoChange tree, iworld)
-	= case 'DM'.get taskId sdsEvalStates of
-		Nothing = (ExceptionResult` (exception ("No SDS state found for task " +++ toString taskId)), iworld)
-		Just val = case val iworld of
-			(Error e, iworld) = (ExceptionResult` e, iworld)
-			(Ok (res :: AsyncRead r^ w^), iworld) = case res of
-				ReadingDone v
-					# sdsEvalStates = 'DM'.del taskId sdsEvalStates
-					# result = ValueResult` (Value v False) (tei ts) NoChange (TCBasic taskId ts (DeferredJSON v) False)
-					= (result, {iworld & sdsEvalStates = sdsEvalStates})
-				Reading sds
-					# sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates
-					# result = ValueResult` oldValue (tei ts) NoChange tree
-					= (result, {iworld & sdsEvalStates = sdsEvalStates})
+	eval origsds oldtv sds event {TaskEvalOpts|taskId,ts} iworld
+		| not (isRefreshForTask event taskId)
+			= (ValueResult oldtv (tei ts) NoChange (Task (eval origsds oldtv sds)), iworld)
+		= case 'SDS'.readRegister taskId sds iworld of
+			(Error e, iworld) = (ExceptionResult e, iworld)
+			(Ok (ReadingDone val), iworld)
+				= (ValueResult
+					(Value val False)
+					(tei ts)
+					(rep event)
+					//Reading is done, go back to the original sds
+					(Task (eval origsds (Value val False) origsds))
+				, iworld)
+			(Ok (Reading sds), iworld)
+				= (ValueResult
+					oldtv
+					(tei ts)
+					(rep event)
+					//Reading is not done, use sds reduct
+					(Task (eval origsds oldtv sds))
+				, iworld)
 
 tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 
 rep ResetEvent  = ReplaceUI (ui UIEmpty)
 rep _ 			= NoChange
 
-isRefreshForTask (RefreshEvent taskIds _) tree = 'DS'.member (fromOk (taskIdFromTaskTree tree)) taskIds
+isRefreshForTask (RefreshEvent taskIds _) taskId = 'DS'.member taskId taskIds
 isRefreshForTask ResetEvent _ = True
 isRefreshForTask _ _ = False
