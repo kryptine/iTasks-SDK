@@ -26,11 +26,11 @@ import iTasks.WF.Definition
 	= ListenerInstanceDS !ListenerInstanceOpts
 	| ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
 
-serve :: ![StartupTask] ![(!Int,!ConnectionTask)] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve :: ![StartupTask] ![(Int,ConnectionTask)] (*IWorld -> (Maybe Timeout,*IWorld)) *IWorld -> *IWorld
 serve its cts determineTimeout iworld
 	= loop determineTimeout (init its cts iworld)
 
-init :: ![StartupTask] ![(!Int,!ConnectionTask)] !*IWorld -> *IWorld
+init :: ![StartupTask] ![(Int,ConnectionTask)] !*IWorld -> *IWorld
 init its cts iworld
 	# iworld = installSignalHandlers iworld
 	// Check if the initial tasks have been added already
@@ -55,7 +55,7 @@ where
 			Ok (ReadingDone index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
-	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
+	connectAll :: ![(Int,ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
 	connectAll [] world = ([],world)
 	connectAll [(port,ct):cts] world
 		# (l,world) = connect port ct world
@@ -76,7 +76,7 @@ where
 				(Error (_, e), world) = abort ("Couldn't install SIGINT: " +++ e)
 				(Ok h2, world) = {iworld & signalHandlers=[h1,h2:signalHandlers], world=world}
 
-loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
+loop :: !(*IWorld -> (Maybe Timeout,*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests,signalHandlers}
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
@@ -139,7 +139,7 @@ toSelectSet [i:is]
 	In the same pass also update the indices in the select result to match the
 	correct indices of the main loop instance list.
 */
-fromSelectSet :: !*[*TCP_Listener] !*[*TCP_RChannel] !*[*IOTaskInstanceDuringSelect] ![(!Int,!SelectResult)] -> *(![*IOTaskInstance],![(!Int,!SelectResult)])
+fromSelectSet :: !*[*TCP_Listener] !*[*TCP_RChannel] !*[*IOTaskInstanceDuringSelect] ![(Int,SelectResult)] -> *(![*IOTaskInstance],![(Int,SelectResult)])
 fromSelectSet ls rs is chList
 	# (numListeners,ls) = ulength ls
 	# sortedChList      = sortBy (\(x,_) (y,_) -> (x < y)) chList //The single-pass algorithm expects a sorted select result
@@ -175,7 +175,7 @@ where
 		= (n + 1,[x:xs])
 
 //TODO: Use share notification to trigger task re-evaluation based on io events
-process :: !Int [(!Int,!SelectResult)] !*IWorld -> *IWorld
+process :: !Int [(Int,SelectResult)] !*IWorld -> *IWorld
 process i chList iworld=:{ioTasks={done,todo=[]}} = iworld
 process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:todo]},ioStates,world}
 	# taskId=:(TaskId instanceNo _) = lopts.ListenerInstanceOpts.taskId
@@ -266,13 +266,14 @@ process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
 // Definitions of IO tasks (tcp connections)
 
 :: IOTaskOperations ioChannels readData closeInfo =
-	{ readData  :: !(Int [(Int, SelectResult)] *(!ioChannels, !*IWorld) -> *(!IOData readData closeInfo, !ioChannels, !*IWorld))
-	, writeData :: !(String                    *(!ioChannels, !*IWorld) -> *(!ioChannels, !*IWorld))
+	{ readData  :: !(Int [(Int, SelectResult)] *(!ioChannels, !*IWorld) -> *(IOData readData closeInfo, ioChannels, *IWorld))
+	, writeData :: !(String                    *(!ioChannels, !*IWorld) -> *(ioChannels, *IWorld))
 	, closeIO   :: !(                          *(!ioChannels, !*IWorld) -> *IWorld)
 	}
-:: IOData data closeInfo = IODClosed closeInfo
-						 | IODNoData
-						 | IODData !data & TC data
+:: IOData data closeInfo
+	= IODClosed closeInfo
+	| IODNoData
+	| IODData !data & TC data
 
 tcpConnectionIOOps :: IOTaskOperations *TCP_DuplexChannel String ()
 tcpConnectionIOOps = {readData = readData, writeData = writeData, closeIO = closeIO}
@@ -309,11 +310,11 @@ processIOTask :: !Int
 				 !Bool
 				 !(SimpleSDSLens Dynamic)
 				 !(IOTaskOperations .ioChannels readData closeInfo)
-				 !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
-				 !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
-				 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
-				 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
-				 !(Dynamic *IWorld -> (!MaybeErrorString Dynamic, ![String], !*IWorld))
+				 !(closeInfo Dynamic Dynamic *IWorld -> (MaybeErrorString Dynamic, Maybe Dynamic, *IWorld))
+				 !(readData Dynamic Dynamic *IWorld -> (MaybeErrorString Dynamic, Maybe Dynamic, [String], Bool, *IWorld))
+				 !(Dynamic Dynamic *IWorld -> (MaybeErrorString Dynamic, Maybe Dynamic, [String], Bool, *IWorld))
+				 !(Dynamic Dynamic *IWorld -> (MaybeErrorString Dynamic, Maybe Dynamic, [String], Bool, *IWorld))
+				 !(Dynamic *IWorld -> (MaybeErrorString Dynamic, [String], *IWorld))
 				 !(.ioChannels -> *IOTaskInstance)
 				 !.ioChannels
 				 !*IWorld
@@ -507,9 +508,9 @@ where
 
 addIOTask :: !TaskId
 			 !(Shared sds Dynamic)
-			 !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
+			 !(*IWorld -> (MaybeErrorString (!initInfo, !.ioChannels), *IWorld))
 			 !(IOTaskOperations .ioChannels readData closeInfo)
-			 !(ConnectionId initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+			 !(ConnectionId initInfo Dynamic *IWorld -> (MaybeErrorString Dynamic, Maybe Dynamic, [String], Bool, *IWorld))
 			 !(ConnectionId initInfo .ioChannels -> *IOTaskInstance)
 			 !*IWorld
 		  -> (!MaybeError TaskException (ConnectionId, Dynamic), !*IWorld) | Readable sds
@@ -555,7 +556,7 @@ where
 maxListInc [] = zero
 maxListInc list = inc (maxList list)
 
-checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
+checkSelect :: !Int ![(Int,SelectResult)] -> (!Maybe SelectResult,![(Int,SelectResult)])
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
 

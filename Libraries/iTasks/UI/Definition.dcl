@@ -32,9 +32,9 @@ derive class iTask UITreeNode
 
 //Representation of a collection of changes that need to be applied to an existing UI
 :: UIChange
-	= NoChange		                                       //No changes are needed
-	| ReplaceUI !UI                                        //Replace the entire UI with a new version
-	| ChangeUI [UIAttributeChange] [(!Int,!UIChildChange)] //Change the current UI and/or its children
+	= NoChange                                           //No changes are needed
+	| ReplaceUI !UI                                      //Replace the entire UI with a new version
+	| ChangeUI [UIAttributeChange] [(Int,UIChildChange)] //Change the current UI and/or its children
 
 :: UIAttributeChange = SetAttribute !String !JSONNode  //A change to a user interface attribute
 					 | DelAttribute !String            //Remove an attribute

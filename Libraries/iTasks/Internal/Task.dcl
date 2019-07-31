@@ -29,13 +29,13 @@ derive gEq				Task
 
 //Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
 :: ConnectionHandlersIWorld l r w =
-    { onConnect     :: !(ConnectionId String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , onData        :: !(			  String l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , onShareChange :: !(                    l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , onTick        :: !(       			 l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , onDisconnect  :: !(       			 l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
-    , onDestroy     :: !(                    l   *IWorld -> *(!MaybeErrorString l,          ![String],        !*IWorld))
-    }
+	{ onConnect     :: !(ConnectionId String r   *IWorld -> *(MaybeErrorString l, Maybe w, [String], Bool, *IWorld))
+	, onData        :: !(             String l r *IWorld -> *(MaybeErrorString l, Maybe w, [String], Bool, *IWorld))
+	, onShareChange :: !(                    l r *IWorld -> *(MaybeErrorString l, Maybe w, [String], Bool, *IWorld))
+	, onTick        :: !(                    l r *IWorld -> *(MaybeErrorString l, Maybe w, [String], Bool, *IWorld))
+	, onDisconnect  :: !(                    l r *IWorld -> *(MaybeErrorString l, Maybe w,                 *IWorld))
+	, onDestroy     :: !(                    l   *IWorld -> *(MaybeErrorString l,          [String],       *IWorld))
+	}
 
 /**
 * Wraps a set of connection handlers and a shared source as a connection task
@@ -46,5 +46,5 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 /**
 * Create a task that finishes instantly
 */
-mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (MaybeError (Dynamic,String) a,*IWorld)) -> Task a | iTask a
 

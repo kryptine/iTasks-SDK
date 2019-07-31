@@ -43,7 +43,7 @@ queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> 
  * Queue that a task on a remote service should refresh itself.
  * @param Remote notify requests
  */
-queueRemoteRefresh :: ![(!TaskId, !RemoteNotifyOptions)] !*IWorld -> *IWorld
+queueRemoteRefresh :: ![(TaskId, RemoteNotifyOptions)] !*IWorld -> *IWorld
 
 /**
  * Queue a write operation to a remote sds.

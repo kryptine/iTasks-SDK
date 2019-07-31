@@ -402,7 +402,7 @@ tIf inh eid cexpr texpr eexpr tsrc
   = tCaseOrIf inh cexpr [ (Just (TLit (TBool True)), texpr, True, ut)
                         , (Just (TLit (TBool False)), eexpr, True, ue)] tsrc
 
-tCase :: !(InhMkImg i) !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource) | BlueprintLike i
+tCase :: !(InhMkImg i) !ExprId !TExpr ![(Pattern, TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource) | BlueprintLike i
 tCase inh eid texpr pats tsrc
   #! mbranch = case inh.inh_bpinst of
                  Just bpi -> 'DM'.get eid (getBranches bpi)
@@ -447,7 +447,7 @@ tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
   #! img          = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, exprImg] NoHost
   = (img, tsrc)
 
-tLet :: !(InhMkImg i) ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!SynMkImg, *TagSource) | BlueprintLike i
+tLet :: !(InhMkImg i) ![(Pattern, TExpr)] !TExpr !*TagSource -> *(!SynMkImg, *TagSource) | BlueprintLike i
 tLet inh pats expr [(txttag, uTxtTag) : tsrc]
   #! inh = {inh & inh_in_let = True}
   = case expr of
@@ -611,7 +611,7 @@ ppCompId xs = "[" +++ ppCompId` xs +++ "]"
   ppCompId` [x] = toString x
   ppCompId` [x:xs] = toString x +++ ", " +++ ppCompId` xs
 
-tTaskDef :: !(InhMkImg i) !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
+tTaskDef :: !(InhMkImg i) !String !String !TExpr ![(TExpr, TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
          -> *(!Image ModelTy, !*TagSource) | BlueprintLike i
 tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
   #! userImg      = case inh.inh_bpinst of
@@ -1084,8 +1084,8 @@ addAction _ _ _ = empty (px 0.0) (px 0.0)
 hasValueFilter :: Image ModelTy
 hasValueFilter = beside (repeat AtMiddleY) [] Nothing [] [ tStableBox, tUnstableBox, text ArialBold10px " Has value"] NoHost
 
-tBranches :: !(InhMkImg i) !((InhMkImg i) TExpr *TagSource -> *(!SynMkImg, !*TagSource))
-             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool, !Bool)] !ImageTag !*TagSource
+tBranches :: !(InhMkImg i) !((InhMkImg i) TExpr *TagSource -> *(SynMkImg, *TagSource))
+             !Bool !Bool ![(Maybe Pattern, TExpr, Bool, Bool)] !ImageTag !*TagSource
           -> *(!SynMkImg, !*TagSource) | BlueprintLike i
 tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
@@ -1215,35 +1215,35 @@ tUnstableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.
                                                           , text ArialBold6px "U" ] NoHost
 
 
-strictTRMapSt :: !(.a -> .(.st -> .(!b, !.st))) ![.a] !.st -> .(![b], !.st)
+strictTRMapSt :: !(.a -> .(.st -> .(b, .st))) ![.a] !.st -> .(![b], !.st)
 strictTRMapSt f xs st
   #! (rs, st) = strictTRMapStAcc f xs [] st
   = (reverseTR rs, st)
 
-strictTRMapStAcc :: !(.a -> .(.st -> .(!b, !.st))) ![.a] ![b] !.st -> .(![b], !.st)
+strictTRMapStAcc :: !(.a -> .(.st -> .(b, .st))) ![.a] ![b] !.st -> .(![b], !.st)
 strictTRMapStAcc f []     acc st = (acc, st)
 strictTRMapStAcc f [x:xs] acc st
   #! (r, st) = f x st
   = strictTRMapStAcc f xs [r : acc] st
 
-strictTRZip2 :: ![a] ![b] -> [(!a, !b)]
+strictTRZip2 :: ![a] ![b] -> [(a, b)]
 strictTRZip2 as bs = reverseTR (strictTRZip2Rev as bs)
 
-strictTRZip2Rev :: ![a] ![b] -> [(!a, !b)]
+strictTRZip2Rev :: ![a] ![b] -> [(a, b)]
 strictTRZip2Rev as bs = strictTRZip2Acc as bs []
 
-strictTRZip2Acc :: ![a] ![b] ![(!a, !b)] -> [(!a, !b)]
+strictTRZip2Acc :: ![a] ![b] ![(a, b)] -> [(a, b)]
 strictTRZip2Acc [a:as] [b:bs] acc
   = strictTRZip2Acc as bs [(a, b):acc]
 strictTRZip2Acc _ _ acc = acc
 
-strictTRZip3 :: ![.a] ![.b] ![.c] -> [(!.a, !.b, !.c)]
+strictTRZip3 :: ![.a] ![.b] ![.c] -> [(.a, .b, .c)]
 strictTRZip3 as bs cs = reverseTR (strictTRZip3Rev as bs cs)
 
-strictTRZip3Rev :: ![.a] ![.b] ![.c] -> [(!.a, !.b, !.c)]
+strictTRZip3Rev :: ![.a] ![.b] ![.c] -> [(.a, .b, .c)]
 strictTRZip3Rev as bs cs = strictTRZip3Acc as bs cs []
 
-strictTRZip3Acc :: !u:[v:a] !w:[x:b] !y:[z:c] !u0:[v0:(!v:a, !x:b, !z:c)] -> w0:[x0:(!v:a, !x:b, !z:c)], [x0 u <= v,x0 w <= x,x0 y <= z,u0 <= v0,u0 <= w0,w0 v0 <= x0]
+strictTRZip3Acc :: !u:[v:a] !w:[x:b] !y:[z:c] !u0:[v0:(v:a, x:b, z:c)] -> w0:[x0:(v:a, x:b, z:c)], [x0 u <= v,x0 w <= x,x0 y <= z,u0 <= v0,u0 <= w0,w0 v0 <= x0]
 strictTRZip3Acc [a:as] [b:bs] [c:cs] acc
   = strictTRZip3Acc as bs cs [(a, b, c):acc]
 strictTRZip3Acc _ _ _ acc = acc

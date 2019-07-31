@@ -45,7 +45,7 @@ derive gEq ParallelTaskChange
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a	:== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -257,7 +257,7 @@ where
     match _ _			= Nothing
 
 // Parallel composition
-parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!Int,!TaskValue a)] | iTask a
+parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
 where
     //Cleanup
@@ -310,7 +310,7 @@ where
 		//able to determine the correct UI update instructions
 		prevNumBranches = length taskTrees
 
-		exceptionResult :: (TaskResult [(!Int,!TaskValue a)]) TaskException -> (TaskResult [(!Int,!TaskValue a)])
+		exceptionResult :: (TaskResult [(Int,TaskValue a)]) TaskException -> (TaskResult [(Int,TaskValue a)])
 		exceptionResult DestroyedResult e = ExceptionResult e
 		exceptionResult (ExceptionResult _) e = ExceptionResult e
 
@@ -325,7 +325,7 @@ initParallelTasks ::
 	!TaskEvalOpts
 	!TaskId
 	!Int
-	![(!ParallelTaskType,!ParallelTask a)]
+	![(ParallelTaskType,ParallelTask a)]
 	!*IWorld
 	->
 	(!MaybeError TaskException ([ParallelTaskState]
@@ -396,7 +396,7 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
         err = (liftError err, iworld)
 
 evalParallelTasks :: TaskId (Map TaskId TaskTree) !Event !TaskEvalOpts
-	[TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)]
+	[TaskCont [(TaskTime,TaskValue a)] (ParallelTaskType,ParallelTask a)]
 	[TaskResult a] [ParallelTaskState] !*IWorld
 	->
 	(MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
@@ -569,7 +569,7 @@ where
 			(Error e,_,iworld) = (DestroyedResult, e ++ exceptions,iworld)
 			(Ok res,_,iworld) = (res,exceptions,iworld)
 
-	destroyResult :: (TaskResult a) -> (TaskResult [(!Int,!TaskValue a)])
+	destroyResult :: (TaskResult a) -> (TaskResult [(Int,TaskValue a)])
 	destroyResult DestroyedResult = DestroyedResult
 	destroyResult (ExceptionResult e) = ExceptionResult e
 
@@ -622,7 +622,7 @@ destroyRemoved listId removed [r:rs] iworld
 taskIdFromResult (ValueResult _ _ _ tree)   = taskIdFromTaskTree tree
 taskIdFromResult _                          = Error (exception "No ValueResult in taskIdFromResult")
 
-genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]
+genParallelValue :: [TaskResult a] -> TaskValue [(TaskTime,TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
 
 genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange

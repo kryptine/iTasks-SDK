@@ -54,7 +54,7 @@ appWorld :: !(*World -> *World)			-> Task ()
 *
 * @gin False
 */
-accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
+accWorld :: !(*World -> *(a,*World))	-> Task a | iTask a
 
 /**
 * Evaluate a "World" function that also returns a MaybeError value.
@@ -66,7 +66,7 @@ accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 *
 * @gin False
 */
-accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError   :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | iTask a & TC, toString err
 
 /**
 * Evaluate a "World" function that also returns a MaybeOSError value.
@@ -78,7 +78,7 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 *
 * @gin False
 */
-accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
+accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a | iTask a
 
 :: OSException			= OSException !OSError
 instance toString OSException
@@ -90,9 +90,9 @@ instance toString OSException
 * The `interactR` version only reads, which means it can also be used for sds's that are not writable.
 */
 :: InteractionHandlers l r w v =
-    { onInit    :: !(r -> (!l, !EditMode v))
-    , onEdit    :: !(v l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
-    , onRefresh :: !(r l (Maybe v) -> (!l, !v, !Maybe (r -> w)))
+    { onInit    :: !(r -> (l, EditMode v))
+    , onEdit    :: !(v l (Maybe v) -> (l, v, Maybe (r -> w)))
+    , onRefresh :: !(r l (Maybe v) -> (l, v, Maybe (r -> w)))
 	}
 
 //Version which can write shared data

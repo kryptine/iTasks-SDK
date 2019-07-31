@@ -29,7 +29,7 @@ import Data.GenLexOrd
 :: MapID       :== String                                 // identification of one map
 :: Border        = Open | Door | Wall
 :: Size2D      :== (!Real, !Real)                         // width and height
-:: Shape2D     :== [(!Real, !Real)]                       // outline in terms of Map2D.size coordinates (origin at left-top, max at right-bottom)
+:: Shape2D     :== [(Real, Real)]                         // outline in terms of Map2D.size coordinates (origin at left-top, max at right-bottom)
 :: Maps2DIndex :== Int                                    // index in Maps2D (0..length Maps2D-1)
 :: Coord2D       = { col         :: !Int                  // x-coordinate (0.., identifies column)
                    , row         :: !Int                  // y-coordinate (0.., identifies row)
@@ -37,7 +37,7 @@ import Data.GenLexOrd
 :: Coord3D     :== (!Maps2DIndex, !Coord2D)               // (index in Maps2D, {col,row} in map)
 :: Dir           = N | E | W | S                          // north, east, west, south
 
-:: Graph       :== Map Coord3D [(!Maybe Dir, !Coord3D)]
+:: Graph       :== Map Coord3D [(Maybe Dir, Coord3D)]
 
 /********************************************************************************************************************
 *
@@ -145,7 +145,7 @@ moveAround :: !(DrawMapForActor r o a) !User
 
 // finds all actors currently walking on the map, find all objects in the map
 
-findAllObjects :: !(SectionInventoryMap o) -> [(!Coord3D, !Object o)] | iTask o
+findAllObjects :: !(SectionInventoryMap o) -> [(Coord3D, Object o)] | iTask o
 findUser :: !User !SectionUsersMap !(UserActorMap o a) -> Maybe (!Coord3D, !Actor o a) | iTask o & iTask a
 
 // update the status of an actor, unique username is used as identification
