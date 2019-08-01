@@ -422,22 +422,22 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
 		isRemoved _ = False
 
 //Evaluate an embedded parallel task
-evalParallelTasks listId tasks event evalOpts conts completed [t=:{ParallelTaskState|taskId=TaskId _ taskNo}:todo] iworld
-	= case evalParallelTask listId tasks event evalOpts t iworld of
-		(Error e, iworld) = (Error e,iworld)
-		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
-		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep newtask), iworld)
-			//Add the current result before checking for removals
-			# completed = [result:completed]
-			//Check if in the branch tasks from this list were removed but that were already evaluated
-			# removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId && n <= taskNo]
-			# (completed,iworld) = destroyRemoved listId removed completed iworld
-			= evalParallelTasks listId tasks event evalOpts conts completed todo iworld
-		(Ok result=:DestroyedResult`, iworld)
-			= evalParallelTasks listId tasks event evalOpts conts [result:completed] todo iworld
-
-evalParallelTask listId tasks event evalOpts taskState=:{ParallelTaskState|detached} iworld
-	= undef
+//evalParallelTasks listId tasks event evalOpts conts completed [t=:{ParallelTaskState|taskId=TaskId _ taskNo}:todo] iworld
+//	= case evalParallelTask listId tasks event evalOpts t iworld of
+//		(Error e, iworld) = (Error e,iworld)
+//		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
+//		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep newtask), iworld)
+//			//Add the current result before checking for removals
+//			# completed = [result:completed]
+//			//Check if in the branch tasks from this list were removed but that were already evaluated
+//			# removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId && n <= taskNo]
+//			# (completed,iworld) = destroyRemoved listId removed completed iworld
+//			= evalParallelTasks listId tasks event evalOpts conts completed todo iworld
+//		(Ok result=:DestroyedResult, iworld)
+//			= evalParallelTasks listId tasks event evalOpts conts [result:completed] todo iworld
+//
+//evalParallelTask listId tasks event evalOpts taskState=:{ParallelTaskState|detached} iworld
+//	= undef
 //	| detached  = evalDetachedParallelTask listId taskTrees event evalOpts taskState iworld
 //	| otherwise = evalEmbeddedParallelTask listId taskTrees event evalOpts taskState iworld
 //
