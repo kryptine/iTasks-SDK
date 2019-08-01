@@ -1,7 +1,6 @@
 implementation module iTasks.Extensions.Distributed._Evaluation
 
 from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent,DestroyEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
-from iTasks.Internal.TaskState import :: TaskTree(TCInit)
 import iTasks.Internal.TaskEval
 import iTasks.UI.Definition
 from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-

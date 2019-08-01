@@ -19,8 +19,8 @@ from System.Time import :: Timestamp, :: Timespec
 from Data.GenEq import generic gEq
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
-derive JSONEncode TIMeta, TIType, TIReduct, TaskTree
-derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
+derive JSONEncode TIMeta, TIType, TIReduct
+derive JSONDecode TIMeta, TIType, TIReduct
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -63,22 +63,6 @@ derive gDefault TIMeta
 
 :: AsyncAction = Read | Write | Modify
 
-:: TaskTree
-	= TCInit          !TaskId !TaskTime	//Initial state for all tasks
-	| TCBasic         !TaskId !TaskTime !DeferredJSON !Bool //Encoded value and stable indicator
-	| TCAwait		  !AsyncAction !TaskId !TaskTime !TaskTree
-	| TCInteract      !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
-	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
-	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
-	| TCShared        !TaskId !TaskTime !TaskTree
-	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !(Maybe String)
-	| TCStable        !TaskId !TaskTime !DeferredJSON
-	| TCLayout        !(!LUI,!LUIMoves) !TaskTree
-	| TCAttribute     !TaskId !String !TaskTree
-	| TCNop
-
-taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
-
 :: DeferredJSON
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
 	|		DeferredJSONNode !JSONNode
@@ -105,6 +89,4 @@ derive gText      DeferredJSON
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
     | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
-
-
 

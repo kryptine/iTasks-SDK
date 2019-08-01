@@ -18,7 +18,7 @@ from Data.Foldable import maximum
 import Text.GenJSON
 
 from StdFunc import o, const, id, flip
-from iTasks.Internal.TaskState import :: TIMeta(..), :: TIType(..), :: TaskTree(..), :: DeferredJSON, :: AsyncAction
+from iTasks.Internal.TaskState import :: TIMeta(..), :: TIType(..), :: DeferredJSON, :: AsyncAction
 
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus

@@ -6,7 +6,6 @@ definition module iTasks.Internal.Task
 import iTasks.WF.Definition
 from iTasks.WF.Tasks.IO import :: ConnectionHandlers
 
-from iTasks.Internal.TaskState			import :: TaskTree
 import  iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UIChange
 from iTasks.Internal.IWorld import :: ConnectionId

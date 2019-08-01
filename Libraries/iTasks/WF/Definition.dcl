@@ -4,7 +4,6 @@ definition module iTasks.WF.Definition
 */
 
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
 from Text.GenJSON import :: JSONNode
@@ -42,11 +41,6 @@ from StdOverloaded import class ==
    | ExceptionResult !TaskException
    //If a task finalizes and cleaned up it gives this result
    | DestroyedResult
-
-:: TaskResult` a
-   = ValueResult` !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree
-   | ExceptionResult` !TaskException
-   | DestroyedResult`
 
 //* Task results
 :: TaskValue a		= NoValue				

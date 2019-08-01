@@ -1,6 +1,6 @@
 definition module iTasks.Internal.Util
 
-from iTasks.WF.Definition import :: TaskResult, :: TaskResult`
+from iTasks.WF.Definition import :: TaskResult
 from iTasks.WF.Definition import :: TaskException
 from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
@@ -30,6 +30,5 @@ liftIWorld :: (*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
 
 //Apply an IWorld transformer and transform the result to a taskresult
 apIWTransformer :: *env (*env -> *(MaybeError TaskException (TaskResult a), *env)) -> *(TaskResult a, *env)
-apIWTransformer` :: *env (*env -> *(MaybeError TaskException (TaskResult` a), *env)) -> *(TaskResult` a, *env)
 
 generateRandomString :: !Int !*IWorld -> (!String, !*IWorld)

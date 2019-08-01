@@ -16,7 +16,7 @@ import iTasks.UI.Editor, iTasks.UI.Editor.Common
 import iTasks.Internal.SDS
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUIEffectStage, :: LUINo
 
-from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..) , :: TIType(..), :: AsyncAction
+from iTasks.Internal.TaskState		import :: DeferredJSON(..), :: TIMeta(..) , :: TIType(..), :: AsyncAction
 import iTasks.Internal.TaskEval
 from iTasks.SDS.Combinators.Common import toDynamic
 from iTasks.Internal.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode

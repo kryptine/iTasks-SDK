@@ -12,8 +12,8 @@ import Data.CircularStack
 import Data.Error, Data.Either
 import iTasks.WF.Derives
 
-derive JSONEncode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
-derive JSONDecode TIMeta, TIType, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
+derive JSONEncode TIMeta, TIType, TIValue, TIReduct, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
+derive JSONDecode TIMeta, TIType, TIValue, TIReduct, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, CircularStack, AsyncAction
 
 derive gDefault TIMeta, InstanceProgress, TIType, TaskId, ValueStatus
 
@@ -41,17 +41,3 @@ JSONDecode{|DeferredJSON|} _ l
 
 gEq{|DeferredJSON|} x y = toJSON x === toJSON y
 gText{|DeferredJSON|} f djson = gText{|*|} f $ toJSON <$> djson
-
-taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
-taskIdFromTaskTree (TCInit          taskId _)         = Ok taskId
-taskIdFromTaskTree (TCAwait 		_ taskId _ _ )    = Ok taskId
-taskIdFromTaskTree (TCBasic         taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCInteract      taskId _ _ _ _ _) = Ok taskId
-taskIdFromTaskTree (TCStep          taskId _ _)       = Ok taskId
-taskIdFromTaskTree (TCParallel      taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCShared        taskId _ _)       = Ok taskId
-taskIdFromTaskTree (TCAttach        taskId _ _ _ _)   = Ok taskId
-taskIdFromTaskTree (TCStable        taskId _ _)       = Ok taskId
-taskIdFromTaskTree (TCLayout        _ tt)             = taskIdFromTaskTree tt
-taskIdFromTaskTree (TCAttribute     taskId _ _)       = Ok taskId
-taskIdFromTaskTree (TCNop)                            = Error (exception "Unable to obtain TaskId from TaskTree (TCNop)")
