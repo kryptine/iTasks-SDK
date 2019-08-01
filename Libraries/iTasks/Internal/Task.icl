@@ -123,27 +123,6 @@ where
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
 	rep _          = NoChange
 
-import StdDebug, Debug.Trace
-wrapOldStyleTask :: (Event -> TaskEvalOpts -> TaskTree -> *IWorld -> *(TaskResult` a, *IWorld))
-	-> (Event -> TaskEvalOpts -> *IWorld -> *(TaskResult a, *IWorld)) | iTask a
-wrapOldStyleTask eval = evalinit
-where
-	//This first pass is required to get the taskid and the timestamp
-	evalinit event eo=:{TaskEvalOpts|taskId,ts} iworld
-		= evalactual (TCInit taskId ts) event eo iworld
-
-	//The actual evaluation
-	evalactual tree event eo iworld
-		# (_, tree) = trace_stdout ("evalactual: ", tree)
-		# (res, iworld) = eval event eo tree iworld
-		| not (trace_tn "bork") = undef
-		= case res of
-			ValueResult` tv tei ui newtree
-				#! (_, newtree) = trace_stdout ("evalactual newtree: ", newtree)
-				= (ValueResult tv tei ui (Task (evalactual newtree)), iworld)
-			ExceptionResult` exc = (ExceptionResult exc, iworld)
-			DestroyedResult`     = (DestroyedResult, iworld)
-
 recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
 recTask tf (ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
 recTask _ a = a

@@ -47,7 +47,4 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 */
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 
-wrapOldStyleTask :: (Event -> TaskEvalOpts -> TaskTree -> *IWorld -> *(TaskResult` a, *IWorld))
-	-> (Event -> TaskEvalOpts -> *IWorld -> *(TaskResult a, *IWorld)) | iTask a
-
 recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a

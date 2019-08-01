@@ -70,7 +70,6 @@ interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l
 interactR prompt shared handlers editor
 	= Task (evalInteractInit prompt shared shared handlers editor \_ _ iw -> (Ok Nothing,iw))
 
-import StdDebug
 evalInteractInit :: !d (sds1 () r w) (sds2 () r w) (InteractionHandlers l r w v) (Editor v) (TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld)) Event TaskEvalOpts *IWorld
 	-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds1 & Registrable sds2
 evalInteractInit _ _ _ _ _ _ DestroyEvent _ iworld
@@ -109,7 +108,6 @@ evalInteract :: !l !(Maybe v) !EditState Bool !d (sds1 () r w) (sds2 () r w) (In
 evalInteract _ _ _ _ _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
 evalInteract l v st mode prompt origsds sds handlers editor writefun event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-	| not (trace_tn ("oldv: " +++ toSingleLineText v)) = undef
 	# (mbRes, iworld) = case event of
 		EditEvent eTaskId name edit | eTaskId == taskId
 			= applyEditEvent name edit l v iworld
@@ -140,7 +138,6 @@ evalInteract l v st mode prompt origsds sds handlers editor writefun event evalO
 		Ok (Left (l,mbV,change,st))
 			//Construct the result
 			# v     = maybe v Just mbV // use previous view state of editor is in invalid state
-			| not (trace_tn ("newv: " +++ toSingleLineText v)) = undef
 			# value = maybe NoValue (\v -> Value (l, v) False) mbV
 			# info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
 			= (ValueResult
@@ -232,10 +229,6 @@ where
 //				Modifying sds f
 //				= (ValueResult` NoValue evalInfo NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify f sds (TaskContext taskId))) sdsEvalStates})
 //			(Ok (dyn), iworld)							= (ExceptionResult` (exception ("Dynamic type mismatch, type was " +++ toString (typeCodeOfDynamic dyn))), iworld)
-//    
-//interactAwait t=:(TCAwait _ taskId ts tree) iworld // Ignore all other events when waiting on an async operation.
-//	= (ValueResult` NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
-//
 //
 uniqueMode :: (EditMode a) -> *(EditMode a)
 uniqueMode mode = case mode of
