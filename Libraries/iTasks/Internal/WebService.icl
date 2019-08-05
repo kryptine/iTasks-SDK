@@ -412,7 +412,7 @@ where
 
 	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TaskOutput) -> (![(!InstanceNo,!TaskOutputMessage)],!Map InstanceNo TaskOutput)
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TaskOutput) -> (![(InstanceNo,TaskOutputMessage)],!Map InstanceNo TaskOutput)
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states

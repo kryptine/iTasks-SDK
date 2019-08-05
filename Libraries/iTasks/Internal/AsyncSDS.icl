@@ -229,7 +229,7 @@ where
 	buildRequest True iworld=:{options}= (SDSRegisterRequest sds p reqSDSId (sdsIdentity rsds) taskId options.sdsPort, iworld)
 	buildRequest False iworld = (SDSReadRequest sds p, iworld)
 
-queueRemoteRefresh :: ![(!TaskId, !RemoteNotifyOptions)] !*IWorld -> *IWorld
+queueRemoteRefresh :: ![(TaskId, RemoteNotifyOptions)] !*IWorld -> *IWorld
 queueRemoteRefresh [] iworld = iworld
 queueRemoteRefresh [(reqTaskId, remoteOpts) : reqs] iworld=:{options}
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of

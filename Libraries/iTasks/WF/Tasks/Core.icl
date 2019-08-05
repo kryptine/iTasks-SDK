@@ -29,10 +29,10 @@ throw e = mkInstantTask (\taskId iworld -> (Error (dynamic e,toString e), iworld
 appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = accWorld $ tuple () o fun
 
-accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
+accWorld :: !(*World -> *(a,*World)) -> Task a | iTask a
 accWorld fun = accWorldError (appFst Ok o fun) \_->""
 
-accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|current={taskTime},world}
@@ -44,7 +44,7 @@ where
 			Ok v
 				= (Ok v, {IWorld|iworld & world = world})
 
-accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
+accWorldOSError :: !(*World -> (MaybeOSError a, *World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
 
 instance toString OSException
@@ -144,7 +144,7 @@ interactAwait t=:(TCAwait _ taskId ts tree) iworld // Ignore all other events wh
 	= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
 
 interactEvents :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree 
-	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld))
+	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld))), *IWorld))
 	*IWorld	-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworld=:{current={taskTime}, sdsEvalStates}
 	//Decode or initialize state
@@ -209,7 +209,7 @@ interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworl
 			= (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
 interactModifyShareAsync :: (sds () r w) TaskId (r -> w) !*IWorld ->
-	(MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld)
+	(MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld))), !*IWorld)
 	| TC r & TC w & RWShared sds
 interactModifyShareAsync shared taskId modifier iworld
 	= case 'SDS'.modify modifier shared ('SDS'.TaskContext taskId) iworld of
@@ -227,9 +227,9 @@ initEditorState taskId mode editor iworld = withVSt taskId
 
 applyEditEvent_ ::
 	String JSONNode TaskId (Editor v) TaskTime (sds () r w) (v l (Maybe v) -> (l, v, Maybe (r -> w)))
-	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld))
+	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld))), *IWorld))
 	l (Maybe v) EditState !*IWorld
-	-> (!MaybeError TaskException (Either (!l, !Maybe v, !UIChange, !EditState, !TaskTime) (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld), !l, !Maybe v, !EditState, !UIChange)), !*IWorld)
+	-> (!MaybeError TaskException (Either (!l, !Maybe v, !UIChange, !EditState, !TaskTime) (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld), !l, !Maybe v, !EditState, !UIChange)), !*IWorld)
 	| TC r & TC w
 applyEditEvent_ name edit taskId editor taskTime shared onEdit writeFun l ov st iworld
 	# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
@@ -250,10 +250,10 @@ applyEditEvent_ name edit taskId editor taskTime shared onEdit writeFun l ov st 
 
 refreshView_ ::
 	TaskId (Editor v) (sds () r w) (r l (Maybe v) -> (l, v, Maybe (r -> w))) 
-	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld))
+	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld))), *IWorld))
 	l (Maybe v) EditState TaskTime !*IWorld
-   	-> (!MaybeError TaskException (Either (!l, !Maybe v, !UIChange, !EditState, !TaskTime) (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld), !l, !Maybe v, !EditState, !UIChange)), !*IWorld)
-             | TC r & TC w & Registrable sds 
+	-> (!MaybeError TaskException (Either (!l, !Maybe v, !UIChange, !EditState, !TaskTime) (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld), !l, !Maybe v, !EditState, !UIChange)), !*IWorld)
+		| TC r & TC w & Registrable sds 
 refreshView_ taskId editor shared onRefresh modifyFun l ov st taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of

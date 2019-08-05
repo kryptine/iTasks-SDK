@@ -71,7 +71,7 @@ derive gDefault TIMeta
 	| TCAwait		  !AsyncAction !TaskId !TaskTime !TaskTree
 	| TCInteract      !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
 	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
-	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
+	| TCParallel      !TaskId !TaskTime ![(TaskId,TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
 	| TCShared        !TaskId !TaskTime !TaskTree
 	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !(Maybe String)
 	| TCStable        !TaskId !TaskTime !DeferredJSON

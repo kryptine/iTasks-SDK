@@ -16,7 +16,7 @@ import Text
 
 from Data.Map import newMap, member
 
-everyTick :: (*IWorld -> *(!MaybeError TaskException (), !*IWorld)) -> Task ()
+everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
 where
 	eval DestroyEvent evalOpts tree iworld
