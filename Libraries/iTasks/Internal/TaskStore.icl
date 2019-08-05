@@ -551,16 +551,15 @@ queueRefresh tasks iworld
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
-// TODO: Handle errors
-dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
+dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
-	(Error e, iworld)               = (Nothing, iworld)
+	(Error e, iworld)               = (Error e, iworld)
 	(Ok ('SDS'.ReadingDone queue), iworld)
 	# (val, queue) = 'DQ'.dequeue queue
 	= case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
-	  (Error e, iworld) = (Nothing, iworld)
-	  (Ok WritingDone, iworld) = (val, iworld)
+	  (Error e, iworld) = (Error e, iworld)
+	  (Ok WritingDone, iworld) = (Ok val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld

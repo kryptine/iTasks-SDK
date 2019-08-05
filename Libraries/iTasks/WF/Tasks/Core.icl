@@ -11,9 +11,9 @@ import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
 import qualified iTasks.Internal.AsyncSDS as ASDS
 
-import Data.Error, Data.Maybe, Data.Func, Data.Either
+import Data.Error, Data.Maybe, Data.Func, Data.Either, Data.Tuple
 import Text.GenJSON
-import StdString, StdBool, StdInt, StdMisc
+import StdString, StdBool, StdInt, StdMisc, StdFunc
 import qualified Data.Set as DS
 import qualified Data.Map as DM
 
@@ -27,17 +27,10 @@ throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask (\taskId iworld -> (Error (dynamic e,toString e), iworld))
 
 appWorld :: !(*World -> *World) -> Task ()
-appWorld fun = mkInstantTask eval
-where
-	eval taskId iworld=:{IWorld|world}
-		= (Ok (), {IWorld|iworld & world = fun world})
+appWorld fun = accWorld $ tuple () o fun
 
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
-accWorld fun = mkInstantTask eval
-where
-	eval taskId iworld=:{IWorld|world}
-		# (res,world) = fun world
-		= (Ok res, {IWorld|iworld & world = world})
+accWorld fun = accWorldError (appFst Ok o fun) \_->""
 
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval

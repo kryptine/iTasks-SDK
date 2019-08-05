@@ -5,6 +5,7 @@ import iTasks.UI.Definition
 import iTasks.SDS.Definition
 
 import iTasks.Engine
+import iTasks.Internal.EngineTasks
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
@@ -85,24 +86,12 @@ where
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
-//TODO: Move this check to the TCInit of the step
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
-step task fun c
-= if (length conts <> length c)
-	(step` (traceValue "Duplicate actions in step") (\_->Nothing) [OnValue (ifStable \_->step` task fun conts)])
-	(step` task fun conts)
-where
-	conts = removeDupBy actionEq c
-
-	actionEq (OnAction (Action a) _) (OnAction (Action b) _) = a == b
-	actionEq _ _ = False
-
 removeDupBy :: (a a -> Bool) [a] -> [a]
 removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
 removeDupBy _ [] = []
 
-step` :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
-step` (Task evala) lhsValFun conts = Task eval
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
+step (Task evala) lhsValFun conts = Task eval
 where
 	//Cleanup
     eval DestroyEvent evalOpts (TCInit _ _) iworld
@@ -120,8 +109,14 @@ where
 			Nothing				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
 
 	eval event evalOpts (TCInit taskId ts) iworld
+		# iworld = if (length (removeDupBy actionEq conts) == length conts)
+			iworld
+			(printStdErr "Duplicate actions in step" iworld)
 		# (taskIda,iworld)	= getNextTaskId iworld
 		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts,[]))) iworld
+	where
+		actionEq (OnAction (Action a) _) (OnAction (Action b) _) = a == b
+		actionEq _ _ = False
 
 	//Eval left-hand side
 	eval event evalOpts (TCStep taskId ts (Left (treea,prevEnabledActions))) iworld=:{current={taskTime}}

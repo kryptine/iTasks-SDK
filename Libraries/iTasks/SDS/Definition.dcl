@@ -59,8 +59,6 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.
-	 * TODO: We include the modify function so that async operations can be resumed later. This should
-	 * 		 not be necessary.
 	 */
 	| E. sds: AsyncModify !(sds p r w) !(r -> MaybeError TaskException w) & RWShared sds
 
@@ -290,8 +288,7 @@ required type w. The reducer has the job to turn this ws into w.
  */
 :: SimpleSDSCache a :== SDSCache () a a
 
-// TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writeable for SDSCache. iTask p seems to solve this for unknown reasons.
-:: SDSCache p r w = E. sds: SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & iTask p & TC r & TC w
+:: SDSCache p r w = E. sds: SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & gText{|*|}, TC p & TC r & TC w
 :: SDSCacheOptions p r w  =
 	{ write :: !p (Maybe r) (Maybe w) w -> (!Maybe r, !SDSCacheWrite)
 	}

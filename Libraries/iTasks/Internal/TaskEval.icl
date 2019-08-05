@@ -58,8 +58,9 @@ processEvents max iworld
 	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of
-			(Nothing,iworld) = (Ok (),iworld)
-			(Just (instanceNo,event),iworld)
+			(Error e, iworld) = (Error e, iworld)
+			(Ok Nothing, iworld) = (Ok (), iworld)
+			(Ok (Just (instanceNo,event)), iworld)
 				= case evalTaskInstance instanceNo event iworld of
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
