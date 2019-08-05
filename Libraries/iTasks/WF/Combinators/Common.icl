@@ -92,31 +92,10 @@ justdo task
 	Nothing	= throw ("The task returned nothing.")
 
 sequence :: ![Task a]  -> Task [a] | iTask a
-sequence tasks = foreverStIf
-	//Continue while there are tasks left
-	(not o isEmpty o snd)
-	//Initial state, empty accumulator, all tasks
-	([], tasks)
-	//Run the first task and add it to the accumulator
-	(\(acc, [todo:todos])->todo >>- \t->treturn ([t:acc], todos))
-	//When done, just return the accumulator
-	@ reverse o fst
+sequence tasks = foldr (\t ts->t >>= \tv->ts >>= \tvs->return [tv:tvs]) (return []) tasks
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = parallel [(Embedded, par st Nothing)] [] @? fromParValue
-where
-	par st (Just tid) tlist = removeTask tid tlist >-| par st Nothing tlist
-	par st Nothing tlist
-		| not (pred st) = treturn st
-		= step
-			(t st)
-			id
-			[ OnValue $ ifStable \st` -> get (sdsFocus {defaultValue & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
-			                             appendTask Embedded (par st` (Just taskId)) tlist    @! st`
-		    ]
-
-	fromParValue (Value [(_, val=:Value _ _)] _) = val
-	fromParValue _                               = NoValue
+foreverStIf pred st t = t st >>= \tv->if (pred tv) (foreverStIf pred tv t) (treturn tv)
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
