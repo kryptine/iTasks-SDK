@@ -229,7 +229,7 @@ where
 //				Modifying sds f
 //				= (ValueResult` NoValue evalInfo NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.modify f sds (TaskContext taskId))) sdsEvalStates})
 //			(Ok (dyn), iworld)							= (ExceptionResult` (exception ("Dynamic type mismatch, type was " +++ toString (typeCodeOfDynamic dyn))), iworld)
-//
+
 uniqueMode :: (EditMode a) -> *(EditMode a)
 uniqueMode mode = case mode of
 	Enter    = Enter
