@@ -132,10 +132,11 @@ where
 						# value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
+						# sl = stepLayout leftTaskId evalOpts event actions prevEnabledActions rep val
 						= Left (ValueResult
 							value
 							info
-							(doBeforeStepLayout taskId evalOpts event actions prevEnabledActions rep val)
+							sl
 							(Task (evalleft nextlhs curEnabledActions leftTaskId))
 							)
 					//A match
@@ -159,8 +160,7 @@ where
 					ExceptionResult e = (ExceptionResult e, iworld)
 					ValueResult _ _ _ _ = (ExceptionResult (exception "Failed to destrop step lhs"), iworld)
 					DestroyedResult
-						# (rightTaskId, iworld) = getNextTaskId iworld
-						# (resb, iworld)        = rhs ResetEvent {TaskEvalOpts|evalOpts&taskId=rightTaskId} iworld
+						# (resb, iworld)        = rhs ResetEvent evalOpts iworld
 						= case resb of
 							ValueResult val info change=:(ReplaceUI _) (Task rhs)
 								# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
@@ -168,26 +168,13 @@ where
 									val
 									info
 									change
-									(Task (evalrhs rhs rightTaskId))
+									(Task rhs)
 								,iworld)
 							ValueResult _ _ change _
 								= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
 							ExceptionResult e = (ExceptionResult e, iworld)
 
-	evalrhs rhs rightTaskId DestroyEvent evalOpts iworld
-		= case rhs DestroyEvent evalOpts iworld of
-			(DestroyedResult, iworld)		= (DestroyedResult, iworld)
-			(ExceptionResult e, iworld)	    = (ExceptionResult e, iworld)
-			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Failed destroying rhs in step"), iworld)
-	evalrhs rhs rightTaskId event evalOpts=:{TaskEvalOpts|ts} iworld
-		# (resb, iworld) = rhs event {TaskEvalOpts|evalOpts&taskId=rightTaskId} iworld
-		= case resb of
-			ValueResult val info change (Task newrhs)
-				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-				= (ValueResult val info change (Task (evalrhs newrhs rightTaskId)), iworld)
-			o = (o, iworld)
-
-	doBeforeStepLayout taskId evalOpts event actions prevEnabled change val
+	stepLayout taskId evalOpts event actions prevEnabled change val
 		= case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent, ReplaceUI rui)

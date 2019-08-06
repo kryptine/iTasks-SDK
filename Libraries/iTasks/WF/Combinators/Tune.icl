@@ -115,29 +115,31 @@ instance tune (ApplySDSAttribute a r w) Task | toAttribute a & TC r & TC w
 where tune (ApplySDSAttribute k sds f) task = addSDSAttribute k sds f task
 
 applyLayout :: LayoutRule (Task a) -> Task a
-applyLayout rule task = Task (eval (initLUI (ui UIEmpty), initLUIMoves) task)
-	where
-		ruleNo = LUINo [0]
+applyLayout rule task = Task evalinit
+where
+	ruleNo = LUINo [0]
 
-		//Cleanup duty simply passed to inner task
-		eval layout (Task inner) DestroyEvent evalOpts iworld
-			= inner DestroyEvent evalOpts iworld
-		//On Reset events, we (re-)apply the layout
-		eval layout (Task inner) ResetEvent evalOpts iworld
-			= case inner ResetEvent evalOpts iworld of
-				(ValueResult value info (ReplaceUI ui) task,iworld)
-					# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
-					= (recTask (eval layout) (ValueResult value info change task), iworld)
-				(res, iworld) = (recTask (eval layout) res, iworld)
+	evalinit _ = eval (initLUI (ui UIEmpty), initLUIMoves) task ResetEvent
 
-		eval layout (Task inner) event evalOpts iworld
-			= case inner event evalOpts iworld of
-				(ValueResult value info change task,iworld)
-					# state = applyUpstreamChange change layout
-					# state = rule ruleNo state
-					# (change,state) = extractDownstreamChange state
-					= (recTask (eval state) (ValueResult value info change task), iworld)
-				(res, iworld) = (recTask (eval layout) res,iworld)
+	//Cleanup duty simply passed to inner task
+	eval _ (Task inner) DestroyEvent evalOpts iworld
+		= inner DestroyEvent evalOpts iworld
+	//On Reset events, we (re-)apply the layout
+	eval state (Task inner) ResetEvent evalOpts iworld
+		= case inner ResetEvent evalOpts iworld of
+			(ValueResult value info (ReplaceUI ui) task,iworld)
+				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
+				= (recTask (eval state) (ValueResult value info change task), iworld)
+			(res, iworld) = (recTask (eval state) res, iworld)
+
+	eval state (Task inner) event evalOpts iworld
+		= case inner event evalOpts iworld of
+			(ValueResult value info change task,iworld)
+				# state = applyUpstreamChange change state
+				# state = rule ruleNo state
+				# (change,state) = extractDownstreamChange state
+				= (recTask (eval state) (ValueResult value info change task), iworld)
+			(res, iworld) = (recTask (eval state) res,iworld)
 
 instance tune ApplyLayout Task
 where tune (ApplyLayout l) task = applyLayout l task

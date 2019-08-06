@@ -234,4 +234,3 @@ waitForTimer interval =
     get currentTimestamp                                  >>- \(Timestamp now) ->
     timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
     waitForDateTime endTime
-
