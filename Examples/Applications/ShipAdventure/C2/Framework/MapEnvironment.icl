@@ -4,8 +4,6 @@ import StdArray
 import iTasks
 
 import iTasks.UI.Definition
-import iTasks.Internal.Tonic
-import iTasks.Extensions.Admin.TonicAdmin
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 from Data.Map import :: Map, instance Functor (Map k)
@@ -16,6 +14,7 @@ import qualified Data.Heap as DH
 from Data.Heap import :: Heap
 import Data.GenLexOrd
 from C2.Framework.Logging import addLog
+import C2.Apps.ShipAdventure.Types
 import Data.List
 import Data.Eq
 import Data.Maybe

@@ -6,11 +6,11 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Text as T
 import Text.Encodings.Base64
+import iTasks.Extensions.Distributed._Evaluation
 import iTasks.Extensions.Distributed._Formatter
 import iTasks.Extensions.Distributed._Util
 import iTasks.Extensions.Distributed._Types
 import iTasks.Internal.Distributed.Symbols
-import iTasks.Extensions.Distributed._Evaluation
 from iTasks.Extensions.Distributed.Task import :: Domain(..)
 from iTasks.Extensions.Distributed._Util import repeatClient
 from iTasks.SDS.Sources.System import topLevelTasks

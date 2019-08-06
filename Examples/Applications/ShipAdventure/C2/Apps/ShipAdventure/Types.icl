@@ -2,8 +2,6 @@ implementation module C2.Apps.ShipAdventure.Types
 
 //import iTasks
 
-import iTasks.Internal.Tonic
-import iTasks.Extensions.Admin.TonicAdmin
 from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
 import qualified Data.List as DL
 from Data.Func import mapSt
@@ -14,6 +12,7 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Set as DS
 import Text.HTML
+import Data.Functor
 
 import C2.Framework.MapEnvironment
 from   C2.Framework.Logging import addLog
@@ -484,3 +483,5 @@ isDetector HeatSensor    = True
 isDetector WaterSensor   = True
 isDetector _             = False
 
+derive gEditor IntMap
+derive gText IntMap

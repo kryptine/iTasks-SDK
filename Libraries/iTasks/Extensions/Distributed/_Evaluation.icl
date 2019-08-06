@@ -1,7 +1,6 @@
 implementation module iTasks.Extensions.Distributed._Evaluation
 
 from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent,DestroyEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
-from iTasks.Internal.TaskState import :: TaskTree(TCInit)
 import iTasks.Internal.TaskEval
 import iTasks.UI.Definition
 from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
@@ -43,20 +42,18 @@ where
 		= handleValue value @? const NoValue
 
 proxyTask :: (Shared sds (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
-proxyTask value_share onDestroy = Task (eval value_share)
+proxyTask value_share onDestroy = Task eval
 where
-    eval :: (Shared sds (TaskValue a)) Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld) | iTask a & RWShared sds
-    eval value_share DestroyEvent repAs _ iworld
-            # iworld = onDestroy iworld
-            = (DestroyedResult,iworld)
-    eval value_share event evalOpts tree=:(TCInit taskId ts) iworld
-            # (val,iworld)  = readRegister taskId value_share iworld
-            = case val of
-                  Ok (ReadingDone val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap} (rep event) tree, iworld)
-                  Error e           = (ExceptionResult e,iworld)
+	eval DestroyEvent repAs iworld
+		= (DestroyedResult, onDestroy iworld)
+	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+		# (val,iworld)  = readRegister taskId value_share iworld
+		= case val of
+			Ok (ReadingDone val) = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap} (rep event) (Task eval), iworld)
+			Error e = (ExceptionResult e,iworld)
 
-    rep ResetEvent = ReplaceUI (ui UIEmpty)
-    rep _          = NoChange
+	rep ResetEvent = ReplaceUI (ui UIEmpty)
+	rep _          = NoChange
 
 taskValueShare :: Int ->  SimpleSDSLens (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))
@@ -64,17 +61,17 @@ where
 	store_name = "taskValueShare_" +++ (toString taskid)
 
 customEval :: (Shared sds (TaskValue a)) (Task a) -> (Task a) | iTask a & RWShared sds
-customEval value_share (Task eval) = Task eval`
-        where
-        eval` event evalOpts state iworld
-                = case eval event evalOpts state iworld of
-                        v=:(ValueResult value info rep tree, iworld) -> storeValue v
-                        (ExceptionResult te, iworld) -> (ExceptionResult te, iworld)
-                        (DestroyedResult, iworld) -> (DestroyedResult, iworld)
+customEval value_share (Task inner) = Task eval
+where
+	eval event evalOpts iworld
+		= case inner event evalOpts iworld of
+			v=:(ValueResult value info rep newtask, iworld) = storeValue v
+			(ExceptionResult te, iworld) = (ExceptionResult te, iworld)
+			(DestroyedResult, iworld) = (DestroyedResult, iworld)
 
-        storeValue (ValueResult task_value info rep tree, iworld)
-                # (res, iworld) = write task_value value_share EmptyContext iworld
-                = case res of
-                        Ok _    = (ValueResult task_value info rep tree, iworld)
-                        Error _ = (ValueResult task_value info rep tree, iworld)
+	storeValue (ValueResult task_value info rep newtask, iworld)
+		# (res, iworld) = write task_value value_share EmptyContext iworld
+		= case res of
+			Ok _    = (ValueResult task_value info rep newtask, iworld)
+			Error _ = (ValueResult task_value info rep newtask, iworld)
 
