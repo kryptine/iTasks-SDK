@@ -23,7 +23,7 @@ filterDirs _ = True
 seq [] = tuple (Ok [])
 seq [e:es] = e >>= \a->seq es >>= \as->tuple (Ok [a:as])
 
-recurse :: FilePath -> .(*World -> *(MaybeError OSError [FilePath], !*World))
+recurse :: FilePath -> .(*World -> *(MaybeError OSError [FilePath], *World))
 recurse root
 	| endsWith ".dcl" root = tuple (Ok [root])
 	= getFileInfo root >>= \fi->if fi.directory

@@ -309,7 +309,7 @@ wait desc pred shared
 	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
 
-chooseAction :: ![(!Action,a)] -> Task a | iTask a
+chooseAction :: ![(Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation () [] ()
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]

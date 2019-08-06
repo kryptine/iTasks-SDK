@@ -182,7 +182,7 @@ wait :: !d (r -> Bool) !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & R
 *
 * @return 				Value associated with chosen action
 */
-chooseAction :: ![(!Action,a)] -> Task a | iTask a
+chooseAction :: ![(Action,a)] -> Task a | iTask a
 
 /**
 * View data as a title

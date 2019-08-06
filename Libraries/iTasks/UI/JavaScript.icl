@@ -69,7 +69,9 @@ where
 			# dest & [i] = '\''
 			-> (dest,i+1)
 		JSReal r
-			// TODO: this will trigger a warning in get_clean_string; try to write a copy_real à la copy_int
+			// NB: this will trigger a warning in get_clean_string because the created String cannot be removed from the heap.
+			// Better would be to write a copy_real à la copy_int, but this is non-trivial.
+			// Another option is to walk the JSVal in JavaScript instead of creating a string.
 			-> copy_chars (toString r) dest i
 
 		JSVar v

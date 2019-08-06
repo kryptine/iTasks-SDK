@@ -46,7 +46,7 @@ derive gEq ParallelTaskChange
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -234,7 +234,7 @@ where
 	match _ _            = Nothing
 
 // Parallel composition
-parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!Int,!TaskValue a)] | iTask a
+parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 parallel initTasks conts = Task evalinit
 where
 	//Cleanup

@@ -26,11 +26,11 @@ import qualified Data.Set as DS
 
 :: ExitCode = ExitCode !Int
 :: ExternalProcessHandlers l r w =
-    { onStartup     :: !(           r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onOutData     :: !(String   l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onErrData     :: !(String   l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onShareChange :: !(         l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
+    { onStartup     :: !(           r -> (MaybeErrorString l, Maybe w, [String], Bool))
+    , onOutData     :: !(String   l r -> (MaybeErrorString l, Maybe w, [String], Bool))
+    , onErrData     :: !(String   l r -> (MaybeErrorString l, Maybe w, [String], Bool))
+    , onShareChange :: !(         l r -> (MaybeErrorString l, Maybe w, [String], Bool))
+    , onExit        :: !(ExitCode l r -> (MaybeErrorString l, Maybe w                ))
     }
 
 derive JSONEncode ProcessHandle, ProcessIO
