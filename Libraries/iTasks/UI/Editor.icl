@@ -6,7 +6,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JavaScript
 import qualified Data.Map as DM
-import Text, Text.GenJSON
+import Text, Text.GenJSON, Text.Encodings.Base64
 import Data.GenEq
 
 derive JSONEncode EditState, LeafState, EditMode
@@ -157,7 +157,7 @@ withClientSideInit initUI genUI attr dp val vst=:{VSt| taskId} = case genUI attr
 		# extraAttr = 'DM'.fromList
 			[("taskId",  JSONString taskId)
 			,("editorId",JSONString (editorId dp))
-			,("initUI",  JSONString initUI)
+			,("initUI",  JSONString $ base64Encode initUI)
 			]
 		= (Ok (UI type ('DM'.union extraAttr attr) items,mask), vst)
 	e = e
