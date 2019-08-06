@@ -44,7 +44,7 @@ itasks.Component = {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			return ABC_loading_promise.then(function(){
-				var initUI=ABC.deserialize(me.attributes.initUI);
+				var initUI=ABC.deserialize(atob(me.attributes.initUI));
 				var ref=ABC.share_clean_value(initUI,me);
 				ABC.interpret(new SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
 				ABC.clear_shared_clean_value(ref);
