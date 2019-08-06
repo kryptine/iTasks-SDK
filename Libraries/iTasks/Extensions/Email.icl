@@ -29,11 +29,11 @@ where
 			]
 
 	//Send the first message
-	onConnect :: !ConnectionId !String !() -> (!MaybeErrorString [(!String, !Int)], !Maybe (), ![String], !Bool)
+	onConnect :: !ConnectionId !String !() -> (!MaybeErrorString [(String, Int)], !Maybe (), ![String], !Bool)
     onConnect _ _ _
         = (Ok messages,Nothing,[],False)
 	//Response to last message: if ok, close connection
-	onData :: !String ![(!String, !Int)] !() -> (!MaybeErrorString [(!String, !Int)], !Maybe (), ![String], !Bool)
+	onData :: !String ![(String, Int)] !() -> (!MaybeErrorString [(String, Int)], !Maybe (), ![String], !Bool)
     onData data [(_,expectedCode)] _
 		| statusCode data == expectedCode
 			= (Ok [],Nothing,[],True)
