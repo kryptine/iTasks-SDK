@@ -53,3 +53,5 @@ mkInstantTask :: (TaskId *IWorld -> (MaybeError (Dynamic,String) a,*IWorld)) -> 
 recTask tf val :== case val of
 	(ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
 	a = a
+
+unTask (Task t) :== t

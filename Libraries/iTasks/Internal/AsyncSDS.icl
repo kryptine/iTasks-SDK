@@ -1,6 +1,8 @@
 implementation module iTasks.Internal.AsyncSDS
 
 import Data.Maybe, Data.Either, Data.List, Data.Func
+import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskState
 import Text, Text.GenJSON
 import StdMisc, StdArray, StdBool
 import Internet.HTTP
@@ -11,6 +13,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
 import iTasks.Internal.Task
 import iTasks.SDS.Definition
+import iTasks.UI.Definition
 import iTasks.WF.Tasks.IO
 import iTasks.WF.Derives
 import iTasks.Internal.Serialization
@@ -22,6 +25,7 @@ from iTasks.SDS.Sources.Core import unitShare
 import iTasks.Internal.SDSService
 
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
@@ -382,3 +386,69 @@ where
 			(Right (Error e))				= Error e
 		(Just (dyn, _))					= Error (exception ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn)))
 		Nothing 						= Ok Nothing
+
+asyncSDSLoadUI :: AsyncAction -> UIChange
+asyncSDSLoadUI Read = (ReplaceUI (uia UIProgressBar (textAttr "Reading data")))
+asyncSDSLoadUI Write = (ReplaceUI (uia UIProgressBar (textAttr "Writing data")))
+asyncSDSLoadUI Modify = (ReplaceUI (uia UIProgressBar (textAttr "Modifying data")))
+
+readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
+readCompletely _ _ cont DestroyEvent evalOpts=:{TaskEvalOpts|taskId} iworld
+	= (DestroyedResult, iworld)
+readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	= case read sds (TaskContext taskId) iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (ReadingDone r), iworld)
+			= cont r event evalOpts iworld
+		(Ok (Reading sds), iworld)
+			= (ValueResult tv (tei ts) (asyncSDSLoadUI Read) (Task (readCompletely sds tv cont)), iworld)
+
+writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
+writeCompletely _ _ _ cont DestroyEvent evalOpts iworld
+	= (DestroyedResult, iworld)
+writeCompletely w sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	= case write w sds (TaskContext taskId) iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (WritingDone), iworld)
+			= cont event evalOpts iworld
+		(Ok (Writing sds), iworld)
+			= (ValueResult tv (tei ts) (asyncSDSLoadUI Write) (Task (writeCompletely w sds tv cont)), iworld)
+
+modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
+modifyCompletely _ _ _ cont DestroyEvent evalOpts iworld
+	= (DestroyedResult, iworld)
+modifyCompletely modfun sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	= case modify modfun sds (TaskContext taskId) iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (ModifyingDone w), iworld)
+			= cont w event evalOpts iworld
+		(Ok (Modifying sds modfun), iworld)
+			= (ValueResult tv (tei ts) (asyncSDSLoadUI Modify) (Task (modifyCompletely modfun sds tv cont)), iworld)
+
+readRegisterCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds
+readRegisterCompletely _ _ _ cont DestroyEvent evalOpts iworld
+	= (DestroyedResult, iworld)
+readRegisterCompletely sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	| not (isRefreshForTask event taskId)
+		= (ValueResult tv (tei ts) (ui event) (Task (readRegisterCompletely sds tv ui cont)), iworld)
+	= case readRegister taskId sds iworld of
+		(Error e, iworld) = (ExceptionResult e, iworld)
+		(Ok (ReadingDone r), iworld)
+			= cont r event evalOpts iworld
+		(Ok (Reading sds), iworld)
+			= (ValueResult
+				tv
+				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+				(ui event)
+				(Task (readRegisterCompletely sds tv ui cont))
+			, iworld)
+
+isRefreshForTask (RefreshEvent taskIds _) taskId = 'DS'.member taskId taskIds
+isRefreshForTask ResetEvent _ = True
+isRefreshForTask _ _ = False
+
+tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}

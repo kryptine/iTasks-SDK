@@ -10,16 +10,13 @@ import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
-import qualified iTasks.Internal.AsyncSDS as ASDS
+import iTasks.Internal.AsyncSDS
 
 import Data.Error, Data.Maybe, Data.Func, Data.Either, Data.Tuple
 import Text.GenJSON
 import StdString, StdBool, StdInt, StdMisc, StdFunc
 import qualified Data.Set as DS
 import qualified Data.Map as DM
-
-derive JSONEncode Event,Set
-derive gText Event, Set
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -55,7 +52,7 @@ where
 interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW prompt shared handlers editor
-	= Task (evalInteractInit prompt shared shared handlers editor (interactModifyShareAsync shared))
+	= Task (readCompletely shared NoValue (evalInteractInit prompt shared handlers editor (interactModifyShareAsync shared)))
 where
 	interactModifyShareAsync :: (sds () r w) TaskId (r -> w) !*IWorld ->
 		(MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld)
@@ -66,35 +63,23 @@ where
 			(Ok ('SDS'.Modifying sds _), iworld) = (Ok (Just (Modify, dynamicResult ('SDS'.modify modifier sds ('SDS'.TaskContext taskId)))),iworld)
 			(Error e,iworld)                     = (Error e,iworld)
 
-interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
+	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactR prompt shared handlers editor
-	= Task (evalInteractInit prompt shared shared handlers editor \_ _ iw -> (Ok Nothing,iw))
+	= Task (readCompletely shared NoValue (evalInteractInit prompt shared handlers editor \_ _ iw -> (Ok Nothing,iw)))
 
-evalInteractInit :: !d (sds1 () r w) (sds2 () r w) (InteractionHandlers l r w v) (Editor v) (TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))), !*IWorld)) Event TaskEvalOpts *IWorld
-	-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds1 & Registrable sds2
-evalInteractInit _ _ _ _ _ _ DestroyEvent _ iworld
-	= (DestroyedResult, iworld)
-evalInteractInit prompt origsds sds handlers editor writefun event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+//This initializes the editor state and continues with the actual interact task
+evalInteractInit prompt sds handlers editor writefun r event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 	//Get initial value
-	= case 'SDS'.readRegister taskId sds iworld of
+	# (l, mode) = handlers.onInit r
+	# v = case mode of
+		Enter    = Nothing
+		Update x = Just x
+		View x   = Just x
+	= case initEditorState taskId mode editor iworld of
+		(Ok st, iworld)
+			= evalInteract l v st (mode=:View _) prompt sds sds handlers editor writefun event evalOpts iworld
 		(Error e, iworld) = (ExceptionResult e, iworld)
-		(Ok ('SDS'.ReadingDone r), iworld)
-			# (l, mode) = handlers.onInit r
-			# v = case mode of
-				Enter    = Nothing
-				Update x = Just x
-				View x   = Just x
-			= case initEditorState taskId mode editor iworld of
-				(Ok st, iworld)
-					= evalInteract l v st (mode=:View _) prompt origsds origsds handlers editor writefun event evalOpts iworld
-				(Error e, iworld) = (ExceptionResult e, iworld)
-		(Ok ('SDS'.Reading sds), iworld)
-			= (ValueResult
-				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
-				(ReplaceUI (uia UIProgressBar (textAttr "Getting data")))
-				(Task (evalInteractInit prompt origsds sds handlers editor writefun))
-			, iworld)
 
 initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)
 initEditorState taskId mode editor iworld = withVSt taskId
@@ -130,7 +115,7 @@ evalInteract l v st mode prompt origsds sds handlers editor writefun event evalO
 		// An EditEvent can lead to an asynchronous update of a share. However, we do not
 		// care about the result of this update so we do not show the loading bar. We do
 		// want to wait for the result of the modify (otherwise we send multiple requests which may interfere),
-		// so we transition to the TCAwait state
+		// so we transition to the evalAwait state
 //		Ok (Right (type, sdsf, l, v, st, change))
 //			# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 //			# tree = TCAwait type taskId taskTime (TCInteract taskId taskTime (DeferredJSON l) (DeferredJSON v) st viewMode)

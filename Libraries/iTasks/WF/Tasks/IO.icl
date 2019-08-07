@@ -56,7 +56,8 @@ where
 		$       liftOSErr (terminateProcess ph)
 		>-= \_->liftOSErr (closeProcessIO pio)
 		>-= \_->tuple (Ok DestroyedResult)
-	//TODO check whether the event is for our sds registration
+	//TODO: check whether the event is for our sds registration
+	//TODO: Support async sdss
 	eval (ph, pio) event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		= apIWTransformer iworld $
 			read sdsout EmptyContext                    >-= \(ReadingDone (stdoutq, stderrq))->

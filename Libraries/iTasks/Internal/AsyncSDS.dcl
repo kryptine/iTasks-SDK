@@ -1,7 +1,8 @@
 definition module iTasks.Internal.AsyncSDS
 
+from iTasks.Internal.TaskState import :: AsyncAction
 import iTasks.SDS.Definition
-from iTasks.WF.Definition import :: TaskId
+from iTasks.WF.Definition import :: TaskId, :: TaskValue, :: Event, :: TaskEvalOpts, :: TaskResult
 from iTasks.Internal.IWorld import :: IOState, :: IOStates
 from iTasks.Internal.SDS import :: SDSIdentity, :: SDSNotifyRequest
 
@@ -108,3 +109,63 @@ getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError 
  *		Just: A value of type (r,w) is found.
  */
 getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe (r,w)) | TC w & TC r
+
+/**
+ * The default UI for during loading an asynchronous SDS
+ * @return ui
+ */
+asyncSDSLoadUI :: AsyncAction -> UIChange
+
+/**
+ * Completely load an sds and continue with the continuation
+ * @param sds
+ * @param value during loading
+ * @param continuation
+ * @param event
+ * @param taskevalopts
+ * @param iworld
+ * @result taskresult and iworld with the continuation embedded
+ */
+readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
+
+/**
+ * Completely write an sds and continue with the continuation
+ * @param value to write
+ * @param sds
+ * @param value during loading
+ * @param continuation
+ * @param event
+ * @param taskevalopts
+ * @param iworld
+ * @result taskresult and iworld with the continuation embedded
+ */
+writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
+
+/**
+ * Completely modify an sds and continue with the continuation
+ * @param modification function
+ * @param sds
+ * @param value during loading
+ * @param continuation
+ * @param event
+ * @param taskevalopts
+ * @param iworld
+ * @result taskresult and iworld with the continuation embedded
+ */
+modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld -> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
+
+/**
+ * Completely readRegister an sds and continue with the continuation
+ * @param sds
+ * @param value during loading
+ * @param ui during loading
+ * @param continuation
+ * @param event
+ * @param taskevalopts
+ * @param iworld
+ * @result taskresult and iworld with the continuation embedded
+ */
+readRegisterCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds
