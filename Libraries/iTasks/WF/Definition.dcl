@@ -23,7 +23,7 @@ from StdClass import class <
 from StdOverloaded import class ==
 
 // Task definition:
-:: Task a = Task !(Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld))
+:: Task a =: Task (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld))
 
 :: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id

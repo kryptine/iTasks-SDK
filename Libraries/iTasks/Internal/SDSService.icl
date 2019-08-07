@@ -31,7 +31,7 @@ import Text
 :: SDSEvaluations :== Map ConnectionId (Bool, String, String)
 
 sdsServiceTask :: Int -> Task ()
-sdsServiceTask port = withShared 'Map'.newMap $ withSymbols o ((o) Task) o evalinit
+sdsServiceTask port = withShared 'Map'.newMap \sds->withSymbols \symbols->Task (evalinit sds symbols)
 where
 	evalinit _ _ DestroyEvent _ iworld
 		= (DestroyedResult, iworld)

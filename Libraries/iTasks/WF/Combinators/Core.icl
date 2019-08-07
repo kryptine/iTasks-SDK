@@ -840,7 +840,7 @@ where
 withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
 withCleanupHook patch (Task orig)
 	= appendTopLevelTask 'DM'.newMap False patch
-	>>- Task o flip eval orig
+	>>- \x->Task (eval x orig)
 where
 	eval tosignal orig DestroyEvent opts iw
 		# (tr, iw) = orig DestroyEvent opts iw
