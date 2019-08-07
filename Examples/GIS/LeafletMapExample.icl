@@ -6,7 +6,7 @@ import iTasks.UI.Definition
 import StdFunctions, Data.List, Text.HTML
 
 playWithMaps :: Task ()
-playWithMaps = withShared ({defaultValue & icons = shipIcons, tilesUrls = ["/tiles/{z}/{x}/{y}.png"]},defaultValue) (\m ->
+playWithMaps = withShared ({defaultValue & icons = shipIcons},defaultValue) (\m ->
 	((allTasks [managePerspective m, manageState m, manageMapObjects m]) <<@ ScrollContent)
 	-&&-
 	manipulateMap m
