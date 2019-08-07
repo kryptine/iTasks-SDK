@@ -53,7 +53,6 @@ createIWorld options world
 			,shutdown             = Nothing
 			,ioTasks              = {done = [], todo = []}
 			,ioStates             = 'DM'.newMap
-			,sdsEvalStates        = 'DM'.newMap
 			,world                = world
 			,signalHandlers       = []
 			,resources            = []

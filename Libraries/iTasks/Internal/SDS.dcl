@@ -136,7 +136,3 @@ formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
 
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-
-// Used to turn any read/write/modified operation (with all arguments except the environment
-// curried in) into one which returns a dynamic. Use to store sdsEvalStates in the environment.
-dynamicResult :: (*IWorld -> (MaybeError TaskException a, *IWorld)) !*IWorld -> (MaybeError TaskException Dynamic, !*IWorld) | TC a
