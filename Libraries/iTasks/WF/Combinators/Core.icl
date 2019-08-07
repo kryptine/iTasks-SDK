@@ -114,14 +114,14 @@ where
 	//Destroyed when executing the lhs
 	//evalleft :: (Task a) [String] TaskId Event TaskEvalOpts !*IWorld -> *(TaskResult a, IWorld)
 	evalleft (Task lhs) prevEnabledActions leftTaskId DestroyEvent evalOpts iworld
-		= case lhs DestroyEvent evalOpts iworld of
+		= case lhs DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld of
 			(DestroyedResult, iworld)		= (DestroyedResult, iworld)
 			(ExceptionResult e, iworld)	    = (ExceptionResult e, iworld)
 			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
 	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{TaskEvalOpts|ts,taskId} iworld
 		# mbAction = matchAction taskId event
-		# (res, iworld) = lhs event {TaskEvalOpts | evalOpts & taskId=leftTaskId} iworld
+		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
 		// Right  is a step 
 		# mbCont = case res of
 			ValueResult val info rep nextlhs
@@ -132,7 +132,7 @@ where
 						# value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-						# sl = stepLayout leftTaskId evalOpts event actions prevEnabledActions rep val
+						# sl = stepLayout taskId evalOpts event actions prevEnabledActions rep val
 						= Left (ValueResult
 							value
 							info

@@ -148,13 +148,14 @@ writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *
  * @param modification function
  * @param sds
  * @param value during loading
+ * @param ui during loading
  * @param continuation
  * @param event
  * @param taskevalopts
  * @param iworld
  * @result taskresult and iworld with the continuation embedded
  */
-modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld -> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
+modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld -> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
 
 /**
  * Completely readRegister an sds and continue with the continuation

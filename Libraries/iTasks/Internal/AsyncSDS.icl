@@ -416,17 +416,17 @@ writeCompletely w sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		(Ok (Writing sds), iworld)
 			= (ValueResult tv (tei ts) (asyncSDSLoadUI Write) (Task (writeCompletely w sds tv cont)), iworld)
 
-modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
-modifyCompletely _ _ _ cont DestroyEvent evalOpts iworld
+modifyCompletely _ _ _ _ cont DestroyEvent evalOpts iworld
 	= (DestroyedResult, iworld)
-modifyCompletely modfun sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+modifyCompletely modfun sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 	= case modify modfun sds (TaskContext taskId) iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ModifyingDone w), iworld)
 			= cont w event evalOpts iworld
 		(Ok (Modifying sds modfun), iworld)
-			= (ValueResult tv (tei ts) (asyncSDSLoadUI Modify) (Task (modifyCompletely modfun sds tv cont)), iworld)
+			= (ValueResult tv (tei ts) (ui event) (Task (modifyCompletely modfun sds tv ui cont)), iworld)
 
 readRegisterCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds

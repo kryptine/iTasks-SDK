@@ -29,7 +29,7 @@ set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 set val sds = Task (writeCompletely val sds NoValue (unTask (treturn val)))
 
 upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
-upd fun sds = Task (modifyCompletely fun sds NoValue (unTask o treturn))
+upd fun sds = Task (modifyCompletely fun sds NoValue (\_->asyncSDSLoadUI Modify) (unTask o treturn))
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch sds = Task (readCompletely sds NoValue
