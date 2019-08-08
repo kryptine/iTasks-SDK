@@ -53,12 +53,12 @@ where
 interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW prompt shared handlers editor
-	= Task (readCompletely shared NoValue (evalInteractInit prompt shared handlers editor modifyCompletely))
+	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoadUI Read) (evalInteractInit prompt shared handlers editor modifyCompletely))
 
 interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactR prompt shared handlers editor
-	= Task (readCompletely shared NoValue (evalInteractInit prompt shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
+	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoadUI Read) (evalInteractInit prompt shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
 
 //This initializes the editor state and continues with the actual interact task
 evalInteractInit prompt sds handlers editor writefun r event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
@@ -80,7 +80,6 @@ initEditorState taskId mode editor iworld = withVSt taskId
 		(Error e,    vst) = (Error $ exception e, vst)
 	) iworld
 
-//TODO Doublecheck whether to use readregister or read
 evalInteract ::
 	l
 	(Maybe v)
@@ -155,7 +154,7 @@ evalInteract l v st mode prompt sds handlers editor writefun event=:ResetEvent e
 			, iworld)
 evalInteract l v st mode prompt sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 	| not ('DS'.member taskId taskIds) = (ExceptionResult (exception "refresh not for this taskId"), iworld)
-	= readCompletely sds (maybe NoValue (\v->Value (l, v) False) v)
+	= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->case event of ResetEvent = asyncSDSLoadUI Read; e = NoChange)
 		(\r event evalOpts iworld
 			# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
 			= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of
