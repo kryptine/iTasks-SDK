@@ -32,7 +32,7 @@ itasks.Component = {
 		var me = this;
 		me.lastFire = 0;
 
-		return Promise.resolve()
+		return me.world=Promise.resolve()
 			.then(me.initUI.bind(me))
 			.then(me.initComponent.bind(me))
 			.then(me.initChildren.bind(me))
@@ -283,14 +283,16 @@ itasks.Component = {
 	onAttributeChange: function(name,value) {},
 	onUIChange: function(change) {
 		var me = this;
-		if(change) {
-			switch(change.type) {
-				case 'replace':
-					return me.onReplaceUI(change.definition);
-				case 'change':
-					return me.onChangeUI(change.attributes,change.children);
+		me.world=me.world.then (function(){
+			if(change) {
+				switch(change.type) {
+					case 'replace':
+						return me.onReplaceUI(change.definition);
+					case 'change':
+						return me.onChangeUI(change.attributes,change.children);
+				}
 			}
-		}
+		});
 	},
 	onReplaceUI: function(spec) {
 		var me = this;
