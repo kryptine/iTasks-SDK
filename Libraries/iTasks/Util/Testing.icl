@@ -203,6 +203,8 @@ where
 		//Check if the test should run
 		| otherwise
 			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
+			# (ok,console) = fflush console
+			| not ok = abort "fflush failed\n"
 			# (result,world) = test world
 			# message = case result of
 				Passed = "PASSED"
