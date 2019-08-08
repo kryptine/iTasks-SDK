@@ -81,11 +81,11 @@ transformError :: ((TaskValue a) -> MaybeError TaskException (TaskValue b)) !(Ta
 transformError f task = Task (eval task)
 where
 	eval (Task task) event evalOpts iworld = case task event evalOpts iworld of
-		(ValueResult val lastEvent rep task, iworld)= case f val of
+		(ValueResult val lastEvent rep task, iworld) = case f val of
 			Error e = (ExceptionResult e, iworld)
 			Ok v = (ValueResult v lastEvent rep (Task (eval task)), iworld)
-		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
-		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
+		(ExceptionResult e, iworld)                  = (ExceptionResult e, iworld)
+		(DestroyedResult, iworld)                    = (DestroyedResult, iworld)
 
 removeDupBy :: (a a -> Bool) [a] -> [a]
 removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
@@ -168,6 +168,7 @@ where
 									val
 									info
 									change
+									//Actually rewrite to the rhs
 									(Task rhs)
 								,iworld)
 							ValueResult _ _ change _

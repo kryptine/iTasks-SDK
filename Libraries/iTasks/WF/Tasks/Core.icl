@@ -80,6 +80,7 @@ initEditorState taskId mode editor iworld = withVSt taskId
 		(Error e,    vst) = (Error $ exception e, vst)
 	) iworld
 
+//TODO Doublecheck whether to use readregister or read
 evalInteract ::
 	l
 	(Maybe v)
