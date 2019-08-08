@@ -7,6 +7,7 @@ import StdOverloadedList
 
 import Data.Func
 import Data.Maybe
+import Text.Encodings.Base64
 import Text.GenJSON
 
 :: *JSWorld = JSWorld
@@ -572,7 +573,7 @@ where
 		}
 
 jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
-jsDeserializeGraph s w = (deserialize s, w)
+jsDeserializeGraph s w = (deserialize (base64Decode s), w)
 where
 	deserialize :: !*String -> .a
 	deserialize _ = code {
