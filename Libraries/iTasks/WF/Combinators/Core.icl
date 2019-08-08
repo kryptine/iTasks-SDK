@@ -238,85 +238,121 @@ where
 parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 parallel initTasks conts = Task evalinit
 where
-	//Cleanup
-	evalinit DestroyEvent evalOpts iworld
+	//Destroyed before initial execution
+	evalinit DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
-	//Create initial task list
-	evalinit event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-		//Create the states for the initial tasks
+	//Initialize the task list
+	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld
+	//Create the states for the initial tasks
 		= case initParallelTasks evalOpts taskId 0 initTasks iworld of
 			(Ok (taskList,embeddedTasks),iworld)
 				//Write the local task list
 				# taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-				# (e,iworld) = (write taskList (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
+				# (e,iworld) = (write taskList (sdsFocus (taskId, taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Write the local embedded tasks
 				# (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Evaluate the parallel
-				= eval [] [] event evalOpts iworld
-			(Error err,iworld) = (ExceptionResult err, iworld)
-		where
-			writeAll [] sds iworld = (Ok WritingDone,iworld)
-			writeAll [(f,w):ws] sds iworld = case (write w (sdsFocus f sds) EmptyContext iworld) of
-				(Ok _,iworld) = writeAll ws sds iworld
+				= eval (length taskList) [] event evalOpts iworld
+			(Error err,iworld)
+				= (ExceptionResult err, iworld)
+	where
+		writeAll [] sds iworld = (Ok WritingDone,iworld)
+		writeAll [(f,w):ws] sds iworld
+			= case (write w (sdsFocus f sds) EmptyContext iworld) of
+				(Ok WritingDone, iworld) = writeAll ws sds iworld
+				(Ok _, iworld) = (Error (exception "Asynchronous tasklist share???"), iworld)
 				err = err
 
-	eval tasks _ DestroyEvent evalOpts=:{TaskEvalOpts|taskId} iworld
-		= destroyParallelTasks taskId ('DM'.fromList tasks) iworld
-	
+		initParallelTasks _ _ _ [] iworld = (Ok ([],[]),iworld)
+		initParallelTasks evalOpts listId index [(parType,parTask):parTasks] iworld
+			# (mbStateMbTask, iworld) = initParallelTask evalOpts listId index parType parTask iworld
+			= case mbStateMbTask of
+					Ok (state,mbTask)
+						# (mbStateTasks, iworld) = initParallelTasks evalOpts listId (index + 1) parTasks iworld
+						= case mbStateTasks of
+								Ok (states,tasks)
+									= (Ok ([state:states], maybe tasks (\task -> [task:tasks]) mbTask), iworld)
+								err = (err, iworld)
+					err = (liftError err, iworld)
+
+	eval _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
+		= destroyParallelTasks taskId iworld
+
 	//Evaluate the task list
-	eval tasks prevEnabledActions event evalOpts=:{TaskEvalOpts|taskId} iworld=:{current=current=:{taskTime}}
+	eval prevNumBranches prevEnabledActions event evalOpts=:{TaskEvalOpts|taskId} iworld
+		# (_, event) = trace_stdout ("eval parallel with event: ", event)
 		//Evaluate all branches of the parallel set
-		= case evalParallelTasks taskId ('DM'.fromList tasks) event evalOpts conts [] [] iworld of
-			(Ok results,iworld)
+		= case evalParallelTasks event evalOpts conts [] [] iworld of
+			(Ok results, iworld)
 				//Construct the result
-				# results  = reverse results //(the results are returned in reverse order)
-				# value    = genParallelValue (map snd results)
-				# evalInfo = genParallelEvalInfo (map snd results)
-				# actions  = contActions taskId value conts
-				# rep      = genParallelRep evalOpts event actions prevEnabledActions (map snd results) prevNumBranches
-				# tasks    = [(taskId, task) \\ (taskId, ValueResult _ _ _ task) <- results]
+				# results   = reverse results //(the results are returned in reverse order)
+				# value     = genParallelValue results
+				# evalInfo  = genParallelEvalInfo results
+				# actions   = contActions taskId value conts
+				# rep       = genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 				# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-				= (ValueResult value evalInfo rep
-						(Task (eval tasks curEnabledActions))
-				,iworld)
+				= (ValueResult value evalInfo rep (Task (eval (length results) curEnabledActions)), iworld)
 			//Stopped because of an unhandled exception
 			(Error e, iworld)
 				//Clean up before returning the exception
-				# (res,iworld) = destroyParallelTasks taskId ('DM'.fromList tasks) iworld
+				# (res,iworld) = destroyParallelTasks taskId iworld
 				= (exceptionResult res e,iworld)
 	where
-		//We need to know how many branches there are before evaluation to be
-		//able to determine the correct UI update instructions
-		prevNumBranches = length tasks
-
-		exceptionResult :: (TaskResult [(!Int,!TaskValue a)]) TaskException -> (TaskResult [(!Int,!TaskValue a)])
+		exceptionResult :: (TaskResult [(Int,TaskValue a)]) TaskException -> (TaskResult [(Int,TaskValue a)])
 		exceptionResult DestroyedResult e = ExceptionResult e
 		exceptionResult (ExceptionResult _) e = ExceptionResult e
 
-initParallelTasks ::
-	!TaskEvalOpts
-	!TaskId
-	!Int
-	![(!ParallelTaskType,!ParallelTask a)]
-	!*IWorld
-	->
-	(!MaybeError TaskException ([ParallelTaskState]
-	,[(TaskId,Task a)])
-	,!*IWorld)
-	| iTask a
-initParallelTasks _ _ _ [] iworld = (Ok ([],[]),iworld)
-initParallelTasks evalOpts listId index [(parType,parTask):parTasks] iworld
-  # (mbStateMbTask, iworld) = initParallelTask evalOpts listId index parType parTask iworld
-  = case mbStateMbTask of
-      Ok (state,mbTask)
-        # (mbStateTasks, iworld) = initParallelTasks evalOpts listId (index + 1) parTasks iworld
-        = case mbStateTasks of
-            Ok (states,tasks)
-              = (Ok ([state:states], maybe tasks (\task -> [task:tasks]) mbTask), iworld)
-            err = (err, iworld)
-      err = (liftError err, iworld)
+		genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
+		genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]} results
+		where
+			addResult (ValueResult _ i1 _ _) i2
+				# lastEvent = max i1.TaskEvalInfo.lastEvent i2.TaskEvalInfo.lastEvent
+				# removedTasks = i1.TaskEvalInfo.removedTasks ++ i2.TaskEvalInfo.removedTasks
+				= {TaskEvalInfo|lastEvent=lastEvent,attributes='DM'.newMap,removedTasks=removedTasks}
+			addResult _ i = i
+
+		genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange
+		genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
+			= case event of
+				ResetEvent
+					= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
+				_
+					# (idx,iChanges) = itemChanges 0 prevNumBranches results
+					# aChanges       = actionChanges idx
+					= ChangeUI [] (iChanges ++ aChanges)
+		where
+			itemChanges i numExisting [] = (i,[])
+			itemChanges i numExisting [ValueResult _ _ change _:rs]
+				| i < numExisting
+					# (i`,changes) = itemChanges (i + 1) numExisting rs
+					= (i`,[(i,ChangeChild change):changes]) 	//Update an existing branch
+				| otherwise			= case change of
+					(ReplaceUI def)
+						# (i`,changes) = itemChanges (i + 1) (numExisting + 1) rs
+						= (i`,[(i,InsertChild def):changes]) 	//Add a new branch
+					_
+						= itemChanges (i + 1) (numExisting + 1) rs //Skip if we don't get a blank UI
+		
+			itemChanges i numExisting [DestroyedResult:rs]
+				| i < numExisting
+					# (i`,changes) = itemChanges i (numExisting - 1) rs
+					= (i`,[(i,RemoveChild):changes])
+				| otherwise
+					= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
+		
+			itemChanges i numExisting [ExceptionResult e:rs]
+				| i < numExisting
+					# (i`,changes) = itemChanges i (numExisting - 1) rs
+					= (i`,[(i,RemoveChild):changes])
+				| otherwise
+					= itemChanges i numExisting rs
+		
+			actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
+			where
+				switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
+				switch False name = if (isMember name prevEnabledActions) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
 
 initParallelTask ::
 	!TaskEvalOpts
@@ -326,33 +362,32 @@ initParallelTask ::
 	!(ParallelTask a)
 	!*IWorld
 	->
-	(!MaybeError TaskException (ParallelTaskState
-	,Maybe (TaskId,Task a))
-	,!*IWorld)
+	(!MaybeError TaskException (ParallelTaskState, Maybe (TaskId,Task a)), !*IWorld)
 	| iTask a
 initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
-		Embedded           = mkEmbedded 'DM'.newMap iworld
-		NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
+		Embedded                                 = mkEmbedded 'DM'.newMap iworld
+		NamedEmbedded name                       = mkEmbedded ('DM'.singleton "name" name) iworld
 		Detached           attributes evalDirect = mkDetached attributes evalDirect iworld
 		NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
 	= case mbTaskStuff of
 		Ok (taskId,attributes,mbTask)
 			# state =
 				{ ParallelTaskState
-				| taskId     = taskId
-				, index      = index
-				, detached   = isNothing mbTask
-				, attributes = attributes
-				, value      = NoValue
-				, createdAt  = taskTime
-				, lastFocus  = Nothing
-				, lastEvent  = taskTime
-				, change     = Nothing
+				| taskId      = taskId
+				, index       = index
+				, detached    = isNothing mbTask
+				, attributes  = attributes
+				, value       = NoValue
+				, createdAt   = taskTime
+				, lastFocus   = Nothing
+				, lastEvent   = taskTime
+				, change      = Nothing
+				, initialized = False
 				}
 			= (Ok (state,mbTask),iworld)
 		err = (liftError err, iworld)
-	where
+where
 	mkEmbedded attributes iworld
 		# (taskId,iworld) = getNextTaskId iworld
 		# task            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
@@ -365,17 +400,16 @@ initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTim
 				# listShare         = if isTopLevel topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
 				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo attributes listId evalDirect iworld
 				= case mbTaskId of
-					Ok taskId
-					  = (Ok (taskId, attributes, Nothing), iworld)
+					Ok taskId = (Ok (taskId, attributes, Nothing), iworld)
 					err       = (liftError err, iworld)
 			err = (liftError err, iworld)
 
-evalParallelTasks :: TaskId (Map TaskId (Task a)) !Event !TaskEvalOpts
-	[TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)]
+evalParallelTasks :: !Event !TaskEvalOpts
+	[TaskCont [(TaskTime,TaskValue a)] (ParallelTaskType,ParallelTask a)]
 	[(TaskId, TaskResult a)] [ParallelTaskState] !*IWorld
 	->
-	(MaybeError TaskException [(TaskId, TaskResult a)],!*IWorld) | iTask a
-evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
+	(MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
+evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId,ts} conts completed [] iworld
 	//(re-)read the tasklist to check if it contains items we have not yet evaluated
 	# taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
 	# (mbList,iworld)       = read (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
@@ -385,264 +419,188 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
 		[]  = case searchContValue (genParallelValue (reverse (map snd completed))) (matchAction listId event) conts of
 			Nothing //We have evaluated all branches and nothing is added
 				//Remove all entries that are marked as removed from the list, they have been cleaned up by now
-				# taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-				# (mbError,iworld)      = modify (\l -> [x \\ x <- l | not (isRemoved x)])
-											(sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
-				| mbError =:(Error _)    = (Error (fromError mbError),iworld)
-				= (Ok completed, iworld)
-			Just (_, (type,task), _) //Add extension
-				# (mbStateMbTask,iworld)     = initParallelTask evalOpts listId 0 type task iworld
+				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
+				# (mbError,iworld)    = modify (\l -> [x \\ x <- l | not (isRemoved x)])
+				                            (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
+				| mbError =:(Error _) = (Error (fromError mbError),iworld)
+				= (Ok (map snd completed),iworld)
+
+			Just (_,(type,task),_) //Add extension
+				# (mbStateMbTask, iworld) = initParallelTask evalOpts listId 0 type task iworld
 				= case mbStateMbTask of
 					Ok (state,mbTask)
-						//Update the task list (TODO, be specific about what we are writing here)
-						# taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-						# (mbError,iworld)          = modify (\states -> states ++ [{ParallelTaskState|state & index = length states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
-						| mbError =:(Error _)       = (liftError mbError,iworld)
-						# taskId                    = state.ParallelTaskState.taskId
-						//Store the task function
-						# (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
-						| mbError =:(Error _)       = (liftError mbError,iworld)
-						= evalParallelTasks listId taskTrees ResetEvent evalOpts conts completed [state] iworld //Continue
+					  //Update the task list (TODO, be specific about what we are writing here)
+					  # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+					  # (mbError,iworld)          = modify (\states -> states ++ [{ParallelTaskState|state & index = length states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
+					  | mbError =:(Error _)       = (liftError mbError,iworld)
+					  # taskId                    = state.ParallelTaskState.taskId
+					  //Store the task function
+					  # (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+					  | mbError =:(Error _)       = (liftError mbError,iworld)
+					  = evalParallelTasks ResetEvent evalOpts conts completed [state] iworld //Continue
 					err = (liftError err, iworld)
-		todo = evalParallelTasks listId taskTrees event evalOpts conts completed todo iworld     //Evaluate the remaining items
+		//There is more work to do:
+		todo    = evalParallelTasks event evalOpts conts completed todo iworld
 	where
 		isRemoved {ParallelTaskState|change=Just RemoveParallelTask} = True
 		isRemoved _ = False
-
 //Evaluate an embedded parallel task
-//evalParallelTasks listId tasks event evalOpts conts completed [t=:{ParallelTaskState|taskId=TaskId _ taskNo}:todo] iworld
-//	= case evalParallelTask listId tasks event evalOpts t iworld of
-//		(Error e, iworld) = (Error e,iworld)
-//		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
-//		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep newtask), iworld)
-//			//Add the current result before checking for removals
-//			# completed = [result:completed]
-//			//Check if in the branch tasks from this list were removed but that were already evaluated
-//			# removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId && n <= taskNo]
-//			# (completed,iworld) = destroyRemoved listId removed completed iworld
-//			= evalParallelTasks listId tasks event evalOpts conts completed todo iworld
-//		(Ok result=:DestroyedResult, iworld)
-//			= evalParallelTasks listId tasks event evalOpts conts [result:completed] todo iworld
-//
-//evalParallelTask listId tasks event evalOpts taskState=:{ParallelTaskState|detached} iworld
-//	= undef
-//	| detached  = evalDetachedParallelTask listId taskTrees event evalOpts taskState iworld
-//	| otherwise = evalEmbeddedParallelTask listId taskTrees event evalOpts taskState iworld
-//
-//evalEmbeddedParallelTask listId taskTrees event evalOpts
-//	{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change} iworld=:{current={taskTime}}
-//    //Lookup task evaluation function and task evaluation state
-//    # (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
-//    | mbTask =:(Error _) = (Error (fromError mbTask),iworld)
-//    # (Task evala) = directResult (fromOk mbTask)
-//    # (tree,newBranch) = maybe (TCInit taskId taskTime,True) (\tree -> (tree,False)) ('DM'.get taskId taskTrees)
-//    //Evaluate or destroy branch
-//    | change === Just RemoveParallelTask
-//		# (result,taskTrees,iworld) = destroyEmbeddedParallelTask listId taskId taskTrees iworld
-//		= case result of
-//			(Ok res) = (Ok res,iworld)
-//			(Error [e]) = (Error e, iworld)
-//			(Error _) = (Error (exception "evalEmbeddedParallelTask: multiple exceptions during destruction"), iworld)
-//    | otherwise
-//        # evalOpts =
-//			{evalOpts & tonicOpts =
-//				{evalOpts.tonicOpts
-//				& captureParallel = evalOpts.tonicOpts.inParallel == Just listId
-//				, inParallel      = Just listId
-//				}
-//			}
-//		//Evaluate new branches with a reset event
-//		# (result,iworld) = evala (if newBranch ResetEvent event)
-//			(setParallel listId (extendCallTrace taskId evalOpts)) tree iworld
-//		//Tonic hook
-//		# iworld = if (evalOpts.tonicOpts.captureParallel
-//						&& evalOpts.tonicOpts.currBlueprintExprId <> []
-//						&& evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
-//							(storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId
-//								evalOpts.tonicOpts.currBlueprintTaskId taskId iworld)
-//							iworld
-//        = case result of
-//            //If an exception occured, check if we can handle it at this level
-//            ExceptionResult` e
-//                //TODO Check exception
-//                //If the exception can not be handled, don't continue evaluating just stop
-//                = (Ok (ExceptionResult` e),iworld)
-//            ValueResult` val evalInfo=:{TaskEvalInfo|lastEvent,attributes,removedTasks} rep tree
-//                //Check for a focus event targeted at this branc
-//                # mbNewFocus= case event of
-//                    (FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
-//                    _                       = Nothing
-//                # lastFocus     = maybe lastFocus Just mbNewFocus
-//                # result = ValueResult` val evalInfo rep tree
-//                //Check if the value changed
-//                # valueChanged = val =!= decode value
-//                //Write updated value, and optionally the new lastFocus time to the tasklist
-//                # (mbError,iworld) = if valueChanged
-//                    (modify
-//						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
-//                        (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
-//						EmptyContext iworld)
-//                    (modify
-//						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
-//                        (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
-//						EmptyContext
-//						iworld)
-//                | mbError =:(Error _) = (Error (fromError mbError),iworld)
-//					= (Ok result,iworld)
-//where
-//    encode NoValue      = NoValue
-//    encode (Value v s)  = Value (DeferredJSON v) s
-//
-//    decode NoValue     = NoValue
-//    decode (Value v s) = Value (fromMaybe (abort "invalid parallel task state\n") $ fromDeferredJSON v) s
-//
-//    (TaskId instanceNo taskNo)   = taskId
-//
-////Retrieve result of detached parallel task
-//evalDetachedParallelTask listId taskTrees event evalOpts {ParallelTaskState|taskId=taskId=:(TaskId instanceNo _),detached=True} iworld
-//    = case readRegister listId (sdsFocus instanceNo (removeMaybe Nothing taskInstanceValue)) iworld of
-//        (Error e,iworld)
-//            = (Error e,iworld)
-//        (Ok (ReadingDone (TIException dyn msg)),iworld)
-//            = (Ok (ExceptionResult` (dyn,msg)),iworld)
-//        (Ok (ReadingDone (TIValue encValue)),iworld)
-//            //Decode value value
-//            # mbValue = case encValue of
-//                NoValue           = Just NoValue
-//                Value json stable = (\dec -> Value dec stable) <$> fromDeferredJSON json
-//            //TODO: use global tasktime to be able to compare event times between instances
-//            # evalInfo = {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]}
-//            # result = maybe (ExceptionResult` (exception "Could not decode task value of detached task"))
-//                (\val -> ValueResult` val evalInfo NoChange TCNop) mbValue
-//			= (Ok result,iworld)
-//
-destroyParallelTasks :: !TaskId (Map TaskId (Task a)) !*IWorld -> *(TaskResult [(!Int,!TaskValue a)], *IWorld) | iTask a
-destroyParallelTasks listId=:(TaskId instanceNo _) tasks iworld
-	//Unlink registrations for all detached tasks
+evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [t=:{ParallelTaskState|taskId=taskId=:(TaskId _ taskNo)}:todo] iworld
+	= case evalParallelTask listId event evalOpts t iworld of
+		(Error e, iworld) = (Error e,iworld)
+		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
+		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep tree), iworld)
+			//Add the current result before checking for removals
+			# completed = [(taskId, result):completed]
+			//Check if in the branch tasks from this list were removed but that were already evaluated
+			# removed = [t \\ (l,t=:(TaskId _ n)) <- removedTasks | l == listId && n <= taskNo]
+			# (completed,iworld) = destroyRemoved listId removed completed iworld
+			= evalParallelTasks event evalOpts conts completed todo iworld
+		(Ok result=:DestroyedResult, iworld)
+			= evalParallelTasks event evalOpts conts [(taskId, result):completed] todo iworld
+where
+	evalParallelTask :: TaskId !Event !TaskEvalOpts ParallelTaskState !*IWorld
+		-> *(MaybeError TaskException (TaskResult a), !*IWorld) | iTask a
+	evalParallelTask listId event evalOpts taskState=:{ParallelTaskState|detached} iworld
+		| detached  = evalDetachedParallelTask listId event evalOpts taskState iworld
+		            = evalEmbeddedParallelTask listId event evalOpts taskState iworld
+
+	evalEmbeddedParallelTask listId event evalOpts
+		{ParallelTaskState|taskId,createdAt,lastFocus,value,change,initialized} iworld=:{current={taskTime}}
+		//Lookup task evaluation function and task evaluation state
+		# (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
+		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
+		# (Task evala) = directResult (fromOk mbTask)
+		//Evaluate or destroy branch
+		| change === Just RemoveParallelTask
+			# (result, iworld) = destroyEmbeddedParallelTask listId taskId iworld
+			= case result of
+				(Ok res) = (Ok res,iworld)
+				(Error e) = (Error (exception (ExceptionList e)), iworld)
+		//Evaluate new branches with a reset event, other with the event
+		= case evala (if initialized event ResetEvent) {TaskEvalOpts|evalOpts&taskId=taskId} iworld of
+			//If an exception occured, check if we can handle it at this level
+			(ExceptionResult e, iworld)
+				//TODO Check exception
+				//If the exception can not be handled, don't continue evaluating just stop
+				= (Ok (ExceptionResult e),iworld)
+			(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,attributes,removedTasks} rep task, iworld)
+				//Check for a focus event targeted at this branc
+				# mbNewFocus= case event of
+					(FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
+					_                     = Nothing
+				# lastFocus     = maybe lastFocus Just mbNewFocus
+				# result = ValueResult val evalInfo rep task
+				//Check if the value changed
+				# valueChanged = val =!= decode value
+				//Write the new reduct
+				# (mbError, iworld) = write task (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
+				| mbError =:(Error _) = (Error (fromError mbError), iworld)
+				//Write updated value, and optionally the new lastFocus time to the tasklist
+				# (mbError,iworld) = if valueChanged
+					(modify
+						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes, initialized = True})
+						(sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
+						EmptyContext iworld)
+					(modify
+						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes, initialized = True})
+						(sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
+						EmptyContext
+						iworld)
+				| mbError =:(Error _) = (Error (fromError mbError),iworld)
+					= (Ok result,iworld)
+	where
+		encode NoValue      = NoValue
+		encode (Value v s)  = Value (DeferredJSON v) s
+	
+		decode NoValue     = NoValue
+		decode (Value v s) = Value (fromMaybe (abort "invalid parallel task state\n") $ fromDeferredJSON v) s
+	
+		(TaskId instanceNo taskNo)   = taskId
+	
+	//Retrieve result of detached parallel task
+	evalDetachedParallelTask :: !TaskId !Event !TaskEvalOpts !ParallelTaskState !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
+	evalDetachedParallelTask listId event evalOpts {ParallelTaskState|taskId=taskId=:(TaskId instanceNo _)} iworld
+		= case readRegister listId (sdsFocus instanceNo (removeMaybe Nothing taskInstanceValue)) iworld of
+			(Error e,iworld) = (Error e,iworld)
+			(Ok (ReadingDone (TIException dyn msg)),iworld) = (Ok (ExceptionResult (dyn,msg)),iworld)
+			(Ok (ReadingDone (TIValue encValue)),iworld)
+				//Decode value value
+				# mbValue = case encValue of
+					NoValue           = Just NoValue
+					Value json stable = (\dec -> Value dec stable) <$> fromDeferredJSON json
+				//TODO: use global tasktime to be able to compare event times between instances
+				# evalInfo = {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]}
+				# result = maybe (ExceptionResult (exception "Could not decode task value of detached task"))
+					(\val -> ValueResult val evalInfo NoChange nopTask) mbValue
+				= (Ok result,iworld)
+
+destroyParallelTasks :: !TaskId !*IWorld -> *(TaskResult [(Int,TaskValue a)], *IWorld) | iTask a
+destroyParallelTasks listId=:(TaskId instanceNo _) iworld
+	// Unlink registrations for all detached tasks
 	# iworld = clearTaskSDSRegistrations ('DS'.singleton listId) iworld
-	= case read (sdsFocus (listId,minimalTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld of
-		(Error e,iworld)
-			//TODO: Still try to cleanup as much as possible based on the taskIds in the taskTrees
-			= (ExceptionResult e, iworld)
+	= case read (sdsFocus (listId, minimalTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld of
+		(Error e,iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone taskStates),iworld)
-			//1. Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
-			# (result,exceptions,iworld) = foldl (destroyParallelTask listId tasks) (DestroyedResult, [], iworld) taskStates
-			//2. Remove the (shared) tasklist
+			// Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
+			# (result,exceptions,iworld) = foldl (destroyParallelTask listId) (DestroyedResult, [], iworld) taskStates
+			// Remove the (shared) tasklist
 			# (exceptions,iworld) = case modify (fmap (\m -> 'DM'.del listId m)) (sdsFocus instanceNo taskInstanceParallelTaskLists) EmptyContext iworld of
 				(Ok (ModifyingDone _),iworld) = (exceptions,iworld)
 				(Error e,iworld) = ([e:exceptions],iworld)
-			| exceptions =: [] = (destroyResult result, iworld)
-			= (ExceptionResult (exception "Multiple exceptions in destroyParallelTasks"), iworld)
+			| exceptions =: []
+				= (destroyResult result, iworld)
+			= (ExceptionResult (exception (ExceptionList exceptions)), iworld)
 where
 	minimalTaskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
 	                        ,includeValue=False,includeAttributes=False,includeProgress=False}
 
-	destroyParallelTask listId tasks (_,exceptions,iworld) {ParallelTaskState|taskId,detached}
-		= case (if detached destroyDetachedParallelTask destroyEmbeddedParallelTask) listId taskId tasks iworld of
-			(Error e,_,iworld) = (DestroyedResult, e ++ exceptions,iworld)
-			(Ok res,_,iworld) = (res, exceptions, iworld)
+	destroyParallelTask listId (_,exceptions,iworld) {ParallelTaskState|taskId,detached}
+		= case (if detached destroyDetachedParallelTask destroyEmbeddedParallelTask) listId taskId iworld of
+			(Error e, iworld) = (DestroyedResult, e ++ exceptions,iworld)
+			(Ok res, iworld) = (res, exceptions,iworld)
 
-	destroyResult :: (TaskResult a) -> (TaskResult [(!Int,!TaskValue a)])
+	destroyResult :: (TaskResult a) -> (TaskResult [(Int,TaskValue a)])
 	destroyResult DestroyedResult = DestroyedResult
 	destroyResult (ExceptionResult e) = ExceptionResult e
+	destroyResult (ValueResult _ _ _ _) = ExceptionResult (exception "Valueresult in a destroy?")
 
-destroyEmbeddedParallelTask :: TaskId TaskId (Map TaskId (Task a)) *IWorld -> *(MaybeError [TaskException] (TaskResult a),Map TaskId (Task a), *IWorld) | iTask a
-destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId tasks iworld=:{current={taskTime}}
-	// In this fuction we continue as much as possible, even when we encounter exceptions
-	// The returned taskresult is always `DestroyedResult` but is needed to solve overloading
-	// Evaluate with a DestroyEvent to destroy subtasks
-	# (errs, destroyResult, iworld) = case 'DM'.get taskId tasks of
-		Nothing = ([exception "destroyEmbeddedParallelTask: task not in the map?"], DestroyedResult, iworld)
-		Just (Task task)
-			= case task DestroyEvent {mkEvalOpts & noUI = True, taskId=taskId} iworld of
-				(res=:(DestroyedResult), iworld)   = ([], res, iworld)
-				(res=:(ExceptionResult e), iworld) = ([e],DestroyedResult, iworld)
-				(res,iworld) = ([exception "destroyEmbeddedParallelTask: unexpected result"],DestroyedResult, iworld)
-	// 2. Remove the task tree
-	# tasks = 'DM'.del taskId tasks
-	= (Ok destroyResult, 'DM'.del taskId tasks, iworld)
+destroyEmbeddedParallelTask :: TaskId TaskId *IWorld -> *(MaybeError [TaskException] (TaskResult a), *IWorld) | iTask a
+destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId iworld=:{current={taskTime}}
+	# (errs,destroyResult,iworld) = case read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld of
+		(Error e,iworld) = ([e], DestroyedResult,iworld)
+		(Ok (ReadingDone (Task eval)),iworld)
+			= case eval DestroyEvent {mkEvalOpts & noUI = True} iworld of
+				(res=:(DestroyedResult),iworld) = ([],res,iworld)
+				(res=:(ExceptionResult e),iworld) = ([e],DestroyedResult,iworld)
+				(res,iworld) = ([exception "destroyEmbeddedParallelTask: unexpected result"],DestroyedResult,iworld)
+	// 2. Remove the task evaluation function
+	# (errs,iworld) = case modify (fmap (\(r=:{TIReduct|tasks}) -> {TIReduct|r & tasks = 'DM'.del taskId tasks}))
+	                              (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld of
+		(Error e,iworld) = ([e:errs],iworld)
+		(Ok (ModifyingDone _),iworld) = (errs,iworld)
+	= (Ok destroyResult, iworld)
 
-destroyDetachedParallelTask listId=:(TaskId instanceNo _) taskId tasks iworld
+destroyDetachedParallelTask :: TaskId TaskId *IWorld -> *(MaybeError [TaskException] (TaskResult a), *IWorld) | iTask a
+destroyDetachedParallelTask listId=:(TaskId instanceNo _) taskId iworld
 	//TODO: Detached parallel tasks should be marked that their parent no longer needs their result
 	//      That way attach combinators can be programmed to notify the user or simply stop the task
-	= (Ok DestroyedResult,tasks,iworld)
+	= (Ok DestroyedResult, iworld)
 
-destroyRemoved = undef
-//destroyRemoved listId tasks removed [] iworld = ([],iworld)
-//destroyRemoved listId tasks removed [r=:(ValueResult` _ _ _ tree):rs] iworld
-//  = case taskIdFromResult r of
-//	  Ok taskId
-//		| isMember taskId removed
-//			# (mbRes,_,iworld) = destroyEmbeddedParallelTask listId taskId ('DM'.fromList [(taskId,tree)]) iworld
-//			| mbRes =:(Error _) = ([ExceptionResult` (hd (fromError mbRes)):rs],iworld)
-//			# (rs,iworld)        = destroyRemoved listId removed rs iworld
-//			= ([fromOk mbRes:rs],iworld)
-//		| otherwise
-//			# (rs,iworld) = destroyRemoved listId removed rs iworld
-//			= ([r:rs],iworld)
-//	  _
-//		# (rs,iworld) = destroyRemoved listId removed rs iworld
-//		= ([r:rs],iworld)
-//destroyRemoved listId tasks removed [r:rs] iworld
-//	# (rs,iworld) = destroyRemoved listId removed rs iworld
-//	= ([r:rs],iworld)
-//
-//taskIdFromResult (ValueResult` _ _ _ tree)   = taskIdFromTaskTree tree
-//taskIdFromResult _                          = Error (exception "No ValueResult in taskIdFromResult")
+destroyRemoved :: TaskId [TaskId] [(TaskId, TaskResult a)] *IWorld -> ([(TaskId, TaskResult a)], *IWorld) | iTask a
+destroyRemoved listId removed [] iworld = ([],iworld)
+destroyRemoved listId removed [r=:(taskId, _):rs] iworld
+	| isMember taskId removed
+		= case destroyEmbeddedParallelTask listId taskId iworld of
+			(Error e, iworld) = ([(taskId, ExceptionResult (exception (ExceptionList e))):rs], iworld)
+			(Ok tr, iworld)
+				# (rs,iworld)       = destroyRemoved listId removed rs iworld
+				= ([(taskId, tr):rs],iworld)
+	# (rs,iworld) = destroyRemoved listId removed rs iworld
+	= ([r:rs],iworld)
 
-genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]
+genParallelValue :: [TaskResult a] -> TaskValue [(TaskTime,TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
-
-genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange
-genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
-	= case event of
-		ResetEvent
-			= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
-		_
-			# (idx,iChanges) = itemChanges 0 prevNumBranches results
-			# aChanges       = actionChanges idx
-			= ChangeUI [] (iChanges ++ aChanges)
-where
-	itemChanges i numExisting [] = (i,[])
-	itemChanges i numExisting [ValueResult _ _ change _:rs]
-		| i < numExisting
-			# (i`,changes) = itemChanges (i + 1) numExisting rs
-			= (i`,[(i,ChangeChild change):changes]) 	//Update an existing branch
-		| otherwise			= case change of
-			(ReplaceUI def)
-				# (i`,changes) = itemChanges (i + 1) (numExisting + 1) rs
-				= (i`,[(i,InsertChild def):changes]) 	//Add a new branch
-			_
-				= itemChanges (i + 1) (numExisting + 1) rs //Skip if we don't get a blank UI
-
-	itemChanges i numExisting [DestroyedResult:rs]
-		| i < numExisting
-			# (i`,changes) = itemChanges i (numExisting - 1) rs
-			= (i`,[(i,RemoveChild):changes])
-		| otherwise
-			= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
-
-	itemChanges i numExisting [ExceptionResult e:rs]
-		| i < numExisting
-			# (i`,changes) = itemChanges i (numExisting - 1) rs
-			= (i`,[(i,RemoveChild):changes])
-		| otherwise
-			= itemChanges i numExisting rs
-
-	actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
-	where
-		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
-		switch False name = if (isMember name prevEnabledActions) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
-
-
-genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
-genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]} results
-where
-    addResult (ValueResult _ i1 _ _) i2
-        # lastEvent = max i1.TaskEvalInfo.lastEvent i2.TaskEvalInfo.lastEvent
-        # removedTasks = i1.TaskEvalInfo.removedTasks ++ i2.TaskEvalInfo.removedTasks
-        = {TaskEvalInfo|lastEvent=lastEvent,attributes='DM'.newMap,removedTasks=removedTasks}
-    addResult _ i = i
 
 readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | TC a
 readListId slist iworld = case read (sdsFocus taskListFilter slist) EmptyContext iworld of
@@ -851,3 +809,5 @@ where
 			= (ValueResult val tei ui (Task (eval tosignal newtask)), iworld)
 		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld) = (DestroyedResult, iworld)
+
+import StdDebug, Debug.Trace

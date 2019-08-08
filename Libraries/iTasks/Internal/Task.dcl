@@ -55,3 +55,5 @@ recTask tf val :== case val of
 	a = a
 
 unTask (Task t) :== t
+
+nopTask :: Task a

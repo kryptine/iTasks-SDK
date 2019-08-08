@@ -15,10 +15,15 @@ from Data.Maybe import :: Maybe
 import Data.Functor
 import Text, Text.GenJSON
 
-import StdString, StdClass, StdBool, StdInt
+import StdEnv
 
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)
+
+:: ExceptionList =: ExceptionList [TaskException]
+instance toString ExceptionList
+where
+	toString (ExceptionList l) = join "\n" (map snd l)
 
 derive JSONDecode Event, Set
 derive JSONEncode Event, Set

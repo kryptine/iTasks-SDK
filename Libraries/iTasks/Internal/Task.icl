@@ -120,9 +120,16 @@ where
 		(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (treturn a), iworld)
 		(Error e, iworld) = (ExceptionResult e, iworld)
 
-	rep ResetEvent = ReplaceUI (ui UIEmpty)
-	rep _          = NoChange
-
 recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
 recTask tf (ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
 recTask _ a = a
+
+nopTask :: Task a
+nopTask = Task eval
+where
+	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
+	eval event {TaskEvalOpts|ts} iworld
+		= (ValueResult NoValue {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (Task eval), iworld)
+
+rep ResetEvent = ReplaceUI (ui UIEmpty)
+rep _          = NoChange

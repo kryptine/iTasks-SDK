@@ -58,6 +58,9 @@ instance Functor TaskValue
 */
 exception :: !e -> TaskException | TC, toString e
 
+:: ExceptionList =: ExceptionList [TaskException]
+instance toString ExceptionList
+
 // Task instantiation:
 
 //* Each task instance can be identified by two numbers:
