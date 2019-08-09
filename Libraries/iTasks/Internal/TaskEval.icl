@@ -78,7 +78,7 @@ where
         (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
 	//Update current process id & eval stack in iworld
 	# taskId = TaskId instanceNo 0
-	# iworld = 
+	# iworld =
 		{iworld & current =
 			{ taskInstance = instanceNo
 			, sessionInstance = currentSession

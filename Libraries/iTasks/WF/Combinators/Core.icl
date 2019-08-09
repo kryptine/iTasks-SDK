@@ -154,7 +154,7 @@ where
 			//A match, continue with the matched rhs
 			Right ((_, (Task rhs), _), lastEvent, removedTasks)
 				//Cleanup state of the lhs
-				# (res, iworld) = lhs DestroyEvent evalOpts iworld
+				# (res, iworld) = lhs DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
 				//Execute the rhs with a reset event
 				= case res of
 					ExceptionResult e = (ExceptionResult e, iworld)
@@ -282,7 +282,6 @@ where
 
 	//Evaluate the task list
 	eval prevNumBranches prevEnabledActions event evalOpts=:{TaskEvalOpts|taskId} iworld
-		# (_, event) = trace_stdout ("eval parallel with event: ", event)
 		//Evaluate all branches of the parallel set
 		= case evalParallelTasks event evalOpts conts [] [] iworld of
 			(Ok results, iworld)
@@ -540,7 +539,8 @@ destroyParallelTasks listId=:(TaskId instanceNo _) iworld
 	// Unlink registrations for all detached tasks
 	# iworld = clearTaskSDSRegistrations ('DS'.singleton listId) iworld
 	= case read (sdsFocus (listId, minimalTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld of
-		(Error e,iworld) = (ExceptionResult e, iworld)
+//		(Error e,iworld) = (ExceptionResult e, iworld)
+		(Error e,iworld) = (DestroyedResult, iworld)
 		(Ok (ReadingDone taskStates),iworld)
 			// Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
 			# (result,exceptions,iworld) = foldl (destroyParallelTask listId) (DestroyedResult, [], iworld) taskStates
@@ -809,5 +809,3 @@ where
 			= (ValueResult val tei ui (Task (eval tosignal newtask)), iworld)
 		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld) = (DestroyedResult, iworld)
-
-import StdDebug, Debug.Trace
