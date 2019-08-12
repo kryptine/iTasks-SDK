@@ -29,8 +29,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 					case 0: /* evaluation finished */
 						return 0;
 					case 1: /* iTasks.UI.JS.Interface: set_js */
-						var v=ABC.get_clean_string(ABC.memory_array[asp/4], true);
-						var x=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
+						var v=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
+						var x=ABC.get_clean_string(ABC.memory_array[asp/4-2], true, 'utf-8');
 						if (ABC_DEBUG)
 							console.log(v,'.=',x);
 						try {
@@ -44,13 +44,13 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						Function(v+'='+x)();
 						break;
 					case 2: /* iTasks.UI.JS.Interface: eval_js */
-						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
+						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
 						if (ABC_DEBUG)
 							console.log('eval',string);
 						Function(string)();
 						break;
 					case 3: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
-						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
+						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
 						if (ABC_DEBUG)
 							console.log('eval',string);
 						var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
@@ -86,7 +86,7 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						ABC.initialized=true;
 						break;
 					case 10: /* iTasks.UI.JS.Interface: add CSS */
-						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
+						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false, 'utf-8');
 						var css=document.createElement('link');
 						css.rel='stylesheet';
 						css.type='text/css';
@@ -95,8 +95,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						document.head.appendChild(css);
 						break;
 					case 11: /* iTasks.UI.JS.Interface: add JS */
-						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
-						var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
+						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false, 'utf-8');
+						var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2], true, 'utf-8');
 						var js=document.createElement('script');
 						js.type='text/javascript';
 						js.async=false;
