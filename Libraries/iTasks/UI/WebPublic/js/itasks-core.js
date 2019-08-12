@@ -458,7 +458,7 @@ itasks.Viewport = {
 		me.children[0].onUIChange(change);
 		//Sync title of the top level element
 		if(me.syncTitle) {
-			if(change.type == 'replace' && change.definition.attributes.title) {
+			if(change.type == 'replace' && 'attributes' in change.definition && 'title' in change.definition.attributes) {
 				document.title = change.definition.attributes.title;
 			}
 			if(change.type == 'change' && change.attributes instanceof Array) {
