@@ -1,26 +1,23 @@
 implementation module iTasks.WF.Tasks.SDS
 
-import iTasks.WF.Derives
+import StdEnv
+
+import iTasks.SDS.Definition
+import iTasks.WF.Tasks.Core
 import iTasks.WF.Definition
 import iTasks.UI.Definition
-import iTasks.SDS.Definition
-import iTasks.Internal.IWorld
-import iTasks.Internal.Task
-import iTasks.Internal.TaskState
-import iTasks.Internal.TaskEval
+
 import iTasks.Internal.AsyncSDS
-import iTasks.WF.Tasks.Core
-import qualified iTasks.Internal.SDS as SDS
-import StdFunctions
-import StdString, Data.Func, Data.Error, StdBool
-import qualified Data.Set as DS
-import qualified Data.Map as DM
+import iTasks.Internal.Task
+import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskState
 
-instance toString SharedException
-where
-	toString (SharedException err) = "Error performing operation on shared:" +++ err
-
-derive class iTask SharedException
+from Data.Map import newMap
+//instance toString SharedException
+//where
+//	toString (SharedException err) = "Error performing operation on shared:" +++ err
+//
+//derive class iTask SharedException
 
 get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 get sds = Task (readCompletely sds NoValue (unTask o treturn))
@@ -32,8 +29,14 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 upd fun sds = Task (modifyCompletely fun sds NoValue (\_->asyncSDSLoadUI Modify) (unTask o treturn))
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
-watch sds = Task (readCompletely sds NoValue
-	let cont = \r->readRegisterCompletely sds (Value r False) rep cont in cont)
+watch sds = Task (readRegisterCompletely sds NoValue rep cont)
+where
+	cont r event {TaskEvalOpts|ts} iworld
+		= (ValueResult (Value r False)
+			{TaskEvalInfo|lastEvent=ts,attributes=newMap,removedTasks=[]}
+			(rep event)
+			(Task (readRegisterCompletely sds NoValue rep cont))
+		, iworld)
 
-rep ResetEvent  = ReplaceUI (ui UIEmpty)
-rep _ 			= NoChange
+	rep ResetEvent = ReplaceUI (ui UIEmpty)
+	rep _ = NoChange
