@@ -54,7 +54,7 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						if (ABC_DEBUG)
 							console.log('eval',string);
 						var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
-						var copied=ABC.copy_js_to_clean(result, asp);
+						var copied=ABC.copy_js_to_clean(result, asp, 'utf-8');
 						ABC.interpreter.instance.exports.set_hp(copied.hp);
 						ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 						break;
