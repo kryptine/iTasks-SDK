@@ -212,7 +212,7 @@ foreverSt initialState task :== foreverStIf (\_->True) initialState task
 * @return The combined task
 * @type (Task a) -> Task a | iTask a
 */
-forever task :== (foreverSt Nothing \_->task @ Just) @? tvFromMaybe
+forever :: (Task a) -> Task a | iTask a
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.

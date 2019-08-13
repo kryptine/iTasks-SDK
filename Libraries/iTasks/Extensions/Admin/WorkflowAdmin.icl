@@ -145,7 +145,8 @@ where
 
 manageWorkOfCurrentUser :: !(Maybe HtmlTag) -> Task ()
 manageWorkOfCurrentUser welcomeMessage
-	= 	((manageSession -||
+	= trace_n "manageWorkOfCurrentUser" 
+	  	((manageSession -||
 		  (chooseWhatToDo welcomeMessage >&> withSelection
 			(viewInformation () [] "Welcome!")
 			(\wf -> unwrapWorkflowTask wf.Workflow.task)
@@ -400,3 +401,5 @@ isAllowedWorkflow _ {Workflow|roles=[]}		= True								//Allow workflows without
 isAllowedWorkflow (AuthenticatedUser _ hasRoles _) {Workflow|roles=needsRoles}	//Allow workflows for which the user has permission
 	= or [isMember r hasRoles \\ r <- needsRoles]
 isAllowedWorkflow _ _ 						= False								//Don't allow workflows in other cases
+
+import StdDebug

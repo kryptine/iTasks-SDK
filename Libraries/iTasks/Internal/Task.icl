@@ -116,9 +116,11 @@ mkInstantTask :: (TaskId *IWorld -> (MaybeError (Dynamic,String) a,*IWorld)) -> 
 mkInstantTask iworldfun = Task (eval iworldfun)
 where
 	eval f DestroyEvent _ iworld = (DestroyedResult, iworld)
-	eval f event {TaskEvalOpts|taskId,ts} iworld = case f taskId iworld of
-		(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (treturn a), iworld)
-		(Error e, iworld) = (ExceptionResult e, iworld)
+	eval f event {TaskEvalOpts|taskId,ts} iworld
+		| not (trace_tn (toSingleLineText ("mkInstantTask: ", event))) = undef
+		= case f taskId iworld of
+			(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (treturn a), iworld)
+			(Error e, iworld) = (ExceptionResult e, iworld)
 
 recTask :: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
 recTask tf (ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
@@ -133,3 +135,6 @@ where
 
 rep ResetEvent = ReplaceUI (ui UIEmpty)
 rep _          = NoChange
+
+import StdDebug
+derive gText Event, Set, TaskId

@@ -118,6 +118,7 @@ asyncSDSLoadUI :: AsyncAction -> UIChange
 
 /**
  * Completely load an sds and continue with the continuation
+ *
  * @param sds
  * @param value during loading
  * @param continuation
@@ -131,6 +132,7 @@ readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(
 
 /**
  * Completely write an sds and continue with the continuation
+ *
  * @param value to write
  * @param sds
  * @param value during loading
@@ -145,6 +147,7 @@ writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *
 
 /**
  * Completely modify an sds and continue with the continuation
+ *
  * @param modification function
  * @param sds
  * @param value during loading
@@ -159,6 +162,7 @@ modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w E
 
 /**
  * Completely readRegister an sds and continue with the continuation
+ *
  * @param sds
  * @param value during loading
  * @param ui during loading
