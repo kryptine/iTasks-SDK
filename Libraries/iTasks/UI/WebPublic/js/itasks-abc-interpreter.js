@@ -8,6 +8,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 	heap_size: 8<<20,
 	stack_size: 512<<10,
 
+	encoding: 'utf-8',
+
 	util_imports: {
 		has_host_reference: function (index) {
 			if (index>=ABC.shared_clean_values.length)
@@ -29,8 +31,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 					case 0: /* evaluation finished */
 						return 0;
 					case 1: /* iTasks.UI.JS.Interface: set_js */
-						var v=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
-						var x=ABC.get_clean_string(ABC.memory_array[asp/4-2], true, 'utf-8');
+						var v=ABC.get_clean_string(ABC.memory_array[asp/4], true);
+						var x=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
 						if (ABC_DEBUG)
 							console.log(v,'.=',x);
 						try {
@@ -44,17 +46,17 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						Function(v+'='+x)();
 						break;
 					case 2: /* iTasks.UI.JS.Interface: eval_js */
-						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
+						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
 						if (ABC_DEBUG)
 							console.log('eval',string);
 						Function(string)();
 						break;
 					case 3: /* iTasks.UI.JS.Interface: eval_js_with_return_value */
-						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true, 'utf-8');
+						var string=ABC.get_clean_string(ABC.memory_array[asp/4], true);
 						if (ABC_DEBUG)
 							console.log('eval',string);
 						var result=eval('('+string+')'); // the parentheses are needed for {}, for instance
-						var copied=ABC.copy_js_to_clean(result, asp, 'utf-8');
+						var copied=ABC.copy_js_to_clean(result, asp);
 						ABC.interpreter.instance.exports.set_hp(copied.hp);
 						ABC.interpreter.instance.exports.set_hp_free(copied.hp_free);
 						break;
@@ -86,7 +88,7 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						ABC.initialized=true;
 						break;
 					case 10: /* iTasks.UI.JS.Interface: add CSS */
-						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false, 'utf-8');
+						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
 						var css=document.createElement('link');
 						css.rel='stylesheet';
 						css.type='text/css';
@@ -95,8 +97,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 						document.head.appendChild(css);
 						break;
 					case 11: /* iTasks.UI.JS.Interface: add JS */
-						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false, 'utf-8');
-						var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2], true, 'utf-8');
+						var url=ABC.get_clean_string(ABC.memory_array[asp/4], false);
+						var callback=ABC.get_clean_string(ABC.memory_array[asp/4-2], true);
 						var js=document.createElement('script');
 						js.type='text/javascript';
 						js.async=false;
