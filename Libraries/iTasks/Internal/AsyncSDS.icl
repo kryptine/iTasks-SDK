@@ -400,7 +400,6 @@ readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 	= case read sds (TaskContext taskId) iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone r), iworld)
-			| not (trace_tn ("readCompletely: " +++ thunk_name_to_string cont +++ " - " +++ thunk_to_module_name_string cont)) = undef
 			= cont r event evalOpts iworld
 		(Ok (Reading sds), iworld)
 			= (ValueResult tv (tei ts) (asyncSDSLoadUI Read) (Task (readCompletely sds tv cont)), iworld)
@@ -454,4 +453,4 @@ isRefreshForTask _ _ = False
 
 tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
 
-import Gast.ThunkNames, StdDebug
+import StdDebug

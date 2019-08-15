@@ -124,12 +124,10 @@ where
 		| not (trace_tn (toSingleLineText ("step: ", event))) = undef
 		# mbAction = matchAction taskId event
 		| not (trace_tn (toSingleLineText ("mbAction: ", mbAction))) = undef
-		| not (trace_tn ("evalling lhs: " +++ thunk_name_to_string lhs)) = undef
 		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
 		// Right  is a step 
-		# mbCont = case res of
-			ValueResult val info rep nextlhs
-				| not (trace_tn (toSingleLineText ("searchContValue: ", val))) = undef
+		# (mbCont, iworld) = case res of
+			ValueResult val info rep lhs
 				= case searchContValue val mbAction conts of
 					//No match
 					Nothing
@@ -138,48 +136,44 @@ where
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
 						# sl = stepLayout taskId evalOpts event actions prevEnabledActions rep val
-						= Left (ValueResult
+						= (Left (ValueResult
 							value
 							info
 							sl
-							(Task (evalleft nextlhs curEnabledActions leftTaskId))
+							(Task (evalleft lhs curEnabledActions leftTaskId))
 							)
+						, iworld)
 					//A match
 					Just rewrite
-						= Right (rewrite, info.TaskEvalInfo.lastEvent, info.TaskEvalInfo.removedTasks)
+						//Send a destroyevent to the lhs
+						# (_, iworld) = (unTask lhs) DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
+						= (Right (rewrite, info.TaskEvalInfo.lastEvent, info.TaskEvalInfo.removedTasks), iworld)
 			ExceptionResult e
-				| not (trace_tn (toSingleLineText ("searchContExc: ", e))) = undef
 				= case searchContException e conts of
 					//No match
-					Nothing      = (Left (ExceptionResult e))
+					Nothing      = (Left (ExceptionResult e), iworld)
 					//A match
-					Just rewrite = (Right (rewrite, ts, []))
+					Just rewrite = (Right (rewrite, ts, []), iworld)
 		= case mbCont of
 			//No match, just pass through
 			Left res = (res, iworld)
 			//A match, continue with the matched rhs
 			Right ((_, (Task rhs), _), lastEvent, removedTasks)
-				//Cleanup state of the lhs
-				# (res, iworld) = lhs DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
 				//Execute the rhs with a reset event
-				= case res of
+				# (resb, iworld)        = rhs ResetEvent evalOpts iworld
+				= case resb of
+					ValueResult val info change=:(ReplaceUI _) (Task rhs)
+						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
+						= (ValueResult
+							val
+							info
+							change
+							//Actually rewrite to the rhs
+							(Task rhs)
+						,iworld)
+					ValueResult _ _ change _
+						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
-					ValueResult _ _ _ _ = (ExceptionResult (exception "Failed to destrop step lhs"), iworld)
-					DestroyedResult
-						# (resb, iworld)        = rhs ResetEvent evalOpts iworld
-						= case resb of
-							ValueResult val info change=:(ReplaceUI _) (Task rhs)
-								# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
-								= (ValueResult
-									val
-									info
-									change
-									//Actually rewrite to the rhs
-									(Task rhs)
-								,iworld)
-							ValueResult _ _ change _
-								= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
-							ExceptionResult e = (ExceptionResult e, iworld)
 
 	stepLayout taskId evalOpts event actions prevEnabled change val
 		= case (event,change) of
@@ -821,5 +815,4 @@ where
 		(DestroyedResult, iworld) = (DestroyedResult, iworld)
 
 import StdDebug
-import Gast.ThunkNames
 derive gText Event, Set
