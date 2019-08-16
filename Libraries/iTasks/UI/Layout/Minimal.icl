@@ -15,9 +15,9 @@ minimalSessionLayout :: LayoutRule
 minimalSessionLayout = layoutAny
 
 layoutAny = sequenceLayouts
-	[layoutSubUIs SelectIntermediateContainers layoutAsContainer
-	,layoutSubUIs (SelectByType UIAction) layoutAsButton
-	,removeSubUIs (SelectByType UIEmpty)
+	[ layoutSubUIs SelectIntermediateContainers layoutAsContainer
+	, layoutSubUIs (SelectByType UIAction) layoutAsButton
+	, removeSubUIs (SelectByType UIEmpty)
 	]
 SelectIntermediateContainers = 'DF'.foldr1 SelectOR
 	(map SelectByType [UIPair,UIRecord,UICons,UIVarCons,UIInteract,UIStep,UIParallel])

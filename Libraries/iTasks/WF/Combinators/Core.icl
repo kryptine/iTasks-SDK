@@ -254,7 +254,7 @@ where
 				# (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Evaluate the parallel
-				= eval (length taskList) [] event evalOpts iworld
+				= eval (length embeddedTasks) [] event evalOpts iworld
 			(Error err,iworld)
 				= (ExceptionResult err, iworld)
 	where
@@ -289,11 +289,14 @@ where
 			(Ok results, iworld)
 				//Construct the result
 				# results   = reverse results //(the results are returned in reverse order)
+				| not (trace_tn (toSingleLineText ("length results: ", length results))) = undef
+				| not (trace_tn (toSingleLineText ("prevEnabledActions: ", prevEnabledActions))) = undef
 				# value     = genParallelValue results
 				# evalInfo  = genParallelEvalInfo results
 				# actions   = contActions taskId value conts
 				# rep       = genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 				# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
+				| not (trace_tn (toSingleLineText (curEnabledActions))) = undef
 				= (ValueResult value evalInfo rep (Task (eval (length results) curEnabledActions)), iworld)
 			//Stopped because of an unhandled exception
 			(Error e, iworld)
