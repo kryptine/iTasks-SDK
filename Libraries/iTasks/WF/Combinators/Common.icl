@@ -98,7 +98,7 @@ foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 foreverStIf pred st t = t st >>= \tv->if (pred tv) (foreverStIf pred tv t) (treturn tv)
 
 forever :: (Task a) -> Task a | iTask a
-forever t = t >>= \_->trace_n "forever loop" (forever t)
+forever t = t >>| forever t
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]

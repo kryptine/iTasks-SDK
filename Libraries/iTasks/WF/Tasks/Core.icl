@@ -68,9 +68,9 @@ evalInteractInit prompt sds handlers editor writefun r event evalOpts=:{TaskEval
 		Enter    = Nothing
 		Update x = Just x
 		View x   = Just x
+	| not (trace_tn (toSingleLineText ("initial value: ", v))) = undef
 	= case initEditorState taskId mode editor iworld of
 		(Ok st, iworld)
-			| not (trace_tn (toSingleLineText ("interactinit: ", taskId, " st: ", st, " v: ", v))) = undef
 			= evalInteract l v st (mode=:View _) prompt sds handlers editor writefun event evalOpts iworld
 		(Error e, iworld) = (ExceptionResult e, iworld)
 
@@ -108,7 +108,7 @@ evalInteract ::
 evalInteract _ _ _ _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
 evalInteract l v st mode prompt sds handlers editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-	| not (trace_tn (toSingleLineText (taskId, ": ", "interact edit: ", event))) = undef
+	| not (trace_tn (toSingleLineText (taskId, ": ", "interact edit: ", event, " v: ", v))) = undef
 	| eTaskId == taskId
 		# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
 		= case res of
@@ -149,7 +149,7 @@ evalInteract l v st mode prompt sds handlers editor writefun event=:(EditEvent e
 						, iworld)
 			Error e = (ExceptionResult (exception e), iworld)
 evalInteract l v st mode prompt sds handlers editor writefun ResetEvent evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-	| not (trace_tn (toSingleLineText (taskId, ": ", "interact reset: "))) = undef
+	| not (trace_tn (toSingleLineText (taskId, ": ", "interact reset v: ", v))) = undef
 	# resetMode = case (mode, v) of
 		(True, Just v) = View v
 		(True, _)      = abort "view mode without value"
@@ -158,7 +158,9 @@ evalInteract l v st mode prompt sds handlers editor writefun ResetEvent evalOpts
 	= case withVSt taskId (editor.Editor.genUI 'DM'.newMap [] resetMode) iworld of
 		(Error e, iworld) = (ExceptionResult (exception e), iworld)
 		(Ok (ui, st), iworld)
-			# v = editor.Editor.valueFromState st
+			# mbv = editor.Editor.valueFromState st
+			# v = maybe v Just mbv
+			| not (trace_tn (toSingleLineText ("valueFromState v: ", v))) = undef
 			= (ValueResult
 				(maybe NoValue (\v->Value (l, v) False) v)
 				{TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}

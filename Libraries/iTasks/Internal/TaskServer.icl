@@ -81,7 +81,6 @@ loop :: !(*IWorld -> (Maybe Timeout,*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests,signalHandlers}
 	// Also put all done tasks at the end of the todo list, as the previous event handling may have yielded new tasks.
 	# (mbTimeout,iworld=:{IWorld|ioTasks={todo},world}) = determineTimeout {iworld & ioTasks = {done=[], todo = ioTasks.todo ++ (reverse ioTasks.done)}}
-	| not (trace_tn (toSingleLineText ("timeout: ", mbTimeout))) = undef
 	//Check which mainloop tasks have data available
 	# (todo,chList,world) = select mbTimeout todo world
 	# iworld = {iworld & ioTasks = {done=[],todo=todo}, world = world}

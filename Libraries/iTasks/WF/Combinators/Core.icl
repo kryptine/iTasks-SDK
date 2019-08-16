@@ -114,18 +114,18 @@ where
 	//Destroyed when executing the lhs
 	//evalleft :: (Task a) [String] TaskId Event TaskEvalOpts !*IWorld -> *(TaskResult a, IWorld)
 	evalleft (Task lhs) prevEnabledActions leftTaskId DestroyEvent evalOpts iworld
-		| not (trace_tn ("destroy step")) = undef
+//		| not (trace_tn ("destroy step")) = undef
 		= case lhs DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld of
 			(DestroyedResult, iworld)		= (DestroyedResult, iworld)
 			(ExceptionResult e, iworld)	    = (ExceptionResult e, iworld)
 			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
 	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{TaskEvalOpts|ts,taskId} iworld
-		| not (trace_tn (toSingleLineText ("step: ", event))) = undef
+//		| not (trace_tn (toSingleLineText ("step: ", event))) = undef
 		# mbAction = matchAction taskId event
-		| not (trace_tn (toSingleLineText ("mbAction: ", mbAction))) = undef
+//		| not (trace_tn (toSingleLineText ("mbAction: ", mbAction))) = undef
 		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
-		// Right  is a step 
+		// Right  is a step
 		# (mbCont, iworld) = case res of
 			ValueResult val info rep lhs
 				= case searchContValue val mbAction conts of
@@ -278,12 +278,12 @@ where
 					err = (liftError err, iworld)
 
 	eval _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
-		| not (trace_tn (toSingleLineText ("parallel destroy: ", taskId))) = undef
+//		| not (trace_tn (toSingleLineText ("parallel destroy: ", taskId))) = undef
 		= destroyParallelTasks taskId iworld
 
 	//Evaluate the task list
 	eval prevNumBranches prevEnabledActions event evalOpts=:{TaskEvalOpts|taskId} iworld
-		| not (trace_tn (toSingleLineText ("parallel: ", taskId, " event: ", event))) = undef
+//		| not (trace_tn (toSingleLineText ("parallel: ", taskId, " event: ", event))) = undef
 		//Evaluate all branches of the parallel set
 		= case evalParallelTasks event evalOpts conts [] [] iworld of
 			(Ok results, iworld)
@@ -570,7 +570,7 @@ where
 
 destroyEmbeddedParallelTask :: TaskId TaskId *IWorld -> *(MaybeError [TaskException] (TaskResult a), *IWorld) | iTask a
 destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId iworld=:{current={taskTime}}
-	| not (trace_tn (toSingleLineText ("destroy: ", listId, taskId))) = undef
+//	| not (trace_tn (toSingleLineText ("destroy: ", listId, taskId))) = undef
 	# (errs,destroyResult,iworld) = case read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld of
 		(Error e,iworld) = ([e], DestroyedResult,iworld)
 		(Ok (ReadingDone (Task eval)),iworld)

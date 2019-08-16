@@ -117,7 +117,6 @@ mkInstantTask iworldfun = Task (eval iworldfun)
 where
 	eval f DestroyEvent _ iworld = (DestroyedResult, iworld)
 	eval f event {TaskEvalOpts|taskId,ts} iworld
-		| not (trace_tn (toSingleLineText ("mkInstantTask: ", event))) = undef
 		= case f taskId iworld of
 			(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (treturn a), iworld)
 			(Error e, iworld) = (ExceptionResult e, iworld)

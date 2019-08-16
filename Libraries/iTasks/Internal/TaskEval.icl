@@ -38,7 +38,6 @@ getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
 
 processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 processEvents max iworld
-	| not (trace_tn "process event") = undef
 	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of
@@ -207,5 +206,3 @@ updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clock}
 
 currentInstanceShare :: SDSSource () InstanceNo ()
 currentInstanceShare = createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))
-
-import StdDebug

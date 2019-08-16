@@ -145,8 +145,7 @@ where
 
 manageWorkOfCurrentUser :: !(Maybe HtmlTag) -> Task ()
 manageWorkOfCurrentUser welcomeMessage
-	= trace_n "manageWorkOfCurrentUser" 
-	  	((manageSession -||
+	= ((manageSession -||
 		  (chooseWhatToDo welcomeMessage >&> withSelection
 			(viewInformation () [] "Welcome!")
 			(\wf -> unwrapWorkflowTask wf.Workflow.task)
