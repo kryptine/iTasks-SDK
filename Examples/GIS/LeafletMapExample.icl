@@ -6,14 +6,15 @@ import iTasks.UI.Definition
 import StdFunctions, Data.List, Text.HTML
 
 playWithMaps :: Task ()
-playWithMaps = withShared ({defaultValue & icons = shipIcons, tilesUrls = ["/tiles/{z}/{x}/{y}.png"]},defaultValue) (\m ->
+playWithMaps = withShared ({defaultValue & icons = shipIcons},defaultValue) (\m ->
 	((allTasks [managePerspective m, manageState m, manageMapObjects m]) <<@ ScrollContent)
 	-&&-
 	manipulateMap m
 	) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 
+derive gDefault LeafletSimpleState, LeafletObjectID
 manipulateMap :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) const (customLeafletEditor eventHandlers)] m
+manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) const (customLeafletEditor eventHandlers defaultValue)] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 where
 	eventHandlers = {simpleStateEventHandlers & onHtmlEvent = onHtmlEvent}

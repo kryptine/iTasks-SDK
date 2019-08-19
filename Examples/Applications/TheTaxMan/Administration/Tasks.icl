@@ -9,6 +9,8 @@ import System.Directory, System.FilePath
 import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS
 import StdArray, StdFile
 
+derive gDefault Date
+
 batchProcessing :: Task ()
 batchProcessing
 	=				pay

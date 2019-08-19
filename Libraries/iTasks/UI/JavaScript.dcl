@@ -205,7 +205,7 @@ wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *
 /**
  * Deserialize a graph that was serialized using the tools in
  * `iTasks.Internal.Client.Serialization`.
- * @param The string to deserialize.
+ * @param The string to deserialize in base64 encoding.
  * @result The deserialized value.
  */
 jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)

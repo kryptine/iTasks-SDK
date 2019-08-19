@@ -28,7 +28,7 @@ doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe 
 
 :: TaskAppRenderer :== Bool Bool Bool Bool Bool Bool Bool ExprId ModuleName FuncName
                        ModuleName FuncName [Image ModelTy] [Image ModelTy] *TagSource
-                    -> *(!Maybe (Image ModelTy), !*TagSource)
+                    -> *(Maybe (Image ModelTy), *TagSource)
 
 mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
                 -> Image ModelTy

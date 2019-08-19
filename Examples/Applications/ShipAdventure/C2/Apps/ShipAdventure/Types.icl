@@ -224,7 +224,7 @@ toPPDeviceType { DeviceType | kind, requires, produces } = { PPDeviceType
                                                            , produces = 'DM'.toList produces
                                                            }
 
-isOperational :: !CableId !(IntMap [(!Operational, !Coord3D)]) -> Bool
+isOperational :: !CableId !(IntMap [(Operational, Coord3D)]) -> Bool
 isOperational cableId cableMapping = and [b \\ (b, _) <- fromMaybe [] ('DIS'.get cableId cableMapping)]
 
 smokeDetector :: DeviceType
@@ -383,22 +383,22 @@ patchCable roomNo cableId network = { network & cableMapping = 'DIS'.alter (fmap
 inventoryInSectionShare :: FocusedSectionInventoryShare ObjectType
 inventoryInSectionShare = mapLens "inventoryInSectionShare" myInventoryMap (Just 'DIS'.newMap)
 
-allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
+allAvailableActors :: SDSLens () [(Coord3D, MyActor)] ()
 allAvailableActors
   = /*toReadOnly */ (sdsProject (SDSLensRead readActors) (SDSBlindWrite \_. Ok Nothing) Nothing (sectionUsersShare |*| myUserActorMap))
   where
-  readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(!Coord3D, !MyActor)]
+  readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(Coord3D, MyActor)]
   readActors (sectionUsersMap, userActorMap)
     = Ok [(c3d, a) \\ us <- 'DM'.elems sectionUsersMap
                     , u  <- us
                     , Just (c3d, a) <- [findUser u sectionUsersMap userActorMap]
                     | a.actorStatus.occupied === Available]
 
-allActiveAlarms :: SDSLens () [(!Coord3D, !SectionStatus)] ()
+allActiveAlarms :: SDSLens () [(Coord3D, SectionStatus)] ()
 allActiveAlarms
   = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) (SDSBlindWrite \_. Ok Nothing) Nothing myStatusMap)
   where
-  readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(!Coord3D, !SectionStatus)]
+  readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(Coord3D, SectionStatus)]
   readAlarms statusMap = Ok [ (number, status) \\ (number, status) <- 'DM'.toList statusMap
                               | isHigh status]
 

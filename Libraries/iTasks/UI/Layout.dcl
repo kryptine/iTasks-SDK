@@ -201,7 +201,7 @@ instance toString LUINo
 :: LUIMoveID :== Int
 
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
-:: LayoutRule :== LUINo (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
+:: LayoutRule :== LUINo (!LUI, !LUIMoves) -> (LUI, LUIMoves)
 
 initLUI :: !UI -> LUI
 initLUIMoves :: LUIMoves
@@ -216,9 +216,9 @@ extractDownstreamChange :: !(!LUI, !LUIMoves) -> (!UIChange, !(!LUI, !LUIMoves))
 scanToPosition_ :: !LUINo !Int ![LUI] !LUIMoves -> (!Int, !Bool, !Maybe LUI)
 nodeExists_ :: !LUINo !LUI !LUIMoves -> Bool
 selectChildNodes_ :: !LUINo !(![LUI], !LUIMoves) -> [LUI]
-updateChildNodes_ :: !LUINo !(Int (!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(![LUI], !LUIMoves) -> (![LUI], !LUIMoves)
+updateChildNodes_ :: !LUINo !(Int (!LUI, !LUIMoves) -> (LUI, LUIMoves)) !(![LUI], !LUIMoves) -> (![LUI], !LUIMoves)
 selectSubNode_ :: !LUINo !UIPath !(!LUI, !LUIMoves) -> Maybe LUI
-updateSubNode_ :: !LUINo !UIPath !((!LUI, !LUIMoves) -> (!LUI, !LUIMoves)) !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
+updateSubNode_ :: !LUINo !UIPath !((!LUI, !LUIMoves) -> (LUI, LUIMoves)) !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 selectAttributes_ :: !UIAttributeSelection !UIAttributes -> UIAttributes
 overwriteAttribute_ :: !LUINo !UIAttribute !(Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode))) -> (Map UIAttributeKey (LUIEffectStage (!LUINo, !JSONNode)))
 hideAttribute_ :: !LUINo !(UIAttributeKey -> Bool) !UIAttributeKey !(Map UIAttributeKey (LUIEffectStage LUINo)) -> (Map UIAttributeKey (LUIEffectStage LUINo))

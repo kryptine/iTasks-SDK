@@ -149,8 +149,8 @@ editDeviceToDevice dev
 
 :: EditDeviceType =
   { kind     ::  !DeviceKind
-  , requires ::  ![(!CableType, !Capacity)]
-  , produces ::  ![(!CableType, !Capacity)]
+  , requires ::  ![(CableType, Capacity)]
+  , produces ::  ![(CableType, Capacity)]
   }
 
 :: EditDevice =

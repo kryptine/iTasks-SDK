@@ -5,7 +5,7 @@ import iTasks.SDS.Sources.Store
 import iTasks.Internal.SDS
 from iTasks.WF.Tasks.SDS import get, set
 from iTasks.WF.Definition import class iTask
-from iTasks.WF.Definition      import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
+from iTasks.WF.Definition      import :: Task, generic gEq, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
 from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Maybe import :: Maybe

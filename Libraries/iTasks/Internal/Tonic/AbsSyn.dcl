@@ -54,9 +54,9 @@ instance == TLit
   | TSel     !TExpr ![TExpr]
   | TRecUpd  !VarName !TExpr ![TExpr]
   | TNoBind
-  | TLet     ![(!Pattern, !TExpr)] !TExpr
+  | TLet     ![(Pattern, TExpr)] !TExpr
   | TIf      !ExprId !TExpr !TExpr !TExpr
-  | TCase    !ExprId !TExpr ![(!Pattern, !TExpr)]
+  | TCase    !ExprId !TExpr ![(Pattern, TExpr)]
   | TExpand  ![TExpr] !TonicFunc
   | TAugment !TExpr !TExpr
 

@@ -22,6 +22,7 @@ import Text.HTML
     | IncorrectDatabaseTables
 
 derive class iTask DatabaseProblem
+derive gDefault ContactMap, ContactMapLayer, ContactMapLayerDefinition, ContactMapMarker, ContactMapRegion, ContactTrack, ContactMapMarkerType, DateTime
 
 configureIncidone :: [Workspace -> Task ()]
 configureIncidone = map const [configureDatabase		<<@ (Title "Database")

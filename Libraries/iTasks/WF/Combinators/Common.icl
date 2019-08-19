@@ -111,7 +111,7 @@ where
 		= step
 			(t st)
 			id
-			[ OnValue $ ifStable \st` -> get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
+			[ OnValue $ ifStable \st` -> get (sdsFocus {defaultValue & onlySelf=True} tlist) >>- \(_, [{TaskListItem|taskId}]) ->
 			                             appendTask Embedded (par st` (Just taskId)) tlist    @! st`
 		    ]
 

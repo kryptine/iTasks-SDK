@@ -21,5 +21,4 @@ derive JSONEncode       Temperature, Meters, Feet, Miles, Knots, Degrees, Contac
 derive JSONDecode       Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gText            Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gEditor          Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
-derive gDefault         Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gEq              Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort

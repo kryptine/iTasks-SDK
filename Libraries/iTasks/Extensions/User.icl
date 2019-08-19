@@ -219,13 +219,9 @@ where
 */
 workAs :: !User !(Task a) -> Task a | iTask a
 workAs asUser task
-	= 	get currentUser
-	>>- \prevUser -> 
-		set asUser currentUser
-	>>| (task 
-	>>- \tvalue -> //TODO: What if the wrapped task never becomes stable? And what if the composition is terminated early because of a step?
-		set prevUser currentUser
-	@!	tvalue)
+	=   get currentUser
+	>>- \prevUser->set asUser currentUser
+	>-| withCleanupHook (set prevUser currentUser) task
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.

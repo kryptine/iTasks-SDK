@@ -132,7 +132,7 @@ colToGraph floorIdx rowIdx (graph, colIdx) section
   #! graph       = 'DM'.put (floorIdx, currCoord2D) (getCoord3Ds section floorIdx currCoord2D section.borders) graph
   = (graph, colIdx + 1)
 
-getCoord3Ds :: !Section !Int !Coord2D !Borders -> [(!Maybe Dir, !Coord3D)]
+getCoord3Ds :: !Section !Int !Coord2D !Borders -> [(Maybe Dir, Coord3D)]
 getCoord3Ds section floorIdx currCoord2D borders
   #! acc = []
   #! acc = addOnOpening floorIdx borders.n N currCoord2D acc
@@ -142,7 +142,7 @@ getCoord3Ds section floorIdx currCoord2D borders
   #! acc = acc ++ map (\h -> (Nothing, h)) section.hops
   = acc
   where
-  addOnOpening :: !Int !Border !Dir !Coord2D ![(!Maybe Dir, !Coord3D)] -> [(!Maybe Dir, !Coord3D)]
+  addOnOpening :: !Int !Border !Dir !Coord2D ![(Maybe Dir, Coord3D)] -> [(Maybe Dir, Coord3D)]
   addOnOpening _        Wall _   _       acc = acc
   addOnOpening floorIdx b    dir coord2D acc = [(Just dir, (floorIdx, twin dir coord2D)) : acc]
 
@@ -684,7 +684,7 @@ doorIsLocked roomNo exit lockMap
 
 // utility functions to find things located in the map
 
-findAllObjects :: !(SectionInventoryMap o) -> [(!Coord3D, !Object o)] | iTask o
+findAllObjects :: !(SectionInventoryMap o) -> [(Coord3D, Object o)] | iTask o
 findAllObjects objectMap = [ (roomNo, object)
                            \\ (roomNo, objects) <- 'DM'.toList objectMap
                            , object <- 'DIS'.elems objects

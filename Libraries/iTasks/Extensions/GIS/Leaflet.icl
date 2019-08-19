@@ -730,11 +730,11 @@ where
 	toggle (LeafletObjectID "cursor") xs = xs //The cursor can't be selected
 	toggle x xs = if (isMember x xs) (removeMember x xs) ([x:xs])
 
-customLeafletEditor :: (LeafletEventHandlers s) -> Editor (LeafletMap, s) | iTask s
-customLeafletEditor handlers = leafEditorToEditor (customLeafletEditor` handlers)
+customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor handlers initial = leafEditorToEditor (customLeafletEditor` handlers initial)
 
-customLeafletEditor` ::(LeafletEventHandlers s) -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
-customLeafletEditor` handlers = 
+customLeafletEditor` ::(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
+customLeafletEditor` handlers initial =
 	{ LeafEditor
     | genUI          = genUI
     , onEdit         = onEdit
@@ -744,7 +744,7 @@ customLeafletEditor` handlers =
 where
 	genUI attributes datapath mode vst = case leafletEditor`.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
 		(Error e, vst) = (Error e, vst)
-		(Ok (ui,mapState),vst) = (Ok (ui,(mapState,defaultValue)),vst)
+		(Ok (ui,mapState),vst) = (Ok (ui,(mapState, initial)),vst)
 
 	onEdit datapath edit (mapState,customState) vst = case leafletEditor`.LeafEditor.onEdit datapath edit mapState vst of
 		(Error e, vst) = (Error e, vst)

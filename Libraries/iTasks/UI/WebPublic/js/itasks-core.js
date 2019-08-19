@@ -32,7 +32,7 @@ itasks.Component = {
 		var me = this;
 		me.lastFire = 0;
 
-		return Promise.resolve()
+		return me.world=Promise.resolve()
 			.then(me.initUI.bind(me))
 			.then(me.initComponent.bind(me))
 			.then(me.initChildren.bind(me))
@@ -44,7 +44,7 @@ itasks.Component = {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			return ABC_loading_promise.then(function(){
-				var initUI=ABC.deserialize(me.attributes.initUI);
+				var initUI=ABC.deserialize(atob(me.attributes.initUI));
 				var ref=ABC.share_clean_value(initUI,me);
 				ABC.interpret(new SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
 				ABC.clear_shared_clean_value(ref);
@@ -283,14 +283,16 @@ itasks.Component = {
 	onAttributeChange: function(name,value) {},
 	onUIChange: function(change) {
 		var me = this;
-		if(change) {
-			switch(change.type) {
-				case 'replace':
-					return me.onReplaceUI(change.definition);
-				case 'change':
-					return me.onChangeUI(change.attributes,change.children);
+		me.world=me.world.then (function(){
+			if(change) {
+				switch(change.type) {
+					case 'replace':
+						return me.onReplaceUI(change.definition);
+					case 'change':
+						return me.onChangeUI(change.attributes,change.children);
+				}
 			}
-		}
+		});
 	},
 	onReplaceUI: function(spec) {
 		var me = this;
@@ -456,7 +458,7 @@ itasks.Viewport = {
 		me.children[0].onUIChange(change);
 		//Sync title of the top level element
 		if(me.syncTitle) {
-			if(change.type == 'replace' && change.definition.attributes.title) {
+			if(change.type == 'replace' && 'attributes' in change.definition && 'title' in change.definition.attributes) {
 				document.title = change.definition.attributes.title;
 			}
 			if(change.type == 'change' && change.attributes instanceof Array) {

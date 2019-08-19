@@ -83,21 +83,21 @@
         list-style: none;
 
         input {
-            position: absolute;
-            top: 0;
-            left: 0;
-            margin-left: 0;
-            opacity: 0;
-            z-index: 2;
-            cursor: pointer;
-            height: 1em;
-            width: 1em;
+            display: none;
 
-            + ol {
-                margin: -15px 0 0 -44px;
-                display: block;
-                height: 1em;
-                background: url('#{$icon-path}toggle-small-expand.png') 42px -3px no-repeat;
+            + label {
+                display: inline-block;
+                background: url("/css/icons/toggle-small-expand.png") no-repeat;
+                width: 16px;
+                height: 16px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                padding: 0;
+            }
+
+            ~ ol {
+                margin: 0 0 0 -44px;
 
                 > li {
                     display: none;
@@ -105,11 +105,14 @@
                     padding-left: 1px;
                 }
             }
-            &:checked + ol {
-                margin: -20px 0 0 -44px;
-                padding: 20px 0 0 80px;
+            &:checked {
+              + label {
+                background: url("/css/icons/toggle-small.png") no-repeat;
+              }
+
+              ~ ol {
+                padding: 0 0 0 80px;
                 height: auto;
-                background: url('#{$icon-path}toggle-small.png') 42px 0 no-repeat;
 
                 > li {
                     display: block;
@@ -119,6 +122,7 @@
                         margin: 0 0 1px;
                     }
                 }
+              }
             }
         }
         &.#{$prefix}leaf > label {
@@ -135,8 +139,9 @@
             font-size: 12px;
             padding-left: 37px;
             background-color: #fff;
-            background-position: 15px 1px;
+            background-position: 15px 0px;
             background-repeat: no-repeat;
+            height: 16px;
         }
         label.#{$prefix}default-folder {
             background-image: url('#{$icon-path}folder.png');

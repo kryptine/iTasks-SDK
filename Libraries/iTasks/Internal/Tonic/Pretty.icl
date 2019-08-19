@@ -38,7 +38,7 @@ ppTExpr` d (TExpand _ tt)   = ppTExpr` d tt.tf_body
 ppTExpr` d TNoBind          = ""
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
 
-ppCases :: !Int ![(!Pattern, !TExpr)] -> String
+ppCases :: !Int ![(Pattern, TExpr)] -> String
 ppCases d xs = ppIntersperse (\(pat, expr) -> ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr) "; " xs
 
 ppTExprList :: !TExpr -> String

@@ -4,7 +4,7 @@ import StdString
 import StdInt
 
 from iTasks.WF.Definition import class iTask
-from iTasks.WF.Definition import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
+from iTasks.WF.Definition import :: Task, generic gEq, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
 from Data.Maybe import :: Maybe, maybe
 from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint, instance toString UserConstraint, instance toUserConstraint User, instance toString UserConstraint
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode

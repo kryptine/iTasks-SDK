@@ -5,6 +5,7 @@ import iTasks.UI.Definition
 import iTasks.SDS.Definition
 
 import iTasks.Engine
+import iTasks.Internal.EngineTasks
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
@@ -44,7 +45,7 @@ derive gEq ParallelTaskChange
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a	:== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -66,6 +67,7 @@ derive gEq ParallelTaskChange
     , includeAttributes :: !Bool
     , includeProgress   :: !Bool
     }
+derive gDefault TaskListFilter, TaskId
 
 instance toString AttachException
 where
@@ -84,24 +86,12 @@ where
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
-//TODO: Move this check to the TCInit of the step
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
-step task fun c
-= if (length conts <> length c)
-	(step` (traceValue "Duplicate actions in step") (\_->Nothing) [OnValue (ifStable \_->step` task fun conts)])
-	(step` task fun conts)
-where
-	conts = removeDupBy actionEq c
-
-	actionEq (OnAction (Action a) _) (OnAction (Action b) _) = a == b
-	actionEq _ _ = False
-
 removeDupBy :: (a a -> Bool) [a] -> [a]
 removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
 removeDupBy _ [] = []
 
-step` :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
-step` (Task evala) lhsValFun conts = Task eval
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
+step (Task evala) lhsValFun conts = Task eval
 where
 	//Cleanup
     eval DestroyEvent evalOpts (TCInit _ _) iworld
@@ -119,8 +109,14 @@ where
 			Nothing				= (ExceptionResult (exception "Corrupt task value in step"), iworld)
 
 	eval event evalOpts (TCInit taskId ts) iworld
+		# iworld = if (length (removeDupBy actionEq conts) == length conts)
+			iworld
+			(printStdErr "Duplicate actions in step" iworld)
 		# (taskIda,iworld)	= getNextTaskId iworld
 		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts,[]))) iworld
+	where
+		actionEq (OnAction (Action a) _) (OnAction (Action b) _) = a == b
+		actionEq _ _ = False
 
 	//Eval left-hand side
 	eval event evalOpts (TCStep taskId ts (Left (treea,prevEnabledActions))) iworld=:{current={taskTime}}
@@ -265,7 +261,7 @@ where
     match _ _			= Nothing
 
 // Parallel composition
-parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!Int,!TaskValue a)] | iTask a
+parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
 where
     //Cleanup
@@ -318,7 +314,7 @@ where
 		//able to determine the correct UI update instructions
 		prevNumBranches = length taskTrees
 
-		exceptionResult :: (TaskResult [(!Int,!TaskValue a)]) TaskException -> (TaskResult [(!Int,!TaskValue a)])
+		exceptionResult :: (TaskResult [(Int,TaskValue a)]) TaskException -> (TaskResult [(Int,TaskValue a)])
 		exceptionResult DestroyedResult e = ExceptionResult e
 		exceptionResult (ExceptionResult _) e = ExceptionResult e
 
@@ -333,7 +329,7 @@ initParallelTasks ::
 	!TaskEvalOpts
 	!TaskId
 	!Int
-	![(!ParallelTaskType,!ParallelTask a)]
+	![(ParallelTaskType,ParallelTask a)]
 	!*IWorld
 	->
 	(!MaybeError TaskException ([ParallelTaskState]
@@ -404,7 +400,7 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
         err = (liftError err, iworld)
 
 evalParallelTasks :: TaskId (Map TaskId TaskTree) !Event !TaskEvalOpts
-	[TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)]
+	[TaskCont [(TaskTime,TaskValue a)] (ParallelTaskType,ParallelTask a)]
 	[TaskResult a] [ParallelTaskState] !*IWorld
 	->
 	(MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
@@ -581,7 +577,7 @@ where
 			(Error e,_,iworld) = (DestroyedResult, e ++ exceptions,iworld)
 			(Ok res,_,iworld) = (res,exceptions,iworld)
 
-	destroyResult :: (TaskResult a) -> (TaskResult [(!Int,!TaskValue a)])
+	destroyResult :: (TaskResult a) -> (TaskResult [(Int,TaskValue a)])
 	destroyResult DestroyedResult = DestroyedResult
 	destroyResult (ExceptionResult e) = ExceptionResult e
 
@@ -634,7 +630,7 @@ destroyRemoved listId removed [r:rs] iworld
 taskIdFromResult (ValueResult _ _ _ tree)   = taskIdFromTaskTree tree
 taskIdFromResult _                          = Error (exception "No ValueResult in taskIdFromResult")
 
-genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]
+genParallelValue :: [TaskResult a] -> TaskValue [(TaskTime,TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
 
 genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange

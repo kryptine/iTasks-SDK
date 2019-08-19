@@ -37,7 +37,8 @@ derive JSONEncode Queue, Event
 derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode Queue, Event
 
-derive gDefault TIMeta, TIType
+derive gDefault InstanceFilter
+
 derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
@@ -350,7 +351,7 @@ where
 	notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic
-topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer)
 					 ((sdsFocus filter filteredInstanceIndex) >*| currentInstanceShare)
 where
@@ -374,7 +375,7 @@ where
 
     notify _ _ _ _ = True
 
-    reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(!TaskId,!TaskAttributes)]
+    reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(TaskId,TaskAttributes)]
 	reducer p ws = Ok (map ff ws)
 	where
 	  ff (i, _, _, Just attr) = (TaskId i 0, attr)
@@ -470,7 +471,7 @@ where
 	notify taskId _ = const ((==) taskId)
 	reducer p reduct = read p reduct
 
-parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
+parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 parallelTaskList
 	= sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
@@ -530,7 +531,7 @@ where
 			((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
 			((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
 		where
-			queueWithMergedRefreshEventList :: [(!InstanceNo, !Event)] -> Maybe [(!InstanceNo, !Event)]
+			queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
 			queueWithMergedRefreshEventList [] = Nothing
 			queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
 				RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
@@ -542,7 +543,7 @@ where
 			mergeReason x y = concat [x , "; " , y]
 		_ = Nothing
 
-queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
+queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
 queueRefresh [] iworld = iworld
 queueRefresh tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
@@ -550,16 +551,15 @@ queueRefresh tasks iworld
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
-// TODO: Handle errors
-dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
+dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
-	(Error e, iworld)               = (Nothing, iworld)
+	(Error e, iworld)               = (Error e, iworld)
 	(Ok ('SDS'.ReadingDone queue), iworld)
 	# (val, queue) = 'DQ'.dequeue queue
 	= case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
-	  (Error e, iworld) = (Nothing, iworld)
-	  (Ok WritingDone, iworld) = (val, iworld)
+	  (Error e, iworld) = (Error e, iworld)
+	  (Ok WritingDone, iworld) = (Ok val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld

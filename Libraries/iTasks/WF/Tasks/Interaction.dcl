@@ -28,6 +28,7 @@ from Data.Functor import class Functor
 :: UpdateSharedOption a b 
 	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v) & iTask v
     | E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
+    | E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v v -> v) (Editor v) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s
@@ -184,7 +185,7 @@ wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 *
 * @return 				Value associated with chosen action
 */
-chooseAction :: ![(!Action,a)] -> Task a | iTask a
+chooseAction :: ![(Action,a)] -> Task a | iTask a
 
 /**
 * View data as a title

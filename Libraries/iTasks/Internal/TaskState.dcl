@@ -9,6 +9,7 @@ from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditState
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUINo, :: LUIEffectStage
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenDefault import generic gDefault
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Data.Queue import :: Queue
@@ -35,6 +36,7 @@ derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
     //Identification and classification information
 	, attributes    :: !TaskAttributes      //Arbitrary meta-data
 	}
+derive gDefault TIMeta
 
 :: TIType
 	= TIStartup
@@ -69,7 +71,7 @@ derive JSONDecode TIMeta, TIType, TIReduct, TaskTree
 	| TCAwait		  !AsyncAction !TaskId !TaskTime !TaskTree
 	| TCInteract      !TaskId !TaskTime !DeferredJSON !DeferredJSON !EditState !Bool
 	| TCStep          !TaskId !TaskTime !(Either (!TaskTree, ![String]) (!DeferredJSON, !Int, !TaskTree))
-	| TCParallel      !TaskId !TaskTime ![(!TaskId,!TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
+	| TCParallel      !TaskId !TaskTime ![(TaskId,TaskTree)] ![String] //Subtrees of embedded tasks and enabled actions
 	| TCShared        !TaskId !TaskTime !TaskTree
 	| TCAttach        !TaskId !TaskTime !AttachmentStatus !String !(Maybe String)
 	| TCStable        !TaskId !TaskTime !DeferredJSON

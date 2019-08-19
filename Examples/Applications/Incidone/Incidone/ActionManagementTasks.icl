@@ -25,6 +25,8 @@ import Incidone.Extensions.CrewLists
 derive class iTask CommunicationAttempt
 derive class iTask ActionPlan
 
+derive gDefault ActionStatus, ItemMeta, ActionProgress
+
 actionStatuses :: SDSLens () [(InstanceNo,InstanceNo,ActionStatus)] ()
 actionStatuses = mapRead (map toActionStatus) detachedTaskInstances
 

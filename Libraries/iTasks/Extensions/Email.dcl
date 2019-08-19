@@ -29,6 +29,6 @@ sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 
 //Options for sendEmail
 :: EmailOpt
-	= EmailOptSMTPServer !String 				//SMTP server to use. Default: localhost
-	| EmailOptSMTPServerPort !Int 				//TCP port of the SMTP server to use. Default: 25
-	| EmailOptExtraHeaders ![(!String,!String)] //Additional headers to add before the body
+	= EmailOptSMTPServer !String              //SMTP server to use. Default: localhost
+	| EmailOptSMTPServerPort !Int             //TCP port of the SMTP server to use. Default: 25
+	| EmailOptExtraHeaders ![(String,String)] //Additional headers to add before the body

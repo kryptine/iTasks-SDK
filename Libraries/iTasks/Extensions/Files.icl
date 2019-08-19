@@ -28,10 +28,26 @@ moveFile srcPath dstPath = accWorldError ('SF'.moveFile srcPath dstPath) snd
 copyFile :: !FilePath !FilePath -> Task ()
 copyFile srcPath dstPath = accWorldError (copyFile` srcPath dstPath) id
 
-//TODO: This is a very stupid way of copying files, should be replaced by a better way
-copyFile` srcPath dstPath world = case 'SF'.readFile srcPath world of
-	(Error e,world) = (Error e,world)
-	(Ok content,world) = writeFile dstPath content world
+copyFile` :: !FilePath !FilePath !*World -> (MaybeError String (), !*World)
+copyFile` srcPath dstPath w
+	# (ok, srcFile, w) = fopen srcPath FReadText w
+	| not ok = (Error ("cannot open " +++ srcPath), w)
+	# (ok, dstFile, w) = fopen dstPath FWriteText w
+	| not ok = (Error ("cannot open " +++ dstPath), w)
+	# (srcFile, dstFile) = actuallyCopy srcFile dstFile
+	# (ok, w) = fclose srcFile w
+	| not ok = (Error ("cannot close " +++ srcPath), w)
+	# (ok, w) = fclose dstFile w
+	| not ok = (Error ("cannot close " +++ dstPath), w)
+	= (Ok (), w)
+where
+	actuallyCopy :: !*File !*File -> (!*File, !*File)
+	actuallyCopy src dst
+		# (end, src) = fend src
+		| end = (src, dst)
+		# (s, src) = freads src 65536
+		# dst = dst <<< s
+		= actuallyCopy src dst
 
 createDirectory :: !FilePath !Bool -> Task ()
 createDirectory path False = accWorldError ('SD'.createDirectory path) snd

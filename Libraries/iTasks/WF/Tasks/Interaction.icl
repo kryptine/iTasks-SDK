@@ -51,12 +51,12 @@ updateSharedEditor :: [UpdateSharedOption r w] -> UpdateSharedOption r w | iTask
 updateSharedEditor [UpdateSharedUsing tof fromf conflictf editor:_] = UpdateSharedUsing tof fromf conflictf editor
 updateSharedEditor [UpdateSharedAs tof fromf conflictf:_] = UpdateSharedUsing tof fromf conflictf gEditor{|*|}
 updateSharedEditor [_:es] = updateSharedEditor es
-updateSharedEditor [] =  UpdateSharedUsing dynid (flip const) const gEditor{|*|}
+updateSharedEditor [] =  UpdateSharedUsingAuto dynid (flip const) const gEditor{|*|}
 where
 	//If r == w then this is just the identity, otherwise the editor will use a default value
 	dynid x = case dynamic id :: A.a: (a -> a) of
-		(rtow :: r^ -> w^) = rtow x
-		_                  = defaultValue
+		(rtow :: r^ -> w^) = Just (rtow x)
+		_                  = Nothing
 
 selectEditor :: [SelectOption c a] -> SelectOption c a
 selectEditor [SelectInDropdown toView fromView:_] = SelectUsing toView fromView dropdown
@@ -111,6 +111,10 @@ updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | i
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
+		editor @ fst
+updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
+	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v))
+			, onRefresh = \r _ (Just v) -> (r, maybe v (\r` -> conflictf r` v) (tof r), Nothing)}
 		editor @ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
@@ -305,7 +309,7 @@ wait pred shared
 	=	viewSharedInformation [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
 
-chooseAction :: ![(!Action,a)] -> Task a | iTask a
+chooseAction :: ![(Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation [] ()
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]

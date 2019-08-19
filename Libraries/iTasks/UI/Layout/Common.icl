@@ -21,10 +21,12 @@ from Text import class Text, instance Text String
 addCSSClass :: String -> LayoutRule
 addCSSClass className = modifyUIAttributes (SelectKeys ["class"]) add
 where
-	add attr = 'DM'.put "class" (maybe 
+	add attr = 'DM'.put "class" (maybe
 		(JSONArray [JSONString className])
-		(\(JSONArray classNames) -> JSONArray (classNames ++ [JSONString className]))
-		('DM'.get "class" attr)) attr
+		(\v->case v of
+			(JSONArray classNames) = JSONArray (classNames ++ [JSONString className])
+			(JSONString s) = JSONArray [JSONString s, JSONString className]
+		) ('DM'.get "class" attr)) attr
 
 removeCSSClass :: String -> LayoutRule
 removeCSSClass className = modifyUIAttributes (SelectKeys ["class"]) remove

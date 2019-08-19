@@ -17,7 +17,6 @@ from System.Time import :: Timestamp, :: Timespec
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
-from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.GenJSON import generic JSONEncode, generic JSONDecode
 from Data.GenEq import generic gEq
 from StdString import class toString, class fromString
@@ -25,7 +24,7 @@ from StdClass import class <
 from StdOverloaded import class ==
 
 // Task definition:
-:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult a, *IWorld))
 
 :: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id
@@ -117,7 +116,6 @@ class iTask a
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}
 	//Data
-	, gDefault{|*|}
 	, gEq{|*|}
 	, TC a
 

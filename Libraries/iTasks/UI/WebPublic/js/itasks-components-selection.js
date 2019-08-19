@@ -393,6 +393,11 @@ itasks.Tree = Object.assign({
             },me);
 
             node.appendChild(childExpand);
+
+            label = document.createElement('label');
+            label.setAttribute('for', childExpand.id);
+            node.appendChild(label);
+
             childOl = document.createElement('ol');
             option.children.forEach(function(option,childIdx) {
                 me.addNode(option,childOl,nodeId,childIdx);

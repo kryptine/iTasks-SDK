@@ -42,7 +42,7 @@ ActionClose		:==	Action "Close"
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -64,6 +64,7 @@ ActionClose		:==	Action "Close"
     , includeAttributes :: !Bool
     , includeProgress   :: !Bool
     }
+derive gDefault TaskListFilter
 
 /**
 * State of another task instance.
@@ -144,7 +145,7 @@ step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC 
 * @return The sum of all results
 * @gin False
 */
-parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!Int,!TaskValue a)] | iTask a
+parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 
 //Task list manipulation
 /**

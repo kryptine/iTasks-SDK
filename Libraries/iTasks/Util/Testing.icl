@@ -97,7 +97,7 @@ testEditorWithShare editor model viewMode = (withShared model
 	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd)
 	) <<@ ArrangeHorizontal
 
-testCommonInteractions :: String -> Task a | iTask a
+testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
 testCommonInteractions typeName
 	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [])
 	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue)
@@ -203,6 +203,8 @@ where
 		//Check if the test should run
 		| otherwise
 			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
+			# (ok,console) = fflush console
+			| not ok = abort "fflush failed\n"
 			# (result,world) = test world
 			# message = case result of
 				Passed = "PASSED"
