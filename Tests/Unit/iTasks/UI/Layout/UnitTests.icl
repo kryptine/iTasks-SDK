@@ -418,9 +418,9 @@ extractDownstreamChangeTest_TopLevelReplaceWithChangedAttribute =
 
 extractDownstreamChangeTest_TopLevelReplaceWithOverwrittenType =
 	assertEqual "Top-level replace with an overwritten type" 
-		(ReplaceUI (UI UIContainer (classAttr ["parallel"]) [])
+		(ReplaceUI (UI UIDebug 'DM'.newMap [])
 		,(luiNode UIEmpty 'DM'.newMap
-			[] noChanges {noEffects & overwrittenType = ESApplied (LUINo [2],UIContainer)}
+			[] noChanges {noEffects & overwrittenType = ESApplied (LUINo [2],UIDebug)}
 		 ,initLUIMoves)
 		)
 		(extractDownstreamChange (
@@ -428,7 +428,7 @@ extractDownstreamChangeTest_TopLevelReplaceWithOverwrittenType =
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["step"]) [] noChanges noEffects
 				] {noChanges & toBeReplaced = Just (luiNode UIEmpty 'DM'.newMap []
-					noChanges {noEffects & overwrittenType = ESToBeApplied (LUINo [2],UIContainer)})
+					noChanges {noEffects & overwrittenType = ESToBeApplied (LUINo [2],UIDebug)})
 				  } noEffects
 
 		,initLUIMoves))
@@ -487,18 +487,18 @@ extractDownstreamChangeTest_TopLevelReplaceWithInsertedChild =
 
 extractDownstreamChangeTest_TopLevelOverwrittenType =
 	assertEqual "Top-level overwritten type"
-		(ReplaceUI (UI UIContainer 'DM'.newMap
+		(ReplaceUI (UI UIDebug (classAttr ["step"])
 			[UI UIContainer (classAttr ["interact"]) []
 			])
 		,(luiNode UIContainer (classAttr ["step"]) 
 			[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
-			] noChanges {noEffects & overwrittenType = ESApplied (LUINo [3],UIContainer)}
+			] noChanges {noEffects & overwrittenType = ESApplied (LUINo [3],UIDebug)}
 		  ,initLUIMoves)
 		)
 		(extractDownstreamChange (
 			luiNode UIContainer (classAttr ["step"])
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
-				] noChanges {noEffects & overwrittenType = ESToBeApplied (LUINo [3],UIContainer)}
+				] noChanges {noEffects & overwrittenType = ESToBeApplied (LUINo [3],UIDebug)}
 		,initLUIMoves))
 
 extractDownstreamChangeTest_RemovedChild =
@@ -718,7 +718,7 @@ extractDownstreamChangeTest_UpdatedMovedChild =
 				,luiNode UIContainer (classAttr ["step"]) [] noChanges noEffects
 				,LUIMoveSource 1
 				] noChanges noEffects 
-		  ,'DM'.fromList [(1,(ESApplied (LUINo [0]),luiNode UIContainer (classAttr ["container"]) [] noChanges noEffects))])
+		  ,'DM'.fromList [(1,(ESApplied (LUINo [0]),luiNode UIContainer (classAttr ["parallel"]) [] noChanges noEffects))])
 		)
 		(extractDownstreamChange (
 			luiNode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
@@ -1186,9 +1186,9 @@ extractUIWithEffects_Tests =
 updateChildNodes_Tests = 
 	[ assertEqual "Updating selected child nodes"
 		(
-			[luiNode UIDebug 'DM'.newMap [] noChanges noEffects
+			[luiNode UIDebug (classAttr ["interact"]) [] noChanges noEffects
 			,luiNode UIContainer (classAttr ["step"]) [] noChanges {noEffects & additional = ESApplied (LUINo [5])}
-			,luiNode UIDebug 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects
+			,luiNode UIDebug (classAttr ["parallel"]) [] {noChanges & toBeShifted = Just 0} noEffects
 			,LUIShiftDestination 1
 			,luiNode UIDebug 'DM'.newMap [luiNode UIContainer (classAttr ["record"]) [] noChanges noEffects] noChanges {noEffects & wrapper = ESApplied (LUINo [7])}
 			,luiNode UIDebug 'DM'.newMap [] {noChanges & toBeShifted = Just 1} noEffects
@@ -1229,20 +1229,20 @@ updateSubNode_Tests =
 				,luiNode UIContainer (classAttr ["parallel"]) [] {noChanges & toBeShifted = Just 0} noEffects
 				,LUIShiftDestination 1
 				,luiNode UIContainer (classAttr ["record"]) [] noChanges noEffects
-				,luiNode UIContainer (classAttr ["interact"]) [] {noChanges & toBeShifted = Just 1} noEffects
+				,luiNode UIDebug (classAttr ["interact"]) [] {noChanges & toBeShifted = Just 1} noEffects
 				,LUIShiftDestination 0
 				] noChanges noEffects
 		,initLUIMoves)
 
 		(updateSubNode_ (LUINo [0]) [2]
-			(\(LUINode node, m) -> (LUINode {LUINode|node & type = UIContainer} ,m)) 
+			(\(LUINode node, m) -> (LUINode {LUINode|node & type = UIDebug} ,m)) 
 			(luiNode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["step"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["parallel"]) [] {noChanges & toBeShifted = Just 0} noEffects
 				,LUIShiftDestination 1
 				,luiNode UIContainer (classAttr ["record"]) [] noChanges noEffects
-				,luiNode UIDebug 'DM'.newMap [] {noChanges & toBeShifted = Just 1} noEffects
+				,luiNode UIContainer (classAttr ["interact"]) [] {noChanges & toBeShifted = Just 1} noEffects
 				,LUIShiftDestination 0
 				] noChanges noEffects
 			,initLUIMoves))
@@ -1455,8 +1455,8 @@ moveSubUIsTests =
 		)
 	]
 wrapUITests =
-	[assertEqual "Wrap rule: wrap root as step"
-		(luiNode UIContainer (classAttr ["step"]) [
+	[assertEqual "Wrap rule: wrap root as debug"
+		(luiNode UIDebug 'DM'.newMap [
 			luiNode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["parallel"]) [] noChanges noEffects
@@ -1464,7 +1464,7 @@ wrapUITests =
 				] noChanges noEffects
 			] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0])}
 		,initLUIMoves)
-		(wrapUI UIContainer (LUINo [0])
+		(wrapUI UIDebug (LUINo [0])
 			(luiNode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["parallel"]) [] noChanges noEffects
@@ -1472,8 +1472,8 @@ wrapUITests =
 				] noChanges noEffects
 			,initLUIMoves)
 		)
-	,assertEqual "Wrap rule: wrap root twice. First as step, then as parallel"
-		(luiNode UIContainer (classAttr ["parallel"]) [luiNode UIContainer (classAttr ["step"]) [
+	,assertEqual "Wrap rule: wrap root twice. First as container, then as debug"
+		(luiNode UIDebug 'DM'.newMap [luiNode UIContainer 'DM'.newMap [
 			luiNode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["parallel"]) [] noChanges noEffects
@@ -1482,7 +1482,7 @@ wrapUITests =
 			] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,0])}
 		] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,1])}
 		,initLUIMoves)
-		(sequenceLayouts [wrapUI UIContainer, wrapUI UIContainer] (LUINo [0])
+		(sequenceLayouts [wrapUI UIContainer, wrapUI UIDebug] (LUINo [0])
 			(luiNode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[luiNode UIContainer (classAttr ["interact"]) [] noChanges noEffects
 				,luiNode UIContainer (classAttr ["parallel"]) [] noChanges noEffects
