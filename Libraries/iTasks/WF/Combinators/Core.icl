@@ -289,14 +289,15 @@ where
 			(Ok results, iworld)
 				//Construct the result
 				# results   = reverse results //(the results are returned in reverse order)
-				| not (trace_tn (toSingleLineText ("length results: ", length results))) = undef
-				| not (trace_tn (toSingleLineText ("prevEnabledActions: ", prevEnabledActions))) = undef
 				# value     = genParallelValue results
 				# evalInfo  = genParallelEvalInfo results
 				# actions   = contActions taskId value conts
 				# rep       = genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 				# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-				| not (trace_tn (toSingleLineText (curEnabledActions))) = undef
+				| not (trace_tn (toSingleLineText ("length results: ", length results))) = undef
+				| not (trace_tn (toSingleLineText ("prevEnabledActions: ", prevEnabledActions))) = undef
+				| not (trace_tn (toSingleLineText ("curEnabledActions: ", curEnabledActions))) = undef
+				| not (trace_tn (toSingleLineText ("actions: ", actions))) = undef
 				= (ValueResult value evalInfo rep (Task (eval (length results) curEnabledActions)), iworld)
 			//Stopped because of an unhandled exception
 			(Error e, iworld)
@@ -544,9 +545,7 @@ destroyParallelTasks listId=:(TaskId instanceNo _) iworld
 	// Unlink registrations for all detached tasks
 	# iworld = clearTaskSDSRegistrations ('DS'.singleton listId) iworld
 	= case read (sdsFocus (listId, minimalTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld of
-//TODO check why this sometimes errors
 		(Error e,iworld) = (ExceptionResult e, iworld)
-		(Error e,iworld) = (DestroyedResult, iworld)
 		(Ok (ReadingDone taskStates),iworld)
 			// Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
 			# (result,exceptions,iworld) = foldl (destroyParallelTask listId) (DestroyedResult, [], iworld) taskStates
@@ -573,7 +572,7 @@ where
 
 destroyEmbeddedParallelTask :: TaskId TaskId *IWorld -> *(MaybeError [TaskException] (TaskResult a), *IWorld) | iTask a
 destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId iworld=:{current={taskTime}}
-//	| not (trace_tn (toSingleLineText ("destroy: ", listId, taskId))) = undef
+	| not (trace_tn (toSingleLineText ("destroy: ", listId, taskId))) = undef
 	# (errs,destroyResult,iworld) = case read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld of
 		(Error e,iworld) = ([e], DestroyedResult,iworld)
 		(Ok (ReadingDone (Task eval)),iworld)
