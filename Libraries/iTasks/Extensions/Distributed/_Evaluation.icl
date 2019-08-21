@@ -1,23 +1,23 @@
 implementation module iTasks.Extensions.Distributed._Evaluation
 
-from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent,DestroyEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
-import iTasks.Internal.TaskEval
-import iTasks.UI.Definition
-from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
-from iTasks.UI.Definition import :: UIType(UIEmpty)
+from Data.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.IWorld import :: IWorld
-import iTasks.SDS.Definition
-import iTasks.Internal.SDS
+from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
+from iTasks.SDS.Combinators.Common import sdsFocus
 from iTasks.SDS.Sources.System import currentTaskInstanceNo
 from iTasks.UI.Definition import :: UIChange(..), :: UIChildChange(..), ui
-from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
-from iTasks.WF.Tasks.SDS import get
-from iTasks.SDS.Combinators.Common import sdsFocus
+from iTasks.UI.Definition import :: UIType(UIEmpty)
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
-from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
-from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from Data.GenEq import generic gEq
+from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-, >>-
+from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent,DestroyEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
+from iTasks.WF.Tasks.SDS import get
+import iTasks.Internal.SDS
+import iTasks.Internal.TaskEval
+import iTasks.SDS.Definition
+import iTasks.UI.Definition
 
 from iTasks.WF.Combinators.Overloaded import class TMonad(..), instance TMonad Task, instance Functor Task, instance TApplicative Task, class TApplicative
 from Data.Functor import class Functor
