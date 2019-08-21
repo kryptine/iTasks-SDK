@@ -134,6 +134,3 @@ where
 
 rep ResetEvent = ReplaceUI (ui UIEmpty)
 rep _          = NoChange
-
-import StdDebug
-derive gText Event, Set, TaskId

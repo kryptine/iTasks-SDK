@@ -905,7 +905,7 @@ where
 		Just (ESToBeUpdated _ _) = True
 		Just (ESToBeRemoved _) = True
 		_ = False
-import StdDebug
+
 //Undo the effects of a previously applied rule for a single node
 undoEffects_ :: !LUINo !(!LUI, !LUIMoves) -> (!LUI, !LUIMoves)
 // optimisation to prevent a new LUINode to be allocated if no change is required

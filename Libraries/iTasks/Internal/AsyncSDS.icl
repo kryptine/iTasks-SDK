@@ -452,5 +452,3 @@ isRefreshForTask ResetEvent _ = True
 isRefreshForTask _ _ = False
 
 tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
-
-import StdDebug

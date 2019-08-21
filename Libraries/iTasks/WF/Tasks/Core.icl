@@ -68,7 +68,6 @@ evalInteractInit prompt sds handlers editor writefun r event evalOpts=:{TaskEval
 		Enter    = Nothing
 		Update x = Just x
 		View x   = Just x
-//	| not (trace_tn (toSingleLineText ("initial value: ", v))) = undef
 	= case initEditorState taskId mode editor iworld of
 		(Ok st, iworld)
 			= evalInteract l v st (mode=:View _) prompt sds handlers editor writefun event evalOpts iworld
@@ -108,7 +107,6 @@ evalInteract ::
 evalInteract _ _ _ _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
 evalInteract l v st mode prompt sds handlers editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-//	| not (trace_tn (toSingleLineText (taskId, ": ", "interact edit: ", event, " v: ", v))) = undef
 	| eTaskId == taskId
 		# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
 		= case res of
@@ -117,7 +115,6 @@ evalInteract l v st mode prompt sds handlers editor writefun event=:(EditEvent e
 				= case editor.Editor.valueFromState st of
 					Just nv
 						# (l, v, mbf) = handlers.InteractionHandlers.onEdit nv l v
-//						| not (trace_tn (toSingleLineText ("onedit: ", v))) = undef
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
@@ -149,7 +146,6 @@ evalInteract l v st mode prompt sds handlers editor writefun event=:(EditEvent e
 						, iworld)
 			Error e = (ExceptionResult (exception e), iworld)
 evalInteract l v st mode prompt sds handlers editor writefun ResetEvent evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-//	| not (trace_tn (toSingleLineText (taskId, ": ", "interact reset v: ", v))) = undef
 	# resetMode = case (mode, v) of
 		(True, Just v) = View v
 		(True, _)      = abort "view mode without value"
@@ -160,7 +156,6 @@ evalInteract l v st mode prompt sds handlers editor writefun ResetEvent evalOpts
 		(Ok (ui, st), iworld)
 			# mbv = editor.Editor.valueFromState st
 			# v = maybe v Just mbv
-//			| not (trace_tn (toSingleLineText ("valueFromState v: ", v))) = undef
 			= (ValueResult
 				(maybe NoValue (\v->Value (l, v) False) v)
 				{TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
@@ -168,12 +163,9 @@ evalInteract l v st mode prompt sds handlers editor writefun ResetEvent evalOpts
 				(Task (evalInteract l v st mode prompt sds handlers editor writefun))
 			, iworld)
 evalInteract l v st mode prompt sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-//	| not (trace_tn (toSingleLineText (taskId, ": ", toPrompt prompt, " l: ", l, " st: ", st, " interact refresh v: ", v))) = undef
-//	| not (trace_tn (toSingleLineText (taskId, " : interact refresh v: ", v))) = undef
 	| 'DS'.member taskId taskIds
 		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->case event of ResetEvent = asyncSDSLoadUI Read; e = NoChange)
 			(\r event evalOpts iworld
-//				| not (trace_tn (toSingleLineText ("r: ", r, " v: ", v, " st: ", st))) = undef
 				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
 				= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of
 					(Error e, iworld) = (ExceptionResult (exception e), iworld)
@@ -206,6 +198,3 @@ uniqueMode mode = case mode of
 	Enter    = Enter
 	Update x = Update x
 	View x   = View x
-
-import StdDebug
-derive gText Event, Set, EditState, LeafState, (,,,,,,,,)

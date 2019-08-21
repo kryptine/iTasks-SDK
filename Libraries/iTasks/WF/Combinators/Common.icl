@@ -16,6 +16,7 @@ from iTasks.Extensions.DateTime import waitForTimer
 from iTasks.UI.Definition import :: UIType(UILoader)
 
 import iTasks.Internal.SDS
+import iTasks.Engine
 import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
@@ -27,6 +28,7 @@ import iTasks.UI.Editor.Controls
 import iTasks.UI.Prompt
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
+import iTasks.SDS.Sources.System
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps
@@ -228,7 +230,10 @@ withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask 
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
+appendTopLevelTask attr evalDirect task = get applicationOptions
+	>>- \eo->appendTask (Detached attr evalDirect) (\_->mtune eo task @! ()) topLevelTasks
+where
+	mtune eo = if eo.autoLayout (tune (ApplyLayout defaultSessionLayout)) id
 
 compute :: !String a -> Task a | iTask a
 compute s a = enterInformation s [EnterUsing id ed] >>~ \_->return a
@@ -301,5 +306,3 @@ tvFromMaybe _                  = NoValue
 tvToMaybe :: (TaskValue a) -> TaskValue (Maybe a)
 tvToMaybe (Value a s) = Value (Just a) s
 tvToMaybe NoValue     = Value Nothing False
-
-import StdDebug

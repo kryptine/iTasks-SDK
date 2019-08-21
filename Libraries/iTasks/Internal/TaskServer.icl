@@ -600,5 +600,3 @@ updateClock iworld=:{IWorld|clock,world}
 	//Write SDS if necessary
 	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
 	= (() <$ mbe, iworld)
-
-import StdDebug

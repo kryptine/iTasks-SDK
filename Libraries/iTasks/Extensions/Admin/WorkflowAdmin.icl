@@ -400,5 +400,3 @@ isAllowedWorkflow _ {Workflow|roles=[]}		= True								//Allow workflows without
 isAllowedWorkflow (AuthenticatedUser _ hasRoles _) {Workflow|roles=needsRoles}	//Allow workflows for which the user has permission
 	= or [isMember r hasRoles \\ r <- needsRoles]
 isAllowedWorkflow _ _ 						= False								//Don't allow workflows in other cases
-
-import StdDebug
