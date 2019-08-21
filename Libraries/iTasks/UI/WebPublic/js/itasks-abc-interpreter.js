@@ -8,6 +8,8 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 	heap_size: 8<<20,
 	stack_size: 512<<10,
 
+	encoding: 'utf-8',
+
 	util_imports: {
 		has_host_reference: function (index) {
 			if (index>=ABC.shared_clean_values.length)
