@@ -339,17 +339,17 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
   newItem
     =            enterInformation (Title "New item") enterOpts
     >>= \item -> upd (putItem item) sh
-    >>|          goCRUD
+    >-|          goCRUD
   viewItem x
     =            viewInformation (Title "View item") viewOpts x
     >>|          goCRUD
   editItem x
     =            updateInformation (Title "Edit item") updateOpts x
     >>= \item -> upd (putItem item) sh
-    >>|          goCRUD
+    >-|          goCRUD
   deleteItem x
     =            upd (delItem x) sh
-    >>|          goCRUD
+    >-|          goCRUD
 
 crud :: !d !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
         (sds () (f r) (f` w))

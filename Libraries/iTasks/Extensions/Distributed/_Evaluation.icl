@@ -32,7 +32,7 @@ import StdOverloaded
 evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 evalRemoteTask task handleValue
 	= get currentTaskInstanceNo
-	>>= \taskid -> let share = taskValueShare taskid in
+	>>- \taskid -> let share = taskValueShare taskid in
 		(customEval share task ||- whileUnchanged share (changeTask handleValue))
 where
 	changeTask :: ((TaskValue a) -> Task ()) (TaskValue a) -> Task a | iTask a

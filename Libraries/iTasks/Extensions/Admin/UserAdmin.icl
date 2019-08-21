@@ -73,7 +73,7 @@ doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | 
 doAuthenticatedWith verifyCredentials task
 	=	enterInformation ("Log in","Please enter your credentials") []
 	>>!	verifyCredentials
-	>>= \mbUser -> case mbUser of
+	>>- \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
 		Just user	= workAs user task
 	
@@ -81,7 +81,7 @@ createUser :: !UserAccount -> Task StoredUserAccount
 createUser account
 	=	createStoredAccount >>~ \storedAccount ->
 	    get (userAccount (identifyUserAccount storedAccount))
-	>>= \mbExisting -> case mbExisting of
+	>>- \mbExisting -> case mbExisting of
 		Nothing
 			= upd (\accounts -> accounts ++ [storedAccount]) userAccounts @ const storedAccount
 		_	
@@ -115,7 +115,7 @@ createUserFlow =
 	>>*	[ OnAction		ActionCancel	(always (return ()))
 		, OnAction	    ActionOk 		(hasValue (\user ->
 											createUser user
-										>>|	viewInformation "User created" [] "Successfully added new user"
+										>-|	viewInformation "User created" [] "Successfully added new user"
 										>>| return ()
 									    ))
 		]
@@ -123,13 +123,13 @@ createUserFlow =
 updateUserFlow :: UserId -> Task StoredUserAccount
 updateUserFlow userId
 	=	get (userAccount userId)
-	>>= \mbAccount -> case mbAccount of 
+	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	(updateInformation ("Editing " +++ fromMaybe "Untitled" account.StoredUserAccount.title ,"Please make your changes") [] account
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)
-											>>=	viewInformation "User updated" [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
+											>>-	viewInformation "User updated" [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
 											>>| return newAccount
 											))
 				])
@@ -152,9 +152,9 @@ changePasswordFlow userId =
 where
 	updatePassword :: !StoredUserAccount !Password -> Task StoredUserAccount
 	updatePassword account password =
-		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>= \creds ->
+		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>- \creds ->
 		let account` = {StoredUserAccount| account & credentials = creds} in
-		set (Just account`) (userAccount userId) >>=
+		set (Just account`) (userAccount userId) >>-
 		viewInformation "Password updated"
 		                [ ViewAs \(Just {StoredUserAccount|title}) ->
 		                         "Successfully changed password for " +++ fromMaybe "Untitled" title
@@ -164,12 +164,12 @@ where
 deleteUserFlow :: UserId -> Task StoredUserAccount
 deleteUserFlow userId
 	=	get (userAccount userId)
-	>>= \mbAccount -> case mbAccount of 
+	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
-									>>|	viewInformation "User deleted" [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>-|	viewInformation "User deleted" [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
 									))
 				]
@@ -180,9 +180,9 @@ importUserFileFlow = viewInformation "Not implemented" [] ()
 exportUserFileFlow :: Task Document
 exportUserFileFlow
 	=	get userAccounts -&&- get applicationName
-	>>= \(list,app) ->
+	>>- \(list,app) ->
 		createCSVFile (app +++ "-users.csv") (map toRow list)
-	>>=	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
+	>>-	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
 where
 	toRow {StoredUserAccount| credentials = {StoredCredentials|username = (Username username), saltedPasswordHash, salt}, title, roles}
 		= [fromMaybe "" title,username,saltedPasswordHash,salt:roles]

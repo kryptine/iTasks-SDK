@@ -89,15 +89,15 @@ projectJust mba _ = Just mba
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
-= task >>= \r -> case r of
+= task >>- \r -> case r of
 	Just x	= return x
 	Nothing	= throw ("The task returned nothing.")
 
 sequence :: ![Task a]  -> Task [a] | iTask a
-sequence tasks = foldr (\t ts->t >>= \tv->ts >>= \tvs->return [tv:tvs]) (return []) tasks
+sequence tasks = foldr (\t ts->t >>- \tv->ts >>- \tvs->return [tv:tvs]) (return []) tasks
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = t st >>= \tv->if (pred tv) (foreverStIf pred tv t) (treturn tv)
+foreverStIf pred st t = t st >>- \tv->if (pred tv) (foreverStIf pred tv t) (treturn tv)
 
 forever :: (Task a) -> Task a | iTask a
 forever t = t >-| forever t
@@ -198,7 +198,7 @@ eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))
+randomChoice list = get randomInt >>- \i -> return (list !! ((abs i) rem (length list)))
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
@@ -223,7 +223,7 @@ onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & TC w & iTask b & Registrable sds
 whileUnchangedWith eq share task
-	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
+	= 	((get share >>- \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds

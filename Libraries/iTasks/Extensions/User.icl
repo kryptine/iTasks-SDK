@@ -208,7 +208,7 @@ workOn t
 	= 			 		get currentUser -&&- get (sdsFocus no taskInstanceAttributesByNo)
 	>>- \(user,attr) -> set user (sdsFocus no taskInstanceUser)
 	//Attach the instance
-	>>|			 		attach no True <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
+	>-|			 		attach no True <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
 where
 	no = toInstanceNo t
 /*

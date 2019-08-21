@@ -120,7 +120,7 @@ derive class iTask RTree, FileInfo, Tm
 selectFileTree :: !Bool !d !Bool !FilePath [FilePath]-> Task [FilePath] | toPrompt d
 selectFileTree exp prompt multi root initial
 	= accWorld (readDirectoryTree root Nothing) @ numberTree
-	>>= \tree->editSelection prompt multi selectOption tree
+	>>- \tree->editSelection prompt multi selectOption tree
 		[i\\(i, (f, _))<-leafs tree | elem f initial]
 where
 	selectOption = SelectInTree
@@ -128,7 +128,7 @@ where
 		(\tree sel->[f\\(i, (f, _))<-leafs tree | isMember i sel])
 
 selectFileTreeLazy :: !d !Bool !FilePath -> Task [FilePath] | toPrompt d
-selectFileTreeLazy d multi root = accWorld (readDirectoryTree root (Just 1)) >>= \tree->
+selectFileTreeLazy d multi root = accWorld (readDirectoryTree root (Just 1)) >>- \tree->
 	withShared tree \stree->let numberedtree = mapRead numberTree stree in
 	withShared [] \ssel->
 	editSharedSelectionWithShared d multi selOpt numberedtree ssel
@@ -137,7 +137,7 @@ selectFileTreeLazy d multi root = accWorld (readDirectoryTree root (Just 1)) >>=
 			Just (i, (fp, Ok {directory=True}))
 				= accWorld (readDirectoryTree fp (Just 1))
 				@ flip (mergeIn i) tree
-				>>= \newtree->set ([], newtree) (ssel >*< stree) @? const NoValue
+				>>- \newtree->set ([], newtree) (ssel >*< stree) @? const NoValue
 			_ = unstable ()
 		_ = unstable ()
 	)
