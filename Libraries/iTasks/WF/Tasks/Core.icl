@@ -23,7 +23,7 @@ treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
-throw e = mkInstantTask (\taskId iworld -> (Error (dynamic e,toString e), iworld))
+throw e = mkInstantTask (\taskId iworld -> (Error (exception e), iworld))
 
 appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = accWorld $ tuple () o fun
@@ -35,13 +35,10 @@ accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | i
 accWorldError fun errf = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|world}
-		# (res,world)	= fun world
+		# (res,world) = fun world
 		= case res of
-			Error e
-				# err = errf e
-				= (Error (dynamic err,toString err), {IWorld|iworld & world = world})
-			Ok v
-				= (Ok v, {IWorld|iworld & world = world})
+			Error e = (Error (exception (errf e)), {IWorld|iworld & world = world})
+			Ok v    = (Ok v, {IWorld|iworld & world = world})
 
 accWorldOSError :: !(*World -> (MaybeOSError a, *World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

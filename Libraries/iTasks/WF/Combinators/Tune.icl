@@ -21,8 +21,7 @@ where
 		eval (Task task) event evalOpts iworld
 			# (result,iworld) = task event evalOpts iworld
 			# attrValue       = toAttribute value
-			# (result,iworld) = addAttributeChange attrName attrValue attrValue result iworld 
-			= (recTask eval result, iworld)
+			= recTask` eval (addAttributeChange attrName attrValue attrValue result iworld)
 
 class addValueAttribute f :: !String ((Maybe a) -> b) !(f a) -> f a | toAttribute b
 instance addValueAttribute Task
@@ -34,8 +33,7 @@ where
 		eval curAttrValue (Task inner) event evalOpts iworld
 			# (result,iworld) = inner event evalOpts iworld
 			# newAttrValue = refreshAttribute result
-			# (result,iworld) = addAttributeChange attrName curAttrValue newAttrValue result iworld 
-			= (recTask (eval newAttrValue) result, iworld)
+			= recTask` (eval newAttrValue) (addAttributeChange attrName curAttrValue newAttrValue result iworld)
 		where
 			refreshAttribute (ValueResult (Value v _) _ _ _) = toAttribute (attrValueFun (Just v))
 			refreshAttribute _ = toAttribute (attrValueFun Nothing)
@@ -61,8 +59,7 @@ where
 				= (ExceptionResult (fromError mbNewAttrValue),iworld)
 			//Add/change the value 
 			# (Ok newAttrValue) = mbNewAttrValue
-			# (result,iworld) = addAttributeChange attrName curAttrValue newAttrValue result iworld 
-			= (recTask (eval newAttrValue) result, iworld)
+			= recTask` (eval newAttrValue) (addAttributeChange attrName curAttrValue newAttrValue result iworld)
 		where
 			refreshAttribute taskId cur (RefreshEvent refreshSet _) iworld
 				| 'DS'.member taskId refreshSet
@@ -119,7 +116,7 @@ applyLayout rule task = Task evalinit
 where
 	ruleNo = LUINo [0]
 
-	evalinit _ = eval (initLUI (ui UIEmpty), initLUIMoves) task ResetEvent
+	evalinit event = eval (initLUI (ui UIEmpty), initLUIMoves) task ResetEvent
 
 	//Cleanup duty simply passed to inner task
 	eval _ (Task inner) DestroyEvent evalOpts iworld
@@ -130,7 +127,7 @@ where
 			(ValueResult value info (ReplaceUI ui) task,iworld)
 				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
 				= (recTask (eval state) (ValueResult value info change task), iworld)
-			(res, iworld) = (recTask (eval state) res, iworld)
+			e = recTask` (eval state) e
 
 	eval state (Task inner) event evalOpts iworld
 		= case inner event evalOpts iworld of
@@ -139,7 +136,7 @@ where
 				# state = rule ruleNo state
 				# (change,state) = extractDownstreamChange state
 				= (recTask (eval state) (ValueResult value info change task), iworld)
-			(res, iworld) = (recTask (eval state) res,iworld)
+			e = recTask` (eval state) e
 
 instance tune ApplyLayout Task
 where tune (ApplyLayout l) task = applyLayout l task

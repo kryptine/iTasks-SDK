@@ -15,7 +15,6 @@ import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
 
 from Data.Func import mapSt
-import StdMisc
 
 import StdTuple, StdArray, StdList, StdString
 import Text, Text.GenJSON
@@ -47,19 +46,14 @@ where
 		= case inner event {TaskEvalOpts|evalOpts&taskId=innerTaskId} iworld of
 			(ValueResult val info rep newinner, iworld)
 				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-				= (ValueResult
-					val
-					info
-					rep
-					(Task (eval innerTaskId newinner))
-				, iworld)
+				= (ValueResult val info rep (Task (eval innerTaskId newinner)), iworld)
 			e = e
 
 withTaskId :: (Task a) -> Task (a, TaskId)
-withTaskId (Task eval) = Task eval`
+withTaskId (Task task) = Task eval
 where
-	eval` event evalOpts=:{TaskEvalOpts|taskId} iworld
-		= case eval event evalOpts iworld of
+	eval event evalOpts=:{TaskEvalOpts|taskId} iworld
+		= case task event evalOpts iworld of
 			(ValueResult (Value x st) info rep newtask, iworld)
 				= (ValueResult (Value (x, taskId) st) info rep (withTaskId newtask), iworld)
 			(ExceptionResult te, iworld) = (ExceptionResult te, iworld)

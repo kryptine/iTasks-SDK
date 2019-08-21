@@ -19,6 +19,7 @@ import iTasks.SDS.Sources.Store
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.SDSService
 import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Derives
 import iTasks.Extensions.Document
@@ -188,18 +189,11 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
 createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct instanceNo task taskTime
 	= { TIReduct
-	  | task = toJSONTask task
+	  | task = task @ DeferredJSON
 	  , nextTaskNo = 1
 	  , nextTaskTime = 1
 	  , tasks = 'DM'.newMap
 	  }
-where
-	toJSONTask :: (Task a) -> Task DeferredJSON | iTask a
-	toJSONTask (Task eval) = Task \event repOpts iworld->case eval event repOpts iworld of
-		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
-		(DestroyedResult, iworld)   = (DestroyedResult, iworld)
-		(ValueResult val ts rep neweval, iworld)
-			= (ValueResult (fmap DeferredJSON val) ts rep (toJSONTask neweval), iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}

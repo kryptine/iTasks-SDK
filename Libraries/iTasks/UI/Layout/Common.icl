@@ -332,14 +332,14 @@ where
 
 instance tune NoUserInterface Task
 where
-    tune NoUserInterface task = Task (eval` task)
+    tune NoUserInterface task = Task (eval task)
     where
-	    eval` (Task task) event repOpts iworld = case task event repOpts iworld of
+	    eval (Task task) event repOpts iworld = case task event repOpts iworld of
 			(ValueResult taskvalue evalinfo _ newtask, iworld)
 				# change = case event of 
 					ResetEvent = ReplaceUI (ui UIEmpty)
 					_          = NoChange
-				= (ValueResult taskvalue evalinfo change (Task (eval` newtask)), iworld)
+				= (ValueResult taskvalue evalinfo change (Task (eval newtask)), iworld)
 			other = other
 
 instance tune Title Task

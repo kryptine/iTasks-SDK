@@ -636,7 +636,7 @@ where
 			err = (liftError err, iworld)
 	where
 		//To determine the next index we need to disregard states that are marked as removed
-		nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | change =!= Just RemoveParallelTask]
+		nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | not (change =: (Just RemoveParallelTask))]
 
 /**
 * Removes (and stops) a task from a task list
@@ -794,15 +794,12 @@ where
 		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr (fromJust instanceKey)]))
 
 withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
-withCleanupHook patch (Task orig)
+withCleanupHook patch orig
 	= appendTopLevelTask 'DM'.newMap False patch
 	>>- \x->Task (eval x orig)
 where
-	eval tosignal orig DestroyEvent opts iw
+	eval tosignal (Task orig) DestroyEvent opts iw
 		# (tr, iw) = orig DestroyEvent opts iw
 		= (tr, queueRefresh [(tosignal, "Cleanup")] iw)
-	eval tosignal orig ev opts iw = case orig ev opts iw of
-		(ValueResult val tei ui (Task newtask), iworld)
-			= (ValueResult val tei ui (Task (eval tosignal newtask)), iworld)
-		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
-		(DestroyedResult, iworld) = (DestroyedResult, iworld)
+	eval tosignal (Task orig) ev opts iw
+		= recTask` (eval tosignal) (orig ev opts iw)

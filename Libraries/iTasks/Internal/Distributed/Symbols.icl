@@ -9,6 +9,7 @@ import dynamic_string
 import Text.Encodings.Base64
 
 import iTasks.Internal.SDS
+import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Task
 import iTasks.Internal.IWorld
 
@@ -24,25 +25,10 @@ storeSymbols file iworld
 = (Ok (size symbols), iworld)
 
 accSymbols :: ({#Symbol} -> a) -> Task a | iTask a
-accSymbols fun = mkInstantTask eval
-where
-	eval taskId iworld
-		# (val, iworld) = read symbolsShare EmptyContext iworld
-		= case val of
-			Ok (ReadingDone val)		= (Ok (fun (readSymbols val)), iworld)
-			Error e		= (Error e, iworld)
+accSymbols fun = withSymbols (return o fun)
 
 readSymbols :: String -> {#Symbol}
 readSymbols shareValue = fst (copy_from_string (base64Decode shareValue))
 
 withSymbols :: ({#Symbol} -> Task a) -> Task a | iTask a
-withSymbols taskfun = Task eval
-where
-	eval event evalOpts iworld
-	# (mval, iworld) = read symbolsShare EmptyContext iworld
-	= case mval of
-		(Error e) = (ExceptionResult e, iworld)
-		(Ok (ReadingDone val))
-			# (Task task) = taskfun (readSymbols val)
-			= task event evalOpts iworld
-		(Ok _) = (ExceptionResult (exception "Async symbol share unsupported"), iworld)
+withSymbols taskfun = Task (readCompletely symbolsShare NoValue (unTask o taskfun o readSymbols))

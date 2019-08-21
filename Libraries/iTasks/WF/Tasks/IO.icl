@@ -141,4 +141,3 @@ where
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
 
 tei ts = {TaskEvalInfo|attributes='DM'.newMap,removedTasks=[],lastEvent=ts}
-derive JSONEncode Event, Set

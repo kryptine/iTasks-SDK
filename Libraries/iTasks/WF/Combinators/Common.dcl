@@ -210,7 +210,6 @@ foreverSt initialState task :== foreverStIf (\_->True) initialState task
 *
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type (Task a) -> Task a | iTask a
 */
 forever :: (Task a) -> Task a | iTask a
 
