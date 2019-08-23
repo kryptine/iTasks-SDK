@@ -33,5 +33,5 @@ find . -name "*.prj" -not -name "IncidoneCCC.prj" -not -name "examples.prj" -not
 	"cd {}; sed -i.bak 's/GenericFusion:	False/GenericFusion: True/g' *.prj && cpm make"
 
 #Run the unit tests
-find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 cleantest -f human -r
+find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 -I@ cleantest -f human --junit @-junit.xml -r @
 

@@ -202,7 +202,7 @@ where
 			= (results,(console,world))
 		//Check if the test should run
 		| otherwise
-			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name})) +++ "\n") console
+			# console = fwrites (toString (toJSON (StartEvent {StartEvent|name=name,location=Nothing})) +++ "\n") console
 			# (ok,console) = fflush console
 			| not ok = abort "fflush failed\n"
 			# (result,world) = test world
@@ -210,7 +210,7 @@ where
 				Passed = "PASSED"
 				Failed _ = "FAILED"
 				Skipped = "SKIPPED"
-			# console = fwrites (toString (toJSON (EndEvent {EndEvent|name=name,event=result,message=message})) +++ "\n") console
+			# console = fwrites (toString (toJSON (EndEvent {EndEvent|name=name,location=Nothing,event=result,message=message})) +++ "\n") console
 			= ([(name,result):results],(console,world))
 
 	skipTest name {runs,skip}
