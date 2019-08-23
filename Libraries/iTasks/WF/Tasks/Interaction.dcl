@@ -20,23 +20,24 @@ from Data.Functor import class Functor
 	= E.v: UpdateAs     (a -> v) (a v -> a)	& iTask v
 	| E.v: UpdateUsing  (a -> v) (a v -> a) (Editor v) & iTask v
 
-//When using an update option for a task that uses a shared data source
-//you can use UpdateWithShared instead of UpdateWith which allows you
-//to specify how the view must be updated when both the share changed and
-//the user changed the view simultaneously. This conflict resolution function
-//is applied before the new 'b' is generated from the view ('v') value
+//When using an shared data you have to supply an additional
+//conflict resolution function (v v -> v)
+//When both the view has been edited, and the sds has changed, this
+//function determines what the new view should be.
+//The first argument is the new view as computed from the changed sds,
+//and the second argument is the edited view by the user.
 :: UpdateSharedOption a b 
 	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v) & iTask v
-    | E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
-    | E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v v -> v) (Editor v) & iTask v
+	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
+	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v v -> v) (Editor v) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s
 	= SelectInDropdown   (c -> [ChoiceText]) (c [Int] -> [s])
-    | SelectInCheckGroup (c -> [ChoiceText]) (c [Int] -> [s])
-    | SelectInList       (c -> [ChoiceText]) (c [Int] -> [s])
-    | SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
-    | SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
+	| SelectInCheckGroup (c -> [ChoiceText]) (c [Int] -> [s])
+	| SelectInList       (c -> [ChoiceText]) (c [Int] -> [s])
+	| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
+	| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
 	| E.v: SelectUsing   (c -> v) (c [Int] -> [s]) (Editor (v, [Int])) & iTask v
 	//Common attributes as option
 	| SelectMultiple     !Bool

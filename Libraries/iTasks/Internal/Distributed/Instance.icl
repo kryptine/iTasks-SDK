@@ -612,7 +612,7 @@ where
 		_	= Nothing
 
 	hasValue key value attributes
-		= maybe False ((===) value) ('DM'.get key attributes)
+		= maybe False ((==) value) ('DM'.get key attributes)
 
 // ---- Wrapper task
 

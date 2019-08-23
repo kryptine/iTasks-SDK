@@ -58,12 +58,12 @@ where
 	mkRow {TaskInstance|instanceNo,attributes,listId} =
 		{WorklistRow
 		|taskNr		= Just (toString instanceNo)
-		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title"          attributes)
-		,priority   = fmap (\(JSONInt x) -> toString x) ('DM'.get "priority"       attributes)
-		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
-		,date       = fmap toString  ('DM'.get "createdAt"      attributes)
-		,deadline   = fmap toString  ('DM'.get "completeBefore" attributes)
-		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
+		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title" attributes)
+		,priority   = fmap (\(JSONInt x) -> toString x) ('DM'.get "priority" attributes)
+		,createdBy	= fmap toString ('DM'.get "createdBy" attributes)
+		,date       = fmap toString ('DM'.get "createdAt" attributes)
+		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
+		,createdFor = fmap toString ('DM'.get "createdFor" attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
 
