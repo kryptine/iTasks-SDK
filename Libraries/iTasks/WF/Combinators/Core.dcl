@@ -161,10 +161,6 @@ removeTask  :: !TaskId								!(SharedTaskList a)	-> Task () | TC a
 * All meta-data is kept
 */
 replaceTask :: !TaskId !(ParallelTask a)            !(SharedTaskList a) -> Task () | iTask a
-/**
-* Focuses a task in a task list
-*/
-focusTask   :: !TaskId                              !(SharedTaskList a) -> Task () | iTask a
 
 /**
 * Attaches a a detached task.

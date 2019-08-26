@@ -99,7 +99,6 @@ derive gText      DeferredJSON
     , attributes        :: !TaskAttributes
     , value             :: !TaskValue DeferredJSON //Value (only for embedded tasks)
 	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
-    , lastFocus         :: !Maybe TaskTime          //Time the entry was last explicitly focused
 	, lastEvent			:: !TaskTime				//Last modified time
 	, change            :: !Maybe ParallelTaskChange //Changes like removing or replacing a parallel task are only done when the
 	}                                                //parallel is evaluated. This field is used to schedule such changes.

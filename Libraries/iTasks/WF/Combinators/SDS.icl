@@ -98,10 +98,7 @@ where
         | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
         # (mbErr,world)             = setCurrentDirectory tmpDir world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
-		# ts						= case event of
-			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
-			_						= ts
-		# (Task evala)			= taskfun tmpDir
+		# (Task evala)              = taskfun tmpDir
 		# (resa,iworld=:{world})	= evala event evalOpts treea {IWorld|iworld & world = world}
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})

@@ -189,7 +189,6 @@ interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworl
 				iworld
 		RefreshEvent taskIds _ | 'DS'.member taskId taskIds
 			= refreshView_ taskId editor shared handlers.InteractionHandlers.onRefresh modifyFun l v st taskTime iworld
-		FocusEvent fTaskId | fTaskId == taskId = (Ok (Left (l,editor.Editor.valueFromState st,NoChange,st,taskTime)),iworld)
 		_ = (Ok (Left (l,editor.Editor.valueFromState st,NoChange,st,ts)),iworld)
 	= case mbRes of
 	   Error e = (ExceptionResult e, iworld)

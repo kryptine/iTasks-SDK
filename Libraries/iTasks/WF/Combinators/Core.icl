@@ -372,7 +372,6 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
                         , attributes = attributes
                         , value      = NoValue
                         , createdAt  = taskTime
-                        , lastFocus  = Nothing
                         , lastEvent  = taskTime
                         , change     = Nothing
                         }
@@ -456,7 +455,7 @@ evalParallelTask listId taskTrees event evalOpts taskState=:{ParallelTaskState|d
 	| otherwise = evalEmbeddedParallelTask listId taskTrees event evalOpts taskState iworld
 
 evalEmbeddedParallelTask listId taskTrees event evalOpts
-	{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change,attributes=prevAttributes} iworld=:{current={taskTime}}
+	{ParallelTaskState|taskId,detached=False,createdAt,value,change,attributes=prevAttributes} iworld=:{current={taskTime}}
     //Lookup task evaluation function and task evaluation state
     # (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
     | mbTask =:(Error _) = (Error (fromError mbTask),iworld)
@@ -494,11 +493,6 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
                 //If the exception can not be handled, don't continue evaluating just stop
                 = (Ok (ExceptionResult e),iworld)
             ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,attributes=newAttributes,removedTasks} rep tree
-                //Check for a focus event targeted at this branc
-                # mbNewFocus= case event of
-                    (FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
-                    _                       = Nothing
-                # lastFocus     = maybe lastFocus Just mbNewFocus
                 # result = ValueResult val evalInfo rep tree
 				//Check if the attributes need to be supplemented with UI attributes
 				# attributes = 'DM'.union newAttributes prevAttributes
@@ -509,17 +503,16 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
 
                 //Check if the value changed
                 # valueChanged = val =!= decode value
-                //Write updated value, and optionally the new lastFocus time to the tasklist
+                //Write updated value
                 # (mbError,iworld) = if valueChanged
                     (modify
-						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
+						(\pts -> {ParallelTaskState|pts & value = encode val, attributes = attributes})
                         (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
                     (modify
-						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes})
+						(\pts -> {ParallelTaskState|pts & attributes = attributes})
                         (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
-						EmptyContext
-						iworld)
+						EmptyContext iworld)
                 | mbError =:(Error _) = (Error (fromError mbError),iworld)
 					= (Ok result,iworld)
 where
@@ -814,20 +807,6 @@ where
     scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
         | taskId == replaceId   = [{ParallelTaskState|s & change = Just (ReplaceParallelTask (dynamic task :: Task a^))}:ss]
         | otherwise             = [s:scheduleReplacement replaceId task ss]
-
-
-focusTask :: !TaskId !(SharedTaskList a) -> Task () | iTask a
-focusTask focusId slist = mkInstantTask eval
-where
-    eval taskId iworld=:{IWorld|current={taskTime}}
-        # (mbListId,iworld)     = readListId slist iworld
-        | mbListId =:(Error _)  = (liftError mbListId, iworld)
-        # listId                = fromOk mbListId
-        | listId == TaskId 0 0
-            = (Ok (), iworld)
-        # (mbError,iworld)      = modify (\pts -> {ParallelTaskState|pts & lastFocus = Just taskTime}) (sdsFocus (listId,focusId,False) taskInstanceParallelTaskListItem) EmptyContext iworld
-        | mbError =:(Error _)   = (liftError mbError, iworld)
-        = (Ok (), iworld)
 
 attach :: !InstanceNo !Bool -> Task AttachmentStatus
 attach instanceNo steal = Task eval
