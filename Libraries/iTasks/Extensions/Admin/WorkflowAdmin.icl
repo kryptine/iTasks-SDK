@@ -327,15 +327,16 @@ where
 
 appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist
-    =   get (taskListMeta slist)
-    >>- \items -> if (checkItems name items)
-        (return ())
-	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! ())
+	=   get (taskListMeta slist)
+	>>- \items -> if (checkItems name items)
+		(return ())
+		(appendTask (NamedEmbedded name) (removeWhenStable (task <<@ ApplyAttribute "order" (maxOrder items + 1))) slist @! ())
 where
-    name = toString identity
-    checkItems name [] = False
-    checkItems name [{TaskListItem|attributes}:is]
-        | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
+	name = toString identity
+	maxOrder items = foldr max 0 [maybe 0 toInt ('DM'.get "order" attributes) \\ {TaskListItem|attributes} <- items]
+	checkItems name [] = False
+	checkItems name [{TaskListItem|attributes}:is]
+		| maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
                                                                 = checkItems name is
 
 removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a

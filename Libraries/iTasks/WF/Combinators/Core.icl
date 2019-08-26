@@ -30,6 +30,7 @@ import qualified Data.Queue as DQ
 import Data.Maybe, Data.Either, Data.Error, Data.Func
 import Text.GenJSON
 from Data.Functor import <$>, class Functor(fmap)
+from Data.Map import qualified instance Functor (Map k)
 
 derive gEq ParallelTaskChange
 
@@ -455,7 +456,7 @@ evalParallelTask listId taskTrees event evalOpts taskState=:{ParallelTaskState|d
 	| otherwise = evalEmbeddedParallelTask listId taskTrees event evalOpts taskState iworld
 
 evalEmbeddedParallelTask listId taskTrees event evalOpts
-	{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change} iworld=:{current={taskTime}}
+	{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change,attributes=prevAttributes} iworld=:{current={taskTime}}
     //Lookup task evaluation function and task evaluation state
     # (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
     | mbTask =:(Error _) = (Error (fromError mbTask),iworld)
@@ -492,13 +493,20 @@ evalEmbeddedParallelTask listId taskTrees event evalOpts
                 //TODO Check exception
                 //If the exception can not be handled, don't continue evaluating just stop
                 = (Ok (ExceptionResult e),iworld)
-            ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,attributes,removedTasks} rep tree
+            ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,attributes=newAttributes,removedTasks} rep tree
                 //Check for a focus event targeted at this branc
                 # mbNewFocus= case event of
                     (FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
                     _                       = Nothing
                 # lastFocus     = maybe lastFocus Just mbNewFocus
                 # result = ValueResult val evalInfo rep tree
+				//Check if the attributes need to be supplemented with UI attributes
+				# attributes = 'DM'.union newAttributes prevAttributes
+				# attributes = case rep of
+					ReplaceUI (UI _ attr _) = 'DM'.union (fmap toTaskAttributeValue attr) attributes
+					ChangeUI attrChanges _ = foldl applyAttributeChange attributes attrChanges
+					_ = attributes
+
                 //Check if the value changed
                 # valueChanged = val =!= decode value
                 //Write updated value, and optionally the new lastFocus time to the tasklist
@@ -522,6 +530,14 @@ where
     decode (Value v s) = Value (fromMaybe (abort "invalid parallel task state\n") $ fromDeferredJSON v) s
 
     (TaskId instanceNo taskNo)   = taskId
+
+	applyAttributeChange attr (SetAttribute k v) = 'DM'.put k (toString v) attr
+	applyAttributeChange attr (DelAttribute k) = 'DM'.del k attr
+
+	toTaskAttributeValue (JSONInt x) = toString x
+	toTaskAttributeValue (JSONString x) = x
+	toTaskAttributeValue (JSONBool x) = if x "true" "false"
+	toTaskAttributeValue x = toString x
 
 //Retrieve result of detached parallel task
 evalDetachedParallelTask listId taskTrees event evalOpts {ParallelTaskState|taskId=taskId=:(TaskId instanceNo _),detached=True} iworld
