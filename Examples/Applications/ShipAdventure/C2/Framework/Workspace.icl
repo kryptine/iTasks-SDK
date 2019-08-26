@@ -13,10 +13,8 @@ addOnceToWorkspace :: String (Task a) Workspace -> Task () | iTask a
 addOnceToWorkspace identity task workspace
     =   get (taskListMeta workspace)
     >>- \items -> case find identity items of
-            Nothing         =   appendTask (NamedEmbedded identity) (removeWhenStable task) workspace
-                            >>- \taskId ->
-                                focusTask taskId workspace @! ()
-            (Just taskId)   =   focusTask taskId workspace @! ()
+            Nothing = appendTask (NamedEmbedded identity) (removeWhenStable task) workspace @! ()
+			_       = return ()
 
 find identity [] = Nothing
 find identity [p=:{TaskListItem|taskId,attributes}:ps]
