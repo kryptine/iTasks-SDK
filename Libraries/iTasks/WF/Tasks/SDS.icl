@@ -35,7 +35,7 @@ where
 		= (ValueResult (Value r False)
 			{TaskEvalInfo|lastEvent=ts,attributes=newMap,removedTasks=[]}
 			(rep event)
-			(Task (readRegisterCompletely sds NoValue rep cont))
+			(Task (readRegisterCompletely sds (Value r False) rep cont))
 		, iworld)
 
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
