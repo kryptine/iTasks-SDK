@@ -60,9 +60,9 @@ updateSharedInformation d [UpdateSharedAs tof fromf conflictf:_] shared
 updateSharedInformation d _ shared
 	//Use dynamics to test if r == w, if so we can use an update view
 	//If different types are used we just display the read type r
-	= case dynamic id :: A.a: (a -> a) of
-		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared
-		_                  = viewSharedInformation d [] shared
+	= case dynamic shared of
+		(shared :: sds^ () r^ r^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared
+		_ = viewSharedInformation d [] shared
 
 viewSharedInformation :: !d ![ViewOption r] !(sds () r w) -> Task r | toPrompt d & iTask r & TC w & Registrable sds
 viewSharedInformation d [ViewAs tof:_] shared
