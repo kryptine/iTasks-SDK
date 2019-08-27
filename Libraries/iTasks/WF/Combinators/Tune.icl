@@ -21,7 +21,8 @@ where
 		eval (Task task) event evalOpts iworld
 			# (result,iworld) = task event evalOpts iworld
 			# attrValue       = toAttribute value
-			= recTask` eval (addAttributeChange attrName attrValue attrValue result iworld)
+			# (val, iworld)   = addAttributeChange attrName attrValue attrValue result iworld
+			= (wrapTaskContinuation eval val, iworld)
 
 class addValueAttribute f :: !String ((Maybe a) -> b) !(f a) -> f a | toAttribute b
 instance addValueAttribute Task
@@ -32,8 +33,9 @@ where
 			= inner DestroyEvent evalOpts iworld
 		eval curAttrValue (Task inner) event evalOpts iworld
 			# (result,iworld) = inner event evalOpts iworld
-			# newAttrValue = refreshAttribute result
-			= recTask` (eval newAttrValue) (addAttributeChange attrName curAttrValue newAttrValue result iworld)
+			# newAttrValue    = refreshAttribute result
+			# (val, iworld)   = addAttributeChange attrName curAttrValue newAttrValue result iworld
+			= (wrapTaskContinuation (eval newAttrValue) val, iworld)
 		where
 			refreshAttribute (ValueResult (Value v _) _ _ _) = toAttribute (attrValueFun (Just v))
 			refreshAttribute _ = toAttribute (attrValueFun Nothing)
@@ -59,7 +61,8 @@ where
 				= (ExceptionResult (fromError mbNewAttrValue),iworld)
 			//Add/change the value 
 			# (Ok newAttrValue) = mbNewAttrValue
-			= recTask` (eval newAttrValue) (addAttributeChange attrName curAttrValue newAttrValue result iworld)
+			# (val, iworld)   = addAttributeChange attrName curAttrValue newAttrValue result iworld
+			= (wrapTaskContinuation (eval newAttrValue) val, iworld)
 		where
 			refreshAttribute taskId cur (RefreshEvent refreshSet _) iworld
 				| 'DS'.member taskId refreshSet
@@ -126,8 +129,8 @@ where
 		= case inner ResetEvent evalOpts iworld of
 			(ValueResult value info (ReplaceUI ui) task,iworld)
 				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
-				= (recTask (eval state) (ValueResult value info change task), iworld)
-			e = recTask` (eval state) e
+				= (wrapTaskContinuation (eval state) (ValueResult value info change task), iworld)
+			(val, iworld) = (wrapTaskContinuation (eval state) val, iworld)
 
 	eval state (Task inner) event evalOpts iworld
 		= case inner event evalOpts iworld of
@@ -135,8 +138,8 @@ where
 				# state = applyUpstreamChange change state
 				# state = rule ruleNo state
 				# (change,state) = extractDownstreamChange state
-				= (recTask (eval state) (ValueResult value info change task), iworld)
-			e = recTask` (eval state) e
+				= (wrapTaskContinuation (eval state) (ValueResult value info change task), iworld)
+			(val, iworld) = (wrapTaskContinuation (eval state) val, iworld)
 
 instance tune ApplyLayout Task
 where tune (ApplyLayout l) task = applyLayout l task

@@ -802,4 +802,5 @@ where
 		# (tr, iw) = orig DestroyEvent opts iw
 		= (tr, queueRefresh [(tosignal, "Cleanup")] iw)
 	eval tosignal (Task orig) ev opts iw
-		= recTask` (eval tosignal) (orig ev opts iw)
+		# (val, iw) = orig ev opts iw
+		= (wrapTaskContinuation (eval tosignal) val, iw)

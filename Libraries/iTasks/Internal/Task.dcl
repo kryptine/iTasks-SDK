@@ -47,18 +47,12 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a | iTask a
 
 /**
- * Recursively wrap the task
+ * Apply a function on the task continuation of the task result
  * @type: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
  */
-recTask tf val :== case val of
+wrapTaskContinuation tf val :== case val of
 	(ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
 	a = a
-
-/**
- * Recursively wrap the task
- * @type: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a, *IWorld) -> (TaskResult a, *IWorld)
- */
-recTask` tf (val, iworld) :== (recTask tf val, iworld)
 
 /**
  * Unwrap the task to reveal the evaluation function
