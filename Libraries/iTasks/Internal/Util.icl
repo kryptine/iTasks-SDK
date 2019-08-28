@@ -53,7 +53,7 @@ where
 		Error e = (Error e, w)
 		Ok a = (b a) w
 
-liftIWorld :: (*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
+liftIWorld :: .(*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
 liftIWorld f iworld
 # (a, world) = f iworld.world
 = (a, {iworld & world=world})
