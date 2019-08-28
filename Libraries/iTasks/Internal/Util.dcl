@@ -26,7 +26,7 @@ toCanonicalPath	:: !FilePath !*World -> (!FilePath,!*World)
 (>-=) infixl 1 :: (*env -> *(MaybeError e a, *env)) (a -> *(*env -> (MaybeError e b, *env))) *env -> (MaybeError e b, *env)
 
 //Lift a world function to an iworld function
-liftIWorld :: (*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
+liftIWorld :: .(*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
 
 //Apply an IWorld transformer and transform the result to a taskresult
 apIWTransformer :: *env (*env -> *(MaybeError TaskException (TaskResult a), *env)) -> *(TaskResult a, *env)
