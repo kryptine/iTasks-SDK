@@ -83,10 +83,6 @@ removeWhenStable :: (Task a) -> ParallelTask b | iTask a & iTask b
 removeWhenStable t
     = \l -> t >>* [OnValue (ifStable (const (get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue)))]
 
-//Helper functions for projections
-projectJust :: (Maybe a) r -> Maybe (Maybe a)
-projectJust mba _ = Just mba
-
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
 = task >>- \r -> case r of
@@ -97,10 +93,20 @@ sequence :: ![Task a]  -> Task [a] | iTask a
 sequence tasks = foldr (\t ts->t >>- \tv->ts >>- \tvs->return [tv:tvs]) (return []) tasks
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
-foreverStIf pred st t = t st >>- \tv->if (pred tv) (foreverStIf pred tv t) (treturn tv)
+foreverStIf pred st t
+	= step (t st) id [OnValue $ withStable \st->if (pred st) (Just $ foreverStIf pred st t) Nothing]
+
+(<!) infixl 6 :: (Task a) (a -> Bool) -> Task a | iTask a
+(<!) task pred = foreverIf (not o pred) task
+
+foreverIf :: (a -> Bool) !(Task a) -> Task a | iTask a
+foreverIf pred task = step task id [OnValue $ withStable \v->if (pred v) (Just $ foreverIf pred task) Nothing]
+
+foreverSt :: a !(a -> Task a) -> Task a | iTask a
+foreverSt st t = step (t st) id [OnValue $ withStable $ Just o forever o t]
 
 forever :: (Task a) -> Task a | iTask a
-forever t = t >-| forever t
+forever t = step t id [OnValue $ withStable \_->Just $ forever t]
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]

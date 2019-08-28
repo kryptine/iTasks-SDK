@@ -170,10 +170,8 @@ sequence	:: ![Task a] 						-> Task [a]		| iTask a
 * @param Task: The task to be looped
 * @param Predicate: The predicate over the result of the task to determine if the combination is finished
 * @return The combined task
-* @type (Task a) (a -> Bool) -> Task a | iTask a
 */
-(<!) infixl 6
-(<!) task pred :== foreverIf (\p->not (pred p)) task
+(<!) infixl 6 :: (Task a) (a -> Bool) -> Task a | iTask a
 
 /**
 * Repeats a task while carrying a state while a predicate holds
@@ -191,9 +189,8 @@ foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 * @param Predicate: The predicate that has to hold
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type (a -> Bool) !(a -> Task a) -> Task a | iTask a
 */
-foreverIf pred task :== (foreverStIf (maybe True pred) Nothing \_->task @ Just) @? tvFromMaybe
+foreverIf :: (a -> Bool) !(Task a) -> Task a | iTask a
 
 /**
 * Repeats a task indefinitely while carrying a state
@@ -201,9 +198,8 @@ foreverIf pred task :== (foreverStIf (maybe True pred) Nothing \_->task @ Just) 
 * @param State: The initial state
 * @param Task: The task that has to be repeate
 * @return The combined task
-* @type a !(a -> Task a) -> Task a | iTask a
 */
-foreverSt initialState task :== foreverStIf (\_->True) initialState task
+foreverSt :: a !(a -> Task a) -> Task a | iTask a
 
 /**
 * Repeats a task indefinitely
