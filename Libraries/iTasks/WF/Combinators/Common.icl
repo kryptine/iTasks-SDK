@@ -94,13 +94,13 @@ sequence tasks = foldr (\t ts->t >>- \tv->ts >>- \tvs->return [tv:tvs]) (return 
 
 foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
 foreverStIf pred st t
-	= step (t st) id [OnValue $ withStable \st->if (pred st) (Just $ foreverStIf pred st t) Nothing]
+	= step (t st) id [OnValue $ withStable \st->Just if (pred st) (foreverStIf pred st t) (return st)]
 
 (<!) infixl 6 :: (Task a) (a -> Bool) -> Task a | iTask a
 (<!) task pred = foreverIf (not o pred) task
 
 foreverIf :: (a -> Bool) !(Task a) -> Task a | iTask a
-foreverIf pred task = step task id [OnValue $ withStable \v->if (pred v) (Just $ foreverIf pred task) Nothing]
+foreverIf pred task = step task id [OnValue $ withStable \v->Just if (pred v) (foreverIf pred task) (return v)]
 
 foreverSt :: a !(a -> Task a) -> Task a | iTask a
 foreverSt st t = step (t st) id [OnValue $ withStable $ Just o forever o t]
