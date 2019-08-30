@@ -14,8 +14,5 @@ addLog who location about
 	>>|				 return ()
 
 showLog :: Task [Log]
-showLog
-	=				viewSharedInformation "Loggings..." [] myLog
-
-
+showLog = Title "Loggings..." @>> viewSharedInformation  [] myLog
 

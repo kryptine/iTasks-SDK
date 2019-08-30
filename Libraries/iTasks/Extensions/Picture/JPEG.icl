@@ -14,7 +14,7 @@ from iTasks.UI.Editor.Modifiers import comapEditorValue, instance tune UIAttribu
 from iTasks.UI.Editor.Controls import htmlView
 from iTasks.UI.Definition import :: UIAttributes
 from Text.HTML import :: HtmlTag(ImgTag), :: HtmlAttr(SrcAttr,StyleAttr,AltAttr)
-from iTasks.WF.Combinators.Tune import <<@, class tune
+from iTasks.UI.Tune import <<@, class tune
 
 derive gText JPEGPicture
 derive JSONEncode JPEGPicture

@@ -116,11 +116,11 @@ mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f DestroyEvent _ _ iworld = (DestroyedResult,iworld)
 	evalOnce f event repOpts (TCInit taskId ts) iworld = case f taskId iworld of
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
 	evalOnce f event repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep event) state, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) state, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 	rep ResetEvent  = ReplaceUI (ui UIEmpty)

@@ -2,16 +2,10 @@ implementation module iTasks.UI.Editor.Modifiers
 
 from StdFunc import o, const, flip, id
 import StdBool, StdString, StdList
-import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.WF.Combinators.Tune
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.GenJSON, Data.Tuple, Data.Functor, Data.Maybe
 import Data.GenEq, Data.Func
 import qualified Data.Map as DM
-
-instance tune UIAttributes Editor
-where
-	tune extra editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
-	where
-		genUI attr dp mode vst = editorGenUI ('DM'.union attr extra) dp (mapEditMode id mode) vst
 
 withEditModeAttr :: !(Editor a) -> Editor a
 withEditModeAttr editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}

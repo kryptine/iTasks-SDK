@@ -2,13 +2,13 @@ module Character
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions
 
 Start :: *World -> *World
 Start world
-	= startEngine [publish "/" (const (viewInformation "A char" [ViewUsing id (fromSVGEditor
+	= startEngine [publish "/" (const (Title "A char" @>> viewInformation [ViewUsing id (fromSVGEditor
 	                                                                            { initView    = id
 	                                                                            , renderImage = const char
 	                                                                            , updModel    = \_ v = v

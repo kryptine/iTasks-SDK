@@ -56,7 +56,7 @@ where
 
 	eval _ event opts s=:(TCStable taskId ts enc) iworld
 	= case fromDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
@@ -68,7 +68,7 @@ where
 	= (DestroyedResult, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval val shared event _ tree=:(TCAwait Write taskId ts st) iworld=:{sdsEvalStates}
-	# evalInfo = {lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+	# evalInfo = {lastEvent=ts,removedTasks=[]}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just f) = case f iworld of
@@ -78,7 +78,7 @@ where
 				Writing sds = (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.write val sds ('SDS'.TaskContext taskId))) sdsEvalStates})
 
 	eval val shared event _ tree=:(TCInit taskId ts) iworld=:{sdsEvalStates}
-	# evalInfo = {lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+	# evalInfo = {lastEvent=ts,removedTasks=[]}
 	= case 'SDS'.write val shared ('SDS'.TaskContext taskId) iworld of
 		(Error e, iworld) 		= (ExceptionResult e, iworld)
 		(Ok (Writing sds), iworld)
@@ -89,7 +89,7 @@ where
 		(Ok WritingDone, iworld) 			= (ValueResult (Value val True) evalInfo (rep event) (TCStable taskId ts (DeferredJSON val)), iworld)
 
 	eval val shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
@@ -126,7 +126,7 @@ where
 				= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
 	eval fun shared event _ s=:(TCStable taskId ts enc) iworld = case fromDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) s, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
@@ -188,7 +188,7 @@ where
 					# result = ValueResult oldValue (tei ts) NoChange tree
 					= (result, {iworld & sdsEvalStates = sdsEvalStates})
 
-tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 
 rep ResetEvent  = ReplaceUI (ui UIEmpty)
 rep _ 			= NoChange

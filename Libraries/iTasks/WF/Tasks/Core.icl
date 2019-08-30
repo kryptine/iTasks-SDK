@@ -2,7 +2,6 @@ implementation module iTasks.WF.Tasks.Core
 
 import iTasks.WF.Definition
 import iTasks.UI.Definition
-import iTasks.UI.Prompt
 import iTasks.SDS.Definition
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
@@ -51,54 +50,54 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
-	| toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-interactRW prompt shared handlers editor = Task (eval prompt shared handlers editor)
+interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
+	| iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interactRW shared handlers editor = Task (eval shared handlers editor)
 where
-	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
-		-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+	eval :: (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
+		-> *(TaskResult (l,v), *IWorld) | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 	//Destroy
-	eval _ _ _ _ DestroyEvent evalOpts tt iworld
+	eval _ _ _ DestroyEvent evalOpts tt iworld
 		= interactDestroy tt iworld
 	//Await
-	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld
-		= interactAwaitReadRefresh prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
-	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ _ _) iworld
-		= interactAwaitModifyRefresh prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
-	eval _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld
+	eval shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld
+		= interactAwaitReadRefresh shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
+	eval shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ _ _) iworld
+		= interactAwaitModifyRefresh shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
+	eval _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld
 		= interactAwait t iworld
 	
 	//Regular refresh and edit events
-	eval prompt shared handlers editor event evalOpts tree iworld
-		= interactEvents prompt shared handlers editor event evalOpts tree (interactModifyShareAsync shared) iworld
+	eval shared handlers editor event evalOpts tree iworld
+		= interactEvents shared handlers editor event evalOpts tree (interactModifyShareAsync shared) iworld
 
-interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
-interactR prompt shared handlers editor = Task (eval prompt shared handlers editor)
+interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactR shared handlers editor = Task (eval shared handlers editor)
 where
-	eval :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+	eval :: (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult (l,v), *IWorld) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 	//Destroy
-	eval _ _ _ _ DestroyEvent evalOpts tt iworld
+	eval _ _ _ DestroyEvent evalOpts tt iworld
 		= interactDestroy tt iworld
 	//Await
-	eval prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld
-		= interactAwaitReadRefresh prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
-	eval _ _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld
+	eval shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree) iworld
+		= interactAwaitReadRefresh shared handlers editor (RefreshEvent taskIds reason) evalOpts t iworld
+	eval _ _ _  _ _ t=:(TCAwait _ taskId ts tree) iworld
 		= interactAwait t iworld
 
 	//Regular refresh and edit events
-	eval prompt shared handlers editor event evalOpts tree iworld
-		= interactEvents prompt shared handlers editor event evalOpts tree (\_ _ iw -> (Ok Nothing,iw)) iworld
+	eval shared handlers editor event evalOpts tree iworld
+		= interactEvents shared handlers editor event evalOpts tree (\_ _ iw -> (Ok Nothing,iw)) iworld
 
 //Shared eval cases of interact
 interactDestroy tt iworld
 	# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.singleton $ fromOk $ taskIdFromTaskTree tt) iworld
 	= (DestroyedResult, iworld)
 
-interactAwaitReadRefresh :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
-		-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
-interactAwaitReadRefresh prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree)
+interactAwaitReadRefresh :: (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
+		-> *(TaskResult (l,v), *IWorld) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactAwaitReadRefresh shared handlers editor (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Read taskId ts tree)
 	iworld=:{sdsEvalStates, current={taskTime}}
-	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
+	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} NoChange t, iworld)
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing = (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val)
@@ -113,20 +112,20 @@ interactAwaitReadRefresh prompt shared handlers editor (RefreshEvent taskIds rea
 							View x   = Just x
 					= withVSt taskId (\vst. case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
 						(Error e, vst)		= (ExceptionResult (exception e), vst)
-						(Ok (ui, st), vst)
-							# change 	= ReplaceUI (uic UIInteract [toPrompt prompt, ui])
-					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+						(Ok (UI type attr items, st), vst)
+							# change 	= ReplaceUI (UI type (addClassAttr "interact" attr) items)
+					        # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
                 			# value 	= maybe NoValue (\v -> Value (l, v) False) mbV
 					        = (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON mbV) st (mode =: View _)), vst)) iworld
-				Reading sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
+				Reading sds = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} NoChange t, {iworld & sdsEvalStates = 'DM'.put taskId (dynamicResult ('SDS'.readRegister taskId sds)) sdsEvalStates})
 			(_, iworld) = (ExceptionResult (exception "Dynamic type mismatch"), iworld)
 
-interactAwaitModifyRefresh :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
-		-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-interactAwaitModifyRefresh prompt shared handlers editor (RefreshEvent taskIds reason) evalOpts
+interactAwaitModifyRefresh :: (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree *IWorld
+		-> *(TaskResult (l,v), *IWorld) | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interactAwaitModifyRefresh shared handlers editor (RefreshEvent taskIds reason) evalOpts
 	t=:(TCAwait Modify _ _ (TCInteract taskId ts encl encv st viewmode)) iworld=:{sdsEvalStates, current={taskTime}}
-	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
-	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} NoChange t, iworld)
+	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 	= case 'DM'.get taskId sdsEvalStates of
 		Nothing 				= (ExceptionResult (exception ("No SDS state found for task " +++ toString taskId)), iworld)
 		(Just val) 				= case val iworld of
@@ -141,12 +140,12 @@ interactAwaitModifyRefresh prompt shared handlers editor (RefreshEvent taskIds r
 			(Ok (dyn), iworld)							= (ExceptionResult (exception ("Dynamic type mismatch, type was " +++ toString (typeCodeOfDynamic dyn))), iworld)
     
 interactAwait t=:(TCAwait _ taskId ts tree) iworld // Ignore all other events when waiting on an async operation.
-	= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} NoChange t, iworld)
+	= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} NoChange t, iworld)
 
-interactEvents :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree 
+interactEvents :: (sds () r w) (InteractionHandlers l r w v) (Editor v) Event TaskEvalOpts TaskTree 
 	(TaskId (r -> w) *IWorld -> (MaybeError TaskException (Maybe (!AsyncAction, !*IWorld -> *(MaybeError TaskException Dynamic, *IWorld))), *IWorld))
-	*IWorld	-> *(TaskResult (l,v), *IWorld) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
-interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworld=:{current={taskTime}, sdsEvalStates}
+	*IWorld	-> *(TaskResult (l,v), *IWorld) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactEvents shared handlers editor event evalOpts tree modifyFun iworld=:{current={taskTime}, sdsEvalStates}
 	//Decode or initialize state
 	# (mbd,iworld) = case tree of
 		(TCInit taskId ts)
@@ -170,7 +169,8 @@ interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworl
 				_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 	| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 	| mbd =:(Ok (Right _)) = case mbd of
-		(Ok (Right (taskId, ts, sds))) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (ReplaceUI (uia UIProgressBar (textAttr "Getting data"))) (TCAwait Read taskId taskTime tree), iworld)
+		(Ok (Right (taskId, ts, sds)))
+			= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (ReplaceUI (uia UIProgressBar ('DM'.unions [textAttr "Getting data",classAttr ["interact"]]))) (TCAwait Read taskId taskTime tree), iworld)
 	# (Left (taskId,ts,l,v,st,viewMode)) = fromOk mbd
 	# (mbRes, iworld) = case event of
 		EditEvent eTaskId name edit | eTaskId == taskId =
@@ -183,7 +183,9 @@ interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworl
 				(_, Just v)    = Update v
 			= withVSt taskId
 				( \vst -> case editor.Editor.genUI 'DM'.newMap [] resetMode vst of
-					(Ok (ui,st),vst) = (Ok (Left (l,editor.Editor.valueFromState st,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),st,taskTime)), vst)
+					(Ok (UI type attr items ,st),vst) =
+						let change = ReplaceUI (UI type (addClassAttr "interact" attr) items) in
+							(Ok (Left (l,editor.Editor.valueFromState st,change,st,taskTime)), vst)
 					(Error e, vst)  = (Error (exception e), vst)
 				)
 				iworld
@@ -198,14 +200,14 @@ interactEvents prompt shared handlers editor event evalOpts tree modifyFun iworl
 	   // want to wait for the result of the modify (otherwise we send multiple requests which may interfere),
 	   // so we transition to the TCAwait state
 	   Ok (Right (type, sdsf, l, v, st, change))
-			# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+			# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 			# tree = TCAwait type taskId taskTime (TCInteract taskId taskTime (DeferredJSON l) (DeferredJSON v) st viewMode)
 			= (ValueResult NoValue evalInfo NoChange tree, {iworld & sdsEvalStates = 'DM'.put taskId sdsf iworld.sdsEvalStates})
 	   Ok (Left (l,mbV,change,st,ts))
 			//Construct the result
 			# v     = maybe v Just mbV // use previous view state of editor is in invalid state
 			# value = maybe NoValue (\v -> Value (l, v) False) mbV
-			# info  = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
+			# info  = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 			= (ValueResult value info change (TCInteract taskId ts (DeferredJSON l) (DeferredJSON v) st viewMode), iworld)
 
 interactModifyShareAsync :: (sds () r w) TaskId (r -> w) !*IWorld ->
@@ -235,7 +237,6 @@ applyEditEvent_ name edit taskId editor taskTime shared onEdit writeFun l ov st 
 	# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
 	= case res of
 		Ok (change, st)
-			# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 			= case editor.Editor.valueFromState st of
 				Just v
 					# (l, v, mbf) = onEdit v l ov
@@ -264,7 +265,6 @@ refreshView_ taskId editor shared onRefresh modifyFun l ov st taskTime iworld
 			# (res, iworld) = withVSt taskId (editor.Editor.onRefresh [] v st) iworld
 			= case res of
 				Ok (change,st)
-					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 					//Update the share if necessary
 					= case mbf of
 						Just f = case modifyFun taskId f iworld of

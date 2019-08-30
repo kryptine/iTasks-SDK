@@ -6,7 +6,6 @@ definition module iTasks.WF.Tasks.IO
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
 from iTasks.Internal.IWorld import :: ConnectionId
-from iTasks.UI.Prompt import class toPrompt
 from System.FilePath import :: FilePath
 from System.Process import :: ProcessPtyOptions
 from Data.Error import :: MaybeError, :: MaybeErrorString

@@ -16,10 +16,10 @@ main = multiUserExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) players)
-	>>|				viewInformation "Login under one of the following names (password = login name)" []
-						(join ", " players)
+	>>|				(Hint "Login under one of the following names (password = login name)" @>> viewInformation []
+						(join ", " players))
 					-||-
-					viewInformation "and then Select \"new\" to create a new Task..." [] ""
+					(Hint "and then Select \"new\" to create a new Task..." @>> viewInformation [] "")
 	>>|				installWorkflows [wf "Meeting date"]
 	>>|				loginAndManageWork "Meeting_4_3 Example" Nothing Nothing False
 where
@@ -52,15 +52,15 @@ derive class iTask DateOption, MeetingOption
 
 DefineMeetingPurpose :: Task String
 DefineMeetingPurpose
-	=	enterInformation "What is the purpose of the meeting?" []
+	=	Hint "What is the purpose of the meeting?" @>> enterInformation []
 
 SelectDatesToPropose :: Task [DateOption]
 SelectDatesToPropose
-	=	enterInformation "Select the date(s) and time you propose to meet..." []
+	=	Hint "Select the date(s) and time you propose to meet..." @>> enterInformation []
 
 SelectAttendencees :: Task [User]
 SelectAttendencees
-	=	enterMultipleChoiceWithShared ("Who do you want to invite for the meeting?") [ChooseFromCheckGroup id] users
+	=	Hint "Who do you want to invite for the meeting?" @>> enterMultipleChoiceWithShared [ChooseFromCheckGroup id] users
 
 AskOthers :: String [User] [DateOption] -> Task MeetingOption
 AskOthers purpose others dates
@@ -72,13 +72,15 @@ where
 
 	askAll table
 		=   allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
-		>-| enterChoiceWithShared "Select the date for the meeting:" [ChooseFromGrid id] table
-		>>=	 		viewInformation "Date chosen:" []
+		>-| (Hint "Select the date for the meeting:" @>> enterChoiceWithShared [ChooseFromGrid id] table)
+		>>=	\result -> Hint "Date chosen:" @>> viewInformation [] result
 	where
 		checkOptions user
-			=				viewSharedInformation "Current Responses:" [] table
+			=				(Hint "Current Responses:" @>> viewSharedInformation [] table)
 							||-
-							enterMultipleChoice "Select the date(s) you can attend the meeting (ctrl alt):" [ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1]
+							(Hint "Select the date(s) you can attend the meeting (ctrl alt):"
+								@>> enterMultipleChoice [ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1])
+
 			>>=	\ids ->	upd (\table -> [{t & users = if (isMember j ids) [user:t.users] t.users} \\ j <- [0..] & t <- table]) table
 
 

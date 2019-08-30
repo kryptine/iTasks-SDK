@@ -59,19 +59,11 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
     = UIEmpty
 	| UIAction 
-	| UIPair
-	| UIRecord
-	| UICons
-	| UIVarCons
-	| UIInteract
-	| UIStep
-	| UIParallel
-	// --- Client components: ---
 	// Core framework components (implemented in itasks-core.js)
 	| UIComponent     // - Component (the client-side base class)
 	// Containers (implemented in itasks-components-container.js)
     | UIViewport      // - Viewport for embedding another task instance's UI (like an iframe for tasks)
-	| UIContainer
+	| UIContainer // - The base component that contains other components
 	| UIPanel
 	| UIWindow
 	| UITabSet
@@ -156,6 +148,12 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	, value		:: !Int
 	}
 
+//Common attributes:
+:: Title = Title !String
+:: Hint = Hint !String
+:: Label = Label !String
+:: Icon = Icon !String
+
 //Predefined attribute names
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"
@@ -168,7 +166,6 @@ LABEL_ATTRIBUTE			:== "label"
 PREFIX_ATTRIBUTE		:== "prefix"
 POSTFIX_ATTRIBUTE		:== "postfix"
 ICON_ATTRIBUTE			:== "icon"
-STEPPED_ATTRIBUTE       :== "stepped"
 
 //Construction functions
 ui   :: UIType -> UI
@@ -185,6 +182,7 @@ sizeAttr          :: !UISize !UISize                      -> UIAttributes
 widthAttr         :: !UISize                              -> UIAttributes
 heightAttr        :: !UISize                              -> UIAttributes
 
+hintAttr          :: !String                              -> UIAttributes
 titleAttr         :: !String                              -> UIAttributes
 iconClsAttr       :: !String                              -> UIAttributes
 tooltipAttr       :: !String                              -> UIAttributes
@@ -211,12 +209,13 @@ taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
 classAttr         :: ![String]                            -> UIAttributes
+addClassAttr      :: !String !UIAttributes                -> UIAttributes
+removeClassAttr   :: !String !UIAttributes                -> UIAttributes
 resizableAttr     :: ![UISide]                            -> UIAttributes
 maxlengthAttr     :: !Int                                 -> UIAttributes
 minlengthAttr     :: !Int                                 -> UIAttributes
 boundedlengthAttr :: !Int !Int                            -> UIAttributes
 eventTimeoutAttr  :: !(Maybe Int)                         -> UIAttributes
-steppedAttr       :: !Bool                                -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

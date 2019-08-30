@@ -56,7 +56,7 @@ import StdFile
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args cases t = tonicWrapTaskBody` mn tn args cases t
-  tonicWrapArg d ptr v = viewInformation d [] v @! ()
+  tonicWrapArg d ptr v = viewInformation [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t

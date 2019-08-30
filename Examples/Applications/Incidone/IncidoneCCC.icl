@@ -44,7 +44,7 @@ Start world = doTasks
 where
 	//Main task for command center operators
 	ccPerson :: Task ()
-	ccPerson = forever (catchAll (doAuthenticated usersMainTask) (\err -> viewInformation "Error" [] err >>| return ()))
+	ccPerson = forever (catchAll (doAuthenticated usersMainTask) (\err -> Hint "Error" @>> viewInformation [] err >>| return ()))
 
 	usersMainTask :: User -> Task ()
 	usersMainTask me=:(AuthenticatedUser "admin" _ _)
@@ -62,8 +62,8 @@ doAuthenticated task
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
-		= 	viewInformation () [] (DivTag [ClassAttr "identify-app",StyleAttr "width: 350px; height: 55px; margin-bottom: 5px"] [])
-		||-	enterInformation () []
+		= 	viewInformation [] (DivTag [ClassAttr "identify-app",StyleAttr "width: 350px; height: 55px; margin-bottom: 5px"] [])
+		||-	enterInformation []
 
 	//Compact layout before login, full screen afterwards
 	credentialsLayout = sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact]
@@ -86,7 +86,7 @@ whileAuthenticated user tasks
     =  (controlDash -|| workOnTasks) <<@ (ArrangeWithHeader 0)
 where
 	controlDash = (
-		    viewInformation () [] ("Welcome " +++ toString user)
+		    viewInformation [] ("Welcome " +++ toString user)
              -&&-
             viewNotifications
         >>* [OnAction (Action "Log out") (always (return ()))]

@@ -68,7 +68,7 @@ exception :: !e -> TaskException | TC, toString e
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
 
-:: TaskAttributes :== Map String String
+:: TaskAttributes :== Map String JSONNode
 :: InstanceKey  :== String
 
 instance toString	TaskId

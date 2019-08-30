@@ -30,7 +30,7 @@ Start world = doTasks
 	] world
 
 editMaps2D :: Task Maps2D
-editMaps2D = updateSharedInformation "Edit map" [] maps2DShare
+editMaps2D = Hint "Edit map" @>> updateSharedInformation [] maps2DShare
 
 importDemoUsers :: Task [UserAccount]
 importDemoUsers = allTasks (map mkDemoUser namesRoles)

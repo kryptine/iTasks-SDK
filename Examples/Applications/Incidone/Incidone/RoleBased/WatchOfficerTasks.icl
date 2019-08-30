@@ -27,7 +27,7 @@ browseCommunications ws
         ] @! ()
 where
 	selectCommunication
-        = enterChoiceWithSharedAs [Att (Icon "communication"),Att (Title "Communication")] [ChooseFromGrid id] allCommunications communicationIdentity
+        = Icon "communication" @>> Title "Communication" @>> enterChoiceWithSharedAs [ChooseFromGrid id] allCommunications communicationIdentity
     openCommunication ws communicationNo
         = addToWorkspace ((doOrClose (updateCommunication communicationNo)) <<@ InWindow) ws @! ()
 
@@ -56,10 +56,10 @@ browseIncidents ws
     @! ()
 where
 	selectIncident
-		= ( (enterChoiceWithSharedAs (Title "Open incidents")
+		= ( ((Title "Open incidents") @>> enterChoiceWithSharedAs 
 			    [ChooseFromGrid id] openIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
             -||-
-            (enterChoiceWithSharedAs (Title "Recent incidents")
+            ((Title "Recent incidents") @>> enterChoiceWithSharedAs 
                 [ChooseFromGrid id] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
          ) <<@ ArrangeWithTabs True
 
@@ -82,7 +82,7 @@ where
 
     addContact :: Task (Maybe ContactNo)
     addContact
-        =   enterInformation (Title "Add contact") []
+        =   (Title "Add contact") @>> enterInformation []
         >>? createContact
 
 :: ActionSet = PersonalActions | IncidentActions !IncidentNo
@@ -103,11 +103,11 @@ browseActions ws
 	@!  ()
 where
 	selectAndWorkOnActions
-     = feedForward (chooseActionItem (Title "Overview") True True actionStatuses /* <<@ AfterLayout (tweakUI fill) */) //FIXME
+     = feedForward (Title "Overview" @>> chooseActionItem  True True actionStatuses /* <<@ AfterLayout (tweakUI fill) */) //FIXME
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
-              Nothing        = viewInformation () [] ()
+              Nothing        = viewInformation [] ()
             )
         ) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Actions")
 

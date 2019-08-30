@@ -193,7 +193,7 @@ configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)       
 * @param Group by incidents
 * @param Use 'my actions' group for current user
 */
-chooseActionItem         :: d Bool Bool (sds () [(InstanceNo,InstanceNo,ActionStatus)] ())  -> Task InstanceNo | toPrompt d & RWShared sds
+chooseActionItem         :: Bool Bool (sds () [(InstanceNo,InstanceNo,ActionStatus)] ())  -> Task InstanceNo | RWShared sds
 workOnActionItem         :: InstanceNo                                              -> Task ()
 editActionItem           :: InstanceNo                                              -> Task (Maybe ActionStatus)
 deleteActionItem         :: InstanceNo                                              -> Task (Maybe ActionStatus)

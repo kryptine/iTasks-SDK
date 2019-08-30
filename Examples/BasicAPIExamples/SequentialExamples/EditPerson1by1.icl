@@ -22,9 +22,9 @@ derive class iTask Person, Gender
 
 person1by1 :: [Person] -> Task [Person]
 person1by1 persons
-	=       enterInformation "Add a person" []
+	=       (Hint "Add a person" @>> enterInformation [])
 			-||
-			viewInformation "List so far.." [] persons
+			(Hint "List so far.." @>> viewInformation [] persons)
 	>>*		[ OnAction  (Action "Add") 		(hasValue (\v -> person1by1  [v : persons]))
 		    , OnAction  (Action "Finish")   (always (return persons))
 		    , OnAction  ActionCancel 		(always (return []))

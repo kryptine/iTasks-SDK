@@ -328,7 +328,7 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
                  (   upd ('DM'.put actor.userName actor) userToActorShare
                  >>| move (0, {col = 0, row = 0}) location actor.userName
                  >>| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
-                 (viewInformation ("Section with number: " <+++ location <+++ " does not exist") [] () >>| return ())
+                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>| return ())
 
 :: UITag :== [Int]
 
@@ -341,18 +341,19 @@ uiToRefs :: UI -> TaskUITree
 uiToRefs (UI _ _ subs) = case recurse [] subs of
                            [x : _] -> x
                            _       -> Ed []
-  where
-  uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
-  uiToRefs` path (i, UI UIParallel _ subs)
-    # curPath = path ++ [i]
-    = [Par curPath (recurse curPath subs)]
-  uiToRefs` path (i, UI UIStep _ subs)
-    # curPath = path ++ [i]
-    = [Step curPath (recurse curPath subs)]
-  uiToRefs` path (i, _)
-    # curPath = path ++ [i]
-    = [Ed curPath]
-  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+where
+	uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
+  	uiToRefs` path (i, UI type attr subs)
+		# curPath = path ++ [i]
+		| hasClass "parallel" attr || hasClass "parallel-actions" attr = [Par curPath (recurse curPath subs)]
+		| hasClass "step" attr || hasClass "step-actions" attr = [Step curPath (recurse curPath subs)]
+		| otherwise = [Ed curPath]
+	where
+		hasClass name attr = case 'DM'.get "class" attr of
+			(Just (JSONArray items)) = isMember name [item \\ JSONString item <- items]
+			_ = False
+
+	recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
 
 getSubTree :: UI [Int] -> Maybe UI
 getSubTree ui [] = Just ui
@@ -429,19 +430,19 @@ moveAround viewDeck user inventoryForSectionShare
   changeDecks :: Task ()
   changeDecks
     =    watch (lockedHopsShare |*| roomNoForCurrentUserShare)
-    -&&- enterChoiceWithShared "Change deck" [prettyPrintHops] nearbyHops
+    -&&- (Hint "Change deck" @>> enterChoiceWithShared  [prettyPrintHops] nearbyHops)
     >>*  [OnAction (Action "Change deck") changeDeck]
 
   pickUpItems :: Task ()
   pickUpItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items nearby" [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare)
+    -&&- (Hint "Items nearby" @>> enterChoiceWithShared [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare))
     >>*  [OnAction (Action "Grab selected item") (withSelectedObject userToActorShare inventoryForSectionShare pickupObject)]
 
   dropItems :: Task ()
   dropItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items in inventory" [prettyPrintItems] (inventoryShare userToActorShare)
+    -&&- (Hint "Items in inventory" @>> enterChoiceWithShared  [prettyPrintItems] (inventoryShare userToActorShare))
     >>*  [OnAction (Action "Drop selected item") (withSelectedObject userToActorShare inventoryForSectionShare dropObject)]
 
   moveAroundUI :: TaskUITree -> TaskUILayout
