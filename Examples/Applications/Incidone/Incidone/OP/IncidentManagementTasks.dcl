@@ -12,7 +12,7 @@ manageIncidentLog           :: IncidentNo -> Task ()
 viewIncidentDetails         :: IncidentNo -> Task ()
 
 //Reusable task fragments
-updateSharedIncidentRefList     :: d Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | toPrompt d & RWShared sds
+updateSharedIncidentRefList     :: Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | RWShared sds
 
 selectKnownOrDefineNewIncident  :: Task (Either IncidentNo NewIncident)
 createIncidentIfNew             :: (Either IncidentNo NewIncident) -> Task IncidentNo

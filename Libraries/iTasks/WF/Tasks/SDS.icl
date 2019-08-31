@@ -12,13 +12,6 @@ import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskState
 
-from Data.Map import newMap
-//instance toString SharedException
-//where
-//	toString (SharedException err) = "Error performing operation on shared:" +++ err
-//
-//derive class iTask SharedException
-
 get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 get sds = Task (readCompletely sds NoValue (unTask o treturn))
 
@@ -33,7 +26,7 @@ watch sds = Task (readRegisterCompletely sds NoValue rep cont)
 where
 	cont r event {TaskEvalOpts|ts} iworld
 		= (ValueResult (Value r False)
-			{TaskEvalInfo|lastEvent=ts,attributes=newMap,removedTasks=[]}
+			{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 			(rep event)
 			(Task (readRegisterCompletely sds (Value r False) rep cont))
 		, iworld)

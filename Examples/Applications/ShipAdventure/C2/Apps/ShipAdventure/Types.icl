@@ -97,7 +97,7 @@ myInventoryMap :: SimpleSDSLens MySectionInventoryMap
 myInventoryMap = sharedStore "myInventoryMap" 'DM'.newMap
 
 viewDisabledDevices :: Task ()
-viewDisabledDevices = viewSharedInformation "Disabled devices" [ViewAs (\(nw, ds) -> map toPPDevice (allDisabledDevices ds nw))] (myNetwork |*| myDevices) @! ()
+viewDisabledDevices = Hint "Disabled devices" @>> viewSharedInformation [ViewAs (\(nw, ds) -> map toPPDevice (allDisabledDevices ds nw))] (myNetwork |*| myDevices) @! ()
 
 //manageDevices :: Bool -> Task ()
 //manageDevices kitchen
@@ -419,8 +419,8 @@ updateMapStatus mode
   = /* project (\tv _ -> case tv of
                           Value x _ -> Just x
                           _         -> Nothing) sharedMapAction */
-      (updateInformationWithShared "Map Status"
-        [UpdateUsing id (const snd) editor]
+      (Title "Map Status" @>> updateInformationWithShared 
+        [UpdateSharedUsing id (const snd) const editor]
         (disabledSections |*| maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| myInventoryMap |*| myStatusMap |*| sectionUsersShare |*| myUserActorMap |*| myNetwork |*| myDevices)
         NoAction)
 where
@@ -436,8 +436,8 @@ disabledSections = sharedStore "disabledSections" 'DS'.newSet
 
 updateSectionStatus :: !Coord3D -> Task (MapAction SectionStatus)
 updateSectionStatus c3d=:(floorIdx, _)
-  = updateInformationWithShared "Section Status"
-      [UpdateUsing id (const snd) editor]
+  = Title "Section Status" @>> updateInformationWithShared 
+      [UpdateSharedUsing id (const snd) const editor]
       (maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| sdsFocus c3d inventoryInSectionShare |*| sdsFocus c3d statusInSectionShare |*| sdsFocus c3d (actorsInSectionShare myUserActorMap) |*| myNetwork |*| myDevices)
       NoAction
 where

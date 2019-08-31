@@ -8,4 +8,4 @@ from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization	import :: TextFormat(..)
 from iTasks.WF.Tasks.Interaction         import :: ViewOption(..)
 
-viewSharedInformation :: String [ViewOption r] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
+viewSharedInformation :: [ViewOption r] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds

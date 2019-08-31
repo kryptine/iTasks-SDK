@@ -9,7 +9,7 @@ managePartnerActions :: [Workspace -> Task ()]
 managePartnerActions = [welcome,myactions]
 where
     welcome _
-        = viewSharedInformation (Title "Welcome") [ViewAs (\u -> "Welcome "+++toString u)] currentUser @! ()
+        = Title "Welcome" @>> viewSharedInformation [ViewAs (\u -> "Welcome "+++toString u)] currentUser @! ()
 
     myactions _
         =   get currentUser @ userContactNo

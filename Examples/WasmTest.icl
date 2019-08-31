@@ -9,9 +9,8 @@ import iTasks.UI.JavaScript
 Start w = doTasks task w
 where
 	task = updateInformation
-		(Title "WebAssembly test program")
 		[UpdateUsing id (flip const) editor]
-		()
+		() <<@ Title "WebAssembly test program"
 
 editor :: Editor ()
 editor = leafEditorToEditor

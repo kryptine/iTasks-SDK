@@ -28,7 +28,7 @@ where
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap}
+				{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 				NoChange
 				(Task eval)
 			, iworld)

@@ -8,7 +8,7 @@ import Text.HTML
 test = (testHtmlFrame -&&- testResizable) <<@ AddCSSClass "itasks-horizontal"
 
 testHtmlFrame :: Task HtmlTag
-testHtmlFrame = viewInformation () [ViewUsing id (scaledEditor 300 200 (htmlView <<@ styleAttr "padding: 0"))] html
+testHtmlFrame = viewInformation [ViewUsing id (scaledEditor 300 200 (htmlView <<@ styleAttr "padding: 0"))] html
 		<<@ ApplyLayout (sequenceLayouts [layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))
 										,setUIAttributes (sizeAttr FlexSize FlexSize)
 										]
@@ -19,7 +19,7 @@ where
 			]
 
 testResizable :: Task String
-testResizable = viewInformation () [] "RESIZE THIS PANEL"
+testResizable = viewInformation [] "RESIZE THIS PANEL"
 			<<@ ApplyLayout (sequenceLayouts[setUIType UIPanel,setUIAttributes (resizableAttr [LeftSide])])
 
 Start world = doTasks test world

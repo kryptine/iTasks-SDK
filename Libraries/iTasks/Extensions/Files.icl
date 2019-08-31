@@ -117,21 +117,21 @@ where
 //Why is this necessary?!?!?!?
 derive class iTask RTree, FileInfo, Tm
 
-selectFileTree :: !Bool !d !Bool !FilePath [FilePath]-> Task [FilePath] | toPrompt d
-selectFileTree exp prompt multi root initial
+selectFileTree :: !Bool !Bool !FilePath [FilePath]-> Task [FilePath]
+selectFileTree exp multi root initial
 	= accWorld (readDirectoryTree root Nothing) @ numberTree
-	>>- \tree->editSelection prompt multi selectOption tree
+	>>- \tree->editSelection [SelectMultiple multi,selectOption] tree
 		[i\\(i, (f, _))<-leafs tree | elem f initial]
 where
 	selectOption = SelectInTree
 		(\tree->[{foldTree (fp2cn exp) tree & label=root}])
 		(\tree sel->[f\\(i, (f, _))<-leafs tree | isMember i sel])
 
-selectFileTreeLazy :: !d !Bool !FilePath -> Task [FilePath] | toPrompt d
-selectFileTreeLazy d multi root = accWorld (readDirectoryTree root (Just 1)) >>- \tree->
+selectFileTreeLazy :: !Bool !FilePath -> Task [FilePath]
+selectFileTreeLazy multi root = accWorld (readDirectoryTree root (Just 1)) >>- \tree->
 	withShared tree \stree->let numberedtree = mapRead numberTree stree in
 	withShared [] \ssel->
-	editSharedSelectionWithShared d multi selOpt numberedtree ssel
+	editSharedSelectionWithShared [SelectMultiple multi,selOpt] numberedtree ssel
 	-|| whileUnchanged (ssel >*< numberedtree) (\(sel, tree)->case sel of
 		[i] = case find ((==)i o fst) (leafs tree) of
 			Just (i, (fp, Ok {directory=True}))

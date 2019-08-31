@@ -57,7 +57,7 @@ commanderAlwaysOnTasks = [ ("Map", \cu es -> mapView myNetwork (const True) cu e
                          ]
 
 defineCommandAims :: Task ()
-defineCommandAims = updateSharedInformation (Title "Command aims") [] commandAims @! ()
+defineCommandAims = (Title "Command aims") @>> updateSharedInformation  [] commandAims @! ()
 
 commanderOptionalTasks :: [(String, User [Entity] -> Task ())]
 commanderOptionalTasks =
@@ -73,9 +73,9 @@ commanderOptionalTasks =
   ]
 
 taakReportUitzetten sender _
-  =            enterChoiceWithShared "Kies een gebruiker" [] users
-  >>= \user -> enterInformation "Korte beschrijving" []
-  >>= \des ->  enterInformation "Kies prioriteit" []
+  =            Hint "Kies een gebruiker" @>> enterChoiceWithShared [] users
+  >>= \user -> Title "Korte beschrijving" @>> enterInformation []
+  >>= \des ->  Hint "Kies prioriteit" @>>  enterInformation []
   >>= \prio -> addTaskForUserAndReport des user sender prio stelOpReport @! ()
 
 makeReport:: User [Entity] -> Task ()
@@ -84,7 +84,7 @@ makeReport user _ = stelOpReport user >>= verstuur
 stelOpReport :: User -> Task IntelReport
 stelOpReport user
   =          get currentDateTime
-  >>= \dt -> updateInformation "Geef details" []
+  >>= \dt -> Hint "Geef details"  @>> updateInformation[]
                { IntelReport
                | sender  = toString user
                , date    = dt
@@ -95,10 +95,10 @@ stelOpReport user
 
 verstuur :: IntelReport -> Task ()
 verstuur report
-  =            enterChoiceWithShared "Verzenden naar" [] users
-  >>= \user -> enterInformation "Onderwerp" []
-  >>= \des ->  enterInformation "Kies prioriteit" []
-  >>= \prio -> addCancebleTaskForUser des user prio (\user -> viewInformation "Report" [] report @! ()) @! ()
+  =            Title "Verzenden naar" @>> enterChoiceWithShared [] users
+  >>= \user -> Title "Onderwerp" @>> enterInformation []
+  >>= \des ->  Title "Kies prioriteit" @>> enterInformation []
+  >>= \prio -> addCancebleTaskForUser des user prio (\user -> Title "Report" @>> viewInformation [] report @! ()) @! ()
 
 
 communicateWithContact :: User [Entity] -> Task ()
@@ -106,16 +106,16 @@ communicateWithContact sender _ = selectedContact @! () // TODO Implement
 
 setInterceptCourse :: User [Entity] -> Task ()
 setInterceptCourse sender [ownEntity]
-  =          viewInformation "Setting intercept course towards contact" [ViewAs mkPPEntity] ownEntity @! ()
+  =          Title "Setting intercept course towards contact" @>> viewInformation [ViewAs mkPPEntity] ownEntity @! ()
 setInterceptCourse sender ownEntities
-  =          enterMultipleChoice "Select your ships" [] ownEntities
-  >>= \es -> viewSharedInformation "Setting intercept course towards contact with own ships" [ViewAs (map mkPPEntity o appendSelection es)] selectedContactShare @! ()
+  =          Hint "Select your ships" @>> enterMultipleChoice  [] ownEntities
+  >>= \es -> Hint "Setting intercept course towards contact with own ships" @>> viewSharedInformation [ViewAs (map mkPPEntity o appendSelection es)] selectedContactShare @! ()
   where
   appendSelection es (Just x) = [x : es]
   appendSelection es _        = es
 
 selectedContact :: Task (Maybe Entity)
-selectedContact = viewSharedInformation "Selected target" entityView selectedContactShare
+selectedContact = Title "Selected target" @>> viewSharedInformation entityView selectedContactShare
   where
   entityView = [ViewAs (maybe {PPEntity | id = 0, position = "No entity selected"} mkPPEntity)]
 
@@ -130,23 +130,23 @@ useGun sender _
 
   continue (contact, (weapon, precision))
     =   ("WSO", "Load gun") @: (loadGunTask sender weapon)
-    >>| viewInformation "Please confirm" [] "Fire?"
-    >>* [ OnAction ActionYes (always (viewInformation "Notification" [] "BOOOOM!!!" @! ()))
-        , OnAction ActionNo  (always (viewInformation "Notification" [] "Firing sequence aborted" @! ()))]
+    >>| Hint "Please confirm" @>> viewInformation [] "Fire?"
+    >>* [ OnAction ActionYes (always (Title "Notification" @>> viewInformation [] "BOOOOM!!!" @! ()))
+        , OnAction ActionNo  (always (Title "Notification" @>> viewInformation [] "Firing sequence aborted" @! ()))]
 
 chooseWeapon :: Task Weapon
-chooseWeapon = enterInformation "Choose weapon" []
+chooseWeapon = Hint "Choose weapon" @>> enterInformation []
 
 choosePrecision :: Task Precision
-choosePrecision = enterInformation "Choose precision" []
+choosePrecision = Hint "Choose precision" @>> enterInformation  []
 
 loadGunTask :: User Weapon -> Task ()
 loadGunTask sender weapon
-  =                            (enterChoiceWithShared "Kies een gebruiker" [] users
-                               -&&- enterInformation "Kies prioriteit" [])
+  =                            ((Hint "Kies een gebruiker" @>> enterChoiceWithShared [] users)
+                               -&&- (Hint "Kies prioriteit" @>> enterInformation []))
   >>= \(selectedUser, prio) -> if (isOnBoard selectedUser)
                                  (addTaskForUserAndReport "Load gun" selectedUser sender prio stelOpReport @! ())
-                                 (viewInformation "Problem" [] "User is not on board to perform task" @! ())
+                                 (Title "Problem" @>> viewInformation [] "User is not on board to perform task" @! ())
 
 isOnBoard :: User -> Bool
 //isOnBoard {location = Hidden (Just (OnBoard _))} = True
@@ -154,18 +154,18 @@ isOnBoard _                                      = False
 
 entityWatch :: User [Entity] -> Task ()
 entityWatch sender _
-  =         enterInformation "Geef snelheid voor waarschuwing" []
+  =         Hint "Geef snelheid voor waarschuwing" @>> enterInformation []
   >>= \v -> makeWatchTask "Fast entity" sender Urgent selectedContactShare (maybe False (movesFasterThan v)) (showEntity selectedContactShare)
   where
   movesFasterThan v {e_position = MovingPos { mp_speed }} = mp_speed >= v
   movesFasterThan _ _                                     = False
 
-showEntity e v = viewSharedInformation "Fast flying entity" [] e >>| return ()
+showEntity e v = Title "Fast flying entity" @>> viewSharedInformation [] e >>| return ()
 
 entityLiveView :: String Entity -> Task ()
-entityLiveView d {Entity | e_id} = viewSharedInformation d [ViewAs (maybe (abort ":(") mkPPEntity)] (sdsFocus e_id contactWithId) @! ()
+entityLiveView d {Entity | e_id} = Title d @>> viewSharedInformation [ViewAs (maybe (abort ":(") mkPPEntity)] (sdsFocus e_id contactWithId) @! ()
 
-doNote us _ = doOrClose (forever (enterInformation "Make a note" [] >>= \nf -> addNotification nf)) @! ()
+doNote us _ = doOrClose (forever (Hint "Make a note" @>> enterInformation [] >>= \nf -> addNotification nf)) @! ()
 
 chatManagement user _ = editChats
 

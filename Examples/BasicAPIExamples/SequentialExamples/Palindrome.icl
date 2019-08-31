@@ -12,11 +12,11 @@ main = palindrome @! ()
 
 palindrome :: Task (Maybe String)
 palindrome
-	=   	enterInformation "Enter a palindrome" []
+	=   	Hint "Enter a palindrome" @>> enterInformation []
 	>>* 	[ OnAction  ActionOk     (ifValue palindrome (\v -> return (Just v)))
             , OnAction  ActionCancel (always (return Nothing))
             ]
-    >>=		viewInformation "Result is:" []
+    >>=		\result -> Hint "Result is:" @>> viewInformation [] result
     >>=		return
 where
 	palindrome s = lc == reverse lc

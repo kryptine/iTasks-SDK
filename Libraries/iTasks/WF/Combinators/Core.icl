@@ -132,7 +132,7 @@ where
 						# value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
-						# sl = stepLayout taskId evalOpts event actions prevEnabledActions rep val
+						# sl = wrapStepUI taskId evalOpts event actions prevEnabledActions val rep
 						= (Left (ValueResult
 							value
 							info
@@ -172,19 +172,28 @@ where
 						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
 					ExceptionResult e = (ExceptionResult e, iworld)
 
-	stepLayout taskId evalOpts event actions prevEnabled change val
-		= case (event,change) of
-			//On reset generate a new step UI
-			(ResetEvent, ReplaceUI rui)
-				= ReplaceUI (uic UIStep [rui:contActions taskId val conts])
-			//Otherwise create a compound change definition
-			_
-				= ChangeUI [] [(0,ChangeChild change):actionChanges]
+	wrapStepUI taskId evalOpts event actions prevEnabled val change
+		| actionUIs =: []
+			= case (event,change) of
+				(ResetEvent,ReplaceUI (UI type attributes items)) //Mark the ui as a step
+					= ReplaceUI (UI type (addClassAttr "step" attributes) items)
+				_
+					= change
+		| otherwise	//Wrap in a container
+			= case (event,change) of
+				(ResetEvent,ReplaceUI ui) //On reset generate a new step UI
+					= ReplaceUI (uiac UIContainer (classAttr ["step-actions"]) [ui:actionUIs])
+				_  //Otherwise create a compound change definition
+					= ChangeUI [] [(0,ChangeChild change):actionChanges]
 	where
+		actionUIs = contActions taskId val conts
 		actionChanges = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [1..]]
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
+
+			isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
+			actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
 
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
@@ -302,54 +311,14 @@ where
 		exceptionResult (ExceptionResult _) e = ExceptionResult e
 
 		genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
-		genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]} results
+		genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[]} results
 		where
 			addResult (ValueResult _ i1 _ _) i2
 				# lastEvent = max i1.TaskEvalInfo.lastEvent i2.TaskEvalInfo.lastEvent
 				# removedTasks = i1.TaskEvalInfo.removedTasks ++ i2.TaskEvalInfo.removedTasks
-				= {TaskEvalInfo|lastEvent=lastEvent,attributes='DM'.newMap,removedTasks=removedTasks}
+				= {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks}
 			addResult _ i = i
 
-		genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange
-		genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
-			= case event of
-				ResetEvent
-					= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
-				_
-					# (idx,iChanges) = itemChanges 0 prevNumBranches results
-					# aChanges       = actionChanges idx
-					= ChangeUI [] (iChanges ++ aChanges)
-		where
-			itemChanges i numExisting [] = (i,[])
-			itemChanges i numExisting [ValueResult _ _ change _:rs]
-				| i < numExisting
-					# (i`,changes) = itemChanges (i + 1) numExisting rs
-					= (i`,[(i,ChangeChild change):changes]) 	//Update an existing branch
-				| otherwise			= case change of
-					(ReplaceUI def)
-						# (i`,changes) = itemChanges (i + 1) (numExisting + 1) rs
-						= (i`,[(i,InsertChild def):changes]) 	//Add a new branch
-					_
-						= itemChanges (i + 1) (numExisting + 1) rs //Skip if we don't get a blank UI
-		
-			itemChanges i numExisting [DestroyedResult:rs]
-				| i < numExisting
-					# (i`,changes) = itemChanges i (numExisting - 1) rs
-					= (i`,[(i,RemoveChild):changes])
-				| otherwise
-					= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
-		
-			itemChanges i numExisting [ExceptionResult e:rs]
-				| i < numExisting
-					# (i`,changes) = itemChanges i (numExisting - 1) rs
-					= (i`,[(i,RemoveChild):changes])
-				| otherwise
-					= itemChanges i numExisting rs
-		
-			actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
-			where
-				switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
-				switch False name = if (isMember name prevEnabledActions) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
 
 initParallelTask ::
 	!TaskEvalOpts
@@ -364,9 +333,9 @@ initParallelTask ::
 initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
 		Embedded                                 = mkEmbedded 'DM'.newMap iworld
-		NamedEmbedded name                       = mkEmbedded ('DM'.singleton "name" name) iworld
+		NamedEmbedded name                       = mkEmbedded ('DM'.singleton "name" (JSONString name)) iworld
 		Detached           attributes evalDirect = mkDetached attributes evalDirect iworld
-		NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
+		NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" (JSONString name) attributes) evalDirect iworld
 	= case mbTaskStuff of
 		Ok (taskId,attributes,mbTask)
 			# state =
@@ -481,12 +450,16 @@ where
 				//TODO Check exception
 				//If the exception can not be handled, don't continue evaluating just stop
 				= (Ok (ExceptionResult e),iworld)
-			(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,attributes,removedTasks} rep task, iworld)
+			(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep task, iworld)
 				//Check for a focus event targeted at this branc
 				# mbNewFocus= case event of
 					(FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
 					_                     = Nothing
 				# lastFocus     = maybe lastFocus Just mbNewFocus
+				# attributeUpdate = case rep of
+					ReplaceUI (UI _ attributes _) = const attributes
+					ChangeUI changes _ = \a -> foldl (flip applyUIAttributeChange) a changes
+					_ = id
 				# result = ValueResult val evalInfo rep task
 				//Check if the value changed
 				# valueChanged = val =!= decode value
@@ -496,11 +469,11 @@ where
 				//Write updated value, and optionally the new lastFocus time to the tasklist
 				# (mbError,iworld) = if valueChanged
 					(modify
-						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes, initialized = True})
+						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributeUpdate pts.ParallelTaskState.attributes, initialized = True})
 						(sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
 					(modify
-						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributes, initialized = True})
+						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributeUpdate pts.ParallelTaskState.attributes, initialized = True})
 						(sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
 						EmptyContext
 						iworld)
@@ -527,7 +500,7 @@ where
 					NoValue           = Just NoValue
 					Value json stable = (\dec -> Value dec stable) <$> fromDeferredJSON json
 				//TODO: use global tasktime to be able to compare event times between instances
-				# evalInfo = {TaskEvalInfo|lastEvent=0,attributes='DM'.newMap,removedTasks=[]}
+				# evalInfo = {TaskEvalInfo|lastEvent=0,removedTasks=[]}
 				# result = maybe (ExceptionResult (exception "Could not decode task value of detached task"))
 					(\val -> ValueResult val evalInfo NoChange nopTask) mbValue
 				= (Ok result,iworld)
@@ -599,6 +572,58 @@ destroyRemoved listId removed [r=:(taskId, _):rs] iworld
 genParallelValue :: [TaskResult a] -> TaskValue [(TaskTime,TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
 
+genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange
+genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
+	= case event of
+		ResetEvent
+			= ReplaceUI (uiac UIContainer (classAttr [className]) ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
+		_
+			# (idx,iChanges) = itemChanges 0 prevNumBranches results
+			# aChanges       = actionChanges idx
+			= ChangeUI [] (iChanges ++ aChanges)
+where
+	className = if (actions =: []) "parallel" "parallel-actions"
+
+	itemChanges i numExisting [] = (i,[])
+	itemChanges i numExisting [ValueResult _ _ change _:rs]
+		| i < numExisting
+			# (i`,changes) = itemChanges (i + 1) numExisting rs
+			= (i`,[(i,ChangeChild change):changes]) 	//Update an existing branch
+		| otherwise			= case change of
+			(ReplaceUI def)
+				# (i`,changes) = itemChanges (i + 1) (numExisting + 1) rs
+				= (i`,[(i,InsertChild def):changes]) 	//Add a new branch
+			_
+				= itemChanges (i + 1) (numExisting + 1) rs //Skip if we don't get a blank UI
+
+	itemChanges i numExisting [DestroyedResult:rs]
+		| i < numExisting
+			# (i`,changes) = itemChanges i (numExisting - 1) rs
+			= (i`,[(i,RemoveChild):changes])
+		| otherwise
+			= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
+
+	itemChanges i numExisting [ExceptionResult e:rs]
+		| i < numExisting
+			# (i`,changes) = itemChanges i (numExisting - 1) rs
+			= (i`,[(i,RemoveChild):changes])
+		| otherwise
+			= itemChanges i numExisting rs
+
+	actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
+	where
+		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
+		switch False name = if (isMember name prevEnabledActions) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
+
+genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
+genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[]} results
+where
+    addResult (ValueResult _ i1 _ _) i2
+        # lastEvent = max i1.TaskEvalInfo.lastEvent i2.TaskEvalInfo.lastEvent
+        # removedTasks = i1.TaskEvalInfo.removedTasks ++ i2.TaskEvalInfo.removedTasks
+        = {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks}
+    addResult _ i = i
+
 readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | TC a
 readListId slist iworld = case read (sdsFocus taskListFilter slist) EmptyContext iworld of
 	(Ok e,iworld)	= (Ok (fst (directResult e)), iworld)
@@ -655,7 +680,7 @@ where
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
 			= (ValueResult
 				(Value () True)
-				{lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
+				{lastEvent=ts,removedTasks=[]}
 				(rep event)
 				(treturn ()), iworld)
 		//Mark the task as removed, and update the indices of the tasks afterwards
@@ -666,9 +691,9 @@ where
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			# (mbe,iworld) = deleteTaskInstance instanceNo iworld
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
-			= (ValueResult (Value () True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep event) (treturn ()), iworld)
+			= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
 		//Pass removal information up
-		= (ValueResult (Value () True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[(listId,removeId)]} (rep event) (treturn ()), iworld)
+		= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[(listId,removeId)]} (rep event) (treturn ()), iworld)
 
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
 	rep _          = NoChange
@@ -692,14 +717,14 @@ where
 		| listId == TaskId 0 0
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep event) (treturn ()), iworld)
+					= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//If it is a detached task, replacee the detached instance, if it is embedded schedule the change in the parallel task state
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep event) (treturn ()), iworld)
+					= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//Schedule the change in the parallel task state
@@ -707,7 +732,7 @@ where
 		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
 		# (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 		| mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
-		= (ValueResult (Value () True) {lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} (rep event) (treturn ()), iworld)
+		= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
 
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
 	rep _          = NoChange
@@ -778,7 +803,7 @@ where
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
 		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted _)
 		= (ValueResult (Value curStatus stable)
-			{TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]} change
+			{TaskEvalInfo|lastEvent=ts,removedTasks=[]} change
 			(Task (eval curStatus build instanceKey)), iworld)
 
 	determineUIChange event curStatus prevStatus instanceNo instanceKey

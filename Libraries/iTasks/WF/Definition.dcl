@@ -70,7 +70,7 @@ instance toString ExceptionList
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
 
-:: TaskAttributes :== Map String String
+:: TaskAttributes :== Map String JSONNode
 :: InstanceKey  :== String
 
 instance toString	TaskId

@@ -21,9 +21,9 @@ ccMain :: (User -> [User -> Task Entity])
           (User -> [(String, User [Entity] -> Task ())])
        -> Task ()
 ccMain regEntities contBgTasks alwaysOnTasks tlist
-  = forever (catchAll ((        enterChoiceWithShared "Select user" [] users <<@ ApplyLayout frameCompact
+  = forever (catchAll ((        (Hint "Select user" @>> enterChoiceWithShared [] users) <<@ ApplyLayout frameCompact
                             >>= doUserTask))
-                      (\err -> viewInformation "Error" [] err >>| return ()))
+                      (\err -> Title "Error" @>> viewInformation [] err >>| return ()))
 where
 	doUserTask me =            set me currentUser
                   >>|          allTasks (map (\f -> f me) (regEntities me))
@@ -40,7 +40,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
   where
   controlDash :: Task ()
   controlDash
-    = (allTasks [ viewInformation () [] ("Welcome " +++ toString user) @! ()
+    = (allTasks [ viewInformation [] ("Welcome " +++ toString user) @! ()
                 , viewNotifications
                 ] <<@ ArrangeHorizontal
       >>* [OnAction (Action "Log out") (always (return ()))]
@@ -73,7 +73,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
 
 chooseTaskAndAdd2TD :: User [Entity] [(String, User [Entity] -> Task ())] Workspace -> Task ()
 chooseTaskAndAdd2TD user ents tlist taskList
-  = forever (   enterChoice "Select task to execute" [ChooseFromCheckGroup fst] tlist
+  = forever (   Hint "Select task to execute" @>> enterChoice [ChooseFromCheckGroup fst] tlist
             >>* [OnAction (Action "Select") (hasValue doTask)])
   where
   doTask :: (String, User [Entity] -> Task ()) -> Task ()
@@ -81,7 +81,7 @@ chooseTaskAndAdd2TD user ents tlist taskList
 
 chooseIncomingTaskAndAdd2TD :: User !Workspace -> Task ()
 chooseIncomingTaskAndAdd2TD user taskList
-  = forever (   enterChoiceWithShared "Select incoming task to execute" [ChooseFromGrid snd] incomingTasks
+  = forever (   Hint "Select incoming task to execute"  @>> enterChoiceWithShared [ChooseFromGrid snd] incomingTasks
             >>* [OnAction (Action "Open") (hasValue doTask)])
   where
   doTask :: (TaskId, WorklistRow) -> Task ()
@@ -91,11 +91,11 @@ mkAssign :: !String !worker !TaskPrio !(Task a) -> Task a | iTask a & toUserCons
 mkAssign desc worker prio task
   =                 get currentUser -&&- get currentDateTime
   >>- \(me, now) -> assign (workerAttributes worker
-                              [ ("title",      desc)
-                              , ("createdBy",  toString (toUserConstraint me))
-                              , ("createdAt",  toString now)
-                              , ("priority",   toString (toInt prio))
-                              , ("createdFor", toString (toUserConstraint worker))
+                              [ ("title",      toJSON desc)
+                              , ("createdBy",  toJSON (toUserConstraint me))
+                              , ("createdAt",  toJSON now)
+                              , ("priority",   toJSON prio)
+                              , ("createdFor", toJSON (toUserConstraint worker))
                               ])
                            task
 
@@ -119,7 +119,7 @@ addTaskForUserAndReport :: String User User TaskPrio (User -> Task a) -> Task a 
 addTaskForUserAndReport des user sender prio task = addTaskForUser des user prio extask
   where
   extask user = task user >>= \res -> addTaskForUser ("Result: " +++ des) sender prio (\_ -> viewRes res)
-  viewRes res = viewInformation "Result" [] res
+  viewRes res = Title "Result" @>> viewInformation [] res
 
 makeWatchTask :: String User TaskPrio (sds () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r & RWShared sds & TC w
 makeWatchTask des executer prio store cond task
@@ -149,17 +149,17 @@ addNotification msg
   >>- \now -> upd (\list -> take 10 [(now, msg) : list]) notifications @! ()
 
 viewNotifications :: Task ()
-viewNotifications = viewSharedInformation () [ViewAs (join ", ")] currentNotifications @! ()
+viewNotifications = viewSharedInformation [ViewAs (join ", ")] currentNotifications @! ()
 
 tasksToDo :: SDSLens () [(TaskId, WorklistRow)] ()
 tasksToDo = taskForCurrentUser isToDo
   where
-  isToDo {TaskListItem|attributes} = fmap (\x -> toInt x == toInt Immediate) ('DM'.get "priority" attributes) == Just True
+  isToDo {TaskListItem|attributes} = fmap (\(JSONInt x) -> x == toInt Immediate) ('DM'.get "priority" attributes) == Just True
 
 incomingTasks :: SDSLens () [(TaskId, WorklistRow)] ()
 incomingTasks = taskForCurrentUser isIncoming
   where
-  isIncoming {TaskListItem|attributes} = fmap (\x -> toInt x /= toInt Immediate) ('DM'.get "priority" attributes) == Just True
+  isIncoming {TaskListItem|attributes} = fmap (\(JSONInt x) -> x /= toInt Immediate) ('DM'.get "priority" attributes) == Just True
 
 taskForCurrentUser f = toReadOnly (mapRead (\(procs, ownPid) -> [(p.TaskListItem.taskId, mkRow p) \\ p <- procs | show ownPid p && isActive p && f p]) (processesForCurrentUser |*| currentTopTask))
 

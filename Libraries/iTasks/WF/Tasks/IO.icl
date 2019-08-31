@@ -8,7 +8,6 @@ import iTasks.WF.Definition
 import iTasks.WF.Derives
 import iTasks.UI.Definition
 import iTasks.UI.Editor
-import iTasks.UI.Prompt
 
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
@@ -78,7 +77,7 @@ where
 					tuple (Ok (ValueResult NoValue (info ts) (rep event)
 						(Task (eval (ph, pio)))))
 
-	info ts = {TaskEvalInfo|lastEvent=ts,attributes='DM'.newMap,removedTasks=[]}
+	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 
 	rep ResetEvent = ReplaceUI (stringDisplay ("External process: " <+++ cmd))
 	rep _ = NoChange
@@ -107,7 +106,7 @@ where
 				= (ValueResult value (tei ts) (rep port) (Task eval), iworld)
 			Nothing = (ValueResult (Value [] False) (tei ts) (rep port) (Task eval), iworld)
 
-    rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
+	rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
 tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 tcpconnect host port sds handlers = Task evalinit
@@ -138,6 +137,6 @@ where
 			Just (IOException e)
 				= (ExceptionResult (exception e),iworld)
 
-    rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
+	rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
 
-tei ts = {TaskEvalInfo|attributes='DM'.newMap,removedTasks=[],lastEvent=ts}
+tei ts = {TaskEvalInfo|removedTasks=[],lastEvent=ts}

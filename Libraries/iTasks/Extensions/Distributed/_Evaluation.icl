@@ -1,33 +1,18 @@
 implementation module iTasks.Extensions.Distributed._Evaluation
 
-from Data.GenEq import generic gEq
-from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
-from iTasks.Internal.IWorld import :: IWorld
-from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
-from iTasks.SDS.Combinators.Common import sdsFocus
-from iTasks.SDS.Sources.System import currentTaskInstanceNo
-from iTasks.UI.Definition import :: UIChange(..), :: UIChildChange(..), ui
-from iTasks.UI.Definition import :: UIType(UIEmpty)
-from iTasks.UI.Editor import :: Editor
-from iTasks.UI.Editor.Generic import generic gEditor
-from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-, >>-
-from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent,DestroyEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
-from iTasks.WF.Tasks.SDS import get
+import Data.Error
+
 import iTasks.Internal.SDS
 import iTasks.Internal.TaskEval
+
+import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
+import iTasks.SDS.Sources.Store
+import iTasks.SDS.Sources.System
 import iTasks.UI.Definition
-
-from iTasks.WF.Combinators.Overloaded import class TMonad(..), instance TMonad Task, instance Functor Task, instance TApplicative Task, class TApplicative
-from Data.Functor import class Functor
-
-from Data.Map import :: Map, newMap
-from Data.Maybe import :: Maybe(..)
-from Data.Error import :: MaybeError(..)
-from StdFunc import const
-from StdString import instance toString Int, instance +++ {#Char}
-import StdOverloaded
+import iTasks.WF.Combinators.Common
+import iTasks.WF.Definition
+import iTasks.WF.Tasks.SDS
 
 evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 evalRemoteTask task handleValue
@@ -39,17 +24,17 @@ where
 	changeTask handleValue value=:(Value v True)
 		= handleValue value @! v
 	changeTask handleValue value
-		= handleValue value @? const NoValue
+		= handleValue value @? \_->NoValue
 
 proxyTask :: (Shared sds (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 proxyTask value_share onDestroy = Task eval
 where
-	eval DestroyEvent repAs iworld
+	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, onDestroy iworld)
 	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		# (val,iworld)  = readRegister taskId value_share iworld
 		= case val of
-			Ok (ReadingDone val) = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap} (rep event) (Task eval), iworld)
+			Ok (ReadingDone val) = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (rep event) (Task eval), iworld)
 			Error e = (ExceptionResult e,iworld)
 
 	rep ResetEvent = ReplaceUI (ui UIEmpty)
@@ -74,4 +59,3 @@ where
 		= case res of
 			Ok _    = (ValueResult task_value info rep newtask, iworld)
 			Error _ = (ValueResult task_value info rep newtask, iworld)
-

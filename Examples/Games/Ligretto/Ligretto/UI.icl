@@ -8,15 +8,15 @@ import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
-ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
-ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
+ligrettoEditor :: !Color -> UpdateSharedOption GameSt GameSt
+ligrettoEditor me = UpdateSharedUsing id (const id) const (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
 												})
 
-accoladesEditor :: !Color -> UpdateOption GameSt GameSt
-accoladesEditor me = UpdateUsing id (const id) (fromSVGEditor
+accoladesEditor :: !Color -> UpdateSharedOption GameSt GameSt
+accoladesEditor me = UpdateSharedUsing id (const id) const (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id

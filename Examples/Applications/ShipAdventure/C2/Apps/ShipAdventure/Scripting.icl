@@ -33,9 +33,9 @@ changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript
 
 changeScript :: !String !(Shared sds [Script]) -> Task () | RWShared sds
 changeScript prompt script
-  =   viewSharedInformation ("Current Script: " <+++ prompt) [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
+  =   Hint ("Current Script: " <+++ prompt) @>> viewSharedInformation [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
   >>* [ OnAction (Action "Fine") (always (return ()))
-      , OnAction (Action "Change") (always (   updateSharedInformation ("Change Script: " <+++ prompt) [] script
+      , OnAction (Action "Change") (always (  Hint ("Change Script: " <+++ prompt) @>> updateSharedInformation  [] script
                                               >>| changeScript prompt script
                                               ))
       ]

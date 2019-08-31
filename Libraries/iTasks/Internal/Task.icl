@@ -118,7 +118,7 @@ where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
 	eval event {TaskEvalOpts|taskId,ts} iworld
 		= case iworldfun taskId iworld of
-			(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (treturn a), iworld)
+			(Ok a,iworld)     = (ValueResult (Value a True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn a), iworld)
 			(Error e, iworld) = (ExceptionResult e, iworld)
 
 nopTask :: Task a
@@ -126,7 +126,7 @@ nopTask = Task eval
 where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
 	eval event {TaskEvalOpts|ts} iworld
-		= (ValueResult NoValue {lastEvent=ts,removedTasks=[],attributes='DM'.newMap} (rep event) (Task eval), iworld)
+		= (ValueResult NoValue {lastEvent=ts,removedTasks=[]} (rep event) (Task eval), iworld)
 
 rep ResetEvent = ReplaceUI (ui UIEmpty)
 rep _          = NoChange

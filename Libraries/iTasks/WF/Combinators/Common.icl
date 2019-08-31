@@ -22,10 +22,11 @@ import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.SDS
-import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combinators.Overloaded
+import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Overloaded
+import iTasks.UI.Definition
+import iTasks.UI.Tune
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
-import iTasks.UI.Prompt
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 import iTasks.SDS.Sources.System
@@ -229,8 +230,8 @@ onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & TC w & iTask b & Registrable sds
 whileUnchangedWith eq share task
-	= 	((get share >>- \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
-	@?	onlyJust
+	=  ((get share >>- \val -> (wait (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
+	@? onlyJust
 
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
@@ -242,7 +243,7 @@ where
 	mtune eo = if eo.autoLayout (tune (ApplyLayout defaultSessionLayout)) id
 
 compute :: !String a -> Task a | iTask a
-compute s a = enterInformation s [EnterUsing id ed] >>~ \_->return a
+compute s a = Hint s @>> enterInformation [EnterUsing id ed] >>~ \_->return a
 where
 	ed :: Editor Bool
 	ed = fieldComponent UILoader Nothing (\_ _ -> True)

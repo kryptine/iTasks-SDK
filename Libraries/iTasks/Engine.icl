@@ -67,7 +67,7 @@ where
 		   :[t \\ StartupTask t <- toStartable startable]]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
-	systemTask t = {StartupTask|t&attributes='DM'.put "system" "yes" t.StartupTask.attributes}
+	systemTask t = {StartupTask|t&attributes='DM'.put "system" (JSONBool True) t.StartupTask.attributes}
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of

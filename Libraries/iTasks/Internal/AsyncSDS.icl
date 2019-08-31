@@ -442,7 +442,7 @@ readRegisterCompletely sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} i
 		(Ok (Reading sds), iworld)
 			= (ValueResult
 				tv
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+				(tei ts)
 				(ui event)
 				(Task (readRegisterCompletely sds tv ui cont))
 			, iworld)
@@ -451,4 +451,4 @@ isRefreshForTask (RefreshEvent taskIds _) taskId = 'DS'.member taskId taskIds
 isRefreshForTask ResetEvent _ = True
 isRefreshForTask _ _ = False
 
-tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='DM'.newMap}
+tei ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}

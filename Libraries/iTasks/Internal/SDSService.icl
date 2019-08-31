@@ -41,7 +41,7 @@ where
 		# iworld = iShow ["SDS server listening on " +++ toString port] iworld
 		= (ValueResult
 			(Value () False)
-			{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap}
+			{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 			(ReplaceUI (ui UIEmpty))
 			(Task eval)
 		, iworld)
@@ -59,7 +59,7 @@ where
 			| not ('Set'.member taskId taskIds)
 				= (ValueResult
 					(Value () False)
-					{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap}
+					{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 					NoChange
 					(Task eval)
 				, iworld)
@@ -72,7 +72,7 @@ where
 			| writeResult=:(Error _) = showException "writing result share values" (fromError writeResult) iworld
 			= (ValueResult
 				(Value () False)
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes='Map'.newMap}
+				{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 				NoChange
 				(Task eval)
 				, iworld)

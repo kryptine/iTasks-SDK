@@ -28,7 +28,6 @@ mkEvalOpts :: TaskEvalOpts
 //Additional information passed up from the tree when evaluating a task
 :: TaskEvalInfo =
 	{ lastEvent			:: !TaskTime	        //When was the last event in this task
-	, attributes        :: !TaskAttributes      //Meta-data annotations on the task
     , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
 	}
 

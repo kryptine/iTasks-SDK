@@ -5,27 +5,27 @@ import qualified Data.Map as DM
 import iTasks.UI.Definition
 import iTasks.Extensions.DateTime
 
-crudWith :: !d ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r]
+crudWith :: ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r]
             !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
             (sds () (f r) (f` w))
-         -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
-crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = forever crud
+         -> Task () | iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
+crudWith choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = forever crud
 where
   crud
-    =  ( enterChoiceWithShared descr [ChooseFromGrid id:choiceOpts] (mapRead toList sh)
- 	>&^ viewSharedInformation (Title "Selected") []) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide True)
+    =  (enterChoiceWithShared [ChooseFromGrid id:choiceOpts] (mapRead toList sh)
+ 	>&^ (\s -> Title "Selected" @>> viewSharedInformation [] s)) <<@ ApplyLayout (arrangeWithSideBar 1 RightSide True)
     >>* [ OnAction (Action "New")    (always   newItem)
         , OnAction (Action "Edit")   (hasValue editItem)
         , OnAction (Action "Delete") (hasValue deleteItem)
         ]
   newItem
-    =   enterInformation (Title "New item") enterOpts
+    =   Title "New item" @>> enterInformation enterOpts
     >>* [OnAction ActionOk (hasValue (\item -> upd (putItem item) sh @! ()))
 		,OnAction ActionCancel (always (return ()))
 		]
 
   editItem x
-    =            updateInformation (Title "Edit item") updateOpts x
+    =   Title "Edit item" @>> updateInformation updateOpts x
     >>* [OnAction ActionOk (hasValue (\item -> upd (delItem x) sh >>| upd (putItem item) sh @! ()))
 		,OnAction ActionCancel (always (return ()))
 		]
@@ -33,14 +33,14 @@ where
     =            upd (delItem x) sh
 	@! ()
 
-crud` :: !d !((f r) -> [r]) !(r (f r) -> f` w)  !(r (f r) -> f` w)
+crud` :: !((f r) -> [r]) !(r (f r) -> f` w)  !(r (f r) -> f` w)
         (sds () (f r) (f` w))
-     -> Task () | toPrompt d & iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
-crud` descr toList putItem delItem sh = crudWith descr [] [] [] [] toList putItem delItem sh
+     -> Task () | iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
+crud` toList putItem delItem sh = crudWith [] [] [] [] toList putItem delItem sh
 
 editStore :: String (Shared sds [a]) -> Task () | iTask a & Eq a & Ord a & RWShared sds
 editStore prompt store
-	= crud` (Title prompt) id (\item items -> sort [item:items]) (\item items -> removeMember item items) store
+	= (Title prompt) @>> crud` id (\item items -> sort [item:items]) (\item items -> removeMember item items) store
 
 addToStore :: [a] !(Shared sds [a]) -> Task () | iTask a & RWShared sds
 addToStore new store
@@ -49,13 +49,13 @@ addToStore new store
 appendTitledTopLevelTask :: String (Task a) -> Task TaskId | iTask a
 appendTitledTopLevelTask title task
 	= get currentUser -&&- get currentDateTime
-	>>- \(user,now) -> appendTopLevelTask ('DM'.fromList [ ("title", title)
-                                          , ("createdBy",  toString (toUserConstraint user))
-                                          , ("createdAt",  toString now)
-                                          , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False task
+	>>- \(user,now) -> appendTopLevelTask ('DM'.fromList [ ("title", toJSON title)
+                                          , ("createdBy",  toJSON (toUserConstraint user))
+                                          , ("createdAt",  toJSON now)
+                                          , ("createdFor", toJSON (toUserConstraint user))
+                                          , ("priority",   toJSON 5):userAttr user]) False task
 where
-	userAttr (AuthenticatedUser uid _ _) = [("user", uid)]
+	userAttr (AuthenticatedUser uid _ _) = [("user", toJSON uid)]
     userAttr _                           = []
 
 startTopLevelOnce :: (Task a) Action String (Task b) -> Task () | iTask a & iTask b

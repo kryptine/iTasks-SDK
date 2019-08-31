@@ -203,4 +203,4 @@ currentDomain = toReadOnly (mapRead (\domain -> Domain domain) authServerInfoSha
 enterDomain :: Task Domain
 enterDomain
 	= get authServerInfoShare
-	>>- \domain -> updateInformation "Enter domain" [] (Domain domain)
+	>>- \domain -> Hint "Enter domain" @>> updateInformation  [] (Domain domain)

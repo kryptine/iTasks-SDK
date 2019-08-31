@@ -10,6 +10,7 @@ import iTasks.Internal.Serialization
 import iTasks.Internal.Generic.Defaults
 import iTasks.Internal.Generic.Visualization
 
+import iTasks.UI.Tune
 import iTasks.UI.Layout.Default
 
 import qualified iTasks.Internal.SDS as SDS
@@ -20,7 +21,6 @@ import iTasks.Internal.DynamicUtil
 import iTasks.Internal.SDSService
 import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
-import iTasks.WF.Combinators.Tune
 import iTasks.WF.Derives
 import iTasks.Extensions.Document
 
@@ -146,7 +146,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
 
 createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (applyLayout defaultSessionLayout task) task
+	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # (Ok instanceNo,iworld) = newInstanceNo iworld
     # (instanceKey,iworld)  = newInstanceKey iworld
@@ -173,7 +173,7 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (applyLayout defaultSessionLayout task) task
+	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
     # (instanceKey,iworld) = newInstanceKey iworld
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
     # progress             = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}

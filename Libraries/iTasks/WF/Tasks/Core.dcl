@@ -8,8 +8,6 @@ import iTasks.SDS.Definition
 from Data.Error import :: MaybeError
 from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 from iTasks.UI.Editor import :: EditMode
-from iTasks.UI.Prompt import class toPrompt
-
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
@@ -96,6 +94,6 @@ instance toString OSException
 	}
 
 //Version which can write shared data
-interactRW :: !d !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 //Version which does not write shared data
-interactR :: !d (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
