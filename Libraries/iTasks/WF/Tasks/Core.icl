@@ -115,7 +115,9 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 							Just f = writefun f sds NoValue (\_->change)
 //								We cannot just do this because this will loop endlessly
 //								(\_->evalInteract l (Just v) st mode sds handlers editor writefun)
-//								Therefore we delay it by returning the continuation in a value instead of directly
+								// We cannot just do this because this will loop endlessly:
+								// (\_->evalInteract l (Just v) st mode sds handlers editor writefun)
+								// Therefore we delay it by returning the continuation in a value instead of directly:
 								(\w event {TaskEvalOpts|ts} iworld->
 									(ValueResult
 										(Value (l, v) False)
