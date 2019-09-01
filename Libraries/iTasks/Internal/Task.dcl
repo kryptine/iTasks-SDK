@@ -48,7 +48,7 @@ mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Tas
 
 /**
  * Apply a function on the task continuation of the task result
- * @type: ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
+ * @type ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
  */
 wrapTaskContinuation tf val :== case val of
 	(ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
