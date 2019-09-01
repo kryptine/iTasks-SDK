@@ -197,8 +197,8 @@ where
 
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
-	| matchId == taskId     = Just action
-matchAction taskId _        = Nothing
+	| matchId == taskId = Just action
+matchAction taskId _ = Nothing
 
 isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
 actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
