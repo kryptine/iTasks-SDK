@@ -87,7 +87,7 @@ where
 			, nextTaskNo = curReduct.TIReduct.nextTaskNo
 		}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & ts=curReduct.TIReduct.nextTaskTime, taskId = taskId} iworld
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & ts=curReduct.TIReduct.nextTaskTime, taskId=taskId} iworld
 	# newTask = case newResult of
 		(ValueResult _ _ _ newTask) = newTask
 		_                           = Task eval
