@@ -91,7 +91,7 @@ removeDupBy :: (a a -> Bool) [a] -> [a]
 removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
 removeDupBy _ [] = []
 
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 step lhs lhsValFun conts = Task evalinit
 where
 	//Initial setup:
