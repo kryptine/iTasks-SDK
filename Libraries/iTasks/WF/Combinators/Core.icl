@@ -115,9 +115,9 @@ where
 	//evalleft :: (Task a) [String] TaskId Event TaskEvalOpts !*IWorld -> *(TaskResult a, IWorld)
 	evalleft (Task lhs) prevEnabledActions leftTaskId DestroyEvent evalOpts iworld
 		= case lhs DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld of
-			(DestroyedResult, iworld)		= (DestroyedResult, iworld)
-			(ExceptionResult e, iworld)	    = (ExceptionResult e, iworld)
-			(ValueResult _ _ _ _,iworld)	= (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
+			(DestroyedResult, iworld)    = (DestroyedResult, iworld)
+			(ExceptionResult e, iworld)  = (ExceptionResult e, iworld)
+			(ValueResult _ _ _ _,iworld) = (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
 	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{TaskEvalOpts|ts,taskId} iworld
 		# mbAction = matchAction taskId event
