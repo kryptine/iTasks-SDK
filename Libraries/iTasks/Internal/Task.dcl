@@ -56,7 +56,7 @@ wrapTaskContinuation tf val :== case val of
 
 /**
  * Unwrap the task to reveal the evaluation function
- * @type: (Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))
+ * @type (Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))
  */
 unTask (Task t) :== t
 
