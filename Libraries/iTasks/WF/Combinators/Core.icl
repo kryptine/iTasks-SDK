@@ -702,7 +702,7 @@ where
 	markAsRemoved removeId [] = []
 	markAsRemoved removeId [s=:{ParallelTaskState|taskId}:ss]
 		| taskId == removeId = [{ParallelTaskState|s & change = Just RemoveParallelTask}
-							   :[{ParallelTaskState|s` & index = index - 1} \\ s`=:{ParallelTaskState|index} <- ss]]
+		                       :[{ParallelTaskState|s` & index = index - 1} \\ s`=:{ParallelTaskState|index} <- ss]]
 		| otherwise          = [s:markAsRemoved removeId ss]
 
 replaceTask :: !TaskId !(ParallelTask a) !(SharedTaskList a) -> Task () | iTask a
