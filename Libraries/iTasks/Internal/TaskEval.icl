@@ -26,11 +26,11 @@ derive gEq TIMeta, TIType
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
-  { TaskEvalOpts
-  | noUI        = False
-  , taskId      = TaskId 0 0
-  , ts          = 0
-  }
+	{ TaskEvalOpts
+	| noUI   = False
+	, taskId = TaskId 0 0
+	, ts     = 0
+	}
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
