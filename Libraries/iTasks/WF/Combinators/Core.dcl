@@ -119,7 +119,7 @@ transform f :== transformError (\tv->Ok (f tv))
 *
 *	@return The combined task
 */
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 
 :: TaskCont a b
     =       OnValue             ((TaskValue a)  -> Maybe b)
