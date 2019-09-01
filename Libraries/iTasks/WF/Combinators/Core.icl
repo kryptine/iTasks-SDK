@@ -215,7 +215,7 @@ searchContValue val mbAction conts
 where
 	search _ _ _ mbMatch []							= mbMatch		//No matching OnValue steps were found, return the potential match
 	search val mbAction i mbMatch [OnValue f:cs]
-			= case f val of
+		= case f val of
 			Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
 			Nothing		= search val mbAction (i + 1) mbMatch cs	//Keep search
 	search val mbAction=:(Just actionEvent) i Nothing [OnAction (Action actionName) f:cs]
