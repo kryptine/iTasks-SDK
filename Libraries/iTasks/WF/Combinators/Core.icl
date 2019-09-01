@@ -415,7 +415,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 	= case evalParallelTask listId event evalOpts t iworld of
 		(Error e, iworld) = (Error e,iworld)
 		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
-		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep tree), iworld)
+		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep task), iworld)
 			//Add the current result before checking for removals
 			# completed = [(taskId, result):completed]
 			//Check if in the branch tasks from this list were removed but that were already evaluated
