@@ -14,7 +14,6 @@ Start world = doTasks
 	,onStartup importDemoUsersFlow
 	,onStartup (installWorkflows myTasks)
 	,onRequest "/" (ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
-//	,onRequest "/tonic" (tonicDashboard [])
 	,onRequest "/debug" showDebug
 	,onRequest "/adventure" (loginAndManageWork "Adventure" Nothing Nothing False)
 	,onRequest "/alarm" (setSectionDetectors)
