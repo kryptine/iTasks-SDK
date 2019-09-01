@@ -32,7 +32,7 @@ where
 	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, onDestroy iworld)
 	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
-		# (val,iworld)  = readRegister taskId value_share iworld
+		# (val,iworld) = readRegister taskId value_share iworld
 		= case val of
 			Ok (ReadingDone val) = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (rep event) (Task eval), iworld)
 			Error e = (ExceptionResult e,iworld)
