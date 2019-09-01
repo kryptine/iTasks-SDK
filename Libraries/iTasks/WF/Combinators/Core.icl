@@ -564,7 +564,7 @@ destroyRemoved listId removed [r=:(taskId, _):rs] iworld
 		= case destroyEmbeddedParallelTask listId taskId iworld of
 			(Error e, iworld) = ([(taskId, ExceptionResult (exception (ExceptionList e))):rs], iworld)
 			(Ok tr, iworld)
-				# (rs,iworld)       = destroyRemoved listId removed rs iworld
+				# (rs,iworld) = destroyRemoved listId removed rs iworld
 				= ([(taskId, tr):rs],iworld)
 	# (rs,iworld) = destroyRemoved listId removed rs iworld
 	= ([r:rs],iworld)
