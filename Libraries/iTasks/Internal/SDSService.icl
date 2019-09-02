@@ -35,13 +35,13 @@ sdsServiceTask port = withShared 'Map'.newMap \sds->withSymbols \symbols->Task (
 where
 	evalinit _ _ DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
-	evalinit sds symbols event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	evalinit sds symbols event {taskId,lastEval} iworld
 		# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask handlers sds) iworld
 		| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
 		# iworld = iShow ["SDS server listening on " +++ toString port] iworld
 		= (ValueResult
 			(Value () False)
-			(mkTaskEvalInfo ts)
+			(mkTaskEvalInfo lastEval)
 			(mkUIIfReset event (ui UIEmpty))
 			(Task eval)
 		, iworld)
@@ -55,11 +55,11 @@ where
 				Just (IOActive values) = 'Map'.put taskId (IODestroyed values) ioStates
 				_                      = ioStates
         	= (DestroyedResult, {iworld & ioStates = ioStates})
-		eval (RefreshEvent taskIds cause) evalOpts=:{TaskEvalOpts|ts} iworld
+		eval (RefreshEvent taskIds cause) {lastEval} iworld
 			| not ('Set'.member taskId taskIds)
 				= (ValueResult
 					(Value () False)
-					(mkTaskEvalInfo ts)
+					(mkTaskEvalInfo lastEval)
 					NoChange
 					(Task eval)
 				, iworld)
@@ -72,7 +72,7 @@ where
 			| writeResult=:(Error _) = showException "writing result share values" (fromError writeResult) iworld
 			= (ValueResult
 				(Value () False)
-				(mkTaskEvalInfo ts)
+				(mkTaskEvalInfo lastEval)
 				NoChange
 				(Task eval)
 				, iworld)

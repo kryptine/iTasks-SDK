@@ -16,12 +16,12 @@ from Data.CircularStack import :: CircularStack
 
 // External evaluation passed to the task under execution
 :: TaskEvalOpts	=
-	{ noUI   :: !Bool
+	{ noUI     :: !Bool
 	//* Whether to generate a UI
-	, taskId :: !TaskId
+	, taskId   :: !TaskId
 	//* The id of the task
-	, ts     :: !TaskTime
-	//* The current tasktime (n'th execution, see {{nextTaskTime}})
+	, lastEval :: !TaskTime
+	//* The last evaluation
 	}
 
 mkEvalOpts :: TaskEvalOpts

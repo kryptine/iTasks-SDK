@@ -116,14 +116,14 @@ mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Tas
 mkInstantTask iworldfun = Task eval
 where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
-	eval event {TaskEvalOpts|taskId,ts} iworld
+	eval event {taskId,lastEval} iworld
 		= case iworldfun taskId iworld of
-			(Ok a,iworld)     = (ValueResult (Value a True) (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (treturn a), iworld)
+			(Ok a,iworld)     = (ValueResult (Value a True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn a), iworld)
 			(Error e, iworld) = (ExceptionResult e, iworld)
 
 nopTask :: Task a
 nopTask = Task eval
 where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
-	eval event {TaskEvalOpts|ts} iworld
-		= (ValueResult NoValue (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)
+	eval event {lastEval} iworld
+		= (ValueResult NoValue (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)

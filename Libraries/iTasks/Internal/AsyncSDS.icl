@@ -395,47 +395,47 @@ asyncSDSLoaderUI Modify = (ReplaceUI (uia UIProgressBar (textAttr "Modifying dat
 
 readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
-readCompletely _ _ cont DestroyEvent evalOpts=:{TaskEvalOpts|taskId} iworld
+readCompletely _ _ _ DestroyEvent _ iworld
 	= (DestroyedResult, iworld)
-readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld
 	= case read sds (TaskContext taskId) iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone r), iworld)
 			= cont r event evalOpts iworld
 		(Ok (Reading sds), iworld)
-			= (ValueResult tv (mkTaskEvalInfo ts) (asyncSDSLoaderUI Read) (Task (readCompletely sds tv cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (asyncSDSLoaderUI Read) (Task (readCompletely sds tv cont)), iworld)
 
 writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
 writeCompletely _ _ _ cont DestroyEvent evalOpts iworld
 	= (DestroyedResult, iworld)
-writeCompletely w sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+writeCompletely w sds tv cont event evalOpts=:{taskId,lastEval} iworld
 	= case write w sds (TaskContext taskId) iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (WritingDone), iworld)
 			= cont event evalOpts iworld
 		(Ok (Writing sds), iworld)
-			= (ValueResult tv (mkTaskEvalInfo ts) (asyncSDSLoaderUI Write) (Task (writeCompletely w sds tv cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (asyncSDSLoaderUI Write) (Task (writeCompletely w sds tv cont)), iworld)
 
 modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
 modifyCompletely _ _ _ _ cont DestroyEvent evalOpts iworld
 	= (DestroyedResult, iworld)
-modifyCompletely modfun sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+modifyCompletely modfun sds tv ui cont event evalOpts=:{taskId,lastEval} iworld
 	= case modify modfun sds (TaskContext taskId) iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ModifyingDone w), iworld)
 			= cont w event evalOpts iworld
 		(Ok (Modifying sds modfun), iworld)
-			= (ValueResult tv (mkTaskEvalInfo ts) (ui event) (Task (modifyCompletely modfun sds tv ui cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyCompletely modfun sds tv ui cont)), iworld)
 
 readRegisterCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds
 readRegisterCompletely _ _ _ cont DestroyEvent evalOpts iworld
 	= (DestroyedResult, iworld)
-readRegisterCompletely sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+readRegisterCompletely sds tv ui cont event evalOpts=:{taskId,lastEval} iworld
 	| not (isRefreshForTask event taskId)
-		= (ValueResult tv (mkTaskEvalInfo ts) (ui event) (Task (readRegisterCompletely sds tv ui cont)), iworld)
+		= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterCompletely sds tv ui cont)), iworld)
 	= case readRegister taskId sds iworld of
 		(Error e, iworld) = (ExceptionResult e, iworld)
 		(Ok (ReadingDone r), iworld)
@@ -443,7 +443,7 @@ readRegisterCompletely sds tv ui cont event evalOpts=:{TaskEvalOpts|taskId,ts} i
 		(Ok (Reading sds), iworld)
 			= (ValueResult
 				tv
-				(mkTaskEvalInfo ts)
+				(mkTaskEvalInfo lastEval)
 				(ui event)
 				(Task (readRegisterCompletely sds tv ui cont))
 			, iworld)

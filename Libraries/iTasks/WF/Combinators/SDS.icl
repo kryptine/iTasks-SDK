@@ -28,7 +28,7 @@ where
 	//Initialization
 	evalinit DestroyEvent _ iworld = (DestroyedResult,iworld)
 
-	evalinit event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld
 		# (taskIda, iworld) = getNextTaskId iworld
 		# (e, iworld)       = write initial (sdsFocus taskId localShare) EmptyContext iworld
 		| isError e
@@ -42,10 +42,10 @@ where
 				= (ExceptionResult (exception "Failed to destroy withShared child"), iworld)
 			e = e
 
-	eval innerTaskId (Task inner) event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	eval innerTaskId (Task inner) event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld
 		= case inner event {TaskEvalOpts|evalOpts&taskId=innerTaskId} iworld of
 			(ValueResult val info rep newinner, iworld)
-				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				# info = {TaskEvalInfo|info & lastEvent = max lastEval info.TaskEvalInfo.lastEvent}
 				= (ValueResult val info rep (Task (eval innerTaskId newinner)), iworld)
 			e = e
 
@@ -86,7 +86,7 @@ where
 			e = (e, iworld)
 
 	//During execution, set the cwd to the tmp dir
-	eval tmpDir innerTaskId (Task inner) event evalOpts=:{TaskEvalOpts|ts} iworld
+	eval tmpDir innerTaskId (Task inner) event evalOpts=:{TaskEvalOpts|lastEval} iworld
 		# (oldcurdir, iworld)= liftIWorld getCurrentDirectory iworld
 		| isError oldcurdir  = (ExceptionResult (exception (fromError oldcurdir)), iworld)
 		# (Ok oldcurdir)     = oldcurdir
@@ -97,7 +97,7 @@ where
 		| isError mbErr      = (ExceptionResult (exception (fromError mbErr)), iworld)
 		= case resa of
 			ValueResult value info rep newinner
-				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				# info = {TaskEvalInfo|info & lastEvent = max lastEval info.TaskEvalInfo.lastEvent}
 				= (ValueResult value info rep (Task (eval tmpDir innerTaskId newinner)), iworld)
 			ExceptionResult e = (ExceptionResult e, iworld)
 

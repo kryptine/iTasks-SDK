@@ -22,14 +22,14 @@ everyTick f = Task eval
 where
 	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, iworld)
-	eval event {TaskEvalOpts|taskId,ts} iworld
+	eval event {taskId,lastEval} iworld
 		# (merr, iworld) = f iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		# (merr, iworld) = readRegister taskId tick iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				(mkTaskEvalInfo ts)
+				(mkTaskEvalInfo lastEval)
 				NoChange
 				(Task eval)
 			, iworld)

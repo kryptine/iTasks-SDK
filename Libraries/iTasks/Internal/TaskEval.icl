@@ -27,9 +27,9 @@ derive gEq TIMeta, TIType
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
 	{ TaskEvalOpts
-	| noUI   = False
-	, taskId = TaskId 0 0
-	, ts     = 0
+	| noUI     = False
+	, taskId   = TaskId 0 0
+	, lastEval = 0
 	}
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
@@ -87,7 +87,7 @@ where
 			, nextTaskNo = curReduct.TIReduct.nextTaskNo
 		}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & ts=curReduct.TIReduct.nextTaskTime, taskId=taskId} iworld
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & lastEval=curReduct.TIReduct.nextTaskTime, taskId=taskId} iworld
 	# newTask = case newResult of
 		(ValueResult _ _ _ newTask) = newTask
 		_                           = Task eval

@@ -32,10 +32,10 @@ proxyTask value_share onDestroy = Task eval
 where
 	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, onDestroy iworld)
-	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+	eval event {taskId,lastEval} iworld
 		# (val,iworld) = readRegister taskId value_share iworld
 		= case val of
-			Ok (ReadingDone val) = (ValueResult val (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)
+			Ok (ReadingDone val) = (ValueResult val (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)
 			Error e = (ExceptionResult e,iworld)
 
 taskValueShare :: Int ->  SimpleSDSLens (TaskValue a) | iTask a

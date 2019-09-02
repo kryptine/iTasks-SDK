@@ -25,9 +25,9 @@ upd fun sds = Task (modifyCompletely fun sds NoValue (\_->asyncSDSLoaderUI Modif
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 watch sds = Task (readRegisterCompletely sds NoValue mkUi cont)
 where
-	cont r event {TaskEvalOpts|ts} iworld
+	cont r event {lastEval} iworld
 		= (ValueResult (Value r False)
-			(mkTaskEvalInfo ts)
+			(mkTaskEvalInfo lastEval)
 			(mkUi event)
 			(Task (readRegisterCompletely sds (Value r False) mkUi cont))
 		, iworld)
