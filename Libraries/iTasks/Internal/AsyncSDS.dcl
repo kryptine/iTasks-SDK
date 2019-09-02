@@ -112,7 +112,6 @@ getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError
 
 /**
  * The default UI during the loading of an asynchronous SDS
- * @result the UIChange
  */
 asyncSDSLoaderUI :: !AsyncAction -> UI
 
