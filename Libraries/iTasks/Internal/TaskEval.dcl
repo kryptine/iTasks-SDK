@@ -14,7 +14,7 @@ from Data.Map import :: Map
 from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.CircularStack import :: CircularStack
 
-// External evaluation passed to the task under execution
+//* External evaluation passed to the task under execution
 :: TaskEvalOpts	=
 	{ noUI     :: !Bool
 	//* Whether to generate a UI
@@ -26,7 +26,7 @@ from Data.CircularStack import :: CircularStack
 
 mkEvalOpts :: TaskEvalOpts
 
-// External information passed from the task
+//* External information passed from the task
 :: TaskEvalInfo =
 	{ lastEvent    :: !TaskTime	        //When was the last event in this task
     , removedTasks :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
