@@ -50,12 +50,12 @@ where
 interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW shared handlers editor
-	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoaderUI Read) (evalInteractInit shared handlers editor modifyCompletely))
+	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor modifyCompletely))
 
 interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactR shared handlers editor
-	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoaderUI Read) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
+	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
 
 //This initializes the editor state and continues with the actual interact task
 evalInteractInit sds handlers editor writefun r event evalOpts=:{TaskEvalOpts|taskId} iworld
@@ -161,7 +161,7 @@ evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{task
 			, iworld)
 evalInteract l v st mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
 	| 'DS'.member taskId taskIds
-		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->case event of ResetEvent = asyncSDSLoaderUI Read; e = NoChange)
+		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
 			(\r event evalOpts iworld
 				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
 				= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of

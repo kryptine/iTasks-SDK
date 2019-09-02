@@ -111,10 +111,10 @@ getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError 
 getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe (r,w)) | TC w & TC r
 
 /**
- * The default UI during loading an asynchronous SDS
+ * The default UI during the loading of an asynchronous SDS
  * @result the UIChange
  */
-asyncSDSLoaderUI :: !AsyncAction -> UIChange
+asyncSDSLoaderUI :: !AsyncAction -> UI
 
 /**
  * Completely load an sds and continue with the continuation

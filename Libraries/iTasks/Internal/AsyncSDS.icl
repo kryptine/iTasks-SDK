@@ -388,10 +388,10 @@ where
 		(Just (dyn, _))					= Error (exception ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn)))
 		Nothing 						= Ok Nothing
 
-asyncSDSLoaderUI :: !AsyncAction -> UIChange
-asyncSDSLoaderUI Read = (ReplaceUI (uia UIProgressBar (textAttr "Reading data")))
-asyncSDSLoaderUI Write = (ReplaceUI (uia UIProgressBar (textAttr "Writing data")))
-asyncSDSLoaderUI Modify = (ReplaceUI (uia UIProgressBar (textAttr "Modifying data")))
+asyncSDSLoaderUI :: !AsyncAction -> UI
+asyncSDSLoaderUI Read = uia UIProgressBar (textAttr "Reading data")
+asyncSDSLoaderUI Write = uia UIProgressBar (textAttr "Writing data")
+asyncSDSLoaderUI Modify = uia UIProgressBar (textAttr "Modifying data")
 
 readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
@@ -403,7 +403,7 @@ readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld
 		(Ok (ReadingDone r), iworld)
 			= cont r event evalOpts iworld
 		(Ok (Reading sds), iworld)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (asyncSDSLoaderUI Read) (Task (readCompletely sds tv cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (mkUIIfReset event (asyncSDSLoaderUI Read)) (Task (readCompletely sds tv cont)), iworld)
 
 writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
@@ -415,7 +415,7 @@ writeCompletely w sds tv cont event evalOpts=:{taskId,lastEval} iworld
 		(Ok (WritingDone), iworld)
 			= cont event evalOpts iworld
 		(Ok (Writing sds), iworld)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (asyncSDSLoaderUI Write) (Task (writeCompletely w sds tv cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (mkUIIfReset event (asyncSDSLoaderUI Write)) (Task (writeCompletely w sds tv cont)), iworld)
 
 modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
