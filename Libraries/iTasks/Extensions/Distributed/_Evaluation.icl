@@ -4,6 +4,7 @@ import Data.Error
 
 import iTasks.Internal.SDS
 import iTasks.Internal.TaskEval
+import iTasks.Internal.Util
 
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
