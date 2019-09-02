@@ -723,7 +723,7 @@ where
 	  = doMouseEvent` svglet me svg elemId uniqId p (MouseOnClickData nc) local args world
 	
 	doMouseEvent` :: !(SVGEditor s v) !JSVal !JSObj !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool !{!JSVal} !*JSWorld -> *JSWorld | JSONEncode{|*|} s
-	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local args world
+	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local _ world
 	  #! world              = jsTrace` ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
 	  #! world              = timeTrace "doMouseEvent` started at " world
 	  #! (cidJS,world)      = me .# "attributes.taskId" .? world
@@ -735,7 +735,7 @@ where
 	      Nothing           = timeTrace "doMouseEvent` reached illegal code section ended at " world		// this code should never be reached
 	      Just f
 	   // Update the view & the model
-	      #! (view, world)  = applyImgEventhandler f cb_data args view world
+	      #! view           = applyImgEventhandler f cb_data view
 	      #! model          = updModel model view
 	      #! (jsView,world) = jsMakeCleanReference view me world
 	      #! (jsModel,world)= jsMakeCleanReference model me world
@@ -750,19 +750,16 @@ where
 	      #! world          = timeTrace "doMouseEvent` calls server round trip started at " world
 	      = world							// rendering is completed by clientHandleAttributeChange
 	where
-		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData !{!JSVal} m !*JSWorld -> *(m, !*JSWorld)
-		applyImgEventhandler (ImgEventhandlerOnClickAttr     {OnClickAttr     | onclick     = f}) _ args m world
-			#! (x, world) = args.[0] .# "clientX" .? world
-			#! (y, world) = args.[0] .# "clientY" .? world
-			= (f (jsValToReal` 0.0 x, jsValToReal` 0.0 y) m, world)
-		applyImgEventhandler (ImgEventhandlerOnNClickAttr    {OnNClickAttr    | onNclick    = f}) (MouseOnClickData n) _ m world = (f n m, world)
-		applyImgEventhandler (ImgEventhandlerOnMouseDownAttr {OnMouseDownAttr | onmousedown = f}) _ _ m world = (f m, world)
-		applyImgEventhandler (ImgEventhandlerOnMouseUpAttr   {OnMouseUpAttr   | onmouseup   = f}) _ _ m world = (f m, world)
-		applyImgEventhandler (ImgEventhandlerOnMouseOverAttr {OnMouseOverAttr | onmouseover = f}) _ _ m world = (f m, world)
-		applyImgEventhandler (ImgEventhandlerOnMouseMoveAttr {OnMouseMoveAttr | onmousemove = f}) _ _ m world = (f m, world)
-		applyImgEventhandler (ImgEventhandlerOnMouseOutAttr  {OnMouseOutAttr  | onmouseout  = f}) _ _ m world = (f m, world)
-		applyImgEventhandler _ _ _ m world = (m, world) // this case should never be reached (including ImgEventhandlerDraggableAttr)
-
+		applyImgEventhandler :: !(ImgEventhandler m) !MouseCallbackData m -> m
+		applyImgEventhandler (ImgEventhandlerOnClickAttr     {OnClickAttr     | onclick     = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnNClickAttr    {OnNClickAttr    | onNclick    = f}) (MouseOnClickData n) m = f n m
+		applyImgEventhandler (ImgEventhandlerOnMouseDownAttr {OnMouseDownAttr | onmousedown = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnMouseUpAttr   {OnMouseUpAttr   | onmouseup   = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnMouseOverAttr {OnMouseOverAttr | onmouseover = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnMouseMoveAttr {OnMouseMoveAttr | onmousemove = f}) _ m = f m
+		applyImgEventhandler (ImgEventhandlerOnMouseOutAttr  {OnMouseOutAttr  | onmouseout  = f}) _ m = f m
+		applyImgEventhandler _ _ m = m		// this case should never be reached (including ImgEventhandlerDraggableAttr)
+		
 	//	client side entire rendering of model value:
 		clientHandleModel :: !(SVGEditor s v) !JSVal !s !v !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
