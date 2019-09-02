@@ -34,11 +34,8 @@ where
 	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		# (val,iworld) = readRegister taskId value_share iworld
 		= case val of
-			Ok (ReadingDone val) = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[]} (rep event) (Task eval), iworld)
+			Ok (ReadingDone val) = (ValueResult val (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)
 			Error e = (ExceptionResult e,iworld)
-
-	rep ResetEvent = ReplaceUI (ui UIEmpty)
-	rep _          = NoChange
 
 taskValueShare :: Int ->  SimpleSDSLens (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))

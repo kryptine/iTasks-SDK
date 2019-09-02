@@ -11,6 +11,7 @@ import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskState
+import iTasks.Internal.Util
 
 get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 get sds = Task (readCompletely sds NoValue (unTask o treturn))
@@ -22,14 +23,13 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 upd fun sds = Task (modifyCompletely fun sds NoValue (\_->asyncSDSLoaderUI Modify) (unTask o treturn))
 
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
-watch sds = Task (readRegisterCompletely sds NoValue rep cont)
+watch sds = Task (readRegisterCompletely sds NoValue mkUi cont)
 where
 	cont r event {TaskEvalOpts|ts} iworld
 		= (ValueResult (Value r False)
-			{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
-			(rep event)
-			(Task (readRegisterCompletely sds (Value r False) rep cont))
+			(mkTaskEvalInfo ts)
+			(mkUi event)
+			(Task (readRegisterCompletely sds (Value r False) mkUi cont))
 		, iworld)
 
-	rep ResetEvent = ReplaceUI (ui UIEmpty)
-	rep _ = NoChange
+	mkUi event = mkUIIfReset event (ui UIEmpty)

@@ -16,6 +16,7 @@ import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
+import iTasks.Internal.Util
 import iTasks.Internal.AsyncSDS
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle, removeMaybe
@@ -412,7 +413,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 	= case evalParallelTask listId event evalOpts t iworld of
 		(Error e, iworld) = (Error e,iworld)
 		(Ok (ExceptionResult e), iworld) = (Error e,iworld) //Stop on exceptions
-		(Ok result=:(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep task), iworld)
+		(Ok result=:(ValueResult val {TaskEvalInfo|lastEvent,removedTasks} rep task), iworld)
 			//Add the current result before checking for removals
 			# completed = [(taskId, result):completed]
 			//Check if in the branch tasks from this list were removed but that were already evaluated
@@ -677,8 +678,8 @@ where
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
 			= (ValueResult
 				(Value () True)
-				{lastEvent=ts,removedTasks=[]}
-				(rep event)
+				(mkTaskEvalInfo ts)
+				(mkUIIfReset event (ui UIEmpty))
 				(treturn ()), iworld)
 		//Mark the task as removed, and update the indices of the tasks afterwards
 		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
@@ -688,12 +689,9 @@ where
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			# (mbe,iworld) = deleteTaskInstance instanceNo iworld
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
-			= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
+			= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 		//Pass removal information up
-		= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[(listId,removeId)]} (rep event) (treturn ()), iworld)
-
-	rep ResetEvent = ReplaceUI (ui UIEmpty)
-	rep _          = NoChange
+		= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[(listId,removeId)]} (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 
 	//When a task is marked as removed, the index of the tasks after that are decreased
 	markAsRemoved removeId [] = []
@@ -714,14 +712,14 @@ where
 		| listId == TaskId 0 0
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
+					= (ValueResult (Value () True) (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//If it is a detached task, replacee the detached instance, if it is embedded schedule the change in the parallel task state
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
+					= (ValueResult (Value () True) (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//Schedule the change in the parallel task state
@@ -729,10 +727,7 @@ where
 		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
 		# (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 		| mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
-		= (ValueResult (Value () True) {lastEvent=ts,removedTasks=[]} (rep event) (treturn ()), iworld)
-
-	rep ResetEvent = ReplaceUI (ui UIEmpty)
-	rep _          = NoChange
+		= (ValueResult (Value () True) (mkTaskEvalInfo ts) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 
 	scheduleReplacement replaceId task [] = []
 	scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
@@ -800,7 +795,7 @@ where
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
 		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted _)
 		= (ValueResult (Value curStatus stable)
-			{TaskEvalInfo|lastEvent=ts,removedTasks=[]} change
+			(mkTaskEvalInfo ts) change
 			(Task (eval curStatus build instanceKey)), iworld)
 
 	determineUIChange event curStatus prevStatus instanceNo instanceKey

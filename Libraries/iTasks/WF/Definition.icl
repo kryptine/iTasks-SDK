@@ -1,7 +1,6 @@
 implementation module iTasks.WF.Definition
 
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from System.Time import :: Timestamp, :: Timespec
 import iTasks.WF.Derives
 import iTasks.UI.Definition

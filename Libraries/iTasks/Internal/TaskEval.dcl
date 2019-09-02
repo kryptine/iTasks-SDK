@@ -16,17 +16,17 @@ from Data.CircularStack import :: CircularStack
 
 // External evaluation passed to the task
 :: TaskEvalOpts	=
-	{ noUI              :: !Bool
-	, taskId            :: !TaskId
-	, ts                :: !TaskTime
+	{ noUI   :: !Bool
+	, taskId :: !TaskId
+	, ts     :: !TaskTime
 	}
 
 mkEvalOpts :: TaskEvalOpts
 
 // External information passed from the task
 :: TaskEvalInfo =
-	{ lastEvent			:: !TaskTime	        //When was the last event in this task
-    , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
+	{ lastEvent    :: !TaskTime	        //When was the last event in this task
+    , removedTasks :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
 	}
 
 :: TaskTime			:== Int

@@ -11,6 +11,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
 import iTasks.Internal.AsyncSDS
+import iTasks.Internal.Util
 
 import Data.Error, Data.Maybe, Data.Func, Data.Either, Data.Tuple
 import Text.GenJSON
@@ -119,7 +120,7 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 								(\w event {TaskEvalOpts|ts} iworld->
 									(ValueResult
 										(Value (l, v) False)
-										{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+										(mkTaskEvalInfo ts)
 										change
 										(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
 									, iworld))
@@ -128,14 +129,14 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 							Nothing
 								= (ValueResult
 									(Value (l, v) False)
-									{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+									(mkTaskEvalInfo ts)
 									change
 									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
 								, iworld)
 					Nothing
 						= (ValueResult
 							(maybe NoValue (\v->Value (l, v) False) v)
-							{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+							(mkTaskEvalInfo ts)
 							change
 							(Task (evalInteract l v st mode sds handlers editor writefun))
 						, iworld)
@@ -154,7 +155,7 @@ evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{Task
 			# v = maybe v Just mbv
 			= (ValueResult
 				(maybe NoValue (\v->Value (l, v) False) v)
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+				(mkTaskEvalInfo ts)
 				change
 				(Task (evalInteract l v st mode sds handlers editor writefun))
 			, iworld)
@@ -174,7 +175,7 @@ evalInteract l v st mode sds handlers editor writefun event=:(RefreshEvent taskI
 							Nothing
 								= (ValueResult
 									(Value (l, v) False)
-									{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+									(mkTaskEvalInfo ts)
 									change
 									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
 								, iworld)
@@ -184,7 +185,7 @@ evalInteract l v st mode sds handlers editor writefun event evalOpts=:{TaskEvalO
 	//An event for a sibling?
 	= (ValueResult
 		(maybe NoValue (\v->Value (l, v) False) v)
-		{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+		(mkTaskEvalInfo ts)
 		NoChange
 		(Task (evalInteract l v st mode sds handlers editor writefun))
 	, iworld)

@@ -55,9 +55,10 @@ where
 		$       liftOSErr (terminateProcess ph)
 		>-= \_->liftOSErr (closeProcessIO pio)
 		>-= \_->tuple (Ok DestroyedResult)
-	//TODO: check whether the event is for our sds registration
 	//TODO: Support async sdss
 	eval (ph, pio) event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
+		| isRefreshForTask event taskId
+			= (ValueResult NoValue (mkTaskEvalInfo ts) (mkUIIfReset event rep) (Task (eval (ph, pio))), iworld)
 		= apIWTransformer iworld $
 			read sdsout EmptyContext                    >-= \(ReadingDone (stdoutq, stderrq))->
 			liftOSErr (readPipeNonBlocking pio.stdOut)  >-= \stdoutData->
@@ -68,20 +69,16 @@ where
 				       ,stderrq ++ filter ((<>)"") [stderrData]
 				       ) sdsout EmptyContext))          >-= \WritingDone->
 			liftOSErr (checkProcess ph)                 >-= \mexitcode->case mexitcode of
-				(Just i) = tuple (Ok (ValueResult (Value i True) (info ts) (rep event) (treturn i)))
+				(Just i) = tuple (Ok (ValueResult (Value i True) (mkTaskEvalInfo ts) (mkUIIfReset event rep) (treturn i)))
 				Nothing =
 					readRegister taskId clock                            >-= \_->
 					readRegister taskId sdsin                            >-= \(ReadingDone stdinq)->
 					liftOSErr (writePipe (concat stdinq) pio.stdIn)      >-= \_->
 					(if (stdinq =: []) (tuple (Ok WritingDone)) (write [] sdsin EmptyContext)) >-= \WritingDone ->
-					tuple (Ok (ValueResult NoValue (info ts) (rep event)
+					tuple (Ok (ValueResult NoValue (mkTaskEvalInfo ts) (mkUIIfReset event rep)
 						(Task (eval (ph, pio)))))
 
-	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
-
-	rep ResetEvent = ReplaceUI (stringDisplay ("External process: " <+++ cmd))
-	rep _ = NoChange
-
+	rep = stringDisplay ("External process: " <+++ cmd)
 	clock = sdsFocus {start=zero,interval=poll} iworldTimespec
 
 tcplisten :: !Int !Bool !(sds () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w & RWShared sds
@@ -103,10 +100,10 @@ where
 			Just (IOException e) = (ExceptionResult (exception e), iworld)
 			Just (IOActive values)
 				# value = Value [l \\ (_,(l :: l^,_)) <- 'DM'.toList values] False
-				= (ValueResult value (tei ts) (rep port) (Task eval), iworld)
-			Nothing = (ValueResult (Value [] False) (tei ts) (rep port) (Task eval), iworld)
+				= (ValueResult value (mkTaskEvalInfo ts) (mkUIIfReset event (rep port)) (Task eval), iworld)
+			Nothing = (ValueResult (Value [] False) (mkTaskEvalInfo ts) (mkUIIfReset event (rep port)) (Task eval), iworld)
 
-	rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
+	rep port = stringDisplay ("Listening for connections on port "<+++ port)
 
 tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 tcpconnect host port sds handlers = Task evalinit
@@ -127,16 +124,14 @@ where
 
 	eval event evalOpts=:{TaskEvalOpts|taskId,ts} iworld=:{ioStates}
 		= case 'DM'.get taskId ioStates of
-			Nothing = (ValueResult NoValue (tei ts) rep (Task eval), iworld)
+			Nothing = (ValueResult NoValue (mkTaskEvalInfo ts) (mkUIIfReset event rep) (Task eval), iworld)
 			Just (IOActive values)
 				= case 'DM'.get 0 values of
 					Just (l :: l^, s)
-						= (ValueResult (Value l s) (tei ts) rep (Task eval), iworld)
+						= (ValueResult (Value l s) (mkTaskEvalInfo ts) (mkUIIfReset event rep) (Task eval), iworld)
 					_
 						= (ExceptionResult (exception "Corrupt IO task result"),iworld)
 			Just (IOException e)
 				= (ExceptionResult (exception e),iworld)
 
-	rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
-
-tei ts = {TaskEvalInfo|removedTasks=[],lastEvent=ts}
+	rep = stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port)

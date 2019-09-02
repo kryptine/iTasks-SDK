@@ -9,6 +9,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
+import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.UI.Definition
 import iTasks.WF.Definition
@@ -28,7 +29,7 @@ where
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+				(mkTaskEvalInfo ts)
 				NoChange
 				(Task eval)
 			, iworld)
