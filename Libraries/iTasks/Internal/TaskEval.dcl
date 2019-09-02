@@ -14,11 +14,14 @@ from Data.Map import :: Map
 from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.CircularStack import :: CircularStack
 
-// External evaluation passed to the task
+// External evaluation passed to the task under execution
 :: TaskEvalOpts	=
 	{ noUI   :: !Bool
+	//* Whether to generate a UI
 	, taskId :: !TaskId
+	//* The id of the task
 	, ts     :: !TaskTime
+	//* The current tasktime (n'th execution, see {{nextTaskTime}})
 	}
 
 mkEvalOpts :: TaskEvalOpts
@@ -29,12 +32,13 @@ mkEvalOpts :: TaskEvalOpts
     , removedTasks :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
 	}
 
-:: TaskTime			:== Int
+:: TaskTime :== Int
 
 /**
  * Get the next TaskId
  */
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
+
 /**
 * Dequeues events from the event queue and evaluates the tasks instances
 * @param Maximum amount of events to process at once
