@@ -61,8 +61,8 @@ actorWithInstructions user
 
   pickStartRoom :: Task Coord3D
   pickStartRoom
-    = updateInformationWithShared "Which room do you want to start in?"
-        [UpdateUsing id (const snd) editor]
+    = Hint "Which room do you want to start in?" @>> updateInformationWithShared 
+        [UpdateSharedUsing id (const snd) const editor]
         (maps2DShare |*| myNetwork) NoAction
     >>* [OnValue (\v -> case v of
                           Value (FocusOnSection c3d) _ = Just (return c3d)
@@ -90,14 +90,14 @@ giveInstructions :: Task ()
 giveInstructions =
   forever
   (          get currentUser
-  >>- \me -> (                        enterChoiceWithShared "Choose which alarm to handle: " [ChooseFromGrid showAlarm] allActiveAlarms
-             >&>                      withSelection (viewInformation () [] "No Alarm Selected")
+  >>- \me -> (                        Hint "Choose which alarm to handle: " @>> enterChoiceWithShared  [ChooseFromGrid showAlarm] allActiveAlarms
+             >&>                      withSelection (viewInformation [] "No Alarm Selected")
              \(alarmLoc, detector) -> selectSomeOneToHandle (alarmLoc, detector)
-             >&>                      withSelection (viewInformation () [] "No Crew Member Selected")
+             >&>                      withSelection (viewInformation [] "No Crew Member Selected")
              \(actorLoc, actor) ->    scriptDefined detector
              >>- \scriptExists ->     (viewRelativeStatus (actorLoc, actor) (alarmLoc, detector)
                                       ||-
-                                      updateChoice "Select the Priority : " [ChooseFromCheckGroup id] [Low, Normal, High, Highest] High)
+                                      (Hint "Select the Priority : " @>> updateChoice  [ChooseFromCheckGroup id] [Low, Normal, High, Highest] High))
              >>* [ OnAction ActionByHand    (hasValue (\prio -> handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), prio)))
                  , OnAction ActionSimulated (hasValue (\prio -> autoHandleAlarm me actor.userName (alarmLoc, detector) @! ()))
                  //, OnAction ActionScript    (hasValue (\prio -> autoHandleWithScript (me, (alarmLoc, detector), (actorLoc, actor), prio) @! ()))
@@ -116,7 +116,7 @@ giveInstructions =
 
   selectSomeOneToHandle :: !(!Coord3D, !SectionStatus) -> Task (!Coord3D, !MyActor)
   selectSomeOneToHandle (number, detector)
-    = enterChoiceWithShared ("Who should handle: " <+++ showAlarm (number, detector))
+    = Hint ("Who should handle: " <+++ showAlarm (number, detector)) @>> enterChoiceWithShared 
         [ChooseFromGrid (\(roomNumber,actor) -> (roomNumber, actor.userName, actor.actorStatus))] allAvailableActors
 
   viewRelativeStatus :: !(!Coord3D, !MyActor) !(!Coord3D, !SectionStatus) -> Task ()
@@ -127,7 +127,7 @@ giveInstructions =
                       (\_ -> mkTable ["Status"] ["Everything in order"])
                    )
                 )
-    = viewSharedInformation () [ViewUsing view grid] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
+    = viewSharedInformation [ViewUsing view grid] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
     where
     mkFireView ((((graph, statusMap), inventoryMap), exitLocks), hopLocks)
       #! (_,_,eCost,nrExt, (extLoc, distExt, _))                       = smartShipPathToClosestObject FireExtinguisher inventoryMap actorLoc alarmLoc statusMap exitLocks hopLocks graph
@@ -171,9 +171,9 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
   handleWhileWalking :: !MyActor !String !Priority -> Task ()
   handleWhileWalking actor title priority
     =   addTaskForUser title actor.userName Immediate (const taskToHandle)
-    >>* [ OnValue  (ifValue isDone (\x -> viewInformation ("Task " <+++ title <+++ " succeeded, returning:") [] x @! ()))
-        , OnValue  (ifValue isFailed (\x -> viewInformation ("Task " <+++ title <+++ " failed, returning:") [] x @! ()))
-        , OnAction (Action "Cancel task") (always (viewInformation "Canceled" [] ("Task " <+++ title <+++ " has been cancelled by you") @! ()))
+    >>* [ OnValue  (ifValue isDone (\x -> Title ("Task " <+++ title <+++ " succeeded, returning:") @>> viewInformation [] x @! ()))
+        , OnValue  (ifValue isFailed (\x -> Title ("Task " <+++ title <+++ " failed, returning:") @>> viewInformation  [] x @! ()))
+        , OnAction (Action "Cancel task") (always (Title "Canceled" @>> viewInformation [] ("Task " <+++ title <+++ " has been cancelled by you") @! ()))
         ]
     >>| return ()
     where
@@ -188,7 +188,7 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
   taskToDo :: !(!Coord3D, !SectionStatus) !User !(Shared sds1 MySectionStatusMap) !(UserActorShare o a) !(Shared sds2 MySectionInventoryMap)
            -> Task (MoveSt String) | RWShared sds1 & RWShared sds2
   taskToDo (alarmLoc, status) user shStatusMap shUserActor shInventoryMap
-    =   viewSharedInformation ("Handle " <+++ toString status <+++ " in Section: " <+++ alarmLoc) [ViewAs todoTable] (sectionForUserShare user |*| myUserActorMap |*| shStatusMap |*| shInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| sharedGraph)
+    =   Hint ("Handle " <+++ toString status <+++ " in Section: " <+++ alarmLoc) @>> viewSharedInformation  [ViewAs todoTable] (sectionForUserShare user |*| myUserActorMap |*| shStatusMap |*| shInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| sharedGraph)
     >>* [ OnAction (Action "Use Fire Extinguisher") (ifValue (mayUseExtinguisher status) (withUser useExtinquisher))
         , OnAction (Action "Use FireBlanket")       (ifValue (mayUseFireBlanket status)  (withUser useFireBlanket))
         , OnAction (Action "Use Plug")              (ifValue (mayUsePlug status)         (withUser usePlug))
@@ -226,27 +226,27 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
       =   useObject alarmLoc (getObjectOfType curActor FireExtinguisher) user myUserActorMap inventoryInSectionShare
       >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
       >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation "Well Done, Fire Extinguished !" [] ()
+      >>| viewInformation [] "Well Done, Fire Extinguished !" @! ()
       >>| return (MoveDone "Fire Extinguised")
 
     useFireBlanket curActor
       =   useObject alarmLoc (getObjectOfType curActor FireBlanket) user myUserActorMap inventoryInSectionShare
       >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
       >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation "Well Done, Fire Extinguished !" [] ()
+      >>| viewInformation [] "Well Done, Fire Extinguished !" @! ()
       >>| return (MoveDone "Fire Extinguised")
 
     usePlug curActor
       =   useObject alarmLoc (getObjectOfType curActor Plug) user myUserActorMap inventoryInSectionShare
       >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
       >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation "Well Done, Flooding Stopped !" [] ()
+      >>| viewInformation [] "Well Done, Flooding Stopped !" @! ()
       >>| return (MoveDone "Flooding Stopped")
 
     smokeReport curActor
       =   setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
       >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation "Well Done, Reason of Smoke Detected !" [] ()
+      >>| viewInformation [] "Well Done, Reason of Smoke Detected !" @! ()
       >>| return (MoveDone "Don't smoke under a smoke detector!")
 
     giveUp curActor
@@ -386,8 +386,8 @@ findClosest objectType statusMap inventoryMap myLoc targetLoc exitLocks hopLocks
 mkSection :: MyDrawMapForActor
 mkSection
   = \user shStatusMap shUserActor shSectionInventoryMap ->
-      updateSharedInformation "Section Status"
-		  [UpdateUsing id (\_ _ -> ()) editor]
+      Title "Section Status" @>> updateSharedInformation 
+		  [UpdateSharedUsing id (\_ _ -> ()) const editor]
           (sectionForUserShare user |*| myNetwork |*| myDevices |*| shStatusMap |*| sectionUsersShare |*| myUserActorMap |*| shSectionInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| maps2DShare)
           @! ()
   where

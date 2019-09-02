@@ -475,7 +475,7 @@ where
                                                       , onDisconnect   = onDisconnect
                                                       , onDestroy      = \s->(Ok s, [])
                                                       } @! Nothing)
-                -||- (viewInformation () [] () >>* [OnAction (Action "reset") (always (return Nothing))])
+                -||- (viewInformation [] () >>* [OnAction (Action "reset") (always (return Nothing))])
 
         onConnect :: String ConnectionId String ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)
         onConnect helloMessage connId host store
@@ -525,13 +525,13 @@ where
                 handleRequest :: [String] {#Symbol} -> Task (Maybe Int, [String])
                 handleRequest ["instance", "notify", instanceno, attributes] symbols
                         # attributes = deserializeFromBase64 attributes symbols
-                        = getTaskIdByAttribute "distributedInstanceId" instanceno
+                        = getTaskIdByAttribute "distributedInstanceId" (JSONString instanceno)
                         >>= \id -> if (isNothing id)
-                                (appendTopLevelTask ('DM'.put "distributedInstanceServerId" (toString clientId) ('DM'.put "distributedInstanceId" instanceno attributes)) False (wrapperTask (toInt instanceno) clientId) @! ())
+                                (appendTopLevelTask ('DM'.put "distributedInstanceServerId" (JSONString (toString clientId)) ('DM'.put "distributedInstanceId" (JSONString instanceno) attributes)) False (wrapperTask (toInt instanceno) clientId) @! ())
                                 (return ())
                         >>| return (Nothing, [])
                 handleRequest ["instance", "destory", instanceno] _
-                        = getTaskIdByAttribute "distributedInstanceId" instanceno
+                        = getTaskIdByAttribute "distributedInstanceId" (JSONString instanceno)
                         >>- \id -> if (isNothing id)
                                 (return ())
                                 (removeTask (TaskId (fromJust id) 0) topLevelTasks @! ())
@@ -602,7 +602,7 @@ sendRequestToInstanceServer :: Int String -> Task ()
 sendRequestToInstanceServer clientId request
 	= upd (\s=:{ClientShare|responses=or} -> {ClientShare| s & responses = or ++ [request]}) (instanceClientShare clientId) @! ()
 
-getTaskIdByAttribute :: String String -> Task (Maybe InstanceNo)
+getTaskIdByAttribute :: String JSONNode -> Task (Maybe InstanceNo)
 getTaskIdByAttribute key value = get attrb
 where
 	attrb = mapRead find (sdsFocus (key,value) taskInstancesByAttribute)
@@ -624,18 +624,18 @@ wrapperTask instanceno clientId
 where
 	loadTask :: InstanceNo Bool (Shared sds String) -> Task String | RWShared sds
 	loadTask instanceno force shared
-		= viewInformation "Loading task" [] "Please wait, the task is loaded ..."
+		= Title "Loading task" @>> viewInformation [] "Please wait, the task is loaded ..."
 		||- (addWrapperTaskHandler instanceno (handlerTask shared)
 	 	     >>| sendRequestToInstanceServer clientId ("instance " +++ (if force "get-force " "get ") +++ (toString instanceno))
                      >>| (watch shared >>* [OnValue (ifValue (\v -> not (v == "")) return)])
-		) >>- \result -> if (result=="ASSIGNED") (assinged instanceno shared) (return result)
+		) >>- \result -> if (result=="ASSIGNED") (assigned instanceno shared) (return result)
 
 	handlerTask :: (Shared sds String) String -> Task () | RWShared sds
 	handlerTask shared data = set data shared @! ()
 
-	assinged :: InstanceNo (Shared sds String) -> Task String | RWShared sds
-	assinged instanceno shared
-		= viewInformation "Task is assigned to another node" []
+	assigned :: InstanceNo (Shared sds String) -> Task String | RWShared sds
+	assigned instanceno shared
+		= Hint "Task is assigned to another node" @>> viewInformation []
 			"You can takeover the task. Please take in mind that the progress at the other device maybe lost."
 		>>* [OnAction (Action "Take over") (always (return ()))]
 		>>| set "" shared
@@ -644,7 +644,6 @@ where
 	valueChange :: InstanceNo (TaskValue a) -> Task () | iTask a
 	valueChange instanceno value
 		= sendRequestToInstanceServer clientId ("value " +++ (toString instanceno) +++ " none " +++ serializeToBase64 (Remote_TaskValue value))
-
 
 :: WrapperTaskHandelers :== Map Int String
 

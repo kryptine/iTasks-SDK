@@ -15,7 +15,7 @@ coffeemachine :: Task (String,EUR)
 coffeemachine
 	=
 	forever
-	( 	enterChoice ("Product","Choose your product:") []
+	( 	Title "Product" @>> Hint "Choose your product:" @>> enterChoice []
 					[("Coffee", EUR 100)
 					,("Cappucino", EUR 150)
 					,("Tea", EUR 50)
@@ -27,9 +27,9 @@ coffeemachine
 
 getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay)
-	= 				viewInformation "Coffee Machine" [ViewAs view1] toPay
+	= 				(Title "Coffee Machine" @>> viewInformation [ViewAs view1] toPay)
 					||-
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
+					(Title "Insert coins" @>> Hint "Please insert a coin..." @>> enterChoice  [ChooseFromCheckGroup id] coins)
 			>>*		[ OnAction ActionCancel 	 (always (stop ("Product Cancelled",paid)))
 					, OnAction (Action "Insert") (hasValue handleMoney)
 					]
@@ -40,7 +40,7 @@ where
 	| toPay > coin	= getCoins (paid+coin) (product, toPay-coin)
 	| otherwise		= stop (product,coin-toPay)
 
-	stop (product, money) = viewInformation "Coffee Machine" [ViewAs view2] (product,money)
+	stop (product, money) = Title "Coffee Machine" @>> viewInformation [ViewAs view2] (product,money)
 
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Enjoy your: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]

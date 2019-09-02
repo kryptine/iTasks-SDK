@@ -35,7 +35,8 @@ manageIncidentInformation ws incidentNo
 //Basic incident information (title, summary, type, phase etc..)
 manageIncidentSituationInfo :: IncidentNo -> Task ()
 manageIncidentSituationInfo incidentNo
-    =	viewOrEdit (Icon "basic-information","General","The following general information is known about the situation") situation log
+	=   Icon "basic-information" @>> Title "General" @>> Hint "The following general information is known about the situation" @>>
+        viewOrEdit situation log
     >^* [OnAction (Action "/Share to wall") (always (shareIncident incidentNo))
         ,OnAction (Action "/Close incident") (always (confirmCloseIncident incidentNo <<@ InWindow))
         ]
@@ -51,7 +52,7 @@ where
 
     shareIncident incidentNo = set (WallIncidentSummary (Just incidentNo)) wallContent @! ()
     confirmCloseIncident incidentNo
-        =  viewInformation ("Close incident","Are you sure you want to close this incident?") [] ()
+        =  Title "Close incident" @>> Hint "Are you sure you want to close this incident?" @>> viewInformation [] ()
         >>* [OnAction ActionYes (always (closeIncident incidentNo))
             ,OnAction ActionNo (always (return ()))
             ]
@@ -69,15 +70,15 @@ where
                         ,(OnAction (Action "/Update status") (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
                         ,(OnAction (Action "/Open contact") (ifValue (\c -> c=:(Left _)) (\(Left c) -> openContactInWorkspace ws c)))
                         ]
-    chooseFromList sel = editSharedChoiceWithSharedAs () [ChooseFromList listView] contacts (Left o contactIdentity) sel
+    chooseFromList sel = editSharedChoiceWithSharedAs [ChooseFromList listView] contacts (Left o contactIdentity) sel
     chooseFromMap sel = viewContactsOnMap (sdsFocus incidentNo contactsByIncidentGeo) sel
 
     listView c=:{Contact|name,type,status,photos}
         = ">" <+++ type <+++ ": " <+++ name <+++ " (" <+++ status <+++ ")"
 
-    add	= oneOrAnother (Title "Add contact..")
-            ("Known contact",enterChoiceWithSharedAs () [ChooseFromDropdown id] allContactsShort contactNo)
-            ("Add new contact",enterInformation () [])
+    add	= Title "Add contact..." @>> oneOrAnother
+            ("Known contact",enterChoiceWithSharedAs [ChooseFromDropdown id] allContactsShort contactNo)
+            ("Add new contact",enterInformation [])
 		>>? \contact ->
             createContactIfNew contact
             >>- \contactNo ->
@@ -90,7 +91,7 @@ where
         createContactIfNew (Right c) = createContact c
 
 	remove sel
-        = viewSharedInformation ("Remove contact from incident","Are your sure you want to remove this contact?") [] (mapRead contactTitle (sdsFocus sel contactByNo)) //TODO: Create contactTitle share
+        = Title "Remove contact from incident" @>> Hint "Are your sure you want to remove this contact?" @>> viewSharedInformation [] (mapRead contactTitle (sdsFocus sel contactByNo)) //TODO: Create contactTitle share
 	    >>* [OnAction ActionNo (always (return ()))
 	        ,OnAction ActionYes (always (upd (\cs -> [c \\ c <- map contactIdentity cs | c <> sel]) contacts >>| logContactRemoved incidentNo sel))
 		    ]
@@ -102,11 +103,11 @@ manageIncidentActions incidentNo
 	@!  ()
 where
     selectAndWorkOnPlannedActions
-        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */)
+        = (feedForward (Title "Overview" @>> chooseActionItem False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */)
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
-              Nothing        = viewInformation () [] ()
+              Nothing        = viewInformation [] ()
             )
         )) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Incident Actions") //FIXME
 
@@ -114,14 +115,14 @@ manageIncidentWeather :: IncidentNo -> Task ()
 manageIncidentWeather incidentNo
     =   (get webLinksConfig
     >>- \webConfig -> case webConfig.weatherWidgets of
-        Just widgets = (viewWebWeather widgets ||- viewOrEdit (Title "Weather on scene") weather log) <<@ (ArrangeWithSideBar 0 RightSide True)
-        Nothing      = viewOrEdit (Title "Weather on scene") weather log
+        Just widgets = (viewWebWeather widgets ||- (Title "Weather on scene" @>> viewOrEdit weather log)) <<@ (ArrangeWithSideBar 0 RightSide True)
+        Nothing      = Title "Weather on scene" @>> viewOrEdit weather log
 
     ) <<@ Title "Weather" <<@ Icon "weather"
 where
     weather = sdsFocus incidentNo incidentWeather
     log     = logIncidentWeatherUpdated incidentNo
-    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (Html widgets)
+    viewWebWeather widgets = Title "Web weather info" @>> viewInformation [] (Html widgets)
 
 manageIncidentLog :: IncidentNo -> Task ()
 manageIncidentLog incidentNo
@@ -130,7 +131,7 @@ manageIncidentLog incidentNo
     @! ()
 where
     viewIncidentLog :: IncidentNo -> Task [LogEntry]
-    viewIncidentLog incident = viewSharedInformation () [ViewAs toView] (sdsFocus incidentNo incidentLog)
+    viewIncidentLog incident = viewSharedInformation [ViewAs toView] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [ClassAttr "incident-log"] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 
@@ -150,7 +151,7 @@ where
         groupByDate log = [(toDate e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> toDate e1.eventAt == toDate e2.eventAt) log]
 
     addMessages incidentNo = forever
-        (   enterInformation () [] @ string
+        (   enterInformation [] @ string
         >>* [OnAction (Action "Add log message") (hasValue (\msg -> addLogMessage msg incidentNo))]
         )
 
@@ -160,18 +161,18 @@ where
 viewIncidentDetails :: IncidentNo -> Task ()
 viewIncidentDetails incidentNo
 	= withHeader (viewSharedTitle (sdsFocus incidentNo incidentTitleByNo))
-	    (viewSharedInformation () [] (mapRead incidentDetails incident)) //TODO: Create a more efficient share for the details
+	    (viewSharedInformation [] (mapRead incidentDetails incident)) //TODO: Create a more efficient share for the details
 	@! ()
 where
     incident = sdsFocus incidentNo incidentByNo
 
-updateSharedIncidentRefList     :: d Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | toPrompt d & RWShared sds
-updateSharedIncidentRefList d compact refs
+updateSharedIncidentRefList :: Bool (Shared sds [IncidentNo]) -> Task [IncidentNo] | RWShared sds
+updateSharedIncidentRefList compact refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation d [UpdateAs toPrj fromPrj] items @ map incidentIdentity
+        = updateSharedInformation [UpdateSharedAs toPrj fromPrj const] items @ map incidentIdentity
     where
         items = sdsDeref refs id incidentsByNosShort (\_ is -> is)
         toPrj l = [(incidentIdentity i,incidentTitle i) \\i <-l]
@@ -183,14 +184,14 @@ where
 
 selectKnownOrDefineNewIncident :: Task (Either IncidentNo NewIncident)
 selectKnownOrDefineNewIncident
-    = oneOrAnother ("Add incident...","You can either select an open incident, or define a new one.")
+    = Title "Add incident..." @>> Hint "You can either select an open incident, or define a new one." @>> oneOrAnother
         ("Known incident", chooseKnownIncident)
         ("Add new incident",enterNewIncident)
 where
     chooseKnownIncident
-        = enterChoiceWithSharedAs () [ChooseFromDropdown id] openIncidentsShort incidentIdentity
+        = enterChoiceWithSharedAs [ChooseFromDropdown id] openIncidentsShort incidentIdentity
     enterNewIncident
-        = enterInformation () []
+        = enterInformation []
 
 createIncidentIfNew :: (Either IncidentNo NewIncident) -> Task IncidentNo
 createIncidentIfNew (Left no) = return no

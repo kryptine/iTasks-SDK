@@ -2,7 +2,7 @@ module OnClick
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdClass, StdFunctions, StdInt, StdList, StdReal
 import Text
@@ -15,7 +15,7 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (updateInformation "On Click"
+	= doTasks (Title "On Click" @>> updateInformation 
 		[UpdateUsing id (\_ v = v) (fromSVGEditor
 			{ initView    = id
 			, renderImage = const count

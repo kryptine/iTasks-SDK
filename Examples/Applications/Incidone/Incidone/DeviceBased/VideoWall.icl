@@ -17,18 +17,18 @@ viewVideoWallContent
     = (header ||- content) <<@ (ArrangeWithHeader 0) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
-        = viewSharedInformation () [ViewAs view] (currentTime |*| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
+        = viewSharedInformation [ViewAs view] (currentTime |*| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
     where
         view (local,utc) = "LOCAL: " + lpad (toString local.Time.hour) 2 '0' + ":" + lpad (toString local.Time.min) 2 '0' + " "
                          + "UTC: " + lpad (toString utc.Time.hour) 2 '0' + ":" + lpad (toString utc.Time.min) 2 '0'
     content
         = whileUnchanged wallContent \content -> case content of
-        WallClock                               = (viewSharedInformation (Title "Local Time") [ViewAs formatTime] currentTime @! content)
+        WallClock                               = (Title "Local Time" @>> viewSharedInformation [ViewAs formatTime] currentTime @! content)
 //        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewAs (\t -> formatDateTime (until - t))] currentDateTime @! content)
         WallOverview perspective                = viewWallOverview perspective @! content
         WallContactSummary (Just contactNo)     = viewWallContactSummary contactNo @! content
         WallIncidentSummary (Just incidentNo)   = viewWallIncidentSummary incidentNo @! content
-        _                                       = viewInformation "Nothing selected..." [] () @! content
+        _                                       = Hint "Nothing selected..." @>> viewInformation  [] () @! content
 
 formatTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; padding-top: 200px;"] [Text (toString time)]
 formatDateTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; padding-top: 200px;"] [Text (toString time)]
@@ -36,11 +36,11 @@ formatDateTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; pa
 mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
 
 viewWallOverview perspective
-    = ((viewSharedInformation (Title "Open Incidents") [ViewAs formatIncidents] openIncidentsDetails)
+    = (((Title "Open Incidents") @>> viewSharedInformation  [ViewAs formatIncidents] openIncidentsDetails)
         -&&-
        (get standardMapLayers
         >>- \baseLayers ->
-        viewSharedInformation () [ViewAs (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
+        viewSharedInformation [ViewAs (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
       ) <<@ ArrangeWithSideBar 0 LeftSide False
 where
     toMap perspective baseLayers contacts
@@ -63,11 +63,11 @@ where
     contact = sdsFocus contactNo contactByNo
 
     viewContactTitle
-        = viewSharedInformation () [] (mapRead contactTitle contact) /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") */ //FIXME
+        = viewSharedInformation [] (mapRead contactTitle contact) /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") */ //FIXME
     viewDetails
         = (viewPhoto -&&- viewTypeDetails) <<@ (Title "Details")
     viewPhoto
-		= viewSharedInformation () [ViewAs formatPhoto] contact
+		= viewSharedInformation [ViewAs formatPhoto] contact
     where
 	    formatPhoto {Contact|photos,type,notes}
             = ImgTag [ClassAttr "wall-contact-details",WidthAttr "200",HeightAttr "200",SrcAttr (photoSrc photos)]
@@ -77,14 +77,14 @@ where
 
     viewTypeDetails = whileUnchanged contact
         \{Contact|type} -> case type of
-            Just Vessel = viewSharedInformation () [] (sdsFocus contactNo vesselDetailsByNo) @! ()
-            Just Person = viewSharedInformation () [] (sdsFocus contactNo personDetailsByNo) @! ()
-            _           = viewInformation () [] ()
+            Just Vessel = viewSharedInformation [] (sdsFocus contactNo vesselDetailsByNo) @! ()
+            Just Person = viewSharedInformation [] (sdsFocus contactNo personDetailsByNo) @! ()
+            _           = viewInformation [] ()
 
     viewPosition
-        = ((viewSharedInformation (Title "Position") [ViewAs formatPosition] contact /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position") */) //FIXME
+        = (((Title "Position") @>> viewSharedInformation [ViewAs formatPosition] contact /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position") */) //FIXME
            -&&-
-           (viewSharedInformation (Title "Map") [ViewAs contactMap] contact /*<<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)) */) //FIXME
+           ((Title "Map") @>> viewSharedInformation [ViewAs contactMap] contact /*<<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)) */) //FIXME
           )
     where
         formatPosition {Contact|position=Just pos}  = toSingleLineText pos
@@ -101,7 +101,7 @@ where
         markers c _         = []
 
     viewCommunication
-        = viewSharedInformation (Title "Last communication") [ViewAs (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
+        = (Title "Last communication") @>> viewSharedInformation [ViewAs (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
     where
         formatComms items
             = DivTag []
@@ -118,9 +118,9 @@ where
     incident = sdsFocus incidentNo incidentByNo
 
     viewIncidentTitle
-        = viewSharedInformation () [] (sdsFocus incidentNo incidentTitleByNo) //<<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") //FIXME
+        = viewSharedInformation [] (sdsFocus incidentNo incidentTitleByNo) //<<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") //FIXME
     viewIncidentContacts
-        = viewSharedInformation (Title "Involved Contacts") [ViewAs toView] (sdsFocus incidentNo contactsByIncident)
+        = (Title "Involved Contacts") @>> viewSharedInformation [ViewAs toView] (sdsFocus incidentNo contactsByIncident)
     where
         toView contacts = DivTag [ClassAttr "wall-incident-contacts"] (map formatContact contacts)
 
@@ -134,14 +134,14 @@ where
 	    photoSrc _							= "/no-photo.jpg"
 
     viewIncidentActions
-        = viewSharedInformation (Title "Open Actions") [ViewAs toView]  (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
+        = (Title "Open Actions") @>> viewSharedInformation [ViewAs toView]  (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toView actions = DivTag [] [vizAction a \\ (_,_,a) <- actions]
         vizAction {ActionStatus|title}
             = DivTag [ClassAttr "wall-action"] [H2Tag [ClassAttr "wall-action-title"] [Text title]]
 
     viewIncidentLog
-        = viewSharedInformation (Title "Last Log Messages") [ViewAs (toView o take 5)] (sdsFocus incidentNo incidentLog)
+        = Title "Last Log Messages" @>> viewSharedInformation [ViewAs (toView o take 5)] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 

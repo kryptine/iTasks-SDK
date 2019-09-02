@@ -14,8 +14,8 @@ myShare :: Shared Int
 myShare = sharedStore "myShare" 0
 
 t0 :: Task Int
-t0 = updateSharedInformation "t0" [] myShare
+t0 = Title "t0" @>> updateSharedInformation [] myShare
 
 t1 :: Task Int
-t1 = updateSharedInformation "t1" [] myShare
+t1 = Title "t1" @>> updateSharedInformation [] myShare
 

@@ -49,7 +49,7 @@ where
         =   whileUnchanged databaseConfig
         \config ->
             checkDatabaseConfig config
-        >>- viewInformation (Title "Database configuration") [ViewAs databaseStatusView]
+        >>- \status -> Title "Database configuration" @>> viewInformation [ViewAs databaseStatusView] status
 
     databaseStatusView (Ok InternalSQLiteDB)            = (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
     databaseStatusView (Ok (ExternalMySQLDB _))         = (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
@@ -62,7 +62,7 @@ where
         >>- editDatabaseConfig
     where
         editDatabaseConfig config
-            =   updateInformation ("Database configuration","Please edit settings") [] config
+            =   Title "Database configuration" @>> Hint "Please edit settings" @>> updateInformation [] config
             >>= \newConfig ->
                 checkDatabaseConfig newConfig
             >>- \mbError -> case mbError of
@@ -70,13 +70,13 @@ where
                     = set config databaseConfig @! ()
                 Error NoDatabaseTables
                     =   set newConfig databaseConfig
-                    >>| viewInformation ("Create tables","The database you configured does not have tables set up yet.") [] "Do you want to create them now?"
+                    >>| Title "Create tables" @>> Hint "The database you configured does not have tables set up yet." @>> viewInformation [] "Do you want to create them now?"
                     >>* [OnAction ActionYes (always (createIncidoneTables (toDatabaseDef newConfig) @! ()))
                         ,OnAction ActionNo (always (return ()))
                         ]
 
                 Error e
-                    =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewAs databaseStatusView] (Error e)
+                    =   Title "Warning" @>> Hint "The new configuration appears to have a problem" @>> viewInformation [ViewAs databaseStatusView] (Error e)
                     >>* [OnAction (Action "Set anyway") (always (set config databaseConfig @! ()))
                         ,OnAction (Action "Change and try again") (always (editDatabaseConfig newConfig))
                         ]
@@ -98,7 +98,7 @@ where
     manageDatabase
         =   get databaseDef
         >>- \db ->
-          (  (enterChoiceWithShared (Title "Tables") [/*ChooseFromTree group */] (sdsFocus db sqlTables)
+          (  ((Title "Tables") @>> enterChoiceWithShared [/*ChooseFromTree group */] (sdsFocus db sqlTables)
               >^* [OnAction ActionDelete (hasValue (\table -> deleteTable db table <<@ InWindow @! ()))
                   ,OnAction (Action "Empty database") (always (emptyDatabase db <<@ InWindow @! ()))
                   ,OnAction (Action "Load Incidone tables") (always (createIncidoneTables db <<@ InWindow ))
@@ -107,29 +107,32 @@ where
         >&> withSelection viewNoSelection
             \table ->
             catchAll (
-                viewSharedInformation (Title ("Schema of"+++ table)) [] (sdsFocus (db,table) sqlTableDefinition) @! ()
-            ) (\e -> viewInformation () [] e @! ())
+                (Title ("Schema of"+++ table)) @>> viewSharedInformation  [] (sdsFocus (db,table) sqlTableDefinition) @! ()
+            ) (\e -> viewInformation [] e @! ())
         ) <<@ (ArrangeWithSideBar 0 LeftSide True)
     where
         //group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
 
         deleteTable db table
-            =   viewInformation "Are your sure you want to delete this table?" [] table
+            =   Hint "Are your sure you want to delete this table?" @>> viewInformation [] table
             >>? \_ -> sqlExecuteDropTable db table
             @! ()
 
     createIncidoneTables db
         =   (sequence [sqlExecuteCreateTable db table \\ table <- IncidoneDB]
-        >>- viewInformation "Incidone schema created" []) <<@ Title "Creating Incidone tables..."
+             >>- \result ->
+			 Hint "Incidone schema created" @>> viewInformation [] result
+			) <<@ Title "Creating Incidone tables..."
         >>* [OnAction ActionOk (always (return ()))]
 
     emptyDatabase db
-        =   viewInformation (Title "Empty database") [] "Are your sure you want fully remove all database tables?"
+        =   Title "Empty database" @>> viewInformation [] "Are your sure you want fully remove all database tables?"
         >>? \_ ->
             get (sdsFocus db sqlTables)
         >>- \tables ->
             sequence [sqlExecuteDropTable db table \\ table <- tables]
-        >>- viewInformation ("Empty database","All data deleted") []
+        >>- \result -> 
+			Title "Empty database" @>> Hint "All data deleted" @>> viewInformation [] result
         >>* [OnAction ActionOk (always (return ()))]
 
 manageUsers :: Task ()
@@ -139,23 +142,23 @@ manageUsers = forever (catchAll (
         ,OnAction (Action "/Import from CSV") (always (importUsers <<@ InWindow))
         ,OnAction (Action "/Set admin password") (always (setAdminPassword <<@ InWindow))
         ]
-      ) (\e -> viewInformation "Error" [] e >>| return ()))
+      ) (\e -> Hint "Error" @>> viewInformation [] e >>| return ()))
 where
     manageExistingUsers
-        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity
+        =   (enterChoiceWithSharedAs [ChooseFromGrid id] allContactsShort contactIdentity
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide True
 
-	viewNoSelection = viewInformation "Select a user" [] ()
+	viewNoSelection = Hint "Select a user" @>> viewInformation [] ()
     addUser
-        =   enterInformation (Title "Add user") []
+        =   (Title "Add user") @>> enterInformation []
         >>? \newUser -> (createContact newUser @! ())
 
     importUsers = doOrClose (
-            enterInformation instructions []
+            Hint instructions @>> enterInformation []
         >>= \doc -> catchAll (
-                importContactsFromCSVFile doc >-| viewInformation () [] "Succesfully imported contacts" >>| return ()
-            ) (\_ -> viewInformation "Failed to import contacts" [] ())
+                importContactsFromCSVFile doc >-| viewInformation [] "Succesfully imported contacts" >>| return ()
+            ) (\_ -> viewInformation [] "Failed to import contacts" @! ())
         ) <<@ Title "Import contacts"
 	where
 		instructions = "Please select a CSV file to upload.\n" +++
@@ -169,16 +172,16 @@ where
         ) <<@ Title "Set admin password"
     where
         enterPasswords
-            =    (Label "Old password"           @>> enterInformation () [])
-            -&&- (Label "New password"           @>> enterInformation () [])
-            -&&- (Label "New password (again)"   @>> enterInformation () [])
+            =    (Label "Old password"           @>> enterInformation [])
+            -&&- (Label "New password"           @>> enterInformation [])
+            -&&- (Label "New password (again)"   @>> enterInformation [])
             @ \(o,(n1,n2)) -> (o,n1,n2)
 
         updatePassword ((old,new1,new2),current)
-            | old =!= current = viewInformation "Error" [] "You did not enter the correct old password" >>| return Nothing
-            | new1 =!= new2   = viewInformation "Error" [] "The new passwords are not the same" >>| return Nothing
+            | old =!= current = Hint "Error" @>> viewInformation [] "You did not enter the correct old password" >>| return Nothing
+            | new1 =!= new2   = Hint "Error" @>> viewInformation [] "The new passwords are not the same" >>| return Nothing
                               = set new1 adminPassword
-                              >>| viewInformation () [] "The admin password has been updated" >>| return (Just ())
+                              >>| viewInformation [] "The admin password has been updated" >>| return (Just ())
 
 manageDemoData :: Task ()
 manageDemoData
@@ -188,9 +191,9 @@ manageDemoData
     @! ()
 where
     generateTestIncidents
-        =   enterInformation "Enter the number of demo incidents that you would like to create and press continue" []
+        =   (Hint "Enter the number of demo incidents that you would like to create and press continue" @>> enterInformation [])
             -&&-
-            enterInformation "Immediate close the incidents?" []
+            (Hint "Immediate close the incidents?" @>> enterInformation [])
         >>= \(num,closed) ->
             sequence (repeatn num (generateTestIncident closed))
         @! ()
@@ -201,21 +204,24 @@ configureIntegration
     @! ()
 where
     configureAISIntegration
-        =   updateSharedInformation ("AIS server configuration","Please supply the host and port of the AIS server") [] aisLinkConfig
-        ||- manageBackgroundTask "AIS Link Status" "ais-sync" "AIS Synchronisation" syncAISStream
+        =   Title "AIS server configuration" @>> Hint "Please supply the host and port of the AIS server" @>>
+			updateSharedInformation [] aisLinkConfig
+        ||- (Hint "AIS Link Status" @>> manageBackgroundTask "ais-sync" "AIS Synchronisation" syncAISStream)
 
     configureAsteriskIntegration
-        = updateSharedInformation ("Asterisk server configuration","Please supply the configuration for your asterisk server") [] asteriskLinkConfig
-        ||- manageBackgroundTask "Asterisk Link Status" "asterisk-sync" "Asterisk Synchronisation" syncAsteriskAMI
+        =   Title "Asterisk server configuration" @>> Hint "Please supply the configuration for your asterisk server" @>>
+			updateSharedInformation [] asteriskLinkConfig
+        ||- (Hint "Asterisk Link Status" @>> manageBackgroundTask "asterisk-sync" "Asterisk Synchronisation" syncAsteriskAMI)
     configureEmailIntegration
-        = updateSharedInformation ("SMTP server configuration","Please supply the configuration for your SMTP server") [] smtpConfig
+        =   Title "SMTP server configuration" @>> Hint "Please supply the configuration for your SMTP server" @>>
+			updateSharedInformation [] smtpConfig
         @! ()
 
 configureMaps :: Task ()
 configureMaps
-    =   (viewOrEdit (Title "Default map perspective") standardPerspective (\_ _ -> return ())
+    =   ((Title "Default map perspective" @>> viewOrEdit standardPerspective (\_ _ -> return ()))
          -||-
-         viewOrEdit (Title "Map layer definitions") standardMapLayers (\_ _ -> return ())
+         (Title "Map layer definitions" @>> viewOrEdit  standardMapLayers (\_ _ -> return ()))
          <<@ ArrangeVertical
         )
     -|| previewMapLayers
@@ -223,7 +229,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst
+        \perspective -> (Title "Preview" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj const] (perspective >*| standardMapLayers)) <<@ ApplyLayout flexMap @ fst
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
@@ -231,8 +237,8 @@ where
 
 configureWebLinks :: Task ()
 configureWebLinks
-    = viewAndEdit (viewSharedInformation "Web integration configuration" [] webLinksConfig)
-                  (get webLinksConfig >>- updateInformation () [] >>? \updated -> set updated webLinksConfig)
+    = viewAndEdit (Hint "Web integration configuration" @>> viewSharedInformation [] webLinksConfig)
+                  (get webLinksConfig >>- updateInformation [] >>? \updated -> set updated webLinksConfig)
     >^* [OnAction (Action "/Export") (always (exportConfig <<@ InWindow))
         ,OnAction (Action "/Import") (always (importConfig <<@ InWindow))]
     @! ()
@@ -241,7 +247,7 @@ where
         =   doOrClose (
                 get (webLinksConfig |*| currentDateTime)
             >>- \(config,now) -> createJSONFile ("Incidone-weblinks-" +++ paddedDateTimeString now +++ ".json") config
-            >>- viewInformation "An export file has been created" []
+            >>- \result -> Hint "An export file has been created" @>> viewInformation [] result
             @!  ()
             ) <<@ Title "Export web links"
 	where
@@ -250,13 +256,13 @@ where
 
     importConfig
         =   doOrClose (
-            enterInformation instructions []
+            (Hint instructions @>> enterInformation [])
             >>= \doc -> catchAll (
                     importJSONDocument doc
                 >>- \config ->
                     set config webLinksConfig
-                >-| viewInformation () [] "Succesfully imported web links" @! ()
-                ) (\e -> viewInformation "Failed import of web links" [] e @! ())
+                >-| Hint "Succesfully imported web links" @>> viewInformation [] () @! ()
+                ) (\e -> (Hint "Failed import of web links" @>> viewInformation [] e) @! ())
             ) <<@ Title "Import web links"
     where
         instructions = toString

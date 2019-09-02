@@ -13,13 +13,13 @@ main = calculateSumSteps @! ()
 calculateSumSteps :: Task Int
 calculateSumSteps = step1 0 0
 where
-	step1 n1 n2		=		updateInformation ("Number 1","Enter the first number")  [] n1
+	step1 n1 n2		=		Title "Number 1" @>> Hint "Enter the first number" @>> updateInformation [] n1
 						>>*	[ OnAction ActionNext (hasValue (\n1 -> step2 n1 n2))
 							]
-	step2 n1 n2		=		updateInformation ("Number 2","Enter the second number") [] n2
+	step2 n1 n2		=		Title "Number 2" @>> Hint "Enter the second number" @>> updateInformation [] n2
 						>>*	[ OnAction ActionPrevious (always 	(step1 n1 n2))
 							, OnAction ActionNext     (hasValue (\n2 -> step3 n1 n2))]
-	step3 n1 n2		=		viewInformation ("Sum","The sum of those numbers is:") [] (n1 + n2)
+	step3 n1 n2		=		Title "Sum" @>> Hint "The sum of those numbers is:" @>> viewInformation [] (n1 + n2)
 						>>*	[ OnAction ActionPrevious	(always 	(step2 n1 n2))
 						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]

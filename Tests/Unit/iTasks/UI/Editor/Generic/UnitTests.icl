@@ -114,8 +114,8 @@ recordEditorTests =
 	]
 
 genRequiredTwoFieldRecordUI = assertEqualWorld "Generate UI for Editor of type TwoFieldRecord"
-	(Ok (UI UIRecord
-			'DM'.newMap
+	(Ok (UI UIContainer
+			('DM'.singleton "class" (JSONArray [JSONString "record"]))
 			[ UI UITextField 
 				('DM'.fromList
 					[("hint-type",JSONString "info")

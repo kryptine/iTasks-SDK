@@ -27,13 +27,13 @@ citizenProcedures
 startRequestCompensation :: Task ()
 startRequestCompensation
 	=	startTopLevelOnce
-			(viewInformation ("Start tax compensation") [] "Here you can enter a subsidy request...")
+			(Title "Start tax compensation" @>> viewInformation [] "Here you can enter a subsidy request...")
 			(Action "Start Request")
 			"Subsidy Request"
-			(forever (				enterChoice "What kind of subsidy would you like to request?" [] ["Solar Panels", "Allowances"]
+			(forever (				Hint "What kind of subsidy would you like to request?" @>> enterChoice [] ["Solar Panels", "Allowances"]
 					 >>= \choice ->	case choice of
 					 					"Solar Panels" -> currentCitizen >>= requestSolarPanelCompensation
-										_              -> viewInformation "Not implemented" [] () >>| return ()
+										_              -> viewInformation [] "Not implemented" >>| return ()
 			)        )
 
 adminEditors :: [Workflow]

@@ -38,33 +38,33 @@ derive class iTask ConnectToTaskPool
 hostTaskPoolServer :: Task ()
 hostTaskPoolServer
 	= getDomain
-	>>- \domain -> enterInformation "Task pool port" []
+	>>- \domain -> (Hint "Task pool port" @>> enterInformation [])
 	>>= \port -> (instanceServer port domain) -|| (instanceFilter (const True) domain)
 
 connectToTaskPoolServer :: Task ()
 connectToTaskPoolServer
-	= enterInformation "Connect to task pool" []
+	= Hint "Connect to task pool" @>> enterInformation []
 	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> (instanceClient host port (Domain host)) -|| (instanceFilter (const True) (Domain host))
 
 intermediateTaskPoolServer :: Task ()
 intermediateTaskPoolServer
-	= enterInformation "Enter YOUR subdomain" []
-	>>= \subdomain -> enterInformation "Enter a port for YOUR task pool server" []
-	>>= \serverPort -> enterInformation "Connect to (master) task pool" []
+	= Hint "Enter YOUR subdomain" @>> enterInformation []
+	>>= \subdomain -> Hint "Enter a port for YOUR task pool server" @>> enterInformation []
+	>>= \serverPort -> Hint "Connect to (master) task pool" @>> enterInformation []
 	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> ((instanceClient host port (Domain host)) -|| (instanceClameFilter (const True) (Domain host))) -|| instanceServer serverPort subdomain
 
 askQuestion :: Task String
 askQuestion
 	= get currentDomain
 	>>- \domain -> usersOf domain
-	>>- \users -> enterChoice "Select a user" [] users
-	>>= \user -> enterInformation "Question" []
+	>>- \users -> Hint "Select a user" @>> enterChoice [] users
+	>>= \user ->  Hint "Question" @>> enterInformation []
 	>>= \question -> user @. domain @: (answer question)
-	>>- \answer -> viewInformation "Anser" [] answer
+	>>- \answer -> Hint "Anser" @>> viewInformation [] answer
 where
 	answer :: String -> Task String
 	answer question
-		= enterInformation question []
+		= Hint question @>> enterInformation []
 		>>= return
 
 :: TestRecord = {number :: Int, numbers :: [Int], text :: String, texts :: [String]}
@@ -77,13 +77,13 @@ sharedExample :: Task TestRecord
 sharedExample
 	=		enterDomain
 	>>= \domain  -> usersOf domain
-	>>=		enterChoice "Task for:" []
+	>>=	\users   -> Hint "Task for:" @>> enterChoice [] users
 	>>= \user    -> ((user @. domain) @: updateMyShared)
-	||-		viewSharedInformation "myShare" [] myShared
+	||- (Hint "myShare"  @>> viewSharedInformation [] myShared)
 
 updateMyShared :: Task TestRecord
 updateMyShared
-	= enterInformation "New value for shared" []
+	= Hint "New value for shared" @>> enterInformation []
 	>>= \val -> set val myShared
 
 :: ServerRole = DomainServer Domain
@@ -110,7 +110,7 @@ startMode executable
 				>>| installWorkflows (myTasks True)
 				>>| loginAndManageWork "Service engineer application" Nothing Nothing False
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
-			_ -> viewInformation "Welcome" [] "Chose what this iTasks instance is."
+			_ -> Title "Welcome" @>> viewInformation [] "Choose what this iTasks instance is."
 		             >>* [ OnAction (Action "Domain server") (always (domainServer))
             			 , OnAction (Action "Server") (always (server))
             			 ]
@@ -132,7 +132,7 @@ where
 loginRemote :: ![Workflow] -> Task ()
 loginRemote workflows
 	= forever (
-		enterInformation "Enter your credentials and login" []
+		Hint "Enter your credentials and login" @>> enterInformation []
 		>>* 	[OnAction (Action "Login") (hasValue (browseAuthenticated workflows))
 			]
 	)
@@ -141,7 +141,7 @@ where
 		= remoteAuthenticateUser username password
 		>>= \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorkOfCurrentUser Nothing)
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
+			Nothing		= Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >>| return ()
 
 Start :: *World -> *World
 Start world	= doTasks [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))] world

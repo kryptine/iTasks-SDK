@@ -16,10 +16,10 @@ main = multiUserExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) logins)
-	>>|				viewInformation "Login under one of the following names (password = login name)" []
-						(foldl (+++) "" (map (\n -> n +++ ", ") logins))
+	>>|				(Hint "Login under one of the following names (password = login name)" @>> viewInformation []
+						(foldl (+++) "" (map (\n -> n +++ ", ") logins)))
 					-||-
-					viewInformation "and then Select \"new\" to create a new Task..." [] ""
+					(Hint "and then Select \"new\" to create a new Task..." @>> viewInformation [] "")
 	>>|				installWorkflows [wf "Chat with options"]
 	>>|				loginAndManageWork "Chat_4_2 Example" Nothing Nothing False
 where
@@ -55,7 +55,7 @@ genChat = createChatSession myChat updateChat
 createChatSession :: (Task a) (User a -> Task b) -> Task [b] | iTask a & iTask b
 createChatSession enter update
    =           		get currentUser
-   >>= \me ->  		enterMultipleChoiceWithShared ("select chatters") [ChooseFromCheckGroup id] users
+   >>= \me ->  		Hint "select chatters" @>> enterMultipleChoiceWithShared [ChooseFromCheckGroup id] users
    >>= \others -> 	withShared [] (startChats enter update [me:others])
 where
 	startChats :: (Task a) (User a -> Task b) [User] (Shared sds [b]) -> Task [b] | iTask a & iTask b & RWShared sds
@@ -65,7 +65,7 @@ where
 
 	chatWith :: User (Task a) (User a -> Task b) (Shared sds [b]) -> Task () | iTask a & iTask b & RWShared sds
 	chatWith me enter update chatStore
-		=  	viewSharedInformation ("Chat History:") [] chatStore
+		=  	Hint "Chat History:" @>> viewSharedInformation [] chatStore
 		   	||-
 			oneChat
 	where
@@ -81,14 +81,14 @@ where
 
 
 myChat
-	=			enterChoice "select message kind" [] ["Text","Doc + Text","NewChat"]
+	=			Hint "select message kind" @>> enterChoice [] ["Text","Doc + Text","NewChat"]
 	>>= \sel -> case sel of
 				"Text" 			-> oneChat	@ Text o ((+++) "\t")
 				"Doc + Text"  	-> oneChat	@ DocWithText
 				"NewChat" 		-> genChat	@ Chats
 where
 	oneChat :: Task a | iTask a
-	oneChat = enterInformation "Type in a message: " []
+	oneChat = Hint "Type in a message: " @>> enterInformation []
 
 updateChat :: User a -> Task (ChatMsg a) | iTask a
 updateChat user chat

@@ -1,14 +1,14 @@
 module TestCallProcess
 import iTasks
 
-test = viewInformation "Press the button to run an OS process" [] ()
+test = Hint "Press the button to run an OS process" @>> viewInformation [] ()
      >>| withShared []
-        \io -> (externalProcess () "/bin/date" [] Nothing io {onStartup=onStartup
+        \io -> (externalProcess "/bin/date" [] Nothing io {onStartup=onStartup
                                                           ,onOutData=onOutData
                                                           ,onErrData=onErrData
                                                           ,onShareChange=onShareChange
                                                           ,onExit=onExit} Nothing gEditor{|*|}
-                    -|| viewSharedInformation "OUTPUT: " [] io
+                    -|| (Hint "OUTPUT: " @>> viewSharedInformation  [] io)
                     )
 where
     onStartup r = (Ok r, Nothing, [], False)

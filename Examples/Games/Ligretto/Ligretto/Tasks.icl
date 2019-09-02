@@ -17,7 +17,7 @@ play_Ligretto
 
 invite_friends :: Task [User]
 invite_friends
-	=   enterMultipleChoiceWithShared "Select 1, 2, or 3 friends to play with" [] users
+	=   Hint "Select 1, 2, or 3 friends to play with"  @>> enterMultipleChoiceWithShared [] users
 	>>* [OnAction ActionContinue (withValue (\them -> if (isMember (length them) [1..3]) (Just (return them)) Nothing))]
 
 play_game :: ![(Color,User)] !(Shared sds GameSt) -> Task (Color,String) | RWShared sds
@@ -28,7 +28,7 @@ play_game users game_st
 
 play :: !(!Color,!String) !(Shared sds GameSt) -> Task (Color,String) | RWShared sds
 play (me,name) game_st
-    =   updateSharedInformation name [ligrettoEditor me] game_st
+    =   Hint name @>> updateSharedInformation [ligrettoEditor me] game_st
     >>* [OnValue (withValue (\gameSt -> determine_winner gameSt
                             >>= \winner -> return (accolades winner me game_st >>| return winner)))]
 
@@ -47,4 +47,4 @@ game_over me game_st gameSt
 
 accolades :: !(!Color,!String) !Color !(Shared sds GameSt) -> Task GameSt | RWShared sds
 accolades winner me game_st
-	= updateSharedInformation ("The winner is " <+++ winner) [accoladesEditor me] game_st
+	= Hint ("The winner is " <+++ winner) @>> updateSharedInformation [accoladesEditor me] game_st

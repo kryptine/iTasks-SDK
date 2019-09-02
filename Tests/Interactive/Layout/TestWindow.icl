@@ -2,10 +2,10 @@ module TestWindow
 
 import iTasks
 
-test = viewInformation "Press the button to open a window" [] ()
+test = Hint "Press the button to open a window" @>> viewInformation  [] ()
      >>| taskInWindow
-     >>| viewInformation "Done" [] ()
+     >>| Title "Done" @>> viewInformation [] ()
 where
-    taskInWindow = (viewInformation (Title "Test window") [] "Hello!" >>* [OnAction ActionClose (always (return ()))]) <<@ InWindow
+    taskInWindow = (Title "Test window" @>> viewInformation [] "Hello!" >>* [OnAction ActionClose (always (return ()))]) <<@ InWindow
 
 Start world = doTasks test world
