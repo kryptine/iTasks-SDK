@@ -300,6 +300,12 @@ itasks.TabSet = {
 			me.tabBar.removeChild(me.tabBar.children[idx]);
 		}
 	},
+	afterChildChange: function(idx,change) {
+		var me = this;
+		if(change["attributes"]) {
+			me.setActiveTabBasedOnOrder();
+		}
+	},
 	replaceChild: function(idx,spec) {
 		var me = this;
 		me.replacing = true;

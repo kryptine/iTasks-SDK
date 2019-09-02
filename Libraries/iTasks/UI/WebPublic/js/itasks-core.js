@@ -281,6 +281,7 @@ itasks.Component = {
 		me.onAttributeChange(name,value);
 	},
 	onAttributeChange: function(name,value) {},
+
 	onUIChange: function(change) {
 		var me = this;
 		me.world=me.world.then (function(){
@@ -317,7 +318,11 @@ itasks.Component = {
 				switch(change[1]) {
 					case 'change':
 						if(idx >= 0 && idx < me.children.length) {
-							return me.children[idx].onUIChange(change[2]);
+							me.children[idx].onUIChange(change[2]);
+							me.world = me.world.then(function () {
+								me.afterChildChange(idx,change[2]);
+							});
+							return;
 						} else {
 							console.log("UNKNOWN CHILD",idx,me.children.length,change);
 						}
@@ -334,6 +339,7 @@ itasks.Component = {
 			}), Promise.resolve());
 		}
 	},
+	afterChildChange: function(idx,change) {},
 	onShow: function() {
 		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
 	},

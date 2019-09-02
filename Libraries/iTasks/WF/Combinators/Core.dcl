@@ -33,10 +33,8 @@ ActionRefresh	:== Action "Refresh"
 ActionClose		:==	Action "Close"
 
 :: ParallelTaskType
-	= Embedded                                    //Simplest embedded
-    | NamedEmbedded !String                       //Embedded with name
+	= Embedded
 	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
-    | NamedDetached !String !TaskAttributes !Bool //Detached with name
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 

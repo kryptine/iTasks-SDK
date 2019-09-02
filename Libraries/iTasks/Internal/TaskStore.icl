@@ -22,6 +22,7 @@ import iTasks.Internal.SDSService
 import iTasks.WF.Combinators.Core
 import iTasks.Extensions.Document
 
+from Data.Map import instance Functor (Map k)
 import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Set as DS
@@ -485,22 +486,22 @@ where
 		where
 			items = [{TaskListItem|taskId = taskId, listId = listId
 					 , detached = detached, self = taskId == selfId
-					 , value = decode value, progress = Nothing, attributes = attributes
-					 } \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- states | change =!= Just RemoveParallelTask]
+					 , value = decode value, progress = Nothing, attributes = 'DM'.union (fmap fst explicitAttributes) implicitAttributes
+					 } \\ {ParallelTaskState|taskId,detached,implicitAttributes,explicitAttributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
 			decode NoValue	= NoValue
 			decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
 
-		write (listId,selfId,listFilter) _ []                              = Ok Nothing
 		write (listId,selfId,{TaskListFilter|includeAttributes=False}) _ _ = Ok Nothing
+		write (listId,selfId,listFilter) states [] = Ok (Just states)
 		write (listId,selfId,listFilter) states [(t,a):updates]
-			# states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
-			= write (listId,selfId,listFilter) states updates
+			# states = [if (taskId == t) {ParallelTaskState|pts & explicitAttributes = fmap (\x -> (x,True)) a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
+			= (write (listId,selfId,listFilter) states updates)
 
 		notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 		lensReducer (listId, selfId, listFilter) ws
-		= (Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
+			= (Ok ([(taskId, fmap fst explicitAttributes) \\ {ParallelTaskState|taskId,detached,explicitAttributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
 					 ,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}

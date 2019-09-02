@@ -330,15 +330,19 @@ appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist
 	=   get (taskListMeta slist)
 	>>- \items -> if (checkItems name items)
-		(return ())
-		(appendTask (NamedEmbedded name) (removeWhenStable (task <<@ ("order", JSONInt (maxOrder items + 1)))) slist @! ())
+		(upd (bringToFront name) (taskListMeta slist) @! ())
+		(appendTask Embedded (removeWhenStable (task <<@ ("name", JSONString name) <<@ ("order", JSONInt (maxOrder items + 1)))) slist @! ())
 where
     name = toString identity
 	maxOrder items = foldr max 0 [maybe 0 (\(JSONInt i) -> i) ('DM'.get "order" attributes) \\ {TaskListItem|attributes} <- items]
+	hasName name {TaskListItem|attributes} = maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)
+
     checkItems name [] = False
-    checkItems name [{TaskListItem|attributes}:is]
-        | maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)  = True //Item with name exists!
-                                                                = checkItems name is
+    checkItems name [i:is] = hasName name i || checkItems name is
+
+	bringToFront name items =
+		[(taskId, if (hasName name i) ('DM'.singleton "order" (JSONInt (maxOrder items + 1))) 'DM'.newMap)
+		\\ i=:{TaskListItem|taskId} <- items]
 
 removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a
 removeWhenStable task slist

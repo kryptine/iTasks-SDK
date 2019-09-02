@@ -93,15 +93,16 @@ derive gEq        DeferredJSON
 derive gText      DeferredJSON
 
 :: ParallelTaskState =
-	{ taskId			:: !TaskId					//Identification
-    , index             :: !Int                     //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
-    , detached          :: !Bool
-    , attributes        :: !TaskAttributes
-    , value             :: !TaskValue DeferredJSON //Value (only for embedded tasks)
-	, createdAt			:: !TaskTime				//Time the entry was added to the set (used by layouts to highlight new items)
-	, lastEvent			:: !TaskTime				//Last modified time
-	, change            :: !Maybe ParallelTaskChange //Changes like removing or replacing a parallel task are only done when the
-	}                                                //parallel is evaluated. This field is used to schedule such changes.
+	{ taskId             :: !TaskId                       //Identification
+	, index              :: !Int                          //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
+	, detached           :: !Bool
+	, implicitAttributes :: !TaskAttributes               //Attributes that reflect the latest attributes from the task UI
+	, explicitAttributes :: !Map String (!JSONNode,!Bool) //Attributes that are explicitly written to the list and shadow the implicit attributes
+	, value              :: !TaskValue DeferredJSON       //Value (only for embedded tasks)
+	, createdAt          :: !TaskTime                     //Time the entry was added to the set (used by layouts to highlight new items)
+	, lastEvent          :: !TaskTime                     //Last modified time
+	, change             :: !Maybe ParallelTaskChange     //Changes like removing or replacing a parallel task are only done when the
+	}                                                     //parallel is evaluated. This field is used to schedule such changes.
 
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
