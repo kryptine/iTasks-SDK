@@ -49,12 +49,12 @@ where
 interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW shared handlers editor
-	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoadUI Read) (evalInteractInit shared handlers editor modifyCompletely))
+	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoaderUI Read) (evalInteractInit shared handlers editor modifyCompletely))
 
 interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
 	| iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactR shared handlers editor
-	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoadUI Read) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
+	= Task (readRegisterCompletely shared NoValue (\_->asyncSDSLoaderUI Read) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
 
 //This initializes the editor state and continues with the actual interact task
 evalInteractInit sds handlers editor writefun r event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
@@ -113,8 +113,6 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
-//								We cannot just do this because this will loop endlessly
-//								(\_->evalInteract l (Just v) st mode sds handlers editor writefun)
 								// We cannot just do this because this will loop endlessly:
 								// (\_->evalInteract l (Just v) st mode sds handlers editor writefun)
 								// Therefore we delay it by returning the continuation in a value instead of directly:
@@ -162,7 +160,7 @@ evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{Task
 			, iworld)
 evalInteract l v st mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 	| 'DS'.member taskId taskIds
-		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->case event of ResetEvent = asyncSDSLoadUI Read; e = NoChange)
+		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->case event of ResetEvent = asyncSDSLoaderUI Read; e = NoChange)
 			(\r event evalOpts iworld
 				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
 				= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of

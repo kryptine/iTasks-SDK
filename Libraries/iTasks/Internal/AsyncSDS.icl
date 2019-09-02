@@ -387,10 +387,10 @@ where
 		(Just (dyn, _))					= Error (exception ("Dynamic not of the correct modify type, got " +++ toString (typeCodeOfDynamic dyn)))
 		Nothing 						= Ok Nothing
 
-asyncSDSLoadUI :: AsyncAction -> UIChange
-asyncSDSLoadUI Read = (ReplaceUI (uia UIProgressBar (textAttr "Reading data")))
-asyncSDSLoadUI Write = (ReplaceUI (uia UIProgressBar (textAttr "Writing data")))
-asyncSDSLoadUI Modify = (ReplaceUI (uia UIProgressBar (textAttr "Modifying data")))
+asyncSDSLoaderUI :: !AsyncAction -> UIChange
+asyncSDSLoaderUI Read = (ReplaceUI (uia UIProgressBar (textAttr "Reading data")))
+asyncSDSLoaderUI Write = (ReplaceUI (uia UIProgressBar (textAttr "Writing data")))
+asyncSDSLoaderUI Modify = (ReplaceUI (uia UIProgressBar (textAttr "Modifying data")))
 
 readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
@@ -402,7 +402,7 @@ readCompletely sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		(Ok (ReadingDone r), iworld)
 			= cont r event evalOpts iworld
 		(Ok (Reading sds), iworld)
-			= (ValueResult tv (tei ts) (asyncSDSLoadUI Read) (Task (readCompletely sds tv cont)), iworld)
+			= (ValueResult tv (tei ts) (asyncSDSLoaderUI Read) (Task (readCompletely sds tv cont)), iworld)
 
 writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
@@ -414,7 +414,7 @@ writeCompletely w sds tv cont event evalOpts=:{TaskEvalOpts|taskId,ts} iworld
 		(Ok (WritingDone), iworld)
 			= cont event evalOpts iworld
 		(Ok (Writing sds), iworld)
-			= (ValueResult tv (tei ts) (asyncSDSLoadUI Write) (Task (writeCompletely w sds tv cont)), iworld)
+			= (ValueResult tv (tei ts) (asyncSDSLoaderUI Write) (Task (writeCompletely w sds tv cont)), iworld)
 
 modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds

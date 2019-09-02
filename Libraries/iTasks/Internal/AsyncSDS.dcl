@@ -102,7 +102,7 @@ getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError 
  * @param taskId which is evaluating the share.
  * @param connectionId the connection to check for a value.
  * @param container for io states to check.
- * @returns
+ * @result
  * 	Left: No IO State for task or the connection id is not valid.
  * 	Right: IO state is found.
  *		Nothing: No value yet, asynchronous action is still pending.
@@ -111,10 +111,10 @@ getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError 
 getAsyncModifyValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> MaybeError TaskException (Maybe (r,w)) | TC w & TC r
 
 /**
- * The default UI for during loading an asynchronous SDS
- * @return ui
+ * The default UI during loading an asynchronous SDS
+ * @result the UIChange
  */
-asyncSDSLoadUI :: AsyncAction -> UIChange
+asyncSDSLoaderUI :: !AsyncAction -> UIChange
 
 /**
  * Completely load an sds and continue with the continuation

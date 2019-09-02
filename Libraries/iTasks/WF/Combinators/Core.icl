@@ -192,9 +192,6 @@ where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
 
-			isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
-			actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
-
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
 	| matchId == taskId = Just action

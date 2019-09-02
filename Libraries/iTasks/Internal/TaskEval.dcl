@@ -14,18 +14,16 @@ from Data.Map import :: Map
 from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.CircularStack import :: CircularStack
 
-//Extra types used during evaluation
-
-//Additional options to pass down the tree when evaluating a task
+// External evaluation passed to the task
 :: TaskEvalOpts	=
-	{ noUI              :: Bool
-	, taskId            :: TaskId
-	, ts                :: TaskTime
+	{ noUI              :: !Bool
+	, taskId            :: !TaskId
+	, ts                :: !TaskTime
 	}
 
 mkEvalOpts :: TaskEvalOpts
 
-//Additional information passed up from the tree when evaluating a task
+// External information passed from the task
 :: TaskEvalInfo =
 	{ lastEvent			:: !TaskTime	        //When was the last event in this task
     , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
