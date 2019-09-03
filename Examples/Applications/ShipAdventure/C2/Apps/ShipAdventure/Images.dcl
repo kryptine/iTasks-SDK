@@ -2,6 +2,7 @@ definition module C2.Apps.ShipAdventure.Images
 
 import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Types
+from Graphics.Scalable.Image import :: Image, :: TagSource, :: Image`, :: ImageTag, :: TagRef
 
 :: RenderMode
   = PickRoomMode

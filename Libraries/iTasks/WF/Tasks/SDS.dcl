@@ -12,12 +12,6 @@ from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.GenEq import generic gEq
 from Data.Maybe import :: Maybe
-from StdOverloaded import class toString
-
-:: SharedException		= SharedException !String
-
-derive class iTask SharedException
-instance toString SharedException
 
 /**
 * Reads shared data once.
@@ -68,5 +62,4 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 * @gin-icon shared_read
 */
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
-
 

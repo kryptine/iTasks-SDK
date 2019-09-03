@@ -133,7 +133,7 @@ loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
 where
 	browse (Just {Credentials|username,password})
 		= authenticateUser username password
-		>>= \mbUser -> case mbUser of
+		>>- \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorkOfCurrentUser welcomeMessage)
 			Nothing		= (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
 	browse Nothing
@@ -144,11 +144,11 @@ where
 		html = DivTag [ClassAttr cssClass] [H1Tag [] [Text name]:maybe [] (\msg -> [msg]) welcomeMessage]
 		cssClass = "welcome-" +++ (toLowerCase $ replaceSubString " " "-" name)
 	
-	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])) ,frameCompact]
+	layout = sequenceLayouts [layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])), frameCompact]
 
 manageWorkOfCurrentUser :: !(Maybe HtmlTag) -> Task ()
 manageWorkOfCurrentUser welcomeMessage
-	= 	((manageSession -||
+	= ((manageSession -||
 		  (chooseWhatToDo welcomeMessage >&> withSelection
 			(viewInformation [] "Welcome!")
 			(\wf -> unwrapWorkflowTask wf.Workflow.task)
@@ -269,20 +269,20 @@ where
 
 startWorkflow :: !(SharedTaskList ()) !Workflow -> Task Workflow
 startWorkflow list wf
-	= 	get currentUser -&&- get currentDateTime
-	>>=	\(user,now) ->
-		appendTopLevelTask ('DM'.fromList [ ("title",      toJSON (workflowTitle wf))
-                                          , ("catalogId",  toJSON wf.Workflow.path)
-                                          , ("createdBy",  toJSON (toUserConstraint user))
-                                          , ("createdAt",  toJSON now)
-                                          , ("createdFor", toJSON (toUserConstraint user))
-                                          , ("priority",   toJSON 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+	=   get currentUser -&&- get currentDateTime
+	>>- \(user,now) ->
+	    appendTopLevelTask ('DM'.fromList [ ("title",      toJSON (workflowTitle wf))
+	                                      , ("catalogId",  toJSON wf.Workflow.path)
+	                                      , ("createdBy",  toJSON (toUserConstraint user))
+	                                      , ("createdAt",  toJSON now)
+	                                      , ("createdFor", toJSON (toUserConstraint user))
+	                                      , ("priority",   toJSON 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
-		openTask list procId
-	@	const wf
+	    openTask list procId
+	@   const wf
 where
-    userAttr (AuthenticatedUser uid _ _) = [("user", JSONString uid)]
-    userAttr _                           = []
+	userAttr (AuthenticatedUser uid _ _) = [("user", JSONString uid)]
+	userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
 unwrapWorkflowTask (ParamWorkflowTask tf) = (Hint "Enter parameters" @>> enterInformation [] >>= tf @! ())
@@ -315,7 +315,7 @@ where
                 >>| return ()
             Just replacement
                 =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
-                >>| workOnTask taskId
+                >-| workOnTask taskId
 
     //Look in the catalog for an entry that has the same path as
     //the 'catalogId' that is stored in the incompatible task instance's properties

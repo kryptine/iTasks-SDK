@@ -58,19 +58,19 @@ addItem :: (Shared sds [c]) (c -> i) -> Task (Maybe i) | iTask i & iTask c & RWS
 addItem collection identify
 	=	enterInformation []
 	>>*	[OnAction ActionCancel (always (return Nothing))
-		,OnAction ActionOk (hasValue (\item -> upd (\l -> l ++ [item]) collection >>| return (Just (identify item))))
+		,OnAction ActionOk (hasValue (\item -> upd (\l -> l ++ [item]) collection >-| return (Just (identify item))))
 		]
 
 editItem :: (Shared sdsc [c]) ((Shared sdsc [c]) i -> Shared sdss (Maybe c)) (c -> i) i -> Task (Maybe i) | iTask c & iTask i & RWShared sdsc & RWShared sdss
 editItem collection itemShare identify i
 	=	get (itemShare collection i)
-	>>= \mbItem -> case mbItem of
+	>>- \mbItem -> case mbItem of
 			Nothing		= (return Nothing)
 			(Just item)	=	updateInformation [] item
 						>>*	[OnAction ActionCancel (always (return Nothing))
 							,OnAction ActionOk (hasValue (\item` -> 
 													upd (\l -> [if (identify c === i) item` c \\ c <- l ]) collection
-													>>| return (Just i)
+													>-| return (Just i)
 												 ))
 							]
 
@@ -78,7 +78,7 @@ deleteItem :: (Shared sdsc [c]) ((Shared sdsc [c]) i -> Shared sdss (Maybe c)) (
 deleteItem collection itemShare identify i
 	=	viewSharedInformation [] (itemShare collection i)
 	>>*	[OnAction ActionNo (always (return Nothing))
-		,OnAction ActionYes (always (upd (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing))
+		,OnAction ActionYes (always (upd (\l -> [c \\ c <- l | identify c =!= i]) collection >-| return Nothing))
 		]
 
 

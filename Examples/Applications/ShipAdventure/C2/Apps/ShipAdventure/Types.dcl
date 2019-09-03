@@ -125,6 +125,8 @@ from C2.Apps.ShipAdventure.Images import :: RenderMode
 
 :: CapabilityToDeviceKindMap :== Map Capability CapabilityExpr
 
+derive gEditor IntMap
+derive gText IntMap
 derive class iTask PPDevice, PPDeviceType, CommandAim, Capability, CapabilityExpr
 derive gLexOrd CableType, Capability
 derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus

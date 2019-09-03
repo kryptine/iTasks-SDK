@@ -7,6 +7,7 @@ import iTasks.UI.Layout
 
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
+import iTasks.Internal.Task
 import Data.Maybe, Data.Error, Data.Functor, Text.GenJSON, StdString
 import qualified Data.Set as DS
 import qualified Data.Map as DM
@@ -45,19 +46,19 @@ where
 
 instance tune UIAttributes Task
 where
-	tune attrs task=:(Task evala) = Task eval
+	tune attrs task = Task (eval task)
 	where
-		eval event evalOpts tree iworld
-			# (result,iworld) = evala event evalOpts tree iworld
-			= (withExtraAttributes attrs result, iworld) 
+		eval (Task inner) event evalOpts iworld
+			# (result,iworld) = inner event evalOpts iworld
+			= (wrapTaskContinuation eval (withExtraAttributes attrs result), iworld) 
 	
-		withExtraAttributes extra (ValueResult value info (ReplaceUI (UI type attr items)) tree)
+		withExtraAttributes extra (ValueResult value info (ReplaceUI (UI type attr items)) task)
 			# attr = 'DM'.union extra attr
-			= ValueResult value info (ReplaceUI (UI type attr items)) tree
-		withExtraAttributes extra (ValueResult value info (ChangeUI attrChanges itemChanges) tree)
+			= ValueResult value info (ReplaceUI (UI type attr items)) task
+		withExtraAttributes extra (ValueResult value info (ChangeUI attrChanges itemChanges) task)
 			//The constant value overrules any changes to the attribute
 			# attrChanges = filter (not o ignoreAttributes ('DM'.keys extra)) attrChanges
-			= ValueResult value info (ChangeUI attrChanges itemChanges) tree
+			= ValueResult value info (ChangeUI attrChanges itemChanges) task
 		where
 			ignoreAttributes keys (SetAttribute k _) = isMember k keys
 			ignoreAttributes keys (DelAttribute k) = isMember k keys
@@ -73,7 +74,7 @@ instance tune Hint Task
 where tune (Hint hint) t = tune (hintAttr hint) t
 instance tune Hint Editor
 where tune (Hint hint) e = tune (hintAttr hint) e
-       
+
 instance tune Icon Task
 where tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
 instance tune Icon Editor
@@ -85,31 +86,31 @@ instance tune Label Editor
 where tune (Label label) e = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) e
 
 instance tune ApplyLayout Task
+where tune (ApplyLayout l) task = applyLayout l task
+
+applyLayout :: LayoutRule (Task a) -> Task a
+applyLayout rule task = Task evalinit
 where
-	tune (ApplyLayout rule) task=:(Task evala) = Task eval
-	where
-		ruleNo = LUINo [0]
+	ruleNo = LUINo [0]
 
-		eval DestroyEvent evalOpts (TCLayout s tt) iworld //Cleanup duty simply passed to inner task
-			= evala DestroyEvent evalOpts tt iworld
+	evalinit event = eval (initLUI (ui UIEmpty), initLUIMoves) task ResetEvent
 
-		eval event evalOpts tt=:(TCInit _ _) iworld
-			//On initialization, we need to do a reset to be able to apply the layout
-			= eval ResetEvent evalOpts (TCLayout (initLUI (ui UIEmpty),initLUIMoves) tt) iworld 
-
-		//On Reset events, we (re-)apply the layout
-		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
-			(ValueResult value info (ReplaceUI ui) tt,iworld)
+	//Cleanup duty simply passed to inner task
+	eval _ (Task inner) DestroyEvent evalOpts iworld
+		= inner DestroyEvent evalOpts iworld
+	//On Reset events, we (re-)apply the layout
+	eval state (Task inner) ResetEvent evalOpts iworld
+		= case inner ResetEvent evalOpts iworld of
+			(ValueResult value info (ReplaceUI ui) task,iworld)
 				# (change,state) = extractResetChange (rule ruleNo (initLUI ui, initLUIMoves))
-				= (ValueResult value info change (TCLayout state tt), iworld)		
-            (res,iworld) = (res,iworld)
+				= (wrapTaskContinuation (eval state) (ValueResult value info change task), iworld)
+			(val, iworld) = (wrapTaskContinuation (eval state) val, iworld)
 
-		eval event evalOpts (TCLayout state tt) iworld = case evala event evalOpts tt iworld of
-	        (ValueResult value info change tt,iworld) 
+	eval state (Task inner) event evalOpts iworld
+		= case inner event evalOpts iworld of
+			(ValueResult value info change task,iworld)
 				# state = applyUpstreamChange change state
 				# state = rule ruleNo state
 				# (change,state) = extractDownstreamChange state
-				= (ValueResult value info change (TCLayout state tt), iworld)
-            (res,iworld) = (res,iworld)
-		
-		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
+				= (wrapTaskContinuation (eval state) (ValueResult value info change task), iworld)
+			(val, iworld) = (wrapTaskContinuation (eval state) val, iworld)

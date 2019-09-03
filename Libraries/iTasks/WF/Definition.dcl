@@ -4,7 +4,6 @@ definition module iTasks.WF.Definition
 */
 
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
 from Text.GenJSON import :: JSONNode
@@ -24,7 +23,7 @@ from StdClass import class <
 from StdOverloaded import class ==
 
 // Task definition:
-:: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult a, *IWorld))
+:: Task a =: Task (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld))
 
 :: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id
@@ -37,7 +36,7 @@ from StdOverloaded import class ==
 
 :: TaskResult a
    //If all goes well, a task computes its current value, a ui effect and a new task state
-   = ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree   
+   = ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !(Task a)
    //If something went wrong, a task produces an exception value
    | ExceptionResult !TaskException
    //If a task finalizes and cleaned up it gives this result
@@ -58,6 +57,9 @@ instance Functor TaskValue
 * Creates an exception
 */
 exception :: !e -> TaskException | TC, toString e
+
+:: ExceptionList =: ExceptionList [TaskException]
+instance toString ExceptionList
 
 // Task instantiation:
 

@@ -73,7 +73,7 @@ doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | 
 doAuthenticatedWith verifyCredentials task
 	=	Title "Log in" @>> Hint "Please enter your credentials" @>> enterInformation []
 	>>!	verifyCredentials
-	>>= \mbUser -> case mbUser of
+	>>- \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
 		Just user	= workAs user task
 	
@@ -81,7 +81,7 @@ createUser :: !UserAccount -> Task StoredUserAccount
 createUser account
 	=	createStoredAccount >>~ \storedAccount ->
 	    get (userAccount (identifyUserAccount storedAccount))
-	>>= \mbExisting -> case mbExisting of
+	>>- \mbExisting -> case mbExisting of
 		Nothing
 			= upd (\accounts -> accounts ++ [storedAccount]) userAccounts @ const storedAccount
 		_	
@@ -114,23 +114,23 @@ createUserFlow =
 		Title "Create user" @>> Hint "Enter user information" @>> enterInformation []
 	>>*	[ OnAction		ActionCancel	(always (return ()))
 		, OnAction	    ActionOk 		(hasValue (\user ->
-											createUser user
-										>>|	Title "User created" @>> viewInformation [] "Successfully added new user"
+										    createUser user
+										>-| Title "User created" @>> viewInformation [] "Successfully added new user"
 										>>| return ()
-									    ))
+										))
 		]
 		
 updateUserFlow :: UserId -> Task StoredUserAccount
 updateUserFlow userId
 	=	get (userAccount userId)
-	>>= \mbAccount -> case mbAccount of 
+	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	(Title ("Editing " +++ fromMaybe "Untitled" account.StoredUserAccount.title) @>> Hint "Please make your changes" @>> updateInformation [] account
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
-						set (Just newAccount) (userAccount userId)
-					>>=	\storedAccount -> Title "User updated"
-						@>> viewInformation [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)] storedAccount
+					    set (Just newAccount) (userAccount userId)
+					>>- \storedAccount -> Title "User updated"
+					    @>> viewInformation [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)] storedAccount
 					>>| return newAccount
 					))
 				])
@@ -152,9 +152,9 @@ changePasswordFlow userId =
 where
 	updatePassword :: !StoredUserAccount !Password -> Task StoredUserAccount
 	updatePassword account password =
-		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>= \creds ->
+		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>- \creds ->
 		let account` = {StoredUserAccount| account & credentials = creds} in
-		set (Just account`) (userAccount userId) >>= \account`` ->
+		set (Just account`) (userAccount userId) >>- \account`` ->
 		Hint "Password updated" @>> viewInformation
 		                [ ViewAs \(Just {StoredUserAccount|title}) ->
 		                         "Successfully changed password for " +++ fromMaybe "Untitled" title
@@ -164,12 +164,12 @@ where
 deleteUserFlow :: UserId -> Task StoredUserAccount
 deleteUserFlow userId
 	=	get (userAccount userId)
-	>>= \mbAccount -> case mbAccount of 
+	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	Title "Delete user" @>> viewInformation [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
-									>>|	Hint "User deleted" @>> viewInformation [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>-|	Hint "User deleted" @>> viewInformation [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
 									))
 				]
@@ -180,9 +180,9 @@ importUserFileFlow = Hint "Not implemented" @>> viewInformation [] ()
 exportUserFileFlow :: Task Document
 exportUserFileFlow
 	=	get userAccounts -&&- get applicationName
-	>>= \(list,app) ->
+	>>- \(list,app) ->
 		createCSVFile (app +++ "-users.csv") (map toRow list)
-	>>=	\file -> 
+	>>-	\file -> 
 		Title "Export users file" @>>
 		Hint "A CSV file containing the users of this application has been created for you to download." @>>
 			 viewInformation [] file
