@@ -83,7 +83,7 @@ filterTestsByName pattern tests = filter (\{UnitTest|name} -> indexOf pattern na
 //UTILITY TASKS
 testEditor :: (Editor a) (EditMode a) -> Task a | iTask a
 testEditor editor mode
-	=   (interactR unitShare {onInit = const ((),mode), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
+	=   (interactR unitShare {onInit = const ((),mode), onEdit = \v l -> (l,Nothing), onRefresh = \_ l (Just v) -> (l,v,Nothing)} editor @ snd
 	>&> \s -> Title "Editor value" @>> viewSharedInformation [ViewAs (toString o toJSON)] s @? tvFromMaybe
 	)  <<@ ArrangeHorizontal
 
@@ -93,7 +93,7 @@ testEditorWithShare editor model viewMode = (withShared model
 		(Hint "Edit the shared source" @>> updateSharedInformation [] smodel)
 		||-
 	    (Title "Editor under test" @>> interactR smodel {onInit = \r -> ((),if viewMode View Update $ r)
-	                                        ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
+	                                        ,onEdit = \v l -> (l,Just (\_ -> v))
 	                                        ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd)
 	) <<@ ArrangeHorizontal
 
