@@ -84,8 +84,9 @@ derive gText      DeferredJSON
     , lastFocus         :: !Maybe TaskTime          //Time the entry was last explicitly focused
 	, lastEvent			:: !TaskTime				//Last modified time
 	, change            :: !Maybe ParallelTaskChange //Changes like removing or replacing a parallel task are only done when the
+	                                                 //parallel is evaluated. This field is used to schedule such changes.
 	, initialized       :: !Bool
-	}                                                //parallel is evaluated. This field is used to schedule such changes.
+	}
 
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
