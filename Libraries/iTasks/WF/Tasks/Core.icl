@@ -110,7 +110,7 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 				= case editor.Editor.valueFromState st of
 					Just nv
-						# (l, mbf) = handlers.InteractionHandlers.onEdit nv l v
+						# (l, mbf) = handlers.InteractionHandlers.onEdit nv l
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
