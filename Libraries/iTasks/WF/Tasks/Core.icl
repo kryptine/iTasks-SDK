@@ -110,7 +110,7 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 				= case editor.Editor.valueFromState st of
 					Just nv
-						# (l, v, mbf) = handlers.InteractionHandlers.onEdit nv l v
+						# (l, mbf) = handlers.InteractionHandlers.onEdit nv l v
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
@@ -119,19 +119,19 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 								// Therefore we delay it by returning the continuation in a value instead of directly:
 								(\w event {TaskEvalOpts|lastEval} iworld->
 									(ValueResult
-										(Value (l, v) False)
+										(Value (l, nv) False)
 										(mkTaskEvalInfo lastEval)
 										change
-										(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+										(Task (evalInteract l (Just nv) st mode sds handlers editor writefun))
 									, iworld))
 								event evalOpts iworld
 							//There is no update function
 							Nothing
 								= (ValueResult
-									(Value (l, v) False)
+									(Value (l, nv) False)
 									(mkTaskEvalInfo lastEval)
 									change
-									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+									(Task (evalInteract l (Just nv) st mode sds handlers editor writefun))
 								, iworld)
 					Nothing
 						= (ValueResult

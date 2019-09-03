@@ -89,7 +89,7 @@ instance toString OSException
 */
 :: InteractionHandlers l r w v =
     { onInit    :: !(r -> (l, EditMode v))
-    , onEdit    :: !(v l (Maybe v) -> (l, v, Maybe (r -> w)))
+    , onEdit    :: !(v l (Maybe v) -> (l, Maybe (r -> w)))
     , onRefresh :: !(r l (Maybe v) -> (l, v, Maybe (r -> w)))
 	}
 
