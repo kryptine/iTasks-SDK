@@ -206,12 +206,14 @@ where
 
 	onRefresh dp (newVal, newSel) (mbOldVal, oldSel, multiple) vst
 		//Check options
-		# oldOpts            = mbValToOptions mbOldVal
-		# newOpts            = mbValToOptions $ Just newVal
-		# cOptions           = if (newOpts =!= oldOpts)
-		                          (ChangeUI [SetAttribute "options" (JSONArray newOpts)] [])
+		# oldOptsJson        = mbValToOptions mbOldVal
+		# newOpts            = getOptions newVal
+		# newOptsJson        = toOption <$> newOpts
+		# cOptions           = if (newOptsJson =!= oldOptsJson)
+		                          (ChangeUI [SetAttribute "options" (JSONArray newOptsJson)] [])
 		                          NoChange
-		//Check selection
+		//Check selection, if the selection is out of bounds assume the empty selection
+		# newSel             = if (all (checkBounds newOpts) newSel) newSel []
 		# cSel               = if (newSel =!= oldSel) (ChangeUI [SetAttribute "value" (toJSON newSel)] []) NoChange
 		= (Ok (mergeUIChanges cOptions cSel, (Just newVal, newSel, multiple)),vst)
 
