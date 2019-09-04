@@ -219,8 +219,10 @@ where
 
 	valueFromState (Just val, sel, multiple)
 		//The selection is only allowed to be empty when multiselect is enabled
-		| not multiple && isEmpty sel = Nothing
-		| otherwise                   = Just (val, sel)
+		| not multiple && lengthSel <> 0 && lengthSel <> 1 = Nothing
+		| otherwise                                        = Just (val, sel)
+	where
+		lengthSel = length sel
 	valueFromState _               = Nothing
 
 	mbValToOptions mbVal = toOption <$> maybe [] getOptions mbVal
