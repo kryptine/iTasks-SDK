@@ -97,6 +97,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIChoiceList    // - A mutually exclusive set of radio buttons 
 	| UIGrid          // - Grid (selecting an item in a table)
 	| UITree          // - Tree (selecting a node in a tree structure)
+	| UITabBar        // - A tab bar (to make a selection with)
 	// Data elements (implemented in itasks-core.js)
 	| UIData 
 

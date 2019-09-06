@@ -65,6 +65,7 @@ selectEditor [SelectInCheckGroup toView fromView:_] = SelectUsing toView fromVie
 selectEditor [SelectInList toView fromView:_] = SelectUsing toView fromView choiceList
 selectEditor [SelectInGrid toView fromView:_] = SelectUsing toView fromView grid
 selectEditor [SelectInTree toView fromView:_] = SelectUsing toView fromView tree
+selectEditor [SelectInTabs toView fromView:_] = SelectUsing toView fromView tabBar
 selectEditor [_:es] = selectEditor es
 selectEditor [] = SelectUsing (const []) (\_ _ -> []) dropdown //Empty dropdown
 
@@ -77,6 +78,7 @@ where
 	selectOptions` _ [ChooseFromCheckGroup f:os] = [SelectInCheckGroup (toTexts f)  (findSelection target):selectOptions` True os]
 	selectOptions` _ [ChooseFromList f:os] = [SelectInList (toTexts f) (findSelection target):selectOptions` True os]
 	selectOptions` _ [ChooseFromGrid f:os] = [SelectInGrid (toGrid f) (findSelection target):selectOptions` True os]
+	selectOptions` _ [ChooseFromTabs f:os] = [SelectInTabs (toTexts f) (findSelection target):selectOptions` True os]
 	selectOptions` True [] = []
 	selectOptions` False [] = [SelectInDropdown (toTexts id) (findSelection target)]
 

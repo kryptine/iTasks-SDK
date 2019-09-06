@@ -38,6 +38,7 @@ from Data.Functor import class Functor
 	| SelectInList       (c -> [ChoiceText]) (c [Int] -> [s])
 	| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
 	| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
+	| SelectInTabs       (c -> [ChoiceText]) (c [Int] -> [s])
 	| E.v: SelectUsing   (c -> v) (c [Int] -> [s]) (Editor (v, [Int])) & iTask v
 	//Common attributes as option
 	| SelectMultiple     !Bool
@@ -48,6 +49,7 @@ from Data.Functor import class Functor
 	| E.v: ChooseFromCheckGroup (o -> v) & iTask v
 	| E.v: ChooseFromList (o -> v)       & iTask v
 	| E.v: ChooseFromGrid (o -> v)       & iTask v
+	| E.v: ChooseFromTabs (o -> v)       & iTask v
 
 /*** General input/update/output tasks ***/
 

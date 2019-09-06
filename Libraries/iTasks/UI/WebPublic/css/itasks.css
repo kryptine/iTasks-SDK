@@ -150,8 +150,9 @@ div.itasks-exception {
   font-weight: normal;
   overflow: auto;
   flex-basis: 0;
+  flex-direction: column;
 }
-*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
+*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select, *.itasks-viewport ul {
   font-size: 9pt;
 }
 *.itasks-viewport .icon-help {
@@ -462,105 +463,6 @@ div.itasks-exception {
 .itasks-tabset > * {
   align-self: stretch;
 }
-.itasks-tabset .itasks-tabbar {
-  text-align: left;
-  list-style: none;
-  margin: 0;
-  padding: 0 10px;
-  line-height: 24px;
-  position: relative;
-  min-height: 24px;
-  background: linear-gradient(white, #ccc);
-  overflow: hidden;
-}
-.itasks-tabset .itasks-tabbar li {
-  margin: 0;
-  padding: 0 10px;
-  border: 1px solid #ccc;
-  background: #e1e1e1;
-  display: inline-block;
-  position: relative;
-  z-index: 0;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-}
-.itasks-tabset .itasks-tabbar li a {
-  color: #000;
-  text-decoration: none;
-}
-.itasks-tabset .itasks-tabbar li:before,
-.itasks-tabset .itasks-tabbar li:after {
-  position: absolute;
-  bottom: -1px;
-  width: 5px;
-  height: 5px;
-  content: " ";
-  border: 1px solid #ccc;
-}
-.itasks-tabset .itasks-tabbar li:before {
-  left: -6px;
-  border-bottom-right-radius: 5px;
-  border-width: 0 1px 1px 0;
-  box-shadow: 2px 2px 0 #e1e1e1;
-}
-.itasks-tabset .itasks-tabbar li:after {
-  right: -6px;
-  border-bottom-left-radius: 5px;
-  border-width: 0 0 1px 1px;
-  box-shadow: -2px 2px 0 #e1e1e1;
-}
-.itasks-tabset .itasks-tabbar li.itasks-selected {
-  background: #eee;
-  color: #000;
-  z-index: 2;
-  border-bottom-color: #eee;
-}
-.itasks-tabset .itasks-tabbar li.itasks-selected:before {
-  box-shadow: 2px 2px 0 #eee;
-}
-.itasks-tabset .itasks-tabbar li.itasks-selected:after {
-  box-shadow: -2px 2px 0 #eee;
-}
-.itasks-tabset .itasks-tabbar li a.itasks-tabclose {
-  color: #aaa;
-  display: inline-block;
-  position: relative;
-  top: -5px;
-  left: 7px;
-  font-weight: bold;
-  font-size: 8px;
-  line-height: 8px;
-  background: #eee;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  padding: 0 2px;
-}
-.itasks-tabset .itasks-tabbar:after {
-  position: absolute;
-  content: "";
-  width: 100%;
-  bottom: 0;
-  left: 0;
-  border-bottom: 1px solid #ccc;
-  z-index: 1;
-}
-.itasks-tabset .itasks-tabbar:before {
-  z-index: 1;
-}
-.itasks-tabset .itasks-tabicon {
-  width: 16px;
-  height: 16px;
-  display: inline-block;
-  margin: 0 3px 0 0;
-  position: relative;
-  top: 3px;
-}
-.itasks-tabset .itasks-tab-disabled .itasks-tabicon {
-  opacity: 0.5;
-}
-.itasks-tabset .itasks-tab-disabled span {
-  color: #aaa;
-}
 .itasks-tabset .itasks-tabitems {
   z-index: 2;
   border: 1px solid #ccc;
@@ -580,6 +482,111 @@ div.itasks-exception {
 .itasks-tabset .itasks-container.itasks-tabitem.itasks-selected, .itasks-tabset .itasks-viewport.itasks-tabitem.itasks-selected {
   display: flex;
   border-top: 0;
+}
+
+.itasks-tabbar {
+  text-align: left;
+  list-style: none;
+  margin: 0;
+  padding: 0 10px;
+  line-height: 24px;
+  position: relative;
+  min-height: 24px;
+  background: linear-gradient(white, #ccc);
+  overflow: hidden;
+}
+.itasks-tabbar li {
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #ccc;
+  background: #e1e1e1;
+  display: inline-block;
+  position: relative;
+  z-index: 0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+.itasks-tabbar li a {
+  color: #000;
+  text-decoration: none;
+}
+.itasks-tabbar li:before,
+.itasks-tabbar li:after {
+  position: absolute;
+  bottom: -1px;
+  width: 5px;
+  height: 5px;
+  content: " ";
+  border: 1px solid #ccc;
+}
+.itasks-tabbar li:before {
+  left: -6px;
+  border-bottom-right-radius: 5px;
+  border-width: 0 1px 1px 0;
+  box-shadow: 2px 2px 0 #e1e1e1;
+}
+.itasks-tabbar li:after {
+  right: -6px;
+  border-bottom-left-radius: 5px;
+  border-width: 0 0 1px 1px;
+  box-shadow: -2px 2px 0 #e1e1e1;
+}
+.itasks-tabbar li.itasks-selected {
+  background: #eee;
+  color: #000;
+  z-index: 2;
+  border-bottom-color: #eee;
+}
+.itasks-tabbar li.itasks-selected:before {
+  box-shadow: 2px 2px 0 #eee;
+}
+.itasks-tabbar li.itasks-selected:after {
+  box-shadow: -2px 2px 0 #eee;
+}
+.itasks-tabbar li a.itasks-tabclose {
+  color: #aaa;
+  display: inline-block;
+  position: relative;
+  top: -5px;
+  left: 7px;
+  font-weight: bold;
+  font-size: 8px;
+  line-height: 8px;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.itasks-tabbar:after {
+  position: absolute;
+  content: "";
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid #ccc;
+  z-index: 1;
+}
+
+.itasks-tabbar:before {
+  z-index: 1;
+}
+
+.itasks-tabicon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  margin: 0 3px 0 0;
+  position: relative;
+  top: 3px;
+}
+
+.itasks-tab-disabled .itasks-tabicon {
+  opacity: 0.5;
+}
+
+.itasks-tab-disabled span {
+  color: #aaa;
 }
 
 .itasks-toolbar, .itasks-buttonbar {

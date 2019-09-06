@@ -77,6 +77,9 @@ checkGroup = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText
 choiceList :: Editor ([ChoiceText], [Int])
 choiceList = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIChoiceList
 
+tabBar :: Editor ([ChoiceText], [Int])
+tabBar = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UITabBar
+
 toOptionText {ChoiceText|id,text}= JSONObject [("id",JSONInt id),("text",JSONString text)]
 checkBoundsText options idx = or [id == idx \\ {ChoiceText|id} <- options]
 
