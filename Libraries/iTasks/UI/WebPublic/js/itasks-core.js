@@ -234,6 +234,7 @@ itasks.Component = {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
+		me.afterChildRemove(idx);
 	},
 	replaceChild: function(idx,spec) {
 		var me = this;
@@ -257,6 +258,7 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
+	afterChildRemove: function(idx) {},
 	/* beforeRemove can be overwritten to add a handler for 'destroy' events.
 	 * _beforeRemove is internal and should not be overwritten.
 	 */
@@ -281,6 +283,7 @@ itasks.Component = {
 		me.onAttributeChange(name,value);
 	},
 	onAttributeChange: function(name,value) {},
+
 	onUIChange: function(change) {
 		var me = this;
 		me.world=me.world.then (function(){
@@ -317,7 +320,11 @@ itasks.Component = {
 				switch(change[1]) {
 					case 'change':
 						if(idx >= 0 && idx < me.children.length) {
-							return me.children[idx].onUIChange(change[2]);
+							me.children[idx].onUIChange(change[2]);
+							me.world = me.world.then(function () {
+								me.afterChildChange(idx,change[2]);
+							});
+							return;
 						} else {
 							console.log("UNKNOWN CHILD",idx,me.children.length,change);
 						}
@@ -334,6 +341,7 @@ itasks.Component = {
 			}), Promise.resolve());
 		}
 	},
+	afterChildChange: function(idx,change) {},
 	onShow: function() {
 		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
 	},

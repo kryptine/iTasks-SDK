@@ -32,6 +32,7 @@ import qualified Data.Queue as DQ
 import Data.Maybe, Data.Either, Data.Error, Data.Func
 import Text.GenJSON
 from Data.Functor import <$>, class Functor(fmap)
+from Data.Map import qualified instance Functor (Map k)
 
 derive gEq ParallelTaskChange
 
@@ -39,9 +40,7 @@ derive gEq ParallelTaskChange
 
 :: ParallelTaskType
 	= Embedded                                    //Simplest embedded
-    | NamedEmbedded !String                       //Embedded with name
 	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
-    | NamedDetached !String !TaskAttributes !Bool //Detached with name
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 
@@ -331,9 +330,7 @@ initParallelTask ::
 initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
 		Embedded                                 = mkEmbedded 'DM'.newMap iworld
-		NamedEmbedded name                       = mkEmbedded ('DM'.singleton "name" (JSONString name)) iworld
 		Detached           attributes evalDirect = mkDetached attributes evalDirect iworld
-		NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" (JSONString name) attributes) evalDirect iworld
 	= case mbTaskStuff of
 		Ok (taskId,attributes,mbTask)
 			# state =
@@ -341,10 +338,10 @@ initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTim
 				| taskId      = taskId
 				, index       = index
 				, detached    = isNothing mbTask
-				, attributes  = attributes
+				, implicitAttributes = 'DM'.newMap
+				, explicitAttributes = fmap (\x -> (x,True)) attributes
 				, value       = NoValue
 				, createdAt   = taskTime
-				, lastFocus   = Nothing
 				, lastEvent   = taskTime
 				, change      = Nothing
 				, initialized = False
@@ -383,11 +380,14 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 		[]  = case searchContValue (genParallelValue (reverse (map snd completed))) (matchAction listId event) conts of
 			Nothing //We have evaluated all branches and nothing is added
 				//Remove all entries that are marked as removed from the list, they have been cleaned up by now
-				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-				# (mbError,iworld)    = modify (\l -> [x \\ x <- l | not (isRemoved x)])
-				                            (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
+				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=False}
+
+                # (mbError,iworld)      = modify (\l -> [clearExplicitAttributeChange x \\ x <- l | not (isRemoved x)])
+											(sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
-				= (Ok (map snd completed),iworld)
+				//Bit of a hack... find updated attributes
+				# completed = reverse [(t,addAttributeChanges explicitAttributes c) \\ (t,c) <- reverse completed & {ParallelTaskState|explicitAttributes} <- directResult (fromOk mbList) ]
+                = (Ok (map snd completed),iworld)
 
 			Just (_,(type,task),_) //Add extension
 				# (mbStateMbTask, iworld) = initParallelTask evalOpts listId 0 type task iworld
@@ -405,9 +405,27 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 					err = (liftError err, iworld)
 		//There is more work to do:
 		todo    = evalParallelTasks event evalOpts conts completed todo iworld
-	where
-		isRemoved {ParallelTaskState|change=Just RemoveParallelTask} = True
-		isRemoved _ = False
+where
+	isRemoved {ParallelTaskState|change=Just RemoveParallelTask} = True
+	isRemoved _ = False
+
+	addAttributeChanges explicitAttributes (ValueResult val evalInfor rep tree)
+		//Add the explicit attributes
+		# rep = case rep of
+			ReplaceUI (UI type attr items)
+				# expAtt = 'DM'.fromList [(k,v) \\ (k,(v,True)) <- 'DM'.toList explicitAttributes]
+				= (ReplaceUI (UI type ('DM'.union expAtt attr) items))
+			ChangeUI attrChanges itemChanges
+				# expChanges = [SetAttribute k v \\ (k,(v,True)) <- 'DM'.toList explicitAttributes]
+				= (ChangeUI (attrChanges ++ expChanges) itemChanges)
+			NoChange = case [SetAttribute k v \\ (k,(v,True)) <- 'DM'.toList explicitAttributes] of
+				[] = NoChange
+				attrChanges = (ChangeUI attrChanges [])
+		= (ValueResult val evalInfor rep tree)
+	addAttributeChanges explicitAttributes c = c
+
+	clearExplicitAttributeChange pts=:{ParallelTaskState|explicitAttributes} = {pts & explicitAttributes = fmap (\(v,_) -> (v,False)) explicitAttributes}
+
 //Evaluate an embedded parallel task
 evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [t=:{ParallelTaskState|taskId=taskId=:(TaskId _ taskNo)}:todo] iworld
 	= case evalParallelTask listId event evalOpts t iworld of
@@ -430,7 +448,7 @@ where
 		            = evalEmbeddedParallelTask listId event evalOpts taskState iworld
 
 	evalEmbeddedParallelTask listId event evalOpts
-		{ParallelTaskState|taskId,createdAt,lastFocus,value,change,initialized} iworld=:{current={taskTime}}
+		{ParallelTaskState|taskId,createdAt,value,change,initialized} iworld=:{current={taskTime}}
 		//Lookup task evaluation function and task evaluation state
 		# (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
@@ -449,32 +467,28 @@ where
 				//If the exception can not be handled, don't continue evaluating just stop
 				= (Ok (ExceptionResult e),iworld)
 			(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep task, iworld)
-				//Check for a focus event targeted at this branc
-				# mbNewFocus= case event of
-					(FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
-					_                     = Nothing
-				# lastFocus     = maybe lastFocus Just mbNewFocus
-				# attributeUpdate = case rep of
+				# result = ValueResult val evalInfo rep task
+				# implicitAttributeUpdate = case rep of
 					ReplaceUI (UI _ attributes _) = const attributes
 					ChangeUI changes _ = \a -> foldl (flip applyUIAttributeChange) a changes
 					_ = id
-				# result = ValueResult val evalInfo rep task
 				//Check if the value changed
 				# valueChanged = val =!= decode value
 				//Write the new reduct
 				# (mbError, iworld) = write task (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
-				//Write updated value, and optionally the new lastFocus time to the tasklist
-				# (mbError,iworld) = if valueChanged
-					(modify
-						(\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributeUpdate pts.ParallelTaskState.attributes, initialized = True})
-						(sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
+                //Write updated value
+                # (mbError,iworld) = if valueChanged
+                    (modify
+						(\pts -> {ParallelTaskState|pts & value = encode val,
+							implicitAttributes = implicitAttributeUpdate pts.ParallelTaskState.implicitAttributes,initialized = True})
+                        (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
-					(modify
-						(\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus, attributes = attributeUpdate pts.ParallelTaskState.attributes, initialized = True})
-						(sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
-						EmptyContext
-						iworld)
+                    (modify
+						(\pts -> {ParallelTaskState|pts &
+							implicitAttributes = implicitAttributeUpdate pts.ParallelTaskState.implicitAttributes, initialized = True})
+                        (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
+						EmptyContext iworld)
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
 					= (Ok result,iworld)
 	where
@@ -637,7 +651,7 @@ where
 		| mbListId =:(Error _) = (mbListId,iworld)
 		# listId = fromOk mbListId
 		//Check if someone is trying to add an embedded task to the topLevel list
-		| listId == TaskId 0 0 && (parType =:(Embedded) || parType =:(NamedEmbedded _))
+		| listId == TaskId 0 0 && parType =:(Embedded)
 			= (Error (exception "Embedded tasks can not be added to the top-level task list"),iworld)
 		# (mbStateMbTask, iworld) = initParallelTask mkEvalOpts listId 0 parType parTask iworld
 		= case mbStateMbTask of
@@ -733,19 +747,6 @@ where
 	scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
 		| taskId == replaceId   = [{ParallelTaskState|s & change = Just (ReplaceParallelTask (dynamic task :: Task a^))}:ss]
 		| otherwise             = [s:scheduleReplacement replaceId task ss]
-
-focusTask :: !TaskId !(SharedTaskList a) -> Task () | iTask a
-focusTask focusId slist = mkInstantTask eval
-where
-    eval taskId iworld=:{IWorld|current={taskTime}}
-        # (mbListId,iworld)     = readListId slist iworld
-        | mbListId =:(Error _)  = (liftError mbListId, iworld)
-        # listId                = fromOk mbListId
-        | listId == TaskId 0 0
-            = (Ok (), iworld)
-        # (mbError,iworld)      = modify (\pts -> {ParallelTaskState|pts & lastFocus = Just taskTime}) (sdsFocus (listId,focusId,False) taskInstanceParallelTaskListItem) EmptyContext iworld
-        | mbError =:(Error _)   = (liftError mbError, iworld)
-        = (Ok (), iworld)
 
 attach :: !InstanceNo !Bool -> Task AttachmentStatus
 attach instanceNo steal = Task evalinit

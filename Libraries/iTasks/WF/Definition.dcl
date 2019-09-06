@@ -27,7 +27,6 @@ from StdOverloaded import class ==
 
 :: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id
-			| FocusEvent	!TaskId                   //Update last event time without changing anything: Task id
 			| RefreshEvent	!(Set TaskId) !String     //Recalcalutate the tasks with given IDs,
                                                       //using the current SDS values (the string is the reason for the refresh)
 			| ResetEvent                              //Nop event, recalculate the entire task and reset output stream

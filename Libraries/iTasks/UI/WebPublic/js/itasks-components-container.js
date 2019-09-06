@@ -242,12 +242,27 @@ itasks.TabSet = {
         }
 		
         me.activeTab = idx || 0;
+
 		//Select new tab 
         if(me.children[me.activeTab]) {
             me.children[me.activeTab].domEl.classList.add(me.cssPrefix + 'selected');
             me.tabBar.children[me.activeTab].classList.add(me.cssPrefix + 'selected');
 			me.children[me.activeTab].onShow();
         }
+	},
+	setActiveTabBasedOnOrder: function() {
+		var me = this,
+			maxOrder = 0,
+			maxIndex = 0;
+
+		me.children.forEach(function(child,n) {
+			var order = child.attributes["order"] || 0;
+			if(order > maxOrder) {
+				maxOrder = order;
+				maxIndex = n;
+			}
+		});
+		me.setActiveTab(maxIndex);
 	},
 	beforeChildInsert: function(idx,spec) {
 		var me = this;
@@ -273,19 +288,29 @@ itasks.TabSet = {
 			} else {
 				me.tabBar.insertBefore(tabEl,me.tabBar.children[idx]);
 			}
+			me.setActiveTabBasedOnOrder();
+		}
+	},
+	afterChildRemove: function(idx) {
+		var me = this;
+		if(me.initialized && !me.replacing) {
 
-			if(me.replacing || me.children.length == 1) { //Automatically select the first tab
-				me.setActiveTab(idx);
+			me.tabBar.removeChild(me.tabBar.children[idx]);
+
+			//If we removed the currently active tab, we need to select another one
+			if(idx == me.activeTab) {
+				me.setActiveTabBasedOnOrder();
+			} else if(idx < me.activeTab) {
+				//When a tab before the active tab is removed, it implies that the active index
+				//is now one less
+				me.activeTab--;
 			}
 		}
 	},
-	beforeChildRemove: function(idx) {
+	afterChildChange: function(idx,change) {
 		var me = this;
-		if(me.initialized) {
-			if(!me.replacing && (idx == me.activeTab) && (me.children.length > 1)) { //Unless we remove the last tab, select another tab
-				me.setActiveTab( (idx == 0) ? 1 : (idx - 1));
-			}
-			me.tabBar.removeChild(me.tabBar.children[idx]);
+		if(change["attributes"]) {
+			me.setActiveTabBasedOnOrder();
 		}
 	},
 	replaceChild: function(idx,spec) {

@@ -73,7 +73,6 @@ where
 		= case ok of
 			Ok _    = eval tmpDir taskIda (taskfun tmpDir) event eo iworld
 			Error e = (ExceptionResult (exception ("Could not create temporary directory: " +++ tmpDir +++ " (" +++ toString e +++ ")")) , iworld)
-
 	//Actual task execution
 	//First destroy the inner task, then delete the tmp dir
 	eval tmpDir innerTaskId (Task inner) DestroyEvent evalOpts iworld

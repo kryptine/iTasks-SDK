@@ -205,7 +205,7 @@ where
 
         hasName name attributes = maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)
 
-    startTask _ = appendTask (NamedDetached identity defaultValue True) (removeWhenStable (task @! ())) topLevelTasks @! ()
+    startTask _ = appendTask (Detached ('DM'.singleton "name" (JSONString identity)) True) (removeWhenStable (task @! ())) topLevelTasks @! ()
     stopTask (Just (taskId,_)) = removeTask taskId topLevelTasks @! ()
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
