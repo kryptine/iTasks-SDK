@@ -19,16 +19,14 @@
 .#{$prefix}choicegrid-header {
     color: $panel-header-text-color;
     background: $panel-header-base-color;
-    background: linear-gradient(lighten($panel-header-base-color,20%), darken($panel-header-base-color,10%) );
+    background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color-darker2);
     display: flex;
     flex-direction: row;
     flex: none;
 }
 .#{$prefix}choicegrid-header > div {
-    $up-color: lighten($panel-header-base-color, 5%);
-    $down-color: lighten($panel-header-base-color, 15%);
     border: 1px solid;
-    border-color:  $up-color $up-color $down-color $down-color;
+    border-color:  $choicegrid-up-color $choicegrid-up-color $choicegrid-down-color $choicegrid-down-color;
     flex: 1;
     padding: 3px 5px;
     font-size: 11px;

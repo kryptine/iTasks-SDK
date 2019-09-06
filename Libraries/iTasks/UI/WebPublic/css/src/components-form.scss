@@ -10,9 +10,9 @@
 .#{$prefix}button {
 	font-size: 8pt;
    	padding: 3px;
-    background: linear-gradient(lighten($button-base-color,20% ), $button-base-color);
+    background: linear-gradient($button-base-color-lighter, $button-base-color);
     background-repeat: none;
-    border: 1px solid darken($button-base-color,20%);
+    border: 1px solid $button-base-color-darker;
     border-radius: 3px;
 
     display: flex;
@@ -23,11 +23,11 @@
     flex-shrink: 0;
 
     &:hover {
-        border-color: darken($button-base-color,40%);
+        border-color: $button-base-color-darkest;
     }
 
     &:active {
-        background: lighten($button-base-color,20%);
+        background: $button-base-color-lighter;
     }
 }
 .#{$prefix}button-label {
@@ -40,11 +40,11 @@
     height: 16px;
 }
 .#{$prefix}button-disabled {
-    color: lighten($button-text-color,35%);
-    background: linear-gradient(lighten($button-base-color,20%), darken($button-base-color,20%));
+    color: $button-text-color-lighter;
+    background: linear-gradient($button-base-color-lighter, $button-base-color-darker);
 }
 .#{$prefix}button-disabled:hover {
-    border-color: darken($button-base-color,40%);
+    border-color: $button-base-color-darkest;
 }
 .#{$prefix}button-disabled .#{$prefix}button-icon {
     opacity: 0.5;

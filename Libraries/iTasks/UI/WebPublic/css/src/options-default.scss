@@ -2,19 +2,33 @@ $canvas-base-color: #eee;
 $canvas-text-color: #000;
 
 $panel-header-base-color: #ccc;
+$panel-header-base-color-lighter: #ececec; // lighten 12.5%
+$panel-header-base-color-lighter2: white; // lighten 20%
+$panel-header-base-color-darker: #999999; // darken 20%
+$panel-header-base-color-darker2: #b3b3b3; // darken 10%
+
 $panel-header-text-color: #000;
 $panel-border-color: #ccc;
 
 $window-header-base-color: #ccc;
+$window-header-base-color-lighter: #ececec; // lighten 12.5%
 $window-header-text-color: #000;
 $window-border-color: #ccc;
 
 $toolbar-base-color: $canvas-base-color;
+$toolbar-base-color-lighter: #f8f8f8; // lighten 4%
+$toolbar-base-color-darker: #cecece; // darken 12.5%
+$toolbar-base-color-darker2: #e1e1e1; // darken 5%
 
 $button-base-color: $canvas-base-color;
+$button-base-color-lighter: white; // lighten 10%
+$button-base-color-darker: #bbbbbb; // darken 20%
+$button-base-color-darkest: #888888; // darken 40%
 $button-text-color: $canvas-text-color;
+$button-text-color-lighter: #595959; // lighten 35%
 
 $tab-base-color: $canvas-base-color;
+$tab-base-color-darker: #e1e1e1; // lighten 5%
 $tab-text-color: $canvas-text-color;
 $tab-border-color: #ccc;
 
@@ -25,6 +39,9 @@ $list-base-color: #fff;
 $list-text-color: #000;
 $list-highlight-color: #eee;
 $list-border-color: #ccc;
+
+$choicegrid-up-color: #d9d9d9; // lighten 5%
+$choicegrid-down-color: #f2f2f2; // lighten 15%
 
 $prefix: itasks-;
 $icon-path: '/css/icons/';

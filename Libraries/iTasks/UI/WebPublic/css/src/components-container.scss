@@ -50,8 +50,7 @@
 		grid-area: header;
 		color: $panel-header-text-color;
 		background-color: $panel-header-base-color;
-		background: linear-gradient(lighten($panel-header-base-color,12.5%), $panel-header-base-color);
-
+		background: linear-gradient($panel-header-base-color-lighter, $panel-header-base-color);
 		font-weight: bold;
 		font-size: 11px;
 		height: 25px;
@@ -126,7 +125,7 @@
 		font-weight: bold;
 		font-size: 8px;
 		line-height: 8px;
-		background: lighten($panel-header-base-color, 12.5%);
+		background: $panel-header-base-color-lighter;
 		border: 1px solid $panel-header-text-color;
 		border-radius: 2px;
 		padding: 0 4px 2px 4px;
@@ -180,7 +179,7 @@
 	> .#{$prefix}header {
 		color: $window-header-text-color;
 		background-color: $window-header-base-color;
-		background: linear-gradient(lighten($window-header-base-color, 12.5%), $window-header-base-color);
+		background: linear-gradient($window-header-base-color-lighter, $window-header-base-color);
 	}
 }
 .#{$prefix}window.#{$prefix}notification-bubble {
@@ -210,14 +209,14 @@
 		position: relative;
 		min-height: 24px;
 
-		background: linear-gradient(lighten($panel-header-base-color,20%), $panel-header-base-color);
+		background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color);
 		overflow: hidden;
 
 		li {
 			margin: 0;
 			padding: 0 10px;
 			border: 1px solid $tab-border-color;
-			background: darken($tab-base-color, 5%);
+			background: $tab-base-color-darker;
 			display: inline-block;
 			position: relative;
 			z-index: 0;
@@ -242,13 +241,13 @@
 			left: -6px;
 			border-bottom-right-radius: 5px;
 			border-width: 0 1px 1px 0;
-			box-shadow: 2px 2px 0 darken($tab-base-color,5%);
+			box-shadow: 2px 2px 0 $tab-base-color-darker;
 		}
 		li:after {
 			right: -6px;
 			border-bottom-left-radius: 5px;
 			border-width: 0 0 1px 1px;
-			box-shadow: -2px 2px 0 darken($tab-base-color,5%);
+			box-shadow: -2px 2px 0 $tab-base-color-darker;
 		}
 		li.#{$prefix}selected {
 			background: $tab-base-color;
@@ -335,7 +334,7 @@
 	flex-direction: row;
 	align-items: center;
 
-	background: linear-gradient(lighten($toolbar-base-color,4%), darken($toolbar-base-color,12.5%));
+	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker);
 }
 .#{$prefix}toolbar {
 
@@ -343,7 +342,7 @@
 	margin: 0;
 	padding: 2px;
 	background: $toolbar-base-color;
-	background: linear-gradient(lighten($toolbar-base-color,4%), darken($toolbar-base-color,5%));
+	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker2);
 
 	> .#{$prefix}menu-item > div {
 		background-image: url('#{$icon-path}menu-down.png');
@@ -370,13 +369,13 @@
 		display: flex;
 		flex-direction: row;
 		flex-shrink: 0;
-		border: 1px solid darken($button-base-color,20%);
+		border: 1px solid $button-base-color-darker;
 		border-width: 0 0 1px 0;
 	}
 
 	div.#{$prefix}menu-label {
 		height: 23px;
-		background: linear-gradient(lighten($button-base-color,10%), $button-base-color);
+		background: linear-gradient($button-base-color-lighter, $button-base-color);
 		background-repeat: none;
 		background-image: url('#{$icon-path}menu-down.png');
 		background-repeat: no-repeat;
@@ -389,7 +388,7 @@
 		color: $button-text-color;
 		flex-shrink: 0;
 
-		border: 1px solid darken($button-base-color,20%);
+		border: 1px solid $button-base-color-darker;
 		border-radius: 3px;
 		text-decoration: none;
 		float: left;
@@ -414,7 +413,7 @@
 		position: absolute;
 		background: #eee;
 		box-shadow: 0 3px 3px rgba(0,0,0,0.5);
-		border: 1px solid darken($button-base-color,20%);
+		border: 1px solid $button-base-color-darker;
 		border-radius: 0 3px 3px 3px;
 		min-width: 150px;
 
