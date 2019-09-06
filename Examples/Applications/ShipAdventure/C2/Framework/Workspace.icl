@@ -13,7 +13,7 @@ addOnceToWorkspace :: String (Task a) Workspace -> Task () | iTask a
 addOnceToWorkspace identity task workspace
     =   get (taskListMeta workspace)
     >>- \items -> case find identity items of
-            Nothing = appendTask (NamedEmbedded identity) (removeWhenStable task) workspace @! ()
+            Nothing = appendTask Embedded (\l -> (removeWhenStable task l <<@ ("name", JSONString identity))) workspace @! ()
 			_       = return ()
 
 find identity [] = Nothing
