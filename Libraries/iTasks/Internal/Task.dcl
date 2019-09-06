@@ -4,10 +4,8 @@ definition module iTasks.Internal.Task
 */
 
 import iTasks.WF.Definition
-from iTasks.Internal.Tonic.AbsSyn import :: ExprId (..)
 from iTasks.WF.Tasks.IO import :: ConnectionHandlers
 
-from iTasks.Internal.TaskState			import :: TaskTree
 import  iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UIChange
 from iTasks.Internal.IWorld import :: ConnectionId
@@ -46,5 +44,20 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 /**
 * Create a task that finishes instantly
 */
-mkInstantTask :: (TaskId *IWorld -> (MaybeError (Dynamic,String) a,*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a | iTask a
 
+/**
+ * Apply a function on the task continuation of the task result
+ * @type ((Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))) !(TaskResult a) -> TaskResult a
+ */
+wrapTaskContinuation tf val :== case val of
+	(ValueResult val tei ui newtask) = ValueResult val tei ui (Task (tf newtask))
+	a = a
+
+/**
+ * Unwrap the task to reveal the evaluation function
+ * @type (Task a) -> (Event TaskEvalOpts !*IWorld -> *(TaskResult a, !*IWorld))
+ */
+unTask (Task t) :== t
+
+nopTask :: Task a

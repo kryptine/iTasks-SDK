@@ -1,4 +1,5 @@
 implementation module iTasks.Extensions.User
+
 import iTasks
 import Text
 import Data.Functor, Data.Either, Data.Maybe
@@ -209,7 +210,7 @@ workOn t
 	= 			 		get currentUser -&&- get (sdsFocus no taskInstanceAttributesByNo)
 	>>- \(user,attr) -> set user (sdsFocus no taskInstanceUser)
 	//Attach the instance
-	>>|			 		attach no True <<@ Title (maybe "Untitled" (\(JSONString t) -> t) ('DM'.get "title" attr))
+	>-|			 		attach no True <<@ Title (maybe "Untitled" (\(JSONString t) -> t) ('DM'.get "title" attr))
 where
 	no = toInstanceNo t
 /*

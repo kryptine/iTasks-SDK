@@ -8,6 +8,7 @@ from Data.Map import qualified get, put
 import qualified Data.Map as DM
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor, Data.Maybe, StdString
+import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Combinators.Overloaded
@@ -339,17 +340,17 @@ crudWith choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = go
   newItem
     =            Title "New item" @>> enterInformation enterOpts
     >>= \item -> upd (putItem item) sh
-    >>|          goCRUD
+    >-|          goCRUD
   viewItem x
     =            Title "View item" @>> viewInformation viewOpts x
     >>|          goCRUD
   editItem x
     =            Title "Edit item" @>> updateInformation updateOpts x
     >>= \item -> upd (putItem item) sh
-    >>|          goCRUD
+    >-|          goCRUD
   deleteItem x
     =            upd (delItem x) sh
-    >>|          goCRUD
+    >-|          goCRUD
 
 crud :: !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
         (sds () (f r) (f` w))

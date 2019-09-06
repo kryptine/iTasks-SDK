@@ -1,7 +1,8 @@
 definition module iTasks.Internal.Util
 
-from iTasks.WF.Definition import :: TaskResult
-from iTasks.WF.Definition import :: TaskException
+from iTasks.UI.Definition import :: UI, :: UIChange
+from iTasks.Internal.TaskEval import :: TaskTime, :: TaskEvalInfo
+from iTasks.WF.Definition import :: TaskId, :: Event, :: TaskResult, :: TaskException
 from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.Map import :: Map
@@ -32,3 +33,9 @@ liftIWorld :: .(*World -> *(.a, *World)) *IWorld -> *(.a, *IWorld)
 apIWTransformer :: *env (*env -> *(MaybeError TaskException (TaskResult a), *env)) -> *(TaskResult a, *env)
 
 generateRandomString :: !Int !*IWorld -> (!String, !*IWorld)
+
+isRefreshForTask :: !Event !TaskId -> Bool
+
+mkTaskEvalInfo :: !TaskTime -> TaskEvalInfo
+
+mkUIIfReset :: !Event !UI -> UIChange

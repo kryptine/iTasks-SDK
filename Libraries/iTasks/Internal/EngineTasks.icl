@@ -9,6 +9,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
+import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.UI.Definition
 import iTasks.WF.Definition
@@ -19,18 +20,18 @@ from Data.Map import newMap, member
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
 where
-	eval DestroyEvent evalOpts tree iworld
+	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, iworld)
-	eval event evalOpts tree=:(TCInit taskId ts) iworld
+	eval event {taskId,lastEval} iworld
 		# (merr, iworld) = f iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		# (merr, iworld) = readRegister taskId tick iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[]}
+				(mkTaskEvalInfo lastEval)
 				NoChange
-				(TCInit taskId ts)
+				(Task eval)
 			, iworld)
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions

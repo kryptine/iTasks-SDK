@@ -224,11 +224,6 @@ where
 				# (errors,iworld) = flushAll rest iworld
 				= ([e:errors],iworld)
 
-dynamicResult :: (*IWorld -> (MaybeError TaskException a, *IWorld)) !*IWorld -> (MaybeError TaskException Dynamic, !*IWorld) | TC a
-dynamicResult f iworld = case f iworld of
-	(Error e, iworld)   = (Error e, iworld)
-	(Ok a, iworld)      = (Ok (dynamic a), iworld)
-
 instance Identifiable SDSSource
 where
 	nameSDS (SDSSource {SDSSourceOptions|name}) acc = ["$", name, "$":acc]

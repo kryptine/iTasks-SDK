@@ -2,8 +2,6 @@ definition module C2.Framework.MapEnvironment
 
 import iTasks
 
-import iTasks.Internal.Tonic
-import iTasks.Extensions.Admin.TonicAdmin
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Map as DM
 from Data.Map import :: Map

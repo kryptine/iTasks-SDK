@@ -18,6 +18,7 @@ import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
 import iTasks.WF.Definition
+import iTasks.WF.Derives
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
@@ -84,7 +85,7 @@ loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests,signalHandlers}
 	# (todo,chList,world) = select mbTimeout todo world
 	# iworld = {iworld & ioTasks = {done=[],todo=todo}, world = world}
 	# (hadsig, iworld) = hadSignal iworld
-	| hadsig = halt 1 iworld
+	| hadsig = halt 0 iworld
 	# (merr, iworld) = updateClock iworld
 	| merr=:(Error _) = abort "Error updating clock\n"
 	// Write ticker

@@ -1,7 +1,9 @@
 implementation module iTasks.UI.Editor.Generic
 
 import StdMisc
+import iTasks.WF.Derives
 import iTasks.UI.Definition
+import iTasks.Internal.Serialization
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Editor.Modifiers

@@ -20,6 +20,8 @@ import iTasks.SDS.Sources.Store
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.SDSService
 import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.Common
+import iTasks.WF.Derives
 import iTasks.Extensions.Document
 
 from Data.Map import instance Functor (Map k)
@@ -139,7 +141,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
     # progress  = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct defaultTonicOpts instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
@@ -152,7 +154,7 @@ createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # progress              = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct defaultTonicOpts instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
@@ -162,7 +164,7 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # progress              = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|type=StartupInstance,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct defaultTonicOpts instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
 
@@ -178,36 +180,27 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
     # progress             = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|type=PersistentInstance mbListId,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
 					  (queueEvent instanceNo ResetEvent iworld)
 					  iworld)
 
-createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
-createReduct tonicOpts instanceNo task taskTime
+createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
+createReduct instanceNo task taskTime
 	= { TIReduct
-	  | task = toJSONTask task
-	  , tree = TCInit (TaskId instanceNo 0) 1
+	  | task = task @ DeferredJSON
 	  , nextTaskNo = 1
 	  , nextTaskTime = 1
 	  , tasks = 'DM'.newMap
-	  , tonicRedOpts = tonicOpts
 	  }
-where
-	toJSONTask (Task eval) = Task eval`
-	where
-		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
-			(ValueResult val ts rep tree,iworld) = (ValueResult (fmap DeferredJSON val) ts rep tree, iworld)
-			(ExceptionResult e,iworld)           = (ExceptionResult e,iworld)
-			(DestroyedResult,iworld)             = (DestroyedResult,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
 	# (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
 	| isError meta          = (liftError meta, iworld)
-	=            'SDS'.write (Just (createReduct defaultTonicOpts instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+	=            'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> let (_,Just constants,progress,attributes) ='SDS'.directResult (fromOk meta)
 				 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld

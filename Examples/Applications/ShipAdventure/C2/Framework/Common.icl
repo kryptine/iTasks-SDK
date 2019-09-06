@@ -5,6 +5,7 @@ import iTasks
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Framework.Core
+import C2.Apps.ShipAdventure.Types
 import C2.Framework.Util
 import C2.Framework.Entity
 import C2.Framework.ContactPosition

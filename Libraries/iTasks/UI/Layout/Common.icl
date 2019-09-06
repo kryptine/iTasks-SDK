@@ -13,7 +13,7 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 from Data.Func import $
 from StdListExtensions import foldlSt
-from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
+from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TaskTime
 import qualified Data.Foldable
 import qualified Text as T
 from Text import class Text, instance Text String
@@ -332,14 +332,14 @@ where
 
 instance tune NoUserInterface Task
 where
-    tune NoUserInterface (Task eval) = Task eval` 
+    tune NoUserInterface task = Task (eval task)
     where
-	    eval` event repOpts state iworld = case eval event repOpts state iworld of
-			(ValueResult taskvalue evalinfo _ tasktree, iworld)
+	    eval (Task task) event repOpts iworld = case task event repOpts iworld of
+			(ValueResult taskvalue evalinfo _ newtask, iworld)
 				# change = case event of 
 					ResetEvent = ReplaceUI (ui UIEmpty)
 					_          = NoChange
-				= (ValueResult taskvalue evalinfo change tasktree, iworld)
+				= (ValueResult taskvalue evalinfo change (Task (eval newtask)), iworld)
 			other = other
 
 toFormItem :: LayoutRule
