@@ -1,14 +1,14 @@
-.#{$prefix}checkgroup, {
+.itasks-checkgroup, {
     margin: 0;
     padding: 0;
 }
-.#{$prefix}checkgroup li {
+.itasks-checkgroup li {
     list-style: none;
 }
-.#{$prefix}checkgroup label {
+.itasks-checkgroup label {
 	margin-left: 5px;
 }
-.#{$prefix}choicegrid {
+.itasks-choicegrid {
     display: flex;
     flex-direction: column;
 
@@ -16,7 +16,7 @@
 	flex-grow: 1;
 	align-self: stretch;
 }
-.#{$prefix}choicegrid-header {
+.itasks-choicegrid-header {
     color: $panel-header-text-color;
     background: $panel-header-base-color;
     background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color-darker2);
@@ -24,7 +24,7 @@
     flex-direction: row;
     flex: none;
 }
-.#{$prefix}choicegrid-header > div {
+.itasks-choicegrid-header > div {
     border: 1px solid;
     border-color:  $choicegrid-up-color $choicegrid-up-color $choicegrid-down-color $choicegrid-down-color;
     flex: 1;
@@ -32,14 +32,14 @@
     font-size: 11px;
     height: 20px;
 }
-.#{$prefix}choicegrid-body {
+.itasks-choicegrid-body {
     flex: 1;
     background: #fff;
     color: #000;
     overflow: auto;
 	min-height: 100px;
 }
-.#{$prefix}choicegrid-body > div {
+.itasks-choicegrid-body > div {
     display: flex;
     flex-direction: row;
     cursor: default;
@@ -47,23 +47,23 @@
     border-width: 1px 0;
     border-bottom-color: #ddd;
 }
-.#{$prefix}choicegrid-body > div:nth-child(even) {
+.itasks-choicegrid-body > div:nth-child(even) {
     background-color: #fafafa;
 }
-.#{$prefix}choicegrid-body > div:hover {
+.itasks-choicegrid-body > div:hover {
     background-color: #eee;
 }
-.#{$prefix}choicegrid-body > div.#{$prefix}selected {
+.itasks-choicegrid-body > div.itasks-selected {
     background-color: $select-base-color;
     color: $select-text-color;
     border: 1px dotted #333;
 }
-.#{$prefix}choicegrid-body > div > div {
+.itasks-choicegrid-body > div > div {
     flex: 1;
     padding: 3px 5px;
 }
 
-.#{$prefix}choicetree {
+.itasks-choicetree {
     overflow: auto;
     min-width: 150px;
     min-height: 100px;
@@ -123,11 +123,11 @@
               }
             }
         }
-        &.#{$prefix}leaf > label {
+        &.itasks-leaf > label {
             background-position: 16px 0px;
             background-repeat: no-repeat;
         }
-        &.#{$prefix}selected > label {
+        &.itasks-selected > label {
             font-weight: bold;
         }
         label {
@@ -141,15 +141,15 @@
             background-repeat: no-repeat;
             height: 16px;
         }
-        label.#{$prefix}default-folder {
-            background-image: url('#{$icon-path}folder.png');
+        label.itasks-default-folder {
+            background-image: url('/css/icons/folder.png');
         }
-        label.#{$prefix}default-leaf {
-            background-image: url('#{$icon-path}document.png');
+        label.itasks-default-leaf {
+            background-image: url('/css/icons/document.png');
         }
     }
 }
-.#{$prefix}choice-list {
+.itasks-choice-list {
     margin: 0;
     border: 1px solid $select-base-color;
     display: flex;
@@ -161,10 +161,10 @@
 	flex-grow: 1;
 	align-self: stretch;
 }
-.#{$prefix}choice-list * {
+.itasks-choice-list * {
 	align-self: stretch;
 }
-.#{$prefix}choice-list-option {
+.itasks-choice-list-option {
     border: solid $select-base-color;
     border-width: 0 0 1px 0;
     padding: 5px 10px;
@@ -174,7 +174,7 @@
         border-width: 0;
     }
 }
-.#{$prefix}choice-list-option.#{$prefix}selected {
+.itasks-choice-list-option.itasks-selected {
     background-color: $select-base-color;
     color: $select-text-color;
 }

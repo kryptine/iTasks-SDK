@@ -1,13 +1,13 @@
-.#{$prefix}icon {
+.itasks-icon {
     width: 16px;
     height: 16px;
 }
-.#{$prefix}label {
+.itasks-label {
 	width: 100px;
 	padding: 5px;
 	text-overflow: elipsis;
 }
-.#{$prefix}button {
+.itasks-button {
 	font-size: 8pt;
    	padding: 3px;
     background: linear-gradient($button-base-color-lighter, $button-base-color);
@@ -30,22 +30,22 @@
         background: $button-base-color-lighter;
     }
 }
-.#{$prefix}button-label {
+.itasks-button-label {
     margin: 0 4px;
     height: 16px;
     cursor: default;
 }
-.#{$prefix}button-icon {
+.itasks-button-icon {
     width: 16px;
     height: 16px;
 }
-.#{$prefix}button-disabled {
+.itasks-button-disabled {
     color: $button-text-color-lighter;
     background: linear-gradient($button-base-color-lighter, $button-base-color-darker);
 }
-.#{$prefix}button-disabled:hover {
+.itasks-button-disabled:hover {
     border-color: $button-base-color-darkest;
 }
-.#{$prefix}button-disabled .#{$prefix}button-icon {
+.itasks-button-disabled .itasks-button-icon {
     opacity: 0.5;
 }

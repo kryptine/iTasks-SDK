@@ -1,5 +1,5 @@
 /* Standard container components */
-*.#{$prefix}viewport {
+*.itasks-viewport {
 	display: flex;
 	margin: 0;
     font-family: tahoma, arial, verdana, sans-serif;
@@ -17,7 +17,7 @@
 	flex-basis: 0;
 }
 
-.#{$prefix}container {
+.itasks-container {
 	display: flex;
 	flex-direction: column;
  	align-items: flex-start;
@@ -25,13 +25,13 @@
 	flex: 1;
 	align-self: stretch;
 
-	&.#{$prefix}scroll-content {
+	&.itasks-scroll-content {
 		flex-basis: 0;
 		overflow: auto;
 	}
 }
 
-.#{$prefix}panel {
+.itasks-panel {
 	color: $canvas-text-color;
 	background-color: $canvas-base-color;
 	border: 1px solid $panel-border-color;
@@ -46,7 +46,7 @@
 	grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
 	grid-template-columns: min-content 1fr min-content;
 
-	> .#{$prefix}header {
+	> .itasks-header {
 		grid-area: header;
 		color: $panel-header-text-color;
 		background-color: $panel-header-base-color;
@@ -59,44 +59,44 @@
 			margin: 4px 0 0 4px;
 		}
 	}
-	> .#{$prefix}inner {
+	> .itasks-inner {
 		grid-area: inner;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 	}
 
-	&.#{$prefix}scroll-content {
+	&.itasks-scroll-content {
 		flex-basis: 0;
 		overflow: auto;
 
-		> .#{$prefix}inner {
+		> .itasks-inner {
 			overflow: auto;
 		}
 	}
-	.#{$prefix}sizer-top {
+	.itasks-sizer-top {
 		grid-area: ts;
 	}
-	.#{$prefix}sizer-bottom {
+	.itasks-sizer-bottom {
 		grid-area: bs;
 	}
-	.#{$prefix}sizer-left{
+	.itasks-sizer-left{
 		grid-area: ls;
 	}
-	.#{$prefix}sizer-right {
+	.itasks-sizer-right {
 		grid-area: rs;
 	}
 
-	.#{$prefix}sizer-top, .#{$prefix}sizer-bottom {
+	.itasks-sizer-top, .itasks-sizer-bottom {
 		height: 5px;
 		cursor: ns-resize;
 	}
-	.#{$prefix}sizer-left, .#{$prefix}sizer-right {
+	.itasks-sizer-left, .itasks-sizer-right {
 		width: 5px;
 		cursor: ew-resize;
 	}
-	.#{$prefix}sizer-top, .#{$prefix}sizer-bottom,
-	.#{$prefix}sizer-left, .#{$prefix}sizer-right {
+	.itasks-sizer-top, .itasks-sizer-bottom,
+	.itasks-sizer-left, .itasks-sizer-right {
 		background-color: #{$canvas-base-color};
 		&:hover {
 			background-color: #{$select-base-color};
@@ -109,7 +109,7 @@
 	align-self: stretch;
 }
 
-.#{$prefix}window > .#{$prefix}header {
+.itasks-window > .itasks-header {
 	font-weight: bold;
 	font-size: 11px;
 	height: 25px;
@@ -136,7 +136,7 @@
 		margin: 4px 0 0 4px;
 	}
 }
-.#{$prefix}window > .#{$prefix}inner {
+.itasks-window > .itasks-inner {
 	display: flex;
 	flex-direction: column;
 
@@ -151,12 +151,12 @@
 	min-width: 300px;
 	min-height: 100px;
 }
-.#{$prefix}window.#{$prefix}scroll-content > .#{$prefix}inner {
+.itasks-window.itasks-scroll-content > .itasks-inner {
 	flex-basis: 0;
 	overflow: auto;
 }	
 /* Windows */
-.#{$prefix}window {
+.itasks-window {
 	position: absolute;
 	top: 0px;
 	left: 0px;
@@ -164,35 +164,35 @@
 	display: flex;
 	flex-direction: column;
 
-	> .#{$prefix}inner {
+	> .itasks-inner {
 		overflow: auto;
 		flex-basis: 0;
 	}
 }
-.#{$prefix}window.#{$prefix}floating-window {
+.itasks-window.itasks-floating-window {
 	color: $canvas-text-color;
 	background-color: $canvas-base-color;
 	border: 1px solid $window-border-color;
 	border-radius: 5px;
 	box-shadow: 0 5px 5px rgba(0,0,0,0.5);
 
-	> .#{$prefix}header {
+	> .itasks-header {
 		color: $window-header-text-color;
 		background-color: $window-header-base-color;
 		background: linear-gradient($window-header-base-color-lighter, $window-header-base-color);
 	}
 }
-.#{$prefix}window.#{$prefix}notification-bubble {
+.itasks-window.itasks-notification-bubble {
 	background-color: $canvas-base-color;
 	border: 3px solid $window-header-base-color;
 	border-radius: 10px;
 	opacity: 0.9;
-	> .#{$prefix}header {
+	> .itasks-header {
 		color: $window-header-text-color;
 		background-color: $window-header-base-color;
 	}
 }
-.#{$prefix}tabset {
+.itasks-tabset {
 	display: flex;
 	align-items: stretch;
 	flex-direction: column;
@@ -200,7 +200,7 @@
 	> * {
 		align-self: stretch;
 	}
-	.#{$prefix}tabbar {
+	.itasks-tabbar {
 		text-align: left;
 		list-style: none;
 		margin: 0;
@@ -249,19 +249,19 @@
 			border-width: 0 0 1px 1px;
 			box-shadow: -2px 2px 0 $tab-base-color-darker;
 		}
-		li.#{$prefix}selected {
+		li.itasks-selected {
 			background: $tab-base-color;
 			color: $tab-text-color;
 			z-index: 2;
 			border-bottom-color: $tab-base-color;
 		}
-		li.#{$prefix}selected:before {
+		li.itasks-selected:before {
 			box-shadow: 2px 2px 0 $tab-base-color;
 		}
-		li.#{$prefix}selected:after {
+		li.itasks-selected:after {
 			box-shadow: -2px 2px 0 $tab-base-color;
 		}
-		li a.#{$prefix}tabclose {
+		li a.itasks-tabclose {
 			color: #aaa;
 			display: inline-block;
 			position: relative;
@@ -277,7 +277,7 @@
 		}
 
 	}
-	.#{$prefix}tabbar:after {
+	.itasks-tabbar:after {
 		position: absolute;
 		content: "";
 		width: 100%;
@@ -286,11 +286,11 @@
 		border-bottom: 1px solid $tab-border-color;
 		z-index: 1;
 	}
-	.#{$prefix}tabbar:before {
+	.itasks-tabbar:before {
 		z-index: 1;
 	}
 
-	.#{$prefix}tabicon {
+	.itasks-tabicon {
 		width: 16px;
 		height: 16px;
 		display: inline-block;
@@ -298,13 +298,13 @@
 		position: relative;
 		top: 3px;
 	}
-	.#{$prefix}tab-disabled .#{$prefix}tabicon {
+	.itasks-tab-disabled .itasks-tabicon {
 		opacity: 0.5;
 	}
-	.#{$prefix}tab-disabled span {
+	.itasks-tab-disabled span {
 		color: #aaa;
 	}
-	.#{$prefix}tabitems {
+	.itasks-tabitems {
 		z-index: 2;
 		border: 1px solid $tab-border-color;
 		border-top-width: 0;
@@ -313,20 +313,20 @@
 		display: flex;
 		flex-direction: column;
 	}
-	.#{$prefix}container.#{$prefix}tabitem, .#{$prefix}panel.#{$prefix}tabitem, .#{$prefix}viewport.#{$prefix}tabitem {
+	.itasks-container.itasks-tabitem, .itasks-panel.itasks-tabitem, .itasks-viewport.itasks-tabitem {
 		display: none;
 	}
-	.#{$prefix}panel.#{$prefix}tabitem.#{$prefix}selected {
+	.itasks-panel.itasks-tabitem.itasks-selected {
 		display: grid;
 		border-top: 0;
 	}
-	.#{$prefix}container.#{$prefix}tabitem.#{$prefix}selected, .#{$prefix}viewport.#{$prefix}tabitem.#{$prefix}selected {
+	.itasks-container.itasks-tabitem.itasks-selected, .itasks-viewport.itasks-tabitem.itasks-selected {
 		display: flex;
 		border-top: 0;
 	}
 }
 
-.#{$prefix}toolbar, .#{$prefix}buttonbar {
+.itasks-toolbar, .itasks-buttonbar {
 	align-self: stretch;
 	flex: 0;
 
@@ -336,7 +336,7 @@
 
 	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker);
 }
-.#{$prefix}toolbar {
+.itasks-toolbar {
 
 	justify-content: flex-start;
 	margin: 0;
@@ -344,18 +344,18 @@
 	background: $toolbar-base-color;
 	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker2);
 
-	> .#{$prefix}menu-item > div {
-		background-image: url('#{$icon-path}menu-down.png');
+	> .itasks-menu-item > div {
+		background-image: url('/css/icons/menu-down.png');
 		background-repeat: no-repeat;
 		background-position: 95% center;
 	}
 }
-.#{$prefix}buttonbar {
+.itasks-buttonbar {
 	justify-content: flex-end;
 	padding: 2px 2px 2px 0;
 }
 
-.#{$prefix}menu {
+.itasks-menu {
 	flex: 0;
 
 	display: block;
@@ -363,7 +363,7 @@
 	border: 1px solid transparent;
 	margin: 1px 0;
 
-	div.#{$prefix}menu-sep {
+	div.itasks-menu-sep {
 		width: 100%;
 		height: 5px;
 		display: flex;
@@ -373,11 +373,11 @@
 		border-width: 0 0 1px 0;
 	}
 
-	div.#{$prefix}menu-label {
+	div.itasks-menu-label {
 		height: 23px;
 		background: linear-gradient($button-base-color-lighter, $button-base-color);
 		background-repeat: none;
-		background-image: url('#{$icon-path}menu-down.png');
+		background-image: url('/css/icons/menu-down.png');
 		background-repeat: no-repeat;
 		background-position: 95% center;
 
@@ -404,7 +404,7 @@
 			margin: 0 20px 0 10px;
 		}
 	}
-	.#{$prefix}menu-content {
+	.itasks-menu-content {
 		z-index: 10;
 		top: 23px;
 		margin: 0;
@@ -418,20 +418,20 @@
 		min-width: 150px;
 
 		/* Submenu styling */
-		.#{$prefix}menu-content {
+		.itasks-menu-content {
 			top: 0;
 			left: 99%;
 			margin: 2px 0 0 -2px;
 		}
-		.#{$prefix}menu {
+		.itasks-menu {
 			width: 100%;
 		}
-		.#{$prefix}menu-label {
+		.itasks-menu-label {
 			width: 100%;
 			border-radius: 0;
 			border-width: 0 0 1px 0;
 
-			background-image: url('#{$icon-path}menu-down.png');
+			background-image: url('/css/icons/menu-down.png');
 
 			&:hover {
 				background: #{$select-base-color};
@@ -439,7 +439,7 @@
 				border-radius: 0;
 			}
 		}
-		.#{$prefix}button {
+		.itasks-button {
 			border-radius: 0;
 			border-width: 0 0 1px 0;
 			&:hover {
@@ -451,17 +451,17 @@
 
 	/* Opening menus */
 	&:hover {
-		> .#{$prefix}menu-content {
+		> .itasks-menu-content {
 			display: block;
 		}
-		> .#{$prefix}menu-label {
+		> .itasks-menu-label {
 			border-radius: 3px 3px 0 0;
 			box-shadow: 0 3px 3px rgba(0,0,0,0.5);
 		}
 	}
 }
 
-.#{$prefix}list {
+.itasks-list {
 	color: $list-text-color;
 	background-color: $list-base-color;
 	border: 2px solid $list-border-color;
@@ -471,88 +471,88 @@
 	flex-direction: column;
 	align-self: stretch;
 
-	.#{$prefix}listitem {
+	.itasks-listitem {
 		margin: 0px 5px 5px 5px;
 		align-self: stretch;
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
 	}
-	.#{$prefix}listitem:nth-child(even) {
+	.itasks-listitem:nth-child(even) {
 		background-color: $list-highlight-color;
 	}
-	.#{$prefix}listitem-controls {
+	.itasks-listitem-controls {
 		flex-direction: row;
 		justify-items: flex-end;
 	}
 }
-.#{$prefix}debug {
+.itasks-debug {
 	border: 3px solid red;
 }
 
 /* Sizing the children of containers that have specific size classes assigned to them: */
 
 /* Sizing children of vertical containers */
-.#{$prefix}viewport,
-.#{$prefix}panel > .#{$prefix}inner,
-.#{$prefix}window > .#{$prefix}inner,
-.#{$prefix}tabitems,
-.#{$prefix}container {
-	& > .#{$prefix}flex-width {
+.itasks-viewport,
+.itasks-panel > .itasks-inner,
+.itasks-window > .itasks-inner,
+.itasks-tabitems,
+.itasks-container {
+	& > .itasks-flex-width {
 		align-self: stretch;
 	}
-	& > .#{$prefix}flex-height {
+	& > .itasks-flex-height {
 		flex-grow: 1;
 	}
-	& > .#{$prefix}exact-height,
-	& > .#{$prefix}wrap-height {
+	& > .itasks-exact-height,
+	& > .itasks-wrap-height {
 		flex: 0 0 auto;
-		> .#{$prefix}inner {
+		> .itasks-inner {
 			flex-basis: auto;
 		}
 	}
 }	
 /* Sizing children of horizontal containers */
-.#{$prefix}container.#{$prefix}horizontal,
-.#{$prefix}panel.#{$prefix}horizontal > .#{$prefix}inner,
-.#{$prefix}form-item,
-.#{$prefix}toolbar,
-.#{$prefix}buttonbar,
-.#{$prefix}cons,
-.#{$prefix}var-cons,
-.#{$prefix}listitem,
-.#{$prefix}listitem-controls {
-	& > .#{$prefix}flex-width {
+.itasks-container.itasks-horizontal,
+.itasks-panel.itasks-horizontal > .itasks-inner,
+.itasks-form-item,
+.itasks-toolbar,
+.itasks-buttonbar,
+.itasks-cons,
+.itasks-var-cons,
+.itasks-listitem,
+.itasks-listitem-controls {
+	& > .itasks-flex-width {
 		flex-grow: 1;
 	}
-	& > .#{$prefix}flex-height {
+	& > .itasks-flex-height {
 		align-self: stretch;
 	}
-	& > .#{$prefix}exact-width,
-	& > .#{$prefix}wrap-width {
+	& > .itasks-exact-width,
+	& > .itasks-wrap-width {
 		flex: 0 0 auto;
-		> .#{$prefix}inner {
+		> .itasks-inner {
 			flex-basis: auto;
 		}
 	}
 }
 
 /* Container components with additional styling */
-.#{$prefix}container.#{$prefix}horizontal,
-.#{$prefix}panel.#{$prefix}horizontal {
+.itasks-container.itasks-horizontal,
+.itasks-panel.itasks-horizontal {
 	flex-direction: row;
 }
-.#{$prefix}container.#{$prefix}vertical,
-.#{$prefix}panel.#{$prefix}vertical {
+.itasks-container.itasks-vertical,
+.itasks-panel.itasks-vertical {
 	flex-direction: column;
 }
 
-.#{$prefix}container.#{$prefix}prompt {
+.itasks-container.itasks-prompt {
 	min-height: fit-content;
 	min-width: fit-content;
 	margin: 5px 5px 10px 5px;
 }
-.#{$prefix}container.#{$prefix}form-item {
+.itasks-container.itasks-form-item {
 	margin: 2px 4px 2px 4px;
 	flex-direction: row;
 	align-items: start;
@@ -560,21 +560,21 @@
 	flex: 0;
 	align-self: stretch;
 }
-.#{$prefix}container.#{$prefix}form-item .#{$prefix}icon {
+.itasks-container.itasks-form-item .itasks-icon {
 	margin-left: 5px;
 }
-.#{$prefix}container.#{$prefix}cons, .#{$prefix}container.#{$prefix}var-cons  {
+.itasks-container.itasks-cons, .itasks-container.itasks-var-cons  {
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-start;
 	align-items: start;
 }
 
-.#{$prefix}container.#{$prefix}frame-compact-outer {
+.itasks-container.itasks-frame-compact-outer {
 	flex: 1;	
 	align-self: stretch;
 }
-.#{$prefix}container.#{$prefix}frame-compact-outer > .#{$prefix}frame-compact-inner {
+.itasks-container.itasks-frame-compact-outer > .itasks-frame-compact-inner {
 	margin: 50px 0 20px 0;
 	border-radius: 5px;
 	overflow: hidden;
@@ -584,11 +584,11 @@
 	flex-basis: auto;
 }
 
-.#{$prefix}panel.#{$prefix}framed {
+.itasks-panel.itasks-framed {
 	border-radius: 5px;
 }
 
-.#{$prefix}headerbar > .#{$prefix}inner > .aside {
+.itasks-headerbar > .itasks-inner > .aside {
 	flex-shrink: 0;
 	flex-grow: 0;
 	flex-basis: auto;
@@ -597,19 +597,19 @@
 }
 
 /* Sidebar elements */
-.#{$prefix}panel.#{$prefix}sidebar-left > .#{$prefix}inner,
-.#{$prefix}panel.#{$prefix}sidebar-right > .#{$prefix}inner,
-.#{$prefix}container.#{$prefix}sidebar-left > .#{$prefix}inner,
-.#{$prefix}container.#{$prefix}sidebar-right > .#{$prefix}inner {
+.itasks-panel.itasks-sidebar-left > .itasks-inner,
+.itasks-panel.itasks-sidebar-right > .itasks-inner,
+.itasks-container.itasks-sidebar-left > .itasks-inner,
+.itasks-container.itasks-sidebar-right > .itasks-inner {
 	flex-direction: row;
 }
-.#{$prefix}sidebar-top > .#{$prefix}inner > .aside,
-.#{$prefix}sidebar-bottom > .#{$prefix}inner > .aside {
+.itasks-sidebar-top > .itasks-inner > .aside,
+.itasks-sidebar-bottom > .itasks-inner > .aside {
 	flex: 0 0 30%;
 	align-self: stretch;
 }
-.#{$prefix}sidebar-right > .#{$prefix}inner > .aside,
-.#{$prefix}sidebar-left > .#{$prefix}inner > .aside {
+.itasks-sidebar-right > .itasks-inner > .aside,
+.itasks-sidebar-left > .itasks-inner > .aside {
 	flex: 0 0 25%;
 	align-self: stretch;
 }

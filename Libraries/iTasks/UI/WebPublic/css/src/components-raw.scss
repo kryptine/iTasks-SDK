@@ -1,91 +1,91 @@
 /* Styles for unlayouted content */
-.#{$prefix}raw-record
-	, .#{$prefix}raw-cons
-	, .#{$prefix}raw-var-cons
-	, .#{$prefix}raw-interact
-	, .#{$prefix}raw-step
-	, .#{$prefix}raw-parallel
-	, .#{$prefix}raw-form
-	, .#{$prefix}raw-form-item
+.itasks-raw-record
+	, .itasks-raw-cons
+	, .itasks-raw-var-cons
+	, .itasks-raw-interact
+	, .itasks-raw-step
+	, .itasks-raw-parallel
+	, .itasks-raw-form
+	, .itasks-raw-form-item
 {
 		border: dashed 2px #ccc;
-	> .#{$prefix}header {
+	> .itasks-header {
 		color: #fff;
 		padding: 2px;
 	}
 }
-.#{$prefix}raw-form {
+.itasks-raw-form {
 	border: solid 2px #f33;
 	background: #fee;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #f33;
 	}
 }
-.#{$prefix}raw-form-item {
+.itasks-raw-form-item {
 	border: dashed 2px #f33;
 	border-radius: 5px;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #f33;
 	}
 }
-.#{$prefix}raw-record {
+.itasks-raw-record {
 	border: solid 2px #f33;
 	background: #fee;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #f33;
 	}
 }
-.#{$prefix}raw-cons {
+.itasks-raw-cons {
 	border: solid 2px #ff3;
 	background: #ffe;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #ff3;
 	}
 }
-.#{$prefix}raw-var-cons {
+.itasks-raw-var-cons {
 	border: solid 2px #ff3;
 	background: #ffe;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #ff3;
 	}
 }
-.#{$prefix}raw-interact {
+.itasks-raw-interact {
 	border: solid 2px #f3f;
 	background: #fef;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #f3f;
 	}
 }
-.#{$prefix}raw-step {
+.itasks-raw-step {
 	border: solid 2px #33f;
 	background: #eef;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #33f;
 	}
 }
-.#{$prefix}raw-parallel {
+.itasks-raw-parallel {
 	border: solid 2px #3f3;
 	background: #efe;
-	> .#{$prefix}header {
+	> .itasks-header {
 		background: #3f3;
 	}
 }
-.#{$prefix}raw-empty {
+.itasks-raw-empty {
 	border: dashed 2px #eee;
 	color: #ccc;
 	font-style: italic;
 }
-.#{$prefix}raw-action {
+.itasks-raw-action {
 	border: solid 2px #000;
 	padding: 5px 20px;
 	border-radius: 5px;	
 	color: #fff;
 	font-weight: bold;
 }
-.#{$prefix}raw-action-enabled {
+.itasks-raw-action-enabled {
 	background-color: #0f0;
 }
-.#{$prefix}raw-action-disabled {
+.itasks-raw-action-disabled {
 	background-color: #f00;
 }
 
