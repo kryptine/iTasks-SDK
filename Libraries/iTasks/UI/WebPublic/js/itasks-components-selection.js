@@ -429,3 +429,54 @@ itasks.Tree = Object.assign({
 		me.select(me.attributes.value, false);
 	}
 },itasks.Selector);
+
+itasks.TabBar = Object.assign({
+	domTag: 'ul',
+	cssCls: 'tabbar',
+	attributes: {
+		height: 'wrap',
+		width: 'flex',
+		multiple: false
+	},
+	initDOMEl: function() {
+		var me = this;
+		me.setOptions(me.attributes.options);
+		me.select(me.attributes.value, false);
+	},
+	selectInDOM(el,selected) {
+		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
+	},
+	setOptions: function(options) {
+		var me = this, el = me.domEl;
+
+		//Store options
+		me.attributes.options = options;
+
+		//Clear
+		while (el.lastChild) {
+			el.removeChild(el.lastChild);
+		}
+
+		options.forEach(function(option) {
+			optionEl = document.createElement('li');
+			optionEl.value = option.id;
+
+			label = document.createElement('a');
+			label.innerHTML = '<span>'+ (option.text || '-')+'</span>';
+			label.href = '#';
+
+			label.addEventListener('click',function(e) {
+				me.select([option.id], false);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
+				e.preventDefault();
+			},me);
+			optionEl.appendChild(label);
+
+			if(me.attributes.value.includes(option.id)) {
+				me.selectInDOM(optionEl, true);
+			}
+			option.domEl = optionEl;
+			el.appendChild(optionEl);
+		 },me);
+	}
+},itasks.Selector);

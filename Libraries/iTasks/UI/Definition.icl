@@ -231,6 +231,7 @@ where
 	toString UIChoiceList      = "ChoiceList"
 	toString UIGrid            = "Grid"
 	toString UITree            = "Tree"
+	toString UITabBar          = "TabBar"
 
     toString UIContainer       = "Container"
 	toString UIPanel           = "Panel"
