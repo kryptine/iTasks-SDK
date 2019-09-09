@@ -49,7 +49,7 @@ where
 			(Error e, iworld)  = (ExceptionResult e, iworld)
 			(Ok phpio, iworld) = eval phpio event evalOpts iworld
 
-	eval (ph, pio) DestroyEvent {TaskEvalOpts|taskId}  iworld
+	eval (ph, pio) DestroyEvent {TaskEvalOpts|taskId} iworld
 		# iworld = clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
 		= apIWTransformer iworld
 		$       liftOSErr (terminateProcess ph)
@@ -57,7 +57,7 @@ where
 		>-= \_->tuple (Ok DestroyedResult)
 	//TODO: Support async sdss
 	eval (ph, pio) event {taskId,lastEval} iworld
-		| isRefreshForTask event taskId
+		| not (isRefreshForTask event taskId)
 			= (ValueResult NoValue (mkTaskEvalInfo lastEval) (mkUIIfReset event rep) (Task (eval (ph, pio))), iworld)
 		= apIWTransformer iworld $
 			read sdsout EmptyContext                    >-= \(ReadingDone (stdoutq, stderrq))->
