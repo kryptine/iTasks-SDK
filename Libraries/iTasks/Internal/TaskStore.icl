@@ -34,10 +34,10 @@ from Control.Applicative import class Alternative(<|>)
 import Data.GenEq
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange
 derive JSONEncode Queue, Event
 
-derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange
 derive JSONDecode Queue, Event
 
 derive gDefault InstanceFilter
