@@ -134,10 +134,10 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 								, iworld)
 					Nothing
 						= (ValueResult
-							(maybe NoValue (\v->Value (l, v) False) v)
+							NoValue
 							(mkTaskEvalInfo lastEval)
 							change
-							(Task (evalInteract l v st mode sds handlers editor writefun))
+							(Task (evalInteract l Nothing st mode sds handlers editor writefun))
 						, iworld)
 			Error e = (ExceptionResult (exception e), iworld)
 evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
