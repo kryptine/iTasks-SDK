@@ -882,14 +882,14 @@ div.itasks-exception {
     width: 16px;
     height: 16px;
 }
-.itasks-button-disabled {
+.itasks-button:disabled {
     color: var(--button-text-color-lighter);
     background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color-darker));
 }
-.itasks-button-disabled:hover {
+.itasks-button:disabled:hover {
     border-color: var(--button-base-color-darkest);
 }
-.itasks-button-disabled .itasks-button-icon {
+.itasks-button:disabled .itasks-button-icon {
     opacity: 0.5;
 }
 .itasks-textview, .itasks-htmlview {
