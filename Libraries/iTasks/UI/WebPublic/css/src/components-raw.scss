@@ -1,74 +1,80 @@
 /* Styles for unlayouted content */
-.itasks-raw-record
-	, .itasks-raw-cons
-	, .itasks-raw-var-cons
-	, .itasks-raw-interact
-	, .itasks-raw-step
-	, .itasks-raw-parallel
-	, .itasks-raw-form
-	, .itasks-raw-form-item
-{
-		border: dashed 2px #ccc;
-	> .itasks-header {
-		color: #fff;
-		padding: 2px;
-	}
+.itasks-raw-record,
+.itasks-raw-cons,
+.itasks-raw-var-cons,
+.itasks-raw-interact,
+.itasks-raw-step,
+.itasks-raw-parallel,
+.itasks-raw-form,
+.itasks-raw-form-item {
+	border: dashed 2px #ccc;
+}
+.itasks-raw-record > .itasks-header,
+.itasks-raw-cons > .itasks-header,
+.itasks-raw-var-cons > .itasks-header,
+.itasks-raw-interact > .itasks-header,
+.itasks-raw-step > .itasks-header,
+.itasks-raw-parallel > .itasks-header,
+.itasks-raw-form > .itasks-header,
+.itasks-raw-form-item > .itasks-header {
+	color: #fff;
+	padding: 2px;
 }
 .itasks-raw-form {
 	border: solid 2px #f33;
 	background: #fee;
-	> .itasks-header {
-		background: #f33;
-	}
+}
+.itasks-raw-form > .itasks-header {
+	background: #f33;
 }
 .itasks-raw-form-item {
 	border: dashed 2px #f33;
 	border-radius: 5px;
-	> .itasks-header {
-		background: #f33;
-	}
+}
+.itasks-raw-form-item > .itasks-header {
+	background: #f33;
 }
 .itasks-raw-record {
 	border: solid 2px #f33;
 	background: #fee;
-	> .itasks-header {
-		background: #f33;
-	}
+}
+.itasks-raw-record > .itasks-header {
+	background: #f33;
 }
 .itasks-raw-cons {
 	border: solid 2px #ff3;
 	background: #ffe;
-	> .itasks-header {
-		background: #ff3;
-	}
+}
+.itasks-raw-cons > .itasks-header {
+	background: #ff3;
 }
 .itasks-raw-var-cons {
 	border: solid 2px #ff3;
 	background: #ffe;
-	> .itasks-header {
-		background: #ff3;
-	}
+}
+.itasks-raw-var-cons > .itasks-header {
+	background: #ff3;
 }
 .itasks-raw-interact {
 	border: solid 2px #f3f;
 	background: #fef;
-	> .itasks-header {
-		background: #f3f;
-	}
+}
+.itasks-raw-interact > .itasks-header {
+	background: #f3f;
 }
 .itasks-raw-step {
 	border: solid 2px #33f;
 	background: #eef;
-	> .itasks-header {
-		background: #33f;
-	}
+}
+.itasks-raw-step > .itasks-header {
+	background: #33f;
 }
 .itasks-raw-parallel {
 	border: solid 2px #3f3;
 	background: #efe;
-	> .itasks-header {
-		background: #3f3;
-	}
+}
+.itasks-raw-parallel > .itasks-header {
+	background: #3f3;
 }
 .itasks-raw-empty {
 	border: dashed 2px #eee;
@@ -88,4 +94,3 @@
 .itasks-raw-action-disabled {
 	background-color: #f00;
 }
-

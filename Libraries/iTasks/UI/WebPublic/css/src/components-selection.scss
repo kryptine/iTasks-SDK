@@ -70,85 +70,78 @@
 
     background: #fff;
     color: #000;
-
-    ol {
-        margin: 5px 0 0 20px;
-        padding: 0;
-    }
-    li {
-        position: relative;
-        margin: 0 0 2px -15px;
-        list-style: none;
-
-        input {
-            display: none;
-
-            + label {
-                display: inline-block;
-                background: url("/css/icons/toggle-small-expand.png") no-repeat;
-                width: 16px;
-                height: 16px;
-                position: absolute;
-                top: 0;
-                left: 0;
-                padding: 0;
-            }
-
-            ~ ol {
-                margin: 0 0 0 -44px;
-
-                > li {
-                    display: none;
-                    margin-left: -24px !important;
-                    padding-left: 1px;
-                }
-            }
-            &:checked {
-              + label {
-                background: url("/css/icons/toggle-small.png") no-repeat;
-              }
-
-              ~ ol {
-                padding: 0 0 0 80px;
-                height: auto;
-
-                > li {
-                    display: block;
-                    margin: 0 0 2px;
-
-                    &:last-child {
-                        margin: 0 0 1px;
-                    }
-                }
-              }
-            }
-        }
-        &.itasks-leaf > label {
-            background-position: 16px 0px;
-            background-repeat: no-repeat;
-        }
-        &.itasks-selected > label {
-            font-weight: bold;
-        }
-        label {
-            cursor: pointer;
-            display: block;
-            white-space: nowrap;
-            font-size: 12px;
-            padding-left: 37px;
-            background-color: #fff;
-            background-position: 15px 0px;
-            background-repeat: no-repeat;
-            height: 16px;
-        }
-        label.itasks-default-folder {
-            background-image: url('/css/icons/folder.png');
-        }
-        label.itasks-default-leaf {
-            background-image: url('/css/icons/document.png');
-        }
-    }
 }
+.itasks-choicetree ol {
+	margin: 5px 0 0 20px;
+	padding: 0;
+}
+.itasks-choicetree li {
+	position: relative;
+	margin: 0 0 2px -15px;
+	list-style: none;
+}
+.itasks-choicetree li input {
+	display: none;
+}
+.itasks-choicetree li input + label {
+	display: inline-block;
+	background: url("/css/icons/toggle-small-expand.png") no-repeat;
+	width: 16px;
+	height: 16px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 0;
+}
+.itasks-choicetree li input ~ ol {
+	margin: 0 0 0 -44px;
+}
+.itasks-choicetree li input ~ ol > li {
+	display: none;
+	margin-left: -24px !important;
+	padding-left: 1px;
+}
+
+.itasks-choicetree li input:checked + label {
+	background: url("/css/icons/toggle-small.png") no-repeat;
+}
+.itasks-choicetree li input:checked ~ ol {
+	padding: 0 0 0 80px;
+	height: auto;
+}
+.itasks-choicetree li input:checked ~ ol > li {
+	display: block;
+	margin: 0 0 2px;
+}
+.itasks-choicetree li input:checked ~ ol > li:last-child {
+	margin: 0 0 1px;
+}
+
+.itasks-choicetree li.itasks-leaf > label {
+	background-position: 16px 0px;
+	background-repeat: no-repeat;
+}
+.itasks-choicetree li.itasks-selected > label {
+	font-weight: bold;
+}
+.itasks-choicetree li label {
+	cursor: pointer;
+	display: block;
+	white-space: nowrap;
+	font-size: 12px;
+	padding-left: 37px;
+	background-color: #fff;
+	background-position: 15px 0px;
+	background-repeat: no-repeat;
+	height: 16px;
+}
+.itasks-choicetree li label.itasks-default-folder {
+	background-image: url('/css/icons/folder.png');
+}
+.itasks-choicetree li label.itasks-default-leaf {
+	background-image: url('/css/icons/document.png');
+}
+
 .itasks-choice-list {
     margin: 0;
     border: 1px solid $select-base-color;
@@ -169,10 +162,9 @@
     border-width: 0 0 1px 0;
     padding: 5px 10px;
     flex-shrink: 0;
-
-    &:last-child {
-        border-width: 0;
-    }
+}
+.itasks-choice-list-option:last-child {
+	border-width: 0;
 }
 .itasks-choice-list-option.itasks-selected {
     background-color: $select-base-color;

@@ -6,15 +6,14 @@
 	text-align: left;
 	font-weight: normal;
 
-	div, input, td, th, select {
-		font-size: 9pt;
-	}
-
 	@import "icons.scss";
 	@import "tooltip.scss";
 
     overflow: auto;
 	flex-basis: 0;
+}
+*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
+	font-size: 9pt;
 }
 
 .itasks-container {
@@ -24,11 +23,10 @@
 
 	flex: 1;
 	align-self: stretch;
-
-	&.itasks-scroll-content {
-		flex-basis: 0;
-		overflow: auto;
-	}
+}
+.itasks-container.itasks-scroll-content {
+	flex-basis: 0;
+	overflow: auto;
 }
 
 .itasks-panel {
@@ -46,67 +44,66 @@
 	grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
 	grid-template-columns: min-content 1fr min-content;
 
-	> .itasks-header {
-		grid-area: header;
-		color: $panel-header-text-color;
-		background-color: $panel-header-base-color;
-		background: linear-gradient($panel-header-base-color-lighter, $panel-header-base-color);
-		font-weight: bold;
-		font-size: 11px;
-		height: 25px;
-		span {
-			float: left;
-			margin: 4px 0 0 4px;
-		}
-	}
-	> .itasks-inner {
-		grid-area: inner;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	&.itasks-scroll-content {
-		flex-basis: 0;
-		overflow: auto;
-
-		> .itasks-inner {
-			overflow: auto;
-		}
-	}
-	.itasks-sizer-top {
-		grid-area: ts;
-	}
-	.itasks-sizer-bottom {
-		grid-area: bs;
-	}
-	.itasks-sizer-left{
-		grid-area: ls;
-	}
-	.itasks-sizer-right {
-		grid-area: rs;
-	}
-
-	.itasks-sizer-top, .itasks-sizer-bottom {
-		height: 5px;
-		cursor: ns-resize;
-	}
-	.itasks-sizer-left, .itasks-sizer-right {
-		width: 5px;
-		cursor: ew-resize;
-	}
-	.itasks-sizer-top, .itasks-sizer-bottom,
-	.itasks-sizer-left, .itasks-sizer-right {
-		background-color: #{$canvas-base-color};
-		&:hover {
-			background-color: #{$select-base-color};
-		}
-	}
-
 	flex-grow: 1;
 	flex-shrink: 0;
 	flex-basis: auto;
 	align-self: stretch;
+}
+.itasks-panel > .itasks-header {
+	grid-area: header;
+	color: $panel-header-text-color;
+	background-color: $panel-header-base-color;
+	background: linear-gradient($panel-header-base-color-lighter, $panel-header-base-color);
+	font-weight: bold;
+	font-size: 11px;
+	height: 25px;
+}
+.itasks-panel > .itasks-header span {
+	float: left;
+	margin: 4px 0 0 4px;
+}
+.itasks-panel > .itasks-inner {
+	grid-area: inner;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.itasks-panel.itasks-scroll-content {
+	flex-basis: 0;
+	overflow: auto;
+}
+.itasks-panel.itasks-scroll-content > .itasks-inner {
+	overflow: auto;
+}
+
+.itasks-panel .itasks-sizer-top {
+	grid-area: ts;
+}
+.itasks-panel .itasks-sizer-bottom {
+	grid-area: bs;
+}
+.itasks-panel .itasks-sizer-left{
+	grid-area: ls;
+}
+.itasks-panel .itasks-sizer-right {
+	grid-area: rs;
+}
+.itasks-panel .itasks-sizer-top, .itasks-panel .itasks-sizer-bottom {
+	height: 5px;
+	cursor: ns-resize;
+}
+.itasks-panel .itasks-sizer-left, .itasks-panel .itasks-sizer-right {
+	width: 5px;
+	cursor: ew-resize;
+}
+.itasks-panel .itasks-sizer-top, .itasks-panel .itasks-sizer-bottom,
+ .itasks-panel .itasks-sizer-left, .itasks-panel .itasks-sizer-right {
+	background-color: #{$canvas-base-color};
+}
+.itasks-panel .itasks-sizer-top:hover, .itasks-panel .itasks-sizer-bottom:hover,
+ .itasks-panel .itasks-sizer-left:hover, .itasks-panel .itasks-sizer-right:hover {
+	background-color: #{$select-base-color};
 }
 
 .itasks-window > .itasks-header {
@@ -114,28 +111,28 @@
 	font-size: 11px;
 	height: 25px;
 	align-self: stretch;
-
-	a.close {
-		float: right;
-		color: $panel-header-text-color;
-		display: inline-block;
-		position: relative;
-		margin: 4px 4px 0 0;
-		top: 0px;
-		font-weight: bold;
-		font-size: 8px;
-		line-height: 8px;
-		background: $panel-header-base-color-lighter;
-		border: 1px solid $panel-header-text-color;
-		border-radius: 2px;
-		padding: 0 4px 2px 4px;
-		text-decoration: none;
-	}
-	span {
-		float: left;
-		margin: 4px 0 0 4px;
-	}
 }
+.itasks-window > .itasks-header a.close {
+	float: right;
+	color: $panel-header-text-color;
+	display: inline-block;
+	position: relative;
+	margin: 4px 4px 0 0;
+	top: 0px;
+	font-weight: bold;
+	font-size: 8px;
+	line-height: 8px;
+	background: $panel-header-base-color-lighter;
+	border: 1px solid $panel-header-text-color;
+	border-radius: 2px;
+	padding: 0 4px 2px 4px;
+	text-decoration: none;
+}
+.itasks-window > .itasks-header span {
+	float: left;
+	margin: 4px 0 0 4px;
+}
+
 .itasks-window > .itasks-inner {
 	display: flex;
 	flex-direction: column;
@@ -163,167 +160,165 @@
 	z-index: 2000;
 	display: flex;
 	flex-direction: column;
-
-	> .itasks-inner {
-		overflow: auto;
-		flex-basis: 0;
-	}
 }
+.itasks-window> .itasks-inner {
+	overflow: auto;
+	flex-basis: 0;
+}
+
 .itasks-window.itasks-floating-window {
 	color: $canvas-text-color;
 	background-color: $canvas-base-color;
 	border: 1px solid $window-border-color;
 	border-radius: 5px;
 	box-shadow: 0 5px 5px rgba(0,0,0,0.5);
-
-	> .itasks-header {
-		color: $window-header-text-color;
-		background-color: $window-header-base-color;
-		background: linear-gradient($window-header-base-color-lighter, $window-header-base-color);
-	}
+}
+.itasks-window.itasks-floating-window > .itasks-header {
+	color: $window-header-text-color;
+	background-color: $window-header-base-color;
+	background: linear-gradient($window-header-base-color-lighter, $window-header-base-color);
 }
 .itasks-window.itasks-notification-bubble {
 	background-color: $canvas-base-color;
 	border: 3px solid $window-header-base-color;
 	border-radius: 10px;
 	opacity: 0.9;
-	> .itasks-header {
-		color: $window-header-text-color;
-		background-color: $window-header-base-color;
-	}
 }
+.itasks-window.itasks-notification-bubble > .itasks-header {
+	color: $window-header-text-color;
+	background-color: $window-header-base-color;
+}
+
 .itasks-tabset {
 	display: flex;
 	align-items: stretch;
 	flex-direction: column;
+}
+.itasks-tabset > * {
+	align-self: stretch;
+}
+.itasks-tabset .itasks-tabbar {
+	text-align: left;
+	list-style: none;
+	margin: 0;
+	padding: 0 10px;
+	line-height: 24px;
+	position: relative;
+	min-height: 24px;
 
-	> * {
-		align-self: stretch;
-	}
-	.itasks-tabbar {
-		text-align: left;
-		list-style: none;
-		margin: 0;
-		padding: 0 10px;
-		line-height: 24px;
-		position: relative;
-		min-height: 24px;
+	background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color);
+	overflow: hidden;
+}
+.itasks-tabset .itasks-tabbar li {
+	margin: 0;
+	padding: 0 10px;
+	border: 1px solid $tab-border-color;
+	background: $tab-base-color-darker;
+	display: inline-block;
+	position: relative;
+	z-index: 0;
 
-		background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color);
-		overflow: hidden;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+}
+.itasks-tabset .itasks-tabbar li a {
+	color: $tab-text-color;
+	text-decoration: none;
+}
+.itasks-tabset .itasks-tabbar li:before,
+.itasks-tabset .itasks-tabbar li:after {
+	position: absolute;
+	bottom: -1px;
+	width: 5px;
+	height: 5px;
+	content: " ";
+	border: 1px solid $tab-border-color;
+}
+.itasks-tabset .itasks-tabbar li:before {
+	left: -6px;
+	border-bottom-right-radius: 5px;
+	border-width: 0 1px 1px 0;
+	box-shadow: 2px 2px 0 $tab-base-color-darker;
+}
+.itasks-tabset .itasks-tabbar li:after {
+	right: -6px;
+	border-bottom-left-radius: 5px;
+	border-width: 0 0 1px 1px;
+	box-shadow: -2px 2px 0 $tab-base-color-darker;
+}
+.itasks-tabset .itasks-tabbar li.itasks-selected {
+	background: $tab-base-color;
+	color: $tab-text-color;
+	z-index: 2;
+	border-bottom-color: $tab-base-color;
+}
+.itasks-tabset .itasks-tabbar li.itasks-selected:before {
+	box-shadow: 2px 2px 0 $tab-base-color;
+}
+.itasks-tabset .itasks-tabbar li.itasks-selected:after {
+	box-shadow: -2px 2px 0 $tab-base-color;
+}
+.itasks-tabset .itasks-tabbar li a.itasks-tabclose {
+	color: #aaa;
+	display: inline-block;
+	position: relative;
+	top: -5px;
+	left: 7px;
+	font-weight: bold;
+	font-size: 8px;
+	line-height: 8px;
+	background: #eee;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+	padding: 0 2px;
+}
 
-		li {
-			margin: 0;
-			padding: 0 10px;
-			border: 1px solid $tab-border-color;
-			background: $tab-base-color-darker;
-			display: inline-block;
-			position: relative;
-			z-index: 0;
+.itasks-tabset .itasks-tabbar:after {
+	position: absolute;
+	content: "";
+	width: 100%;
+	bottom: 0;
+	left: 0;
+	border-bottom: 1px solid $tab-border-color;
+	z-index: 1;
+}
+.itasks-tabset .itasks-tabbar:before {
+	z-index: 1;
+}
 
-			border-top-left-radius: 5px;
-			border-top-right-radius: 5px;
-		}
-		li a {
-			color: $tab-text-color;
-			text-decoration: none;
-		}
-		li:before,
-		li:after {
-			position: absolute;
-			bottom: -1px;
-			width: 5px;
-			height: 5px;
-			content: " ";
-			border: 1px solid $tab-border-color;
-		}
-		li:before {
-			left: -6px;
-			border-bottom-right-radius: 5px;
-			border-width: 0 1px 1px 0;
-			box-shadow: 2px 2px 0 $tab-base-color-darker;
-		}
-		li:after {
-			right: -6px;
-			border-bottom-left-radius: 5px;
-			border-width: 0 0 1px 1px;
-			box-shadow: -2px 2px 0 $tab-base-color-darker;
-		}
-		li.itasks-selected {
-			background: $tab-base-color;
-			color: $tab-text-color;
-			z-index: 2;
-			border-bottom-color: $tab-base-color;
-		}
-		li.itasks-selected:before {
-			box-shadow: 2px 2px 0 $tab-base-color;
-		}
-		li.itasks-selected:after {
-			box-shadow: -2px 2px 0 $tab-base-color;
-		}
-		li a.itasks-tabclose {
-			color: #aaa;
-			display: inline-block;
-			position: relative;
-			top: -5px;
-			left: 7px;
-			font-weight: bold;
-			font-size: 8px;
-			line-height: 8px;
-			background: #eee;
-			border: 1px solid #ccc;
-			border-radius: 2px;
-			padding: 0 2px;
-		}
-
-	}
-	.itasks-tabbar:after {
-		position: absolute;
-		content: "";
-		width: 100%;
-		bottom: 0;
-		left: 0;
-		border-bottom: 1px solid $tab-border-color;
-		z-index: 1;
-	}
-	.itasks-tabbar:before {
-		z-index: 1;
-	}
-
-	.itasks-tabicon {
-		width: 16px;
-		height: 16px;
-		display: inline-block;
-		margin: 0 3px 0 0;
-		position: relative;
-		top: 3px;
-	}
-	.itasks-tab-disabled .itasks-tabicon {
-		opacity: 0.5;
-	}
-	.itasks-tab-disabled span {
-		color: #aaa;
-	}
-	.itasks-tabitems {
-		z-index: 2;
-		border: 1px solid $tab-border-color;
-		border-top-width: 0;
-		background-color: $canvas-base-color;
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-	}
-	.itasks-container.itasks-tabitem, .itasks-panel.itasks-tabitem, .itasks-viewport.itasks-tabitem {
-		display: none;
-	}
-	.itasks-panel.itasks-tabitem.itasks-selected {
-		display: grid;
-		border-top: 0;
-	}
-	.itasks-container.itasks-tabitem.itasks-selected, .itasks-viewport.itasks-tabitem.itasks-selected {
-		display: flex;
-		border-top: 0;
-	}
+.itasks-tabset .itasks-tabicon {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	margin: 0 3px 0 0;
+	position: relative;
+	top: 3px;
+}
+.itasks-tabset .itasks-tab-disabled .itasks-tabicon {
+	opacity: 0.5;
+}
+.itasks-tabset .itasks-tab-disabled span {
+	color: #aaa;
+}
+.itasks-tabset .itasks-tabitems {
+	z-index: 2;
+	border: 1px solid $tab-border-color;
+	border-top-width: 0;
+	background-color: $canvas-base-color;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+.itasks-tabset .itasks-container.itasks-tabitem, .itasks-tabset .itasks-panel.itasks-tabitem, .itasks-tabset .itasks-viewport.itasks-tabitem {
+	display: none;
+}
+.itasks-tabset .itasks-panel.itasks-tabitem.itasks-selected {
+	display: grid;
+	border-top: 0;
+}
+.itasks-tabset .itasks-container.itasks-tabitem.itasks-selected, .itasks-tabset .itasks-viewport.itasks-tabitem.itasks-selected {
+	display: flex;
+	border-top: 0;
 }
 
 .itasks-toolbar, .itasks-buttonbar {
@@ -337,24 +332,21 @@
 	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker);
 }
 .itasks-toolbar {
-
 	justify-content: flex-start;
 	margin: 0;
 	padding: 2px;
 	background: $toolbar-base-color;
 	background: linear-gradient($toolbar-base-color-lighter, $toolbar-base-color-darker2);
-
-	> .itasks-menu-item > div {
-		background-image: url('/css/icons/menu-down.png');
-		background-repeat: no-repeat;
-		background-position: 95% center;
-	}
+}
+.itasks-toolbar > .itasks-menu-item > div {
+	background-image: url('/css/icons/menu-down.png');
+	background-repeat: no-repeat;
+	background-position: 95% center;
 }
 .itasks-buttonbar {
 	justify-content: flex-end;
 	padding: 2px 2px 2px 0;
 }
-
 .itasks-menu {
 	flex: 0;
 
@@ -362,103 +354,98 @@
 	position: relative;
 	border: 1px solid transparent;
 	margin: 1px 0;
+}
+.itasks-menu div.itasks-menu-sep {
+	width: 100%;
+	height: 5px;
+	display: flex;
+	flex-direction: row;
+	flex-shrink: 0;
+	border: 1px solid $button-base-color-darker;
+	border-width: 0 0 1px 0;
+}
 
-	div.itasks-menu-sep {
-		width: 100%;
-		height: 5px;
-		display: flex;
-		flex-direction: row;
-		flex-shrink: 0;
-		border: 1px solid $button-base-color-darker;
-		border-width: 0 0 1px 0;
-	}
+.itasks-menu div.itasks-menu-label {
+	height: 23px;
+	background: linear-gradient($button-base-color-lighter, $button-base-color);
+	background-repeat: none;
+	background-image: url('/css/icons/menu-down.png');
+	background-repeat: no-repeat;
+	background-position: 95% center;
 
-	div.itasks-menu-label {
-		height: 23px;
-		background: linear-gradient($button-base-color-lighter, $button-base-color);
-		background-repeat: none;
-		background-image: url('/css/icons/menu-down.png');
-		background-repeat: no-repeat;
-		background-position: 95% center;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	text-decoration: none;
+	color: $button-text-color;
+	flex-shrink: 0;
 
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		text-decoration: none;
-		color: $button-text-color;
-		flex-shrink: 0;
+	border: 1px solid $button-base-color-darker;
+	border-radius: 3px;
+	text-decoration: none;
+	float: left;
+	color: #000;
 
-		border: 1px solid $button-base-color-darker;
-		border-radius: 3px;
-		text-decoration: none;
-		float: left;
-		color: #000;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.itasks-menu div.itasks-menu-label span {
+	position: relative;
+	top: 4px;
+	margin: 0 20px 0 10px;
+}
 
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+.itasks-menu .itasks-menu-content {
+	z-index: 10;
+	top: 23px;
+	margin: 0;
+	padding: 0;
+	display: none;
+	position: absolute;
+	background: #eee;
+	box-shadow: 0 3px 3px rgba(0,0,0,0.5);
+	border: 1px solid $button-base-color-darker;
+	border-radius: 0 3px 3px 3px;
+	min-width: 150px;
+}
+/* Submenu styling */
+.itasks-menu .itasks-menu-content .itasks-menu-content {
+	top: 0;
+	left: 99%;
+	margin: 2px 0 0 -2px;
+}
+.itasks-menu .itasks-menu-content .itasks-menu {
+	width: 100%;
+}
+.itasks-menu .itasks-menu-content .itasks-menu-label {
+	width: 100%;
+	border-radius: 0;
+	border-width: 0 0 1px 0;
+	background-image: url('/css/icons/menu-down.png');
+}
+.itasks-menu .itasks-menu-content .itasks-menu-label:hover { 
+	background: #{$select-base-color};
+	color: #{$select-text-color};
+	border-radius: 0;
+}
 
-		span {
-			position: relative;
-			top: 4px;
-			margin: 0 20px 0 10px;
-		}
-	}
-	.itasks-menu-content {
-		z-index: 10;
-		top: 23px;
-		margin: 0;
-		padding: 0;
-		display: none;
-		position: absolute;
-		background: #eee;
-		box-shadow: 0 3px 3px rgba(0,0,0,0.5);
-		border: 1px solid $button-base-color-darker;
-		border-radius: 0 3px 3px 3px;
-		min-width: 150px;
+.itasks-menu .itasks-menu-content .itasks-button {
+	border-radius: 0;
+	border-width: 0 0 1px 0;
+}
+.itasks-menu .itasks-menu-content .itasks-button:hover {
+	background: #{$select-base-color};
+	color: #{$select-text-color};
+}
 
-		/* Submenu styling */
-		.itasks-menu-content {
-			top: 0;
-			left: 99%;
-			margin: 2px 0 0 -2px;
-		}
-		.itasks-menu {
-			width: 100%;
-		}
-		.itasks-menu-label {
-			width: 100%;
-			border-radius: 0;
-			border-width: 0 0 1px 0;
-
-			background-image: url('/css/icons/menu-down.png');
-
-			&:hover {
-				background: #{$select-base-color};
-				color: #{$select-text-color};
-				border-radius: 0;
-			}
-		}
-		.itasks-button {
-			border-radius: 0;
-			border-width: 0 0 1px 0;
-			&:hover {
-				background: #{$select-base-color};
-				color: #{$select-text-color};
-			}
-		}
-	}
-
-	/* Opening menus */
-	&:hover {
-		> .itasks-menu-content {
-			display: block;
-		}
-		> .itasks-menu-label {
-			border-radius: 3px 3px 0 0;
-			box-shadow: 0 3px 3px rgba(0,0,0,0.5);
-		}
-	}
+/* Opening menus */
+.itasks-menu:hover > .itasks-menu-content {
+	display: block;
+}
+.itasks-menu:hover > .itasks-menu-label {
+	border-radius: 3px 3px 0 0;
+	box-shadow: 0 3px 3px rgba(0,0,0,0.5);
 }
 
 .itasks-list {
@@ -470,21 +457,20 @@
 	display: flex;
 	flex-direction: column;
 	align-self: stretch;
-
-	.itasks-listitem {
-		margin: 0px 5px 5px 5px;
-		align-self: stretch;
-		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-	}
-	.itasks-listitem:nth-child(even) {
-		background-color: $list-highlight-color;
-	}
-	.itasks-listitem-controls {
-		flex-direction: row;
-		justify-items: flex-end;
-	}
+}
+.itasks-list .itasks-listitem {
+	margin: 0px 5px 5px 5px;
+	align-self: stretch;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+}
+.itasks-list .itasks-listitem:nth-child(even) {
+	background-color: $list-highlight-color;
+}
+.itasks-list .itasks-listitem-controls {
+	flex-direction: row;
+	justify-items: flex-end;
 }
 .itasks-debug {
 	border: 3px solid red;
@@ -493,50 +479,108 @@
 /* Sizing the children of containers that have specific size classes assigned to them: */
 
 /* Sizing children of vertical containers */
-.itasks-viewport,
-.itasks-panel > .itasks-inner,
-.itasks-window > .itasks-inner,
-.itasks-tabitems,
-.itasks-container {
-	& > .itasks-flex-width {
-		align-self: stretch;
-	}
-	& > .itasks-flex-height {
-		flex-grow: 1;
-	}
-	& > .itasks-exact-height,
-	& > .itasks-wrap-height {
-		flex: 0 0 auto;
-		> .itasks-inner {
-			flex-basis: auto;
-		}
-	}
-}	
-/* Sizing children of horizontal containers */
-.itasks-container.itasks-horizontal,
-.itasks-panel.itasks-horizontal > .itasks-inner,
-.itasks-form-item,
-.itasks-toolbar,
-.itasks-buttonbar,
-.itasks-cons,
-.itasks-var-cons,
-.itasks-listitem,
-.itasks-listitem-controls {
-	& > .itasks-flex-width {
-		flex-grow: 1;
-	}
-	& > .itasks-flex-height {
-		align-self: stretch;
-	}
-	& > .itasks-exact-width,
-	& > .itasks-wrap-width {
-		flex: 0 0 auto;
-		> .itasks-inner {
-			flex-basis: auto;
-		}
-	}
+.itasks-viewport > .itasks-flex-width,
+.itasks-panel > .itasks-inner > .itasks-flex-width, 
+.itasks-window > .itasks-inner > .itasks-flex-width,
+.itasks-tabitems > .itasks-flex-width,
+.itasks-container > .itasks-flex-width {
+	align-self: stretch;
+}
+.itasks-viewport > .itasks-flex-height,
+.itasks-panel > .itasks-inner > .itasks-flex-height,
+.itasks-window > .itasks-inner > .itasks-flex-height,
+.itasks-tabitems > .itasks-flex-height,
+.itasks-container > .itasks-flex-height {
+	flex-grow: 1;
+}
+.itasks-viewport > .itasks-exact-height,
+.itasks-viewport > .itasks-wrap-height,
+.itasks-panel > .itasks-inner > .itasks-exact-height,
+.itasks-panel > .itasks-inner > .itasks-wrap-height,
+.itasks-window > .itasks-inner > .itasks-exact-height,
+.itasks-window > .itasks-inner > .itasks-wrap-height,
+.itasks-tabitems > .itasks-exact-height,
+.itasks-tabitems > .itasks-wrap-height,
+.itasks-container > .itasks-exact-height,
+.itasks-container > .itasks-wrap-height {
+	flex: 0 0 auto;
+}
+.itasks-viewport > .itasks-exact-height > .itasks-inner,
+.itasks-viewport > .itasks-wrap-height > .itasks-inner,
+.itasks-panel > .itasks-inner > .itasks-exact-height > .itasks-inner,
+.itasks-panel > .itasks-inner > .itasks-wrap-height  > .itasks-inner,
+.itasks-window > .itasks-inner > .itasks-exact-height > .itasks-inner,
+.itasks-window > .itasks-inner > .itasks-wrap-height > .itasks-inner,
+.itasks-tabitems > .itasks-exact-height > .itasks-inner,
+.itasks-tabitems > .itasks-wrap-height > .itasks-inner,
+.itasks-container > .itasks-exact-height > .itasks-inner,
+.itasks-container > .itasks-wrap-height > .itasks-inner {
+	flex-basis: auto;
 }
 
+/* Sizing children of horizontal containers */
+.itasks-container.itasks-horizontal > .itasks-flex-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-width,
+.itasks-form-item > .itasks-flex-width,
+.itasks-toolbar > .itasks-flex-width,
+.itasks-buttonbar > .itasks-flex-width,
+.itasks-cons > .itasks-flex-width,
+.itasks-var-cons > .itasks-flex-width,
+.itasks-listitem > .itasks-flex-width,
+.itasks-listitem-controls > .itasks-flex-width {
+	flex-grow: 1;
+}	
+.itasks-container.itasks-horizontal > .itasks-flex-height,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-height,
+.itasks-form-item > .itasks-flex-height,
+.itasks-toolbar > .itasks-flex-height,
+.itasks-buttonbar > .itasks-flex-height,
+.itasks-cons > .itasks-flex-height,
+.itasks-var-cons > .itasks-flex-height,
+.itasks-listitem > .itasks-flex-height,
+.itasks-listitem-controls > .itasks-flex-height{
+	align-self: stretch;
+}
+.itasks-container.itasks-horizontal > .itasks-exact-width,
+.itasks-container.itasks-horizontal > .itasks-wrap-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width,
+.itasks-form-item > .itasks-exact-width,
+.itasks-form-item > .itasks-wrap-width,
+.itasks-toolbar > .itasks-exact-width,
+.itasks-toolbar > .itasks-wrap-width,
+.itasks-buttonbar > .itasks-exact-width,
+.itasks-buttonbar > .itasks-wrap-width,
+.itasks-cons > .itasks-exact-width,
+.itasks-cons > .itasks-wrap-width,
+.itasks-var-cons > .itasks-exact-width,
+.itasks-var-cons > .itasks-wrap-width,
+.itasks-listitem > .itasks-exact-width,
+.itasks-listitem > .itasks-wrap-width,
+.itasks-listitem-controls > .itasks-exact-width,
+.itasks-listitem-controls > .itasks-wrap-width {
+	flex: 0 0 auto;
+}	
+.itasks-container.itasks-horizontal > .itasks-exact-width > .itasks-inner,
+.itasks-container.itasks-horizontal > .itasks-wrap-width > .itasks-inner,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width > .itasks-inner,
+.itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width > .itasks-inner,
+.itasks-form-item > .itasks-exact-width > .itasks-inner,
+.itasks-form-item > .itasks-wrap-width > .itasks-inner,
+.itasks-toolbar > .itasks-exact-width > .itasks-inner,
+.itasks-toolbar > .itasks-wrap-width > .itasks-inner,
+.itasks-buttonbar > .itasks-exact-width > .itasks-inner,
+.itasks-buttonbar > .itasks-wrap-width > .itasks-inner,
+.itasks-cons > .itasks-exact-width > .itasks-inner,
+.itasks-cons > .itasks-wrap-width > .itasks-inner,
+.itasks-var-cons > .itasks-exact-width > .itasks-inner,
+.itasks-var-cons > .itasks-wrap-width > .itasks-inner,
+.itasks-listitem > .itasks-exact-width > .itasks-inner,
+.itasks-listitem > .itasks-wrap-width > .itasks-inner,
+.itasks-listitem-controls > .itasks-exact-width > .itasks-inner,
+.itasks-listitem-controls > .itasks-wrap-width > .itasks-inner {
+	flex-basis: auto;
+}
 /* Container components with additional styling */
 .itasks-container.itasks-horizontal,
 .itasks-panel.itasks-horizontal {

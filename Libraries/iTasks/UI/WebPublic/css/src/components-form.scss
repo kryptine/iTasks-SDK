@@ -21,15 +21,14 @@
     text-decoration: none;
     color: $button-text-color;
     flex-shrink: 0;
-
-    &:hover {
-        border-color: $button-base-color-darkest;
-    }
-
-    &:active {
-        background: $button-base-color-lighter;
-    }
 }
+.itasks-button:hover {
+	border-color: $button-base-color-darkest;
+}
+.itasks-button:active {
+	background: $button-base-color-lighter;
+}
+
 .itasks-button-label {
     margin: 0 4px;
     height: 16px;
