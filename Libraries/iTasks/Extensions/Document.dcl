@@ -36,8 +36,6 @@ derive class iTask FileException
 *
 * @return The imported document
 * @throws FileException
-* 
-* @gin-icon page_white
 */
 importDocument		:: !FilePath -> Task Document
 
@@ -49,8 +47,6 @@ importDocument		:: !FilePath -> Task Document
 *
 * @return The exported document
 * @throws FileException
-* 
-* @gin-icon page_white
 */
 exportDocument		:: !FilePath !Document -> Task Document
 

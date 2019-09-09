@@ -36,9 +36,6 @@ serveFile :: [FilePath] HTTPRequest -> Task HTTPResponse
  * @param Response handler: A parse function that parses the response
  *
  * @return The parsed value
- *
- * @gin-title Call web service
- * @gin-icon webservice
  */
 callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 
@@ -51,8 +48,5 @@ callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> 
  * @param Response handler: A parse function that parses the response
  *
  * @return The parsed value
- *
- * @gin-title Call web service
- * @gin-icon webservice
  */
 callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a

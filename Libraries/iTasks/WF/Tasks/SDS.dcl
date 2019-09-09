@@ -19,9 +19,6 @@ from Data.Maybe import :: Maybe
 * @param Shared: A shared reference
 * @return The value read
 * @throws SharedException
-*
-* @gin-title Read shared
-* @gin-icon shared_read
 */
 get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 
@@ -32,9 +29,6 @@ get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 * @param Shared: A shared reference
 * @return The value written
 * @throws SharedException
-*
-* @gin-title Write shared
-* @gin-icon shared_update
 */
 set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 
@@ -45,9 +39,6 @@ set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 * @param Update function: A function modifying the shared value
 * @return The value written
 * @throws SharedException
-*
-* @gin-title Update shared
-* @gin-icon shared_update
 */
 upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 
@@ -57,9 +48,6 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 * @param Shared: A shared reference
 * @return The value read
 * @throws SharedException
-*
-* @gin-title Read shared
-* @gin-icon shared_read
 */
 watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 

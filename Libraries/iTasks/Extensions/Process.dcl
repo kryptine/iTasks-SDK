@@ -35,9 +35,6 @@ instance toString CallException
 * @param Run with pseudo terminal options
 * @return return-code of the process
 * @throws CallException
-* 
-* @gin-title Start executable
-* @gin-icon executable
 */
 callProcess :: ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) (Maybe ProcessPtyOptions) -> Task ProcessInformation
 
