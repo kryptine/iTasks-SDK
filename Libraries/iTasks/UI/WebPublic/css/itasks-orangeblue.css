@@ -1,8 +1,62 @@
-/*
- SASS-Themable stylesheet for iTasks javascript UI library
+:root {
+  --canvas-base-color: #eee;
+  --canvas-text-color: #000;
+  --panel-header-base-color: #ccc;
+  --panel-header-base-color-lighter: #ececec;
+  --panel-header-base-color-lighter2: white;
+  --panel-header-base-color-darker: #999999;
+  --panel-header-base-color-darker2: #b3b3b3;
+  --panel-header-text-color: #000;
+  --panel-border-color: #ccc;
+  --window-header-base-color: #ccc;
+  --window-header-base-color-lighter: #ececec;
+  --window-header-text-color: #000;
+  --window-border-color: #ccc;
+  --toolbar-base-color: var(--canvas-base-color);
+  --toolbar-base-color-lighter: #f8f8f8;
+  --toolbar-base-color-darker: #cecece;
+  --toolbar-base-color-darker2: #e1e1e1;
+  --button-base-color: var(--canvas-base-color);
+  --button-base-color-lighter: white;
+  --button-base-color-darker: #bbbbbb;
+  --button-base-color-darkest: #888888;
+  --button-text-color: var(--canvas-text-color);
+  --button-text-color-lighter: #595959;
+  --tab-base-color: var(--canvas-base-color);
+  --tab-base-color-darker: #e1e1e1;
+  --tab-text-color: var(--canvas-text-color);
+  --tab-border-color: #ccc;
+  --select-base-color: #333;
+  --select-text-color: #fff;
+  --list-base-color: #fff;
+  --list-text-color: #000;
+  --list-highlight-color: #eee;
+  --list-border-color: #ccc;
+  --choicegrid-up-color: #d9d9d9;
+  --choicegrid-down-color: #f2f2f2;
+}
 
- DO NOT EDIT THE .css FILE! GENERATE USING SASS
-*/
+.itasks-orangeblue {
+  --panel-header-base-color: #fb7322;
+  --panel-header-text-color: #fff;
+  --panel-border-color: #fb7322;
+  --window-header-base-color: #004584;
+  --window-header-text-color: #fff;
+  --window-border-color: #fb7322;
+  --toolbar-base-color: #fb7322;
+  --select-base-color: #004584;
+  --panel-header-base-color-lighter: #fc9b61;
+  --panel-header-base-color-lighter2: #fdb286;
+  --panel-header-base-color-darker: #b44503;
+  --panel-header-base-color-darker2: #e65804;
+  --window-header-base-color-lighter: #0066c4;
+  --toolbar-base-color-lighter: #fb8036;
+  --toolbar-base-color-darker: #d95404;
+  --toolbar-base-color-darker2: #fb6309;
+  --choicegrid-up-color: #fb833b;
+  --choicegrid-down-color: #fca36d;
+}
+
 div.itasks-loader {
   display: flex;
   font-size: 16pt;
@@ -15,7 +69,7 @@ div.itasks-loader-spinner {
   height: 40px;
   border: 10px solid;
   border-radius: 100%;
-  border-color: #fb7322 #fb7322 #fb7322 #004584;
+  border-color: var(--panel-border-color) var(--panel-border-color) var(--panel-border-color) var(--select-base-color);
   margin: auto auto;
   animation: itasks-rotation 0.8s infinite linear;
 }
@@ -43,6 +97,7 @@ div.itasks-exception {
 .itasks-raw-form-item {
   border: dashed 2px #ccc;
 }
+
 .itasks-raw-record > .itasks-header,
 .itasks-raw-cons > .itasks-header,
 .itasks-raw-var-cons > .itasks-header,
@@ -59,6 +114,7 @@ div.itasks-exception {
   border: solid 2px #f33;
   background: #fee;
 }
+
 .itasks-raw-form > .itasks-header {
   background: #f33;
 }
@@ -67,6 +123,7 @@ div.itasks-exception {
   border: dashed 2px #f33;
   border-radius: 5px;
 }
+
 .itasks-raw-form-item > .itasks-header {
   background: #f33;
 }
@@ -75,6 +132,7 @@ div.itasks-exception {
   border: solid 2px #f33;
   background: #fee;
 }
+
 .itasks-raw-record > .itasks-header {
   background: #f33;
 }
@@ -83,6 +141,7 @@ div.itasks-exception {
   border: solid 2px #ff3;
   background: #ffe;
 }
+
 .itasks-raw-cons > .itasks-header {
   background: #ff3;
 }
@@ -91,6 +150,7 @@ div.itasks-exception {
   border: solid 2px #ff3;
   background: #ffe;
 }
+
 .itasks-raw-var-cons > .itasks-header {
   background: #ff3;
 }
@@ -99,6 +159,7 @@ div.itasks-exception {
   border: solid 2px #f3f;
   background: #fef;
 }
+
 .itasks-raw-interact > .itasks-header {
   background: #f3f;
 }
@@ -107,6 +168,7 @@ div.itasks-exception {
   border: solid 2px #33f;
   background: #eef;
 }
+
 .itasks-raw-step > .itasks-header {
   background: #33f;
 }
@@ -115,6 +177,7 @@ div.itasks-exception {
   border: solid 2px #3f3;
   background: #efe;
 }
+
 .itasks-raw-parallel > .itasks-header {
   background: #3f3;
 }
@@ -150,9 +213,6 @@ div.itasks-exception {
   font-weight: normal;
   overflow: auto;
   flex-basis: 0;
-}
-*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
-  font-size: 9pt;
 }
 *.itasks-viewport .icon-help {
   background-image: url("/css/icons/help.png");
@@ -291,6 +351,10 @@ div.itasks-exception {
   transform: translateX(-8px);
 }
 
+*.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
+  font-size: 9pt;
+}
+
 .itasks-container {
   display: flex;
   flex-direction: column;
@@ -298,15 +362,16 @@ div.itasks-exception {
   flex: 1;
   align-self: stretch;
 }
+
 .itasks-container.itasks-scroll-content {
   flex-basis: 0;
   overflow: auto;
 }
 
 .itasks-panel {
-  color: #000;
-  background-color: #eee;
-  border: 1px solid #fb7322;
+  color: var(--canvas-text-color);
+  background-color: var(--canvas-base-color);
+  border: 1px solid var(--panel-border-color);
   display: grid;
   grid-template-areas: "ls ts rs" "ls header rs" "ls inner rs" "ls bs rs";
   grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
@@ -316,59 +381,72 @@ div.itasks-exception {
   flex-basis: auto;
   align-self: stretch;
 }
+
 .itasks-panel > .itasks-header {
   grid-area: header;
-  color: #fff;
-  background-color: #fb7322;
-  background: linear-gradient(#fc9b61, #fb7322);
+  color: var(--panel-header-text-color);
+  background-color: var(--panel-header-base-color);
+  background: linear-gradient(var(--panel-header-base-color-lighter), var(--panel-header-base-color));
   font-weight: bold;
   font-size: 11px;
   height: 25px;
 }
+
 .itasks-panel > .itasks-header span {
   float: left;
   margin: 4px 0 0 4px;
 }
+
 .itasks-panel > .itasks-inner {
   grid-area: inner;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
+
 .itasks-panel.itasks-scroll-content {
   flex-basis: 0;
   overflow: auto;
 }
+
 .itasks-panel.itasks-scroll-content > .itasks-inner {
   overflow: auto;
 }
+
 .itasks-panel .itasks-sizer-top {
   grid-area: ts;
 }
+
 .itasks-panel .itasks-sizer-bottom {
   grid-area: bs;
 }
+
 .itasks-panel .itasks-sizer-left {
   grid-area: ls;
 }
+
 .itasks-panel .itasks-sizer-right {
   grid-area: rs;
 }
+
 .itasks-panel .itasks-sizer-top, .itasks-panel .itasks-sizer-bottom {
   height: 5px;
   cursor: ns-resize;
 }
+
 .itasks-panel .itasks-sizer-left, .itasks-panel .itasks-sizer-right {
   width: 5px;
   cursor: ew-resize;
 }
+
 .itasks-panel .itasks-sizer-top, .itasks-panel .itasks-sizer-bottom,
 .itasks-panel .itasks-sizer-left, .itasks-panel .itasks-sizer-right {
-  background-color: #eee;
+  background-color: var(--canvas-base-color);
 }
+
 .itasks-panel .itasks-sizer-top:hover, .itasks-panel .itasks-sizer-bottom:hover,
 .itasks-panel .itasks-sizer-left:hover, .itasks-panel .itasks-sizer-right:hover {
-  background-color: #004584;
+  background-color: var(--select-base-color);
 }
 
 .itasks-window > .itasks-header {
@@ -377,9 +455,10 @@ div.itasks-exception {
   height: 25px;
   align-self: stretch;
 }
+
 .itasks-window > .itasks-header a.close {
   float: right;
-  color: #fff;
+  color: var(--panel-header-text-color);
   display: inline-block;
   position: relative;
   margin: 4px 4px 0 0;
@@ -387,12 +466,13 @@ div.itasks-exception {
   font-weight: bold;
   font-size: 8px;
   line-height: 8px;
-  background: #fc9b61;
-  border: 1px solid #fff;
+  background: var(--panel-header-base-color-lighter);
+  border: 1px solid var(--panel-header-text-color);
   border-radius: 2px;
   padding: 0 4px 2px 4px;
   text-decoration: none;
 }
+
 .itasks-window > .itasks-header span {
   float: left;
   margin: 4px 0 0 4px;
@@ -425,33 +505,36 @@ div.itasks-exception {
   display: flex;
   flex-direction: column;
 }
+
 .itasks-window > .itasks-inner {
   overflow: auto;
   flex-basis: 0;
 }
 
 .itasks-window.itasks-floating-window {
-  color: #000;
-  background-color: #eee;
-  border: 1px solid #fb7322;
+  color: var(--canvas-text-color);
+  background-color: var(--canvas-base-color);
+  border: 1px solid var(--window-border-color);
   border-radius: 5px;
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
 }
+
 .itasks-window.itasks-floating-window > .itasks-header {
-  color: #fff;
-  background-color: #004584;
-  background: linear-gradient(#0066c4, #004584);
+  color: var(--window-header-text-color);
+  background-color: var(--window-header-base-color);
+  background: linear-gradient(var(--window-header-base-color-lighter), var(--window-header-base-color));
 }
 
 .itasks-window.itasks-notification-bubble {
-  background-color: #eee;
-  border: 3px solid #004584;
+  background-color: var(--canvas-base-color);
+  border: 3px solid var(--window-header-base-color);
   border-radius: 10px;
   opacity: 0.9;
 }
+
 .itasks-window.itasks-notification-bubble > .itasks-header {
-  color: #fff;
-  background-color: #004584;
+  color: var(--window-header-text-color);
+  background-color: var(--window-header-base-color);
 }
 
 .itasks-tabset {
@@ -459,9 +542,11 @@ div.itasks-exception {
   align-items: stretch;
   flex-direction: column;
 }
+
 .itasks-tabset > * {
   align-self: stretch;
 }
+
 .itasks-tabset .itasks-tabbar {
   text-align: left;
   list-style: none;
@@ -470,24 +555,27 @@ div.itasks-exception {
   line-height: 24px;
   position: relative;
   min-height: 24px;
-  background: linear-gradient(#fdb286, #fb7322);
+  background: linear-gradient(var(--panel-header-base-color-lighter2), var(--panel-header-base-color));
   overflow: hidden;
 }
+
 .itasks-tabset .itasks-tabbar li {
   margin: 0;
   padding: 0 10px;
-  border: 1px solid #ccc;
-  background: #e1e1e1;
+  border: 1px solid var(--tab-border-color);
+  background: var(--tab-base-color-darker);
   display: inline-block;
   position: relative;
   z-index: 0;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
+
 .itasks-tabset .itasks-tabbar li a {
-  color: #000;
+  color: var(--tab-text-color);
   text-decoration: none;
 }
+
 .itasks-tabset .itasks-tabbar li:before,
 .itasks-tabset .itasks-tabbar li:after {
   position: absolute;
@@ -495,32 +583,38 @@ div.itasks-exception {
   width: 5px;
   height: 5px;
   content: " ";
-  border: 1px solid #ccc;
+  border: 1px solid var(--tab-border-color);
 }
+
 .itasks-tabset .itasks-tabbar li:before {
   left: -6px;
   border-bottom-right-radius: 5px;
   border-width: 0 1px 1px 0;
-  box-shadow: 2px 2px 0 #e1e1e1;
+  box-shadow: 2px 2px 0 var(--tab-base-color-darker);
 }
+
 .itasks-tabset .itasks-tabbar li:after {
   right: -6px;
   border-bottom-left-radius: 5px;
   border-width: 0 0 1px 1px;
-  box-shadow: -2px 2px 0 #e1e1e1;
+  box-shadow: -2px 2px 0 var(--tab-base-color-darker);
 }
+
 .itasks-tabset .itasks-tabbar li.itasks-selected {
-  background: #eee;
-  color: #000;
+  background: var(--tab-base-color);
+  color: var(--tab-text-color);
   z-index: 2;
-  border-bottom-color: #eee;
+  border-bottom-color: var(--tab-base-color);
 }
+
 .itasks-tabset .itasks-tabbar li.itasks-selected:before {
-  box-shadow: 2px 2px 0 #eee;
+  box-shadow: 2px 2px 0 var(--tab-base-color);
 }
+
 .itasks-tabset .itasks-tabbar li.itasks-selected:after {
-  box-shadow: -2px 2px 0 #eee;
+  box-shadow: -2px 2px 0 var(--tab-base-color);
 }
+
 .itasks-tabset .itasks-tabbar li a.itasks-tabclose {
   color: #aaa;
   display: inline-block;
@@ -535,18 +629,21 @@ div.itasks-exception {
   border-radius: 2px;
   padding: 0 2px;
 }
+
 .itasks-tabset .itasks-tabbar:after {
   position: absolute;
   content: "";
   width: 100%;
   bottom: 0;
   left: 0;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--tab-border-color);
   z-index: 1;
 }
+
 .itasks-tabset .itasks-tabbar:before {
   z-index: 1;
 }
+
 .itasks-tabset .itasks-tabicon {
   width: 16px;
   height: 16px;
@@ -555,28 +652,34 @@ div.itasks-exception {
   position: relative;
   top: 3px;
 }
+
 .itasks-tabset .itasks-tab-disabled .itasks-tabicon {
   opacity: 0.5;
 }
+
 .itasks-tabset .itasks-tab-disabled span {
   color: #aaa;
 }
+
 .itasks-tabset .itasks-tabitems {
   z-index: 2;
-  border: 1px solid #ccc;
+  border: 1px solid var(--tab-border-color);
   border-top-width: 0;
-  background-color: #eee;
+  background-color: var(--canvas-base-color);
   flex: 1;
   display: flex;
   flex-direction: column;
 }
+
 .itasks-tabset .itasks-container.itasks-tabitem, .itasks-tabset .itasks-panel.itasks-tabitem, .itasks-tabset .itasks-viewport.itasks-tabitem {
   display: none;
 }
+
 .itasks-tabset .itasks-panel.itasks-tabitem.itasks-selected {
   display: grid;
   border-top: 0;
 }
+
 .itasks-tabset .itasks-container.itasks-tabitem.itasks-selected, .itasks-tabset .itasks-viewport.itasks-tabitem.itasks-selected {
   display: flex;
   border-top: 0;
@@ -588,16 +691,17 @@ div.itasks-exception {
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: linear-gradient(#fb8036, #d95404);
+  background: linear-gradient(var(--toolbar-base-color-lighter), var(--toolbar-base-color-darker));
 }
 
 .itasks-toolbar {
   justify-content: flex-start;
   margin: 0;
   padding: 2px;
-  background: #fb7322;
-  background: linear-gradient(#fb8036, #fb6309);
+  background: var(--toolbar-base-color);
+  background: linear-gradient(var(--toolbar-base-color-lighter), var(--toolbar-base-color-darker2));
 }
+
 .itasks-toolbar > .itasks-menu-item > div {
   background-image: url("/css/icons/menu-down.png");
   background-repeat: no-repeat;
@@ -615,20 +719,21 @@ div.itasks-exception {
   position: relative;
   border: 1px solid transparent;
   margin: 1px 0;
-  /* Opening menus */
 }
+
 .itasks-menu div.itasks-menu-sep {
   width: 100%;
   height: 5px;
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  border: 1px solid #bbbbbb;
+  border: 1px solid var(--button-base-color-darker);
   border-width: 0 0 1px 0;
 }
+
 .itasks-menu div.itasks-menu-label {
   height: 23px;
-  background: linear-gradient(white, #eee);
+  background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color));
   background-repeat: none;
   background-image: url("/css/icons/menu-down.png");
   background-repeat: no-repeat;
@@ -637,9 +742,9 @@ div.itasks-exception {
   flex-direction: row;
   align-items: center;
   text-decoration: none;
-  color: #000;
+  color: var(--button-text-color);
   flex-shrink: 0;
-  border: 1px solid #bbbbbb;
+  border: 1px solid var(--button-base-color-darker);
   border-radius: 3px;
   text-decoration: none;
   float: left;
@@ -648,11 +753,13 @@ div.itasks-exception {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .itasks-menu div.itasks-menu-label span {
   position: relative;
   top: 4px;
   margin: 0 20px 0 10px;
 }
+
 .itasks-menu .itasks-menu-content {
   z-index: 10;
   top: 23px;
@@ -662,55 +769,65 @@ div.itasks-exception {
   position: absolute;
   background: #eee;
   box-shadow: 0 3px 3px rgba(0, 0, 0, 0.5);
-  border: 1px solid #bbbbbb;
+  border: 1px solid var(--button-base-color-darker);
   border-radius: 0 3px 3px 3px;
   min-width: 150px;
-  /* Submenu styling */
 }
+
+/* Submenu styling */
 .itasks-menu .itasks-menu-content .itasks-menu-content {
   top: 0;
   left: 99%;
   margin: 2px 0 0 -2px;
 }
+
 .itasks-menu .itasks-menu-content .itasks-menu {
   width: 100%;
 }
+
 .itasks-menu .itasks-menu-content .itasks-menu-label {
   width: 100%;
   border-radius: 0;
   border-width: 0 0 1px 0;
   background-image: url("/css/icons/menu-down.png");
 }
+
 .itasks-menu .itasks-menu-content .itasks-menu-label:hover {
-  background: #004584;
-  color: #fff;
+  background: var(--select-base-color);
+  color: var(--select-text-color);
   border-radius: 0;
 }
+
 .itasks-menu .itasks-menu-content .itasks-button {
   border-radius: 0;
   border-width: 0 0 1px 0;
 }
+
 .itasks-menu .itasks-menu-content .itasks-button:hover {
-  background: #004584;
-  color: #fff;
+  background: var(--select-base-color);
+  color: var(--select-text-color);
 }
+
+/* Opening menus */
 .itasks-menu:hover > .itasks-menu-content {
   display: block;
 }
+
 .itasks-menu:hover > .itasks-menu-label {
   border-radius: 3px 3px 0 0;
   box-shadow: 0 3px 3px rgba(0, 0, 0, 0.5);
 }
 
 .itasks-list {
-  color: #000;
-  background-color: #fff;
-  border: 2px solid #ccc;
+  color: var(--list-text-color);
+  background-color: var(--list-base-color);
+  border: 2px solid var(--list-border-color);
   border-radius: 5px;
   display: flex;
   flex-direction: column;
   align-self: stretch;
 }
+
 .itasks-list .itasks-listitem {
   margin: 0px 5px 5px 5px;
   align-self: stretch;
@@ -718,9 +835,11 @@ div.itasks-exception {
   flex-direction: row;
   align-items: flex-start;
 }
+
 .itasks-list .itasks-listitem:nth-child(even) {
-  background-color: #eee;
+  background-color: var(--list-highlight-color);
 }
+
 .itasks-list .itasks-listitem-controls {
   flex-direction: row;
   justify-items: flex-end;
@@ -739,6 +858,7 @@ div.itasks-exception {
 .itasks-container > .itasks-flex-width {
   align-self: stretch;
 }
+
 .itasks-viewport > .itasks-flex-height,
 .itasks-panel > .itasks-inner > .itasks-flex-height,
 .itasks-window > .itasks-inner > .itasks-flex-height,
@@ -746,7 +866,9 @@ div.itasks-exception {
 .itasks-container > .itasks-flex-height {
   flex-grow: 1;
 }
-.itasks-viewport > .itasks-exact-height, .itasks-viewport > .itasks-wrap-height,
+
+.itasks-viewport > .itasks-exact-height,
+.itasks-viewport > .itasks-wrap-height,
 .itasks-panel > .itasks-inner > .itasks-exact-height,
 .itasks-panel > .itasks-inner > .itasks-wrap-height,
 .itasks-window > .itasks-inner > .itasks-exact-height,
@@ -757,7 +879,9 @@ div.itasks-exception {
 .itasks-container > .itasks-wrap-height {
   flex: 0 0 auto;
 }
-.itasks-viewport > .itasks-exact-height > .itasks-inner, .itasks-viewport > .itasks-wrap-height > .itasks-inner,
+
+.itasks-viewport > .itasks-exact-height > .itasks-inner,
+.itasks-viewport > .itasks-wrap-height > .itasks-inner,
 .itasks-panel > .itasks-inner > .itasks-exact-height > .itasks-inner,
 .itasks-panel > .itasks-inner > .itasks-wrap-height > .itasks-inner,
 .itasks-window > .itasks-inner > .itasks-exact-height > .itasks-inner,
@@ -781,6 +905,7 @@ div.itasks-exception {
 .itasks-listitem-controls > .itasks-flex-width {
   flex-grow: 1;
 }
+
 .itasks-container.itasks-horizontal > .itasks-flex-height,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-flex-height,
 .itasks-form-item > .itasks-flex-height,
@@ -792,7 +917,9 @@ div.itasks-exception {
 .itasks-listitem-controls > .itasks-flex-height {
   align-self: stretch;
 }
-.itasks-container.itasks-horizontal > .itasks-exact-width, .itasks-container.itasks-horizontal > .itasks-wrap-width,
+
+.itasks-container.itasks-horizontal > .itasks-exact-width,
+.itasks-container.itasks-horizontal > .itasks-wrap-width,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width,
 .itasks-form-item > .itasks-exact-width,
@@ -811,7 +938,9 @@ div.itasks-exception {
 .itasks-listitem-controls > .itasks-wrap-width {
   flex: 0 0 auto;
 }
-.itasks-container.itasks-horizontal > .itasks-exact-width > .itasks-inner, .itasks-container.itasks-horizontal > .itasks-wrap-width > .itasks-inner,
+
+.itasks-container.itasks-horizontal > .itasks-exact-width > .itasks-inner,
+.itasks-container.itasks-horizontal > .itasks-wrap-width > .itasks-inner,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-exact-width > .itasks-inner,
 .itasks-panel.itasks-horizontal > .itasks-inner > .itasks-wrap-width > .itasks-inner,
 .itasks-form-item > .itasks-exact-width > .itasks-inner,
@@ -927,22 +1056,24 @@ div.itasks-exception {
 .itasks-button {
   font-size: 8pt;
   padding: 3px;
-  background: linear-gradient(white, #eee);
+  background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color));
   background-repeat: none;
-  border: 1px solid #bbbbbb;
+  border: 1px solid var(--button-base-color-darker);
   border-radius: 3px;
   display: flex;
   flex-direction: row;
   align-items: center;
   text-decoration: none;
-  color: #000;
+  color: var(--button-text-color);
   flex-shrink: 0;
 }
+
 .itasks-button:hover {
-  border-color: #888888;
+  border-color: var(--button-base-color-darkest);
 }
+
 .itasks-button:active {
-  background: white;
+  background: var(--button-base-color-lighter);
 }
 
 .itasks-button-label {
@@ -957,12 +1088,12 @@ div.itasks-exception {
 }
 
 .itasks-button-disabled {
-  color: #595959;
-  background: linear-gradient(white, #bbbbbb);
+  color: var(--button-text-color-lighter);
+  background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color-darker));
 }
 
 .itasks-button-disabled:hover {
-  border-color: #888888;
+  border-color: var(--button-base-color-darkest);
 }
 
 .itasks-button-disabled .itasks-button-icon {
@@ -995,9 +1126,9 @@ div.itasks-exception {
 }
 
 .itasks-choicegrid-header {
-  color: #fff;
-  background: #fb7322;
-  background: linear-gradient(#fdb286, #e65804);
+  color: var(--panel-header-text-color);
+  background: var(--panel-header-base-color);
+  background: linear-gradient(var(--panel-header-base-color-lighter2), var(--panel-header-base-color-darker2));
   display: flex;
   flex-direction: row;
   flex: none;
@@ -1005,7 +1136,7 @@ div.itasks-exception {
 
 .itasks-choicegrid-header > div {
   border: 1px solid;
-  border-color: #fb833b #fb833b #fca36d #fca36d;
+  border-color: var(--choicegrid-up-color) var(--choicegrid-up-color) var(--choicegrid-down-color) var(--choicegrid-down-color);
   flex: 1;
   padding: 3px 5px;
   font-size: 11px;
@@ -1038,8 +1169,8 @@ div.itasks-exception {
 }
 
 .itasks-choicegrid-body > div.itasks-selected {
-  background-color: #004584;
-  color: #fff;
+  background-color: var(--select-base-color);
+  color: var(--select-text-color);
   border: 1px dotted #333;
 }
 
@@ -1055,18 +1186,22 @@ div.itasks-exception {
   background: #fff;
   color: #000;
 }
+
 .itasks-choicetree ol {
   margin: 5px 0 0 20px;
   padding: 0;
 }
+
 .itasks-choicetree li {
   position: relative;
   margin: 0 0 2px -15px;
   list-style: none;
 }
+
 .itasks-choicetree li input {
   display: none;
 }
+
 .itasks-choicetree li input + label {
   display: inline-block;
   background: url("/css/icons/toggle-small-expand.png") no-repeat;
@@ -1077,35 +1212,44 @@ div.itasks-exception {
   left: 0;
   padding: 0;
 }
+
 .itasks-choicetree li input ~ ol {
   margin: 0 0 0 -44px;
 }
+
 .itasks-choicetree li input ~ ol > li {
   display: none;
   margin-left: -24px !important;
   padding-left: 1px;
 }
+
 .itasks-choicetree li input:checked + label {
   background: url("/css/icons/toggle-small.png") no-repeat;
 }
+
 .itasks-choicetree li input:checked ~ ol {
   padding: 0 0 0 80px;
   height: auto;
 }
+
 .itasks-choicetree li input:checked ~ ol > li {
   display: block;
   margin: 0 0 2px;
 }
+
 .itasks-choicetree li input:checked ~ ol > li:last-child {
   margin: 0 0 1px;
 }
+
 .itasks-choicetree li.itasks-leaf > label {
   background-position: 16px 0px;
   background-repeat: no-repeat;
 }
+
 .itasks-choicetree li.itasks-selected > label {
   font-weight: bold;
 }
+
 .itasks-choicetree li label {
   cursor: pointer;
   display: block;
@@ -1117,16 +1261,18 @@ div.itasks-exception {
   background-repeat: no-repeat;
   height: 16px;
 }
+
 .itasks-choicetree li label.itasks-default-folder {
   background-image: url("/css/icons/folder.png");
 }
+
 .itasks-choicetree li label.itasks-default-leaf {
   background-image: url("/css/icons/document.png");
 }
 
 .itasks-choice-list {
   margin: 0;
-  border: 1px solid #004584;
+  border: 1px solid var(--select-base-color);
   display: flex;
   overflow: auto;
   flex-direction: column;
@@ -1141,16 +1287,17 @@ div.itasks-exception {
 }
 
 .itasks-choice-list-option {
-  border: solid #004584;
+  border: solid var(--select-base-color);
   border-width: 0 0 1px 0;
   padding: 5px 10px;
   flex-shrink: 0;
 }
+
 .itasks-choice-list-option:last-child {
   border-width: 0;
 }
 
 .itasks-choice-list-option.itasks-selected {
-  background-color: #004584;
-  color: #fff;
+  background-color: var(--select-base-color);
+  color: var(--select-text-color);
 }

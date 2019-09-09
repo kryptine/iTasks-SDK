@@ -9,7 +9,7 @@ div.itasks-loader-spinner {
 	height: 40px;
 	border: 10px solid;
 	border-radius: 100%;
-	border-color: $panel-border-color $panel-border-color $panel-border-color $select-base-color;
+	border-color: var(--panel-border-color) var(--panel-border-color) var(--panel-border-color) var(--select-base-color);
 	margin: auto auto;
 	animation: itasks-rotation .8s infinite linear;
 }

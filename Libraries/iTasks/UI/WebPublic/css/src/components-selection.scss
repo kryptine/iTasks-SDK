@@ -17,16 +17,16 @@
 	align-self: stretch;
 }
 .itasks-choicegrid-header {
-    color: $panel-header-text-color;
-    background: $panel-header-base-color;
-    background: linear-gradient($panel-header-base-color-lighter2, $panel-header-base-color-darker2);
+    color: var(--panel-header-text-color);
+    background: var(--panel-header-base-color);
+    background: linear-gradient(var(--panel-header-base-color-lighter2), var(--panel-header-base-color-darker2));
     display: flex;
     flex-direction: row;
     flex: none;
 }
 .itasks-choicegrid-header > div {
     border: 1px solid;
-    border-color:  $choicegrid-up-color $choicegrid-up-color $choicegrid-down-color $choicegrid-down-color;
+    border-color:  var(--choicegrid-up-color) var(--choicegrid-up-color) var(--choicegrid-down-color) var(--choicegrid-down-color);
     flex: 1;
     padding: 3px 5px;
     font-size: 11px;
@@ -54,8 +54,8 @@
     background-color: #eee;
 }
 .itasks-choicegrid-body > div.itasks-selected {
-    background-color: $select-base-color;
-    color: $select-text-color;
+    background-color: var(--select-base-color);
+    color: var(--select-text-color);
     border: 1px dotted #333;
 }
 .itasks-choicegrid-body > div > div {
@@ -144,7 +144,7 @@
 
 .itasks-choice-list {
     margin: 0;
-    border: 1px solid $select-base-color;
+    border: 1px solid var(--select-base-color);
     display: flex;
     overflow: auto;
     flex-direction: column;
@@ -158,7 +158,7 @@
 	align-self: stretch;
 }
 .itasks-choice-list-option {
-    border: solid $select-base-color;
+    border: solid var(--select-base-color);
     border-width: 0 0 1px 0;
     padding: 5px 10px;
     flex-shrink: 0;
@@ -167,6 +167,6 @@
 	border-width: 0;
 }
 .itasks-choice-list-option.itasks-selected {
-    background-color: $select-base-color;
-    color: $select-text-color;
+    background-color: var(--select-base-color);
+    color: var(--select-text-color);
 }

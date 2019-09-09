@@ -10,23 +10,23 @@
 .itasks-button {
 	font-size: 8pt;
    	padding: 3px;
-    background: linear-gradient($button-base-color-lighter, $button-base-color);
+    background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color));
     background-repeat: none;
-    border: 1px solid $button-base-color-darker;
+    border: 1px solid var(--button-base-color-darker);
     border-radius: 3px;
 
     display: flex;
     flex-direction: row;
     align-items: center;
     text-decoration: none;
-    color: $button-text-color;
+    color: var(--button-text-color);
     flex-shrink: 0;
 }
 .itasks-button:hover {
-	border-color: $button-base-color-darkest;
+	border-color: var(--button-base-color-darkest);
 }
 .itasks-button:active {
-	background: $button-base-color-lighter;
+	background: var(--button-base-color-lighter);
 }
 
 .itasks-button-label {
@@ -39,11 +39,11 @@
     height: 16px;
 }
 .itasks-button-disabled {
-    color: $button-text-color-lighter;
-    background: linear-gradient($button-base-color-lighter, $button-base-color-darker);
+    color: var(--button-text-color-lighter);
+    background: linear-gradient(var(--button-base-color-lighter), var(--button-base-color-darker));
 }
 .itasks-button-disabled:hover {
-    border-color: $button-base-color-darkest;
+    border-color: var(--button-base-color-darkest);
 }
 .itasks-button-disabled .itasks-button-icon {
     opacity: 0.5;
