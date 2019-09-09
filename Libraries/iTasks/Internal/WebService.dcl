@@ -7,7 +7,6 @@ from Internet.HTTP				import :: HTTPRequest, :: HTTPResponse
 from iTasks.Engine              import :: WebTask
 from iTasks.Internal.IWorld		import :: IWorld
 from iTasks.Internal.Task 	    import :: Task, :: ConnectionTask
-from iTasks.Internal.TaskState 	import :: TIUIState
 from iTasks.Internal.TaskStore  import :: TaskOutput, :: TaskOutputMessage
 import iTasks.SDS.Definition
 from iTasks.UI.Definition           import :: UIChange
