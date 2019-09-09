@@ -141,7 +141,6 @@ step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC,
 *                     The task in the parallel set that raised the exception is replaced
 *                     with the continuation
 * @return The sum of all results
-* @gin False
 */
 parallel :: ![(ParallelTaskType,ParallelTask a)] [TaskCont [(Int,TaskValue a)] (ParallelTaskType,ParallelTask a)] -> Task [(Int,TaskValue a)] | iTask a
 
