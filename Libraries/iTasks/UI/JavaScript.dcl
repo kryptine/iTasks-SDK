@@ -192,6 +192,11 @@ jsDocument :== jsGlobal "document"
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 
 /**
+ * Like {{`jsWrapFun`}}, but the Clean function can return a result.
+ */
+jsWrapFunWithResult :: !({!JSVal} *JSWorld -> *(JSVal, *JSWorld)) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
+
+/**
  * Wrap a function receiving a reference to a JavaScript iTasks component to
  * one matching the calling convention for the JavaScript interface (i.e.,
  * receiving an array of JavaScript values) so that it can be called using the
