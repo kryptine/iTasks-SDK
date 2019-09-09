@@ -140,12 +140,6 @@ itasks.TabSet = {
 	},
 	replacing: false,
 
-	initComponent: function() {
-		var me = this;
-		me.children.forEach(function(child,i) {
-			child.selected = (i == me.activeTab);
-		});
-	},
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
@@ -155,7 +149,7 @@ itasks.TabSet = {
 
 		//Create tabs for the initial children
 		me.children.forEach(function(child,i) {
-			me.tabBar.appendChild(me.createTabEl(child));
+			me.tabBar.appendChild(me.createTabEl(child, i == me.activeTab));
 		});	
 		
         me.domEl.appendChild(me.tabBar);
@@ -164,7 +158,7 @@ itasks.TabSet = {
         me.containerEl.classList.add(me.cssPrefix + 'tabitems');
         me.domEl.appendChild(me.containerEl);
     },
-	createTabEl: function (cmp) {
+	createTabEl: function (cmp, selected) {
 		var me = this, tab, label, icon;
 		tab = document.createElement('li');
 		label = document.createElement('a');
@@ -216,7 +210,7 @@ itasks.TabSet = {
 	
 				tab.appendChild(closeLink);
 			}
-			if(cmp.selected) {
+			if(selected) {
 				tab.classList.add(me.cssPrefix + 'selected');
 			}
 		}
@@ -277,11 +271,11 @@ itasks.TabSet = {
 
 		//Add tab style
 		child.domEl.classList.add(me.cssPrefix + 'tabitem');
-		if(child.selected) {
+		if(idx == me.activeTab) {
 			child.domEl.classList.add(me.cssPrefix + 'selected');
 		}
 
-		if(me.initialized) {
+		if(me.initialized && !me.replacing) {
 			var tabEl = me.createTabEl(child);
 			if(idx >= me.tabBar.children.length) {
 				me.tabBar.appendChild(tabEl);
@@ -293,6 +287,7 @@ itasks.TabSet = {
 	},
 	afterChildRemove: function(idx) {
 		var me = this;
+
 		if(me.initialized && !me.replacing) {
 
 			me.tabBar.removeChild(me.tabBar.children[idx]);
@@ -315,12 +310,17 @@ itasks.TabSet = {
 	},
 	replaceChild: function(idx,spec) {
 		var me = this;
-		me.replacing = true;
 		if(idx >= 0 && idx < me.children.length) {
-			me.removeChild(idx);
-			me.insertChild(idx,spec);
+			return new Promise(function (resolve) {
+				me.replacing = true;
+				me.removeChild(idx);
+				resolve();		
+			}).then(function () {
+				return me.insertChild(idx,spec);
+			}).then(function () {
+				me.replacing = false;
+			});
 		}
-		me.replacing = false;
 	}
 }
 
