@@ -39,13 +39,13 @@
     width: 16px;
     height: 16px;
 }
-.#{$prefix}button-disabled {
+.#{$prefix}button:disabled {
     color: lighten($button-text-color,35%);
     background: linear-gradient(lighten($button-base-color,20%), darken($button-base-color,20%));
 }
-.#{$prefix}button-disabled:hover {
+.#{$prefix}button:disabled:hover {
     border-color: darken($button-base-color,40%);
 }
-.#{$prefix}button-disabled .#{$prefix}button-icon {
+.#{$prefix}button:disabled .#{$prefix}button-icon {
     opacity: 0.5;
 }

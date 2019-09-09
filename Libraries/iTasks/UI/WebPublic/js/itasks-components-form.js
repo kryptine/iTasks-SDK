@@ -355,7 +355,7 @@ itasks.Button = {
 			el.appendChild(me.icon);
 		}
 		if(!me.attributes.enabled) {
-			el.classList.add(me.cssPrefix + 'button-disabled');
+			el.disabled = true;
 		}
 		if(me.attributes.text) {
 			me.label = document.createElement('div');
@@ -387,11 +387,7 @@ itasks.Button = {
 		var me = this;
 		switch(name) {
 			case 'enabled':
-				if(value) {
-					me.domEl.classList.remove(me.cssPrefix + 'button-disabled');
-				} else {
-					me.domEl.classList.add(me.cssPrefix + 'button-disabled');
-				}
+				me.domEl.disabled = !value;
 				break;
 		}
 	}
