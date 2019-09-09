@@ -956,16 +956,16 @@ div.itasks-exception {
   height: 16px;
 }
 
-.itasks-button-disabled {
+.itasks-button:disabled {
   color: #595959;
   background: linear-gradient(white, #bbbbbb);
 }
 
-.itasks-button-disabled:hover {
+.itasks-button:disabled:hover {
   border-color: #888888;
 }
 
-.itasks-button-disabled .itasks-button-icon {
+.itasks-button:disabled .itasks-button-icon {
   opacity: 0.5;
 }
 
