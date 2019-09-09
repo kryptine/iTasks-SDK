@@ -608,9 +608,12 @@ where
 	}
 
 jsTrace :: !a .b -> .b | toString a
-jsTrace s x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {JSString (toString s)})) of
+jsTrace s x = jsTraceVal (JSString (toString s)) x
+
+jsTraceVal :: !JSVal .a -> .a
+jsTraceVal v x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {v})) of
 	True  -> x
-	False -> abort_with_node s // just in case it is a JSVal
+	False -> abort_with_node v
 
 set_js :: !*String !*String -> Bool
 set_js var val = code {

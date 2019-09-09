@@ -225,7 +225,16 @@ addJSFromUrl :: !String !(Maybe JSFun) !*JSWorld -> *JSWorld
 
 /**
  * A simple wrapper around JavaScript's `console.log`.
+ * Use {{`jsTraceVal`}} to trace JavaScript values.
  * @param The value to log.
  * @param The value to return.
  */
 jsTrace :: !a .b -> .b | toString a
+
+/**
+ * A simple wrapper around JavaScript's `console.log`.
+ * Use {{`jsTrace`}} to trace Clean values.
+ * @param The value to log.
+ * @param The value to return.
+ */
+jsTraceVal :: !JSVal .a -> .a
