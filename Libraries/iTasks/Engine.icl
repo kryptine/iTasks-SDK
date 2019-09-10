@@ -2,6 +2,7 @@ implementation module iTasks.Engine
 
 import Data.Func
 import Data.Functor
+import Data.List
 import Data.Queue
 import Internet.HTTP
 import StdEnv
@@ -53,16 +54,24 @@ doTasksWithOptions initFun startable world
 	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
+	# iworld = if (hasDup requestPaths)
+		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths]] iworld)
+		iworld
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
-    webTasks = [t \\ WebTask t <- toStartable startable]
+	requestPaths = [path\\{path}<-webTasks]
+	webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks {distributed, sdsPort}
+		=  if webTasks=:[]
+		   //if there are no webtasks: stop when stable
+		   [systemTask (startTask stopOnStable)]
+		   //if there are: show instructions andcleanup old sessions
+		   [startTask viewWebServerInstructions
+		   ,systemTask (startTask removeOutdatedSessions)]
 		//If distributed, start sds service task
-		=  (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
+		++ (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
 		++ [systemTask (startTask flushWritesWhenIdle)
-		//If there no webtasks, stop when stable, otherwise cleanup old sessions
-		   ,systemTask (startTask if (webTasks =: []) stopOnStable removeOutdatedSessions)
 		//Start all startup tasks
 		   :[t \\ StartupTask t <- toStartable startable]]
 
@@ -161,17 +170,11 @@ where
 
 instance Startable (Task a) | iTask a //Default as web task
 where
-	toStartable task =
-		[onStartup viewWebServerInstructions
-		,onRequest "/" task
-		]
+	toStartable task = [onRequest "/" task]
 
 instance Startable (HTTPRequest -> Task a) | iTask a //As web task
 where
-	toStartable task =
-		[onStartup viewWebServerInstructions
-		,onRequestFromRequest "/" task
-		]
+	toStartable task = [onRequestFromRequest "/" task]
 
 instance Startable StartableTask
 where
