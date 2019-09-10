@@ -1,6 +1,6 @@
 module TestDateField
 
-import iTasks, iTasks.Internal.Test.Definition
+import iTasks, iTasks.Util.Testing
 
 test :: Task Date
 test = testEditor gEditor{|*|} {Date|year=2003,mon=1,day=13} Update

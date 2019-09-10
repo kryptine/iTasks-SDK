@@ -1,5 +1,5 @@
 module TestSlider
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task Int
 test = testEditor (slider <<@ ('DM'.union (minAttr 1) (maxAttr 5))) 3 Update
