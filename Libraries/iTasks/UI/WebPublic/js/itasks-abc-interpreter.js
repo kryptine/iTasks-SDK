@@ -132,15 +132,15 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 			var args=[];
 			for (var i=0; i<arguments.length; i++)
 				args[i]=arguments[i];
-			me.abc.interpret(new SharedCleanValue(index), args);
+			ABC.interpret(new SharedCleanValue(index), args);
 
 			var result=undefined;
-			const new_asp=me.abc.interpreter.instance.exports.get_asp();
-			const hp_ptr=me.abc.memory_array[new_asp/4];
-			if (me.abc.memory_array[hp_ptr/4]!=25*8+2) { // INT, i.e. JSWorld
+			const new_asp=ABC.interpreter.instance.exports.get_asp();
+			const hp_ptr=ABC.memory_array[new_asp/4];
+			if (ABC.memory_array[hp_ptr/4]!=25*8+2) { // INT, i.e. JSWorld
 				// Assume we have received a tuple with the first element as the result
-				const str_ptr=me.abc.memory_array[hp_ptr/4+2];
-				const string=me.abc.get_clean_string(me.abc.memory_array[str_ptr/4+2], false);
+				const str_ptr=ABC.memory_array[hp_ptr/4+2];
+				const string=ABC.get_clean_string(ABC.memory_array[str_ptr/4+2], false);
 				if (ABC_DEBUG)
 					console.log('result:',string);
 				result=eval('('+string+')');
