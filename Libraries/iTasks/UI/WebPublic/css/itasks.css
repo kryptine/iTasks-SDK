@@ -980,6 +980,27 @@ div.itasks-exception {
   padding: 5px;
 }
 
+.itasks-progress {
+  height: 1.5em;
+  width: 100%;
+  background-color: #c9c9c9;
+  position: relative;
+}
+.itasks-progress:before {
+  content: attr(data-label);
+  font-size: 0.8em;
+  position: absolute;
+  text-align: center;
+  top: 5px;
+  left: 0;
+  right: 0;
+}
+.itasks-progress .value {
+  background-color: #7cc4ff;
+  display: inline-block;
+  height: 100%;
+}
+
 .itasks-checkgroup {
   margin: 0;
   padding: 0;
