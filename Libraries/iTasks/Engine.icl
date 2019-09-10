@@ -55,15 +55,15 @@ doTasksWithOptions initFun startable world
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld = if (hasDup requestPaths)
-		(iShow ["Duplicate path in the web tasks: ",join ", " ["'" +++ p +++ "'"\\p<-requestPaths]] iworld)
+		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths]] iworld)
 		iworld
 	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
 	requestPaths = [path\\{path}<-webTasks]
-    webTasks = [t \\ WebTask t <- toStartable startable]
+	webTasks = [t \\ WebTask t <- toStartable startable]
 	startupTasks {distributed, sdsPort}
-		=  if (webTasks =: [])
+		=  if webTasks=:[]
 		   //if there are no webtasks: stop when stable
 		   [systemTask (startTask stopOnStable)]
 		   //if there are: show instructions andcleanup old sessions
