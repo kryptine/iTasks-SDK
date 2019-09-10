@@ -109,7 +109,7 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 			Ok (change, st)
 				= case editor.Editor.valueFromState st of
 					Just nv
-						# (l, v, mbf) = handlers.InteractionHandlers.onEdit nv l v
+						# (l, mbf) = handlers.InteractionHandlers.onEdit nv l
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
@@ -118,19 +118,19 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 								// Therefore we delay it by returning the continuation in a value instead of directly:
 								(\w event {TaskEvalOpts|lastEval} iworld->
 									(ValueResult
-										(Value (l, v) False)
+										(Value (l, nv) False)
 										(mkTaskEvalInfo lastEval)
 										change
-										(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+										(Task (evalInteract l (Just nv) st mode sds handlers editor writefun))
 									, iworld))
 								event evalOpts iworld
 							//There is no update function
 							Nothing
 								= (ValueResult
-									(Value (l, v) False)
+									(Value (l, nv) False)
 									(mkTaskEvalInfo lastEval)
 									change
-									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+									(Task (evalInteract l (Just nv) st mode sds handlers editor writefun))
 								, iworld)
 					Nothing
 						= (ValueResult
@@ -165,17 +165,18 @@ evalInteract l v st mode sds handlers editor writefun event=:(RefreshEvent taskI
 				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
 				= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of
 					(Error e, iworld) = (ExceptionResult (exception e), iworld)
-				    (Ok (change, st), iworld)
+					(Ok (change, st), iworld)
+						# v = editor.Editor.valueFromState st
 						= case mbf of
 							Just f = writefun f sds NoValue (\_->change)
-								(\_->evalInteract l (Just v) st mode sds handlers editor writefun)
+								(\_->evalInteract l v st mode sds handlers editor writefun)
 								event evalOpts iworld
 							Nothing
 								= (ValueResult
-									(Value (l, v) False)
+									(maybe NoValue (\v -> Value (l, v) False) v)
 									(mkTaskEvalInfo lastEval)
 									change
-									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+									(Task (evalInteract l v st mode sds handlers editor writefun))
 								, iworld)
 			)
 			event evalOpts iworld

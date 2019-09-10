@@ -97,40 +97,40 @@ enterInformation options = enterInformation` (enterEditor options)
 enterInformation` (EnterUsing fromf editor)
 	= interactRW unitShare handlers editor @ (\((),v) -> fromf v)
 where
-	handlers = {onInit = const ((), Enter), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l _ -> (l,undef,Nothing)} 
+	handlers = {onInit = const ((), Enter), onEdit = \_ l -> (l, Nothing), onRefresh = \r l _ -> (l,undef,Nothing)}
 
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
 viewInformation options m = viewInformation`  (viewEditor options) m
 viewInformation` (ViewUsing tof editor) m
-	= interactR unitShare {onInit = const ((),View $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
+	= interactR unitShare {onInit = const ((),View $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
 
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
-	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
+	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
 		editor @ (\((),v) -> fromf m v)
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
+	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l -> (l, Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
 		editor @ fst
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l _ -> (l,v,Just (\r -> fromf r v))
+	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l -> (l, Just (\r -> fromf r v))
 			, onRefresh = \r _ (Just v) -> (r, maybe v (\r` -> conflictf r` v) (tof r), Nothing)}
 		editor @ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
 viewSharedInformation` (ViewUsing tof editor) sds
-	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
+	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \_ l -> (l, Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
 	= interactRW sds
 		{onInit = \r -> ((r,m), Update $ tof (r,m))
-		,onEdit = \v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing)
+		,onEdit = \v (r,m)      -> let nm = fromf (r,m) v in ((r,nm),Nothing)
 		,onRefresh = \r (_,m) _ -> ((r,m),tof (r,m),Nothing)
 		} gEditor{|*|} @ (snd o fst)
 
@@ -138,8 +138,8 @@ editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a
 editSelection options container sel = editSelection` (selectAttributes options) (selectEditor options) container sel
 editSelection` attributes (SelectUsing toView fromView editor) container sel
 	= interactRW unitShare
-		{onInit = \r     -> ((), Update (toView container,sel))
-		,onEdit = \v l _ -> (l,v,Nothing)
+		{onInit = \r   -> ((), Update (toView container,sel))
+		,onEdit = \_ l -> (l, Nothing)
 		,onRefresh = \_ l (Just v) -> (l,v,Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
@@ -148,7 +148,7 @@ editSelectionWithShared options sharedContainer initSel = editSelectionWithShare
 editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer initSel
 	= interactRW sharedContainer
 		{onInit = \r     -> (r, Update(toView r, initSel r))
-		,onEdit = \v l _ -> (l,v,Nothing)
+		,onEdit = \_ l -> (l, Nothing)
 		,onRefresh = \r l (Just (v,sel)) -> (r,(toView r,sel),Nothing)
 		} (attributes @>> editor) @ (\(container,(_,sel)) -> fromView container sel)
 
@@ -156,8 +156,8 @@ editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iT
 editSharedSelection options container sharedSel = editSharedSelection` (selectAttributes options) (selectEditor options) container sharedSel
 editSharedSelection` attributes (SelectUsing toView fromView editor) container sharedSel
 	= interactRW sharedSel
-		{onInit = \r           -> ((), Update (toView container,r))
-		,onEdit = \(vt,vs) l _ -> (l,(vt,vs),Just (const vs))
+		{onInit = \r        -> ((), Update (toView container,r))
+		,onEdit = \(_,vs) l -> (l, Just (const vs))
 		,onRefresh = \r l (Just (vt,vs)) -> (l,(vt,r),Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
@@ -166,8 +166,8 @@ editSharedSelectionWithShared options sharedContainer sharedSel
 	= editSharedSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer sharedSel
 editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer sharedSel
 	= interactRW (sharedContainer |*< sharedSel)
-		{onInit = \(rc, rs)       -> (rc, Update (toView rc,rs))
-		,onEdit = \v=:(_, vs) l _ -> (l, v, Just (const vs))
+		{onInit = \(rc, rs)  -> (rc, Update (toView rc,rs))
+		,onEdit = \(_, vs) l -> (l, Just (const vs))
 		,onRefresh = \(rc, rs)   _ _ -> (rc, (toView rc, rs), Nothing)
 		} (attributes @>> editor) @ (\(container, (_, sel)) -> fromView container sel)
 
