@@ -532,13 +532,6 @@ jsGlobal s = JSVar s
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 jsWrapFun f attach_to world = (share attach_to \(JSArray args) w -> f args w, world)
 
-jsWrapFunWithResult :: !({!JSVal} *JSWorld -> *(JSVal, *JSWorld)) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
-jsWrapFunWithResult f attach_to world = (share attach_to fun, world)
-where
-	fun (JSArray args) w
-	# (r,w) = f args w
-	= hyperstrict (js_val_to_string r,w)
-
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 wrapInitUIFunction f = init
 where
