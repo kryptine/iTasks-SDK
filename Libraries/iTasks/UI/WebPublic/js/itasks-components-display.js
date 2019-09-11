@@ -46,7 +46,7 @@ itasks.ProgressBar = {
 		this.domEl.children[0].style=typeof value == 'number' ? ('width:'+value+'%;') : '';
 	},
 	setText:function(text) {
-		this.domEl.setAttribute('data-label', text);
+		this.domEl.setAttribute('title', text);
 	},
 	onAttributeChange:function(name,value) {
 		switch(name) {
