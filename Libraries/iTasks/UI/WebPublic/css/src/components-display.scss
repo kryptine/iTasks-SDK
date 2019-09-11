@@ -1,3 +1,31 @@
 .#{$prefix}textview, .#{$prefix}htmlview {
 	padding: 5px;
 }
+
+.#{$prefix}progress {
+	height: 1.5em;
+	width: 100%;
+	background-color: #c9c9c9;
+	position: relative;
+}
+.#{$prefix}progress:before {
+	content: attr(title);
+	font-size: 0.8em;
+	position: absolute;
+	text-align: center;
+	height: 80%;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.#{$prefix}progress .value {
+	background-color: #7cc4ff;
+	display: inline-block;
+	height: 100%;
+	width: 100%;
+}
