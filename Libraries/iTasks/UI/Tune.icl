@@ -38,7 +38,7 @@ instance tune UIAttributes Editor
 where
 	tune extra editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 	where
-		genUI attr dp mode vst = editorGenUI ('DM'.union attr extra) dp (mapEditMode id mode) vst
+		genUI attr dp mode vst = editorGenUI ('DM'.union extra attr) dp (mapEditMode id mode) vst
 
 instance tune UIAttribute Task
 where
