@@ -55,12 +55,6 @@ derive gDefault TIMeta
    = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
 
-// UI State
-:: TIUIState
-	= UIDisabled 									//The UI is disabled (e.g. when nobody is viewing the task)
-	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
-	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
-
 :: AsyncAction = Read | Write | Modify
 
 :: DeferredJSON

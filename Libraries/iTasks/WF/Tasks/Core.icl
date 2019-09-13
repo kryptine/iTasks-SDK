@@ -65,22 +65,12 @@ evalInteractInit sds handlers editor writefun r event evalOpts=:{TaskEvalOpts|ta
 		Enter    = Nothing
 		Update x = Just x
 		View x   = Just x
-	= case initEditorState taskId mode editor iworld of
-		(Ok st, iworld)
-			= evalInteract l v st (mode=:View _) sds handlers editor writefun event evalOpts iworld
-		(Error e, iworld) = (ExceptionResult e, iworld)
-
-initEditorState :: TaskId (EditMode v) (Editor v) !*IWorld -> (MaybeError TaskException EditState, !*IWorld)
-initEditorState taskId mode editor iworld = withVSt taskId
-	( \vst -> case editor.Editor.genUI 'DM'.newMap [] (uniqueMode mode) vst of
-		(Ok (_, st), vst) = (Ok st,               vst)
-		(Error e,    vst) = (Error $ exception e, vst)
-	) iworld
+	= evalInteract l v Nothing (mode=:View _) sds handlers editor writefun ResetEvent evalOpts iworld
 
 evalInteract ::
 	l
 	(Maybe v)
-	EditState
+	(Maybe EditState)
 	Bool
 	(sds () r w)
 	(InteractionHandlers l r w v)
@@ -102,14 +92,15 @@ evalInteract ::
 	| iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 evalInteract _ _ _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
-evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld
+evalInteract l v mst mode sds handlers editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld
+	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
 	| eTaskId == taskId
-		# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
+		# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) (fromJust mst)) iworld
 		= case res of
 			Ok (change, st)
 				= case editor.Editor.valueFromState st of
 					Just nv
-						# (l, v, mbf) = handlers.InteractionHandlers.onEdit nv l v
+						# (l, mbf) = handlers.InteractionHandlers.onEdit nv l
 						= case mbf of
 							//We have an update function
 							Just f = writefun f sds NoValue (\_->change)
@@ -118,29 +109,29 @@ evalInteract l v st mode sds handlers editor writefun event=:(EditEvent eTaskId 
 								// Therefore we delay it by returning the continuation in a value instead of directly:
 								(\w event {TaskEvalOpts|lastEval} iworld->
 									(ValueResult
-										(Value (l, v) False)
+										(Value (l, nv) False)
 										(mkTaskEvalInfo lastEval)
 										change
-										(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+										(Task (evalInteract l (Just nv) (Just st) mode sds handlers editor writefun))
 									, iworld))
 								event evalOpts iworld
 							//There is no update function
 							Nothing
 								= (ValueResult
-									(Value (l, v) False)
+									(Value (l, nv) False)
 									(mkTaskEvalInfo lastEval)
 									change
-									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+									(Task (evalInteract l (Just nv) (Just st) mode sds handlers editor writefun))
 								, iworld)
 					Nothing
 						= (ValueResult
-							(maybe NoValue (\v->Value (l, v) False) v)
+							NoValue
 							(mkTaskEvalInfo lastEval)
 							change
-							(Task (evalInteract l v st mode sds handlers editor writefun))
+							(Task (evalInteract l Nothing (Just st) mode sds handlers editor writefun))
 						, iworld)
 			Error e = (ExceptionResult (exception e), iworld)
-evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
+evalInteract l v mst mode sds handlers editor writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
 	# resetMode = case (mode, v) of
 		(True, Just v) = View v
 		(True, _)      = abort "view mode without value\n"
@@ -156,36 +147,38 @@ evalInteract l v st mode sds handlers editor writefun ResetEvent evalOpts=:{task
 				(maybe NoValue (\v->Value (l, v) False) v)
 				(mkTaskEvalInfo lastEval)
 				change
-				(Task (evalInteract l v st mode sds handlers editor writefun))
+				(Task (evalInteract l v (Just st) mode sds handlers editor writefun))
 			, iworld)
-evalInteract l v st mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
+evalInteract l v mst mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
+	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
 	| 'DS'.member taskId taskIds
 		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
 			(\r event evalOpts iworld
 				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
-				= case withVSt taskId (editor.Editor.onRefresh [] v st) iworld of
+				= case withVSt taskId (editor.Editor.onRefresh [] v (fromJust mst)) iworld of
 					(Error e, iworld) = (ExceptionResult (exception e), iworld)
-				    (Ok (change, st), iworld)
+					(Ok (change, st), iworld)
+						# v = editor.Editor.valueFromState st
 						= case mbf of
 							Just f = writefun f sds NoValue (\_->change)
-								(\_->evalInteract l (Just v) st mode sds handlers editor writefun)
+								(\_->evalInteract l v (Just st) mode sds handlers editor writefun)
 								event evalOpts iworld
 							Nothing
 								= (ValueResult
-									(Value (l, v) False)
+									(maybe NoValue (\v -> Value (l, v) False) v)
 									(mkTaskEvalInfo lastEval)
 									change
-									(Task (evalInteract l (Just v) st mode sds handlers editor writefun))
+									(Task (evalInteract l v (Just st) mode sds handlers editor writefun))
 								, iworld)
 			)
 			event evalOpts iworld
-evalInteract l v st mode sds handlers editor writefun event {lastEval} iworld
+evalInteract l v mst mode sds handlers editor writefun event {lastEval} iworld
 	//An event for a sibling?
 	= (ValueResult
 		(maybe NoValue (\v->Value (l, v) False) v)
 		(mkTaskEvalInfo lastEval)
 		NoChange
-		(Task (evalInteract l v st mode sds handlers editor writefun))
+		(Task (evalInteract l v mst mode sds handlers editor writefun))
 	, iworld)
 
 uniqueMode :: (EditMode a) -> *(EditMode a)

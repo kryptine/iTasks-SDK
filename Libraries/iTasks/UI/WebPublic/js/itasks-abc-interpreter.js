@@ -125,4 +125,31 @@ const ABC_loading_promise=ABCInterpreter.instantiate({
 }).then(function(instance){
 	ABC=instance;
 	ABC.initialized=false;
+
+	// Overwrite ap to return a result (in the case of jsWrapFunWithResult)
+	ABC.ap=function(index){
+		var f=function () {
+			var args=[];
+			for (var i=0; i<arguments.length; i++)
+				args[i]=arguments[i];
+			ABC.interpret(new SharedCleanValue(index), args);
+
+			var result=undefined;
+			const new_asp=ABC.interpreter.instance.exports.get_asp();
+			const hp_ptr=ABC.memory_array[new_asp/4];
+			if (ABC.memory_array[hp_ptr/4]!=25*8+2) { // INT, i.e. JSWorld
+				// Assume we have received a tuple with the first element as the result
+				const str_ptr=ABC.memory_array[hp_ptr/4+2];
+				const string=ABC.get_clean_string(ABC.memory_array[str_ptr/4+2], false);
+				if (ABC_DEBUG)
+					console.log('result:',string);
+				result=eval('('+string+')');
+			}
+
+			if (typeof result!='undefined')
+				return result;
+		};
+		f.shared_clean_value_index=index;
+		return f;
+	};
 });

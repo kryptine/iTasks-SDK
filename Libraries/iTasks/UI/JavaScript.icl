@@ -532,6 +532,13 @@ jsGlobal s = JSVar s
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 jsWrapFun f attach_to world = (share attach_to \(JSArray args) w -> f args w, world)
 
+jsWrapFunWithResult :: !({!JSVal} *JSWorld -> *(JSVal, *JSWorld)) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
+jsWrapFunWithResult f attach_to world = (share attach_to fun, world)
+where
+	fun (JSArray args) w
+	# (r,w) = f args w
+	= hyperstrict (js_val_to_string r,w)
+
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 wrapInitUIFunction f = init
 where
@@ -608,9 +615,12 @@ where
 	}
 
 jsTrace :: !a .b -> .b | toString a
-jsTrace s x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {JSString (toString s)})) of
+jsTrace s x = jsTraceVal (JSString (toString s)) x
+
+jsTraceVal :: !JSVal .a -> .a
+jsTraceVal v x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {v})) of
 	True  -> x
-	False -> abort_with_node s // just in case it is a JSVal
+	False -> abort_with_node v
 
 set_js :: !*String !*String -> Bool
 set_js var val = code {

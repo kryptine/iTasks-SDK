@@ -194,7 +194,7 @@
 .itasks-tabset > * {
 	align-self: stretch;
 }
-.itasks-tabset .itasks-tabbar {
+.itasks-tabbar {
 	text-align: left;
 	list-style: none;
 	margin: 0;
@@ -206,7 +206,7 @@
 	background: linear-gradient(var(--panel-header-base-color-lighter2), var(--panel-header-base-color));
 	overflow: hidden;
 }
-.itasks-tabset .itasks-tabbar li {
+.itasks-tabbar li {
 	margin: 0;
 	padding: 0 10px;
 	border: 1px solid var(--tab-border-color);
@@ -218,12 +218,12 @@
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
 }
-.itasks-tabset .itasks-tabbar li a {
+.itasks-tabbar li a {
 	color: var(--tab-text-color);
 	text-decoration: none;
 }
-.itasks-tabset .itasks-tabbar li:before,
-.itasks-tabset .itasks-tabbar li:after {
+.itasks-tabbar li:before,
+.itasks-tabbar li:after {
 	position: absolute;
 	bottom: -1px;
 	width: 5px;
@@ -231,31 +231,31 @@
 	content: " ";
 	border: 1px solid var(--tab-border-color);
 }
-.itasks-tabset .itasks-tabbar li:before {
+.itasks-tabbar li:before {
 	left: -6px;
 	border-bottom-right-radius: 5px;
 	border-width: 0 1px 1px 0;
 	box-shadow: 2px 2px 0 var(--tab-base-color-darker);
 }
-.itasks-tabset .itasks-tabbar li:after {
+.itasks-tabbar li:after {
 	right: -6px;
 	border-bottom-left-radius: 5px;
 	border-width: 0 0 1px 1px;
 	box-shadow: -2px 2px 0 var(--tab-base-color-darker);
 }
-.itasks-tabset .itasks-tabbar li.itasks-selected {
+.itasks-tabbar li.itasks-selected {
 	background: var(--tab-base-color);
 	color: var(--tab-text-color);
 	z-index: 2;
 	border-bottom-color: var(--tab-base-color);
 }
-.itasks-tabset .itasks-tabbar li.itasks-selected:before {
+.itasks-tabbar li.itasks-selected:before {
 	box-shadow: 2px 2px 0 var(--tab-base-color);
 }
-.itasks-tabset .itasks-tabbar li.itasks-selected:after {
+.itasks-tabbar li.itasks-selected:after {
 	box-shadow: -2px 2px 0 var(--tab-base-color);
 }
-.itasks-tabset .itasks-tabbar li a.itasks-tabclose {
+.itasks-tabbar li a.itasks-tabclose {
 	color: #aaa;
 	display: inline-block;
 	position: relative;
@@ -270,7 +270,7 @@
 	padding: 0 2px;
 }
 
-.itasks-tabset .itasks-tabbar:after {
+.itasks-tabbar:after {
 	position: absolute;
 	content: "";
 	width: 100%;
@@ -279,11 +279,11 @@
 	border-bottom: 1px solid var(--tab-border-color);
 	z-index: 1;
 }
-.itasks-tabset .itasks-tabbar:before {
+.itasks-tabbar:before {
 	z-index: 1;
 }
 
-.itasks-tabset .itasks-tabicon {
+.itasks-tabicon {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
