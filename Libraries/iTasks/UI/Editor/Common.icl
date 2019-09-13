@@ -175,7 +175,7 @@ where
 				(Error e,vst) = (Error e, vst)
 				(Ok (ui,nm),vst)
 					# nChildSts = childSts ++ [nm]
-					# nitems = itemEditor.Editor.valueFromState <$> childSts
+					# nitems = itemEditor.Editor.valueFromState <$> nChildSts
 					# nids = ids ++ [nid]
 					# insert = [(ni,InsertChild (listItemUI taskId dp (ni + 1) ni nid ui))]
 					# counter = maybe [] (\f -> [(ni + 1, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
