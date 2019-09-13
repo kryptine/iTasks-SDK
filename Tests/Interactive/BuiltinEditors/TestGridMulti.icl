@@ -1,5 +1,5 @@
 module TestGridMulti
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task (ChoiceGrid,[Int])
 test = testEditor (grid <<@ multipleAttr True) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update

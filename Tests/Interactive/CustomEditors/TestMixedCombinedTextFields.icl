@@ -1,5 +1,5 @@
 module TestMixedCombinedTextFields
-import iTasks, iTasks.Internal.Test.Definition
+import iTasks, iTasks.Util.Testing
 
 test :: Task (String,String)
 test = testEditor editor ("Hello","world") Update

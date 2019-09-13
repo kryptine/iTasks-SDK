@@ -1,6 +1,6 @@
 module TestCheckbox
 
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task Bool
 test = testEditor checkBox False Update

@@ -1,6 +1,6 @@
 module TestAceEditorWithShare
 
-import iTasks, iTasks.Internal.Test.Definition
+import iTasks, iTasks.Util.Testing
 
 test :: Task (AceOptions,AceState)
 test = testEditorWithShare aceEditor defaultValue Update

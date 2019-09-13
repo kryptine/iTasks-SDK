@@ -1,6 +1,6 @@
 module TestAceTextArea
 
-import iTasks, iTasks.Internal.Test.Definition
+import iTasks, iTasks.Util.Testing
 
 test :: Task String
 test = testEditor aceTextArea "Hello world" Update
