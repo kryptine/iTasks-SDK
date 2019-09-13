@@ -392,7 +392,7 @@ where
 			tooltip = maybe "-" (\(JSONString s) -> s) ('DM'.get HINT_ATTRIBUTE attr)
 
 	removeLabelAttribute = layoutSubUIs (SelectAND SelectChildren (SelectByHasAttribute "label"))
-	                                    (delUIAttributes (SelectKeys ["label"]))
+										(delUIAttributes (SelectKeys ["label"]))
 
 toLabelText :: !String -> String
 toLabelText label = {c \\ c <- [toUpper lname : addspace lnames]}
