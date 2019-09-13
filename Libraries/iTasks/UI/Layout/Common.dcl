@@ -145,3 +145,6 @@ setActionIcon :: (Map String String) -> LayoutRule
  * Format a basic editor as if it was a generic labelled iconized edtior
  */
 toFormItem :: LayoutRule
+
+//* Format a string as a label (e.g., `firstName` -> `"First name"`)
+toLabelText :: !String -> String
