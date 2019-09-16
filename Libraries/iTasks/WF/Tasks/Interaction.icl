@@ -13,6 +13,7 @@ import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Combinators.Overloaded
 import iTasks.WF.Combinators.Common
+import iTasks.WF.Combinators.SDS
 import iTasks.SDS.Sources.Core
 import iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Common
@@ -69,7 +70,6 @@ selectEditor [SelectInTabs toView fromView:_] = SelectUsing toView fromView tabB
 selectEditor [_:es] = selectEditor es
 selectEditor [] = SelectUsing (const []) (\_ _ -> []) dropdown //Empty dropdown
 
-
 //Convert choice options to select options
 selectOptions :: (o -> s) [ChoiceOption o] -> [SelectOption [o] s] | gText{|*|} o
 selectOptions target options = selectOptions` False options 
@@ -97,7 +97,7 @@ enterInformation options = enterInformation` (enterEditor options)
 enterInformation` (EnterUsing fromf editor)
 	= interactRW unitShare handlers editor @ (\((),v) -> fromf v)
 where
-	handlers = {onInit = const ((), Enter), onEdit = \_ l -> (l, Nothing), onRefresh = \r l _ -> (l,undef,Nothing)}
+	handlers = {onInit = const ((), Enter), onEdit = \_ () -> ((), Nothing), onRefresh = \r () _ -> ((),undef,Nothing)}
 
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
 viewInformation options m = viewInformation`  (viewEditor options) m
@@ -113,63 +113,79 @@ updateInformation` (UpdateUsing tof fromf editor) m
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l -> (l, Just (\r -> fromf r v)), onRefresh = \r _ v -> (r,conflictf (tof r) v, Nothing)}
-		editor @ fst
+	= interactRW sds {onInit = \r -> ((), Update $ tof r), onEdit = \v () -> ((), Just (\r -> fromf r v)), onRefresh = \r _ v -> ((),conflictf (tof r) v, Nothing)}
+		editor
+	||- watch sds //TEMPORARY: Don't use an extra task here
+	<<@ ApplyLayout unwrapUI
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l -> (l, Just (\r -> fromf r v))
-			, onRefresh = \r _ v -> (r, maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)}
-		editor @ fst
+	= interactRW sds {onInit = \r -> ((), maybe Enter Update (tof r)), onEdit = \v () -> ((), Just (\r -> fromf r v))
+			, onRefresh = \r _ v -> ((), maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)}
+		editor
+	||- watch sds //TEMPORARY: Don't use an extra task here
+	<<@ ApplyLayout unwrapUI
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
 viewSharedInformation` (ViewUsing tof editor) sds
-	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \_ l -> (l, Nothing), onRefresh = \r _ _ -> (r,Just $ tof r,Nothing)} editor @ fst
+	= interactR sds {onInit = \r -> ((), View $ tof r), onEdit = \_ () -> ((), Nothing), onRefresh = \r _ _ -> ((),Just $ tof r,Nothing)} editor
+	||- watch sds //TEMPORARY: Don't use an extra task here
+	<<@ ApplyLayout unwrapUI
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
-	= interactRW sds
-		{onInit = \r -> ((r,m), Update $ tof (r,m))
-		,onEdit = \v (r,m)      -> let nm = fromf (r,m) v in ((r,nm),Nothing)
-		,onRefresh = \r (_,m) _ -> ((r,m),Just $ tof (r,m),Nothing)
-		} gEditor{|*|} @ (snd o fst)
+	= withShared m
+	\sdsm ->
+	  interactRW (sds |*< sdsm)
+		{onInit = \(r,m) -> ((), Update $ tof (r,m))
+		,onEdit = \v ()      -> ((),Just (\(r,m) -> fromf (r,m) v))
+		,onRefresh = \(r,m) () _ -> ((),Just $ tof (r,m), Nothing)
+		} editor
+	||- watch sdsm //TEMPORARY: Don't use an extra task here
+	<<@ ApplyLayout unwrapUI
 
 editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a
 editSelection options container sel = editSelection` (selectAttributes options) (selectEditor options) container sel
 editSelection` attributes (SelectUsing toView fromView editor) container sel
 	= interactRW unitShare
 		{onInit = \r   -> ((), Update (toView container,sel))
-		,onEdit = \_ l -> (l, Nothing)
-		,onRefresh = \_ l v -> (l,v,Nothing)
+		,onEdit = \_ () -> ((), Nothing)
+		,onRefresh = \_ () v -> ((),v,Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
 editSelectionWithShared options sharedContainer initSel = editSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer initSel
 editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer initSel
-	= interactRW sharedContainer
-		{onInit = \r     -> (r, Update(toView r, initSel r))
-		,onEdit = \_ l -> (l, Nothing)
-		,onRefresh = \r l v -> (r,(\(_, sel) -> (toView r,sel)) <$> v,Nothing)
-		} (attributes @>> editor) @ (\(container,(_,sel)) -> fromView container sel)
+	= (((interactRW sharedContainer
+		{onInit = \r     -> ((), Update(toView r, initSel r))
+		,onEdit = \_ () -> ((), Nothing)
+		,onRefresh = \r () v -> ((),(\(_, sel) -> (toView r,sel)) <$> v,Nothing)
+		} (attributes @>> editor) @ (\(_,(_,sel)) -> sel))
+	-&&- watch sharedContainer //TEMPORARY: Don't use an extra task here
+	) @ (\(sel,container) -> fromView container sel)
+	) <<@ ApplyLayout unwrapUI
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
 editSharedSelection options container sharedSel = editSharedSelection` (selectAttributes options) (selectEditor options) container sharedSel
 editSharedSelection` attributes (SelectUsing toView fromView editor) container sharedSel
 	= interactRW sharedSel
 		{onInit = \r        -> ((), Update (toView container,r))
-		,onEdit = \(_,vs) l -> (l, Just (const vs))
-		,onRefresh = \r l v -> (l,(\(vt, _) -> (vt, r)) <$> v,Nothing)
+		,onEdit = \(_,vs) () -> ((), Just (const vs))
+		,onRefresh = \r () v -> ((),(\(vt, _) -> (vt, r)) <$> v,Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedSelectionWithShared options sharedContainer sharedSel
 	= editSharedSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer sharedSel
 editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer sharedSel
-	= interactRW (sharedContainer |*< sharedSel)
-		{onInit = \(rc, rs)  -> (rc, Update (toView rc,rs))
-		,onEdit = \(_, vs) l -> (l, Just (const vs))
-		,onRefresh = \(rc, rs)   _ _ -> (rc, Just (toView rc, rs), Nothing)
-		} (attributes @>> editor) @ (\(container, (_, sel)) -> fromView container sel)
+	= (((interactRW (sharedContainer |*< sharedSel)
+		{onInit = \(rc, rs)  -> ((), Update (toView rc,rs))
+		,onEdit = \(_, vs) () -> ((), Just (const vs))
+		,onRefresh = \(rc, rs) _ _ -> ((), Just (toView rc, rs), Nothing)
+		} (attributes @>> editor) @ (\(_,(_,sel)) -> sel))
+	-&&- watch sharedContainer //TEMPORARY: Don't use an extra task here
+	) @ (\(sel,container) -> fromView container sel)
+	) <<@ ApplyLayout unwrapUI
 
 //Core choice tasks
 editChoice :: ![ChoiceOption a] ![a] (Maybe a) -> Task a | iTask a
