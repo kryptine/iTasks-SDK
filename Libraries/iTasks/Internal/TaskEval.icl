@@ -123,8 +123,15 @@ where
 							| destroyed = (Ok value,iworld)
 							| otherwise = case compactUIChange change of
 								//Only queue UI changes if something interesting is changed
-								NoChange = (Ok value,iworld)
-								change   = (Ok value, queueUIChange instanceNo change iworld)
+								NoChange
+									= (Ok value,iworld)
+								change
+									# (mbErr,iworld) = modify
+										(\attrs -> foldr applyUIAttributeChange attrs (getAttributeChanges change))
+										(sdsFocus instanceNo taskInstanceAttributes) EmptyContext iworld
+									| mbErr=:(Error _)
+										= exitWithException instanceNo "failed to update attributes" iworld
+										= (Ok value, queueUIChange instanceNo change iworld)
 						ExceptionResult (e,description)
 							# iworld = if (type =: StartupInstance)
 								(printStdErr description {iworld & shutdown=Just 1})
@@ -163,6 +170,10 @@ where
 			(ExceptionResult (_,msg))             = {InstanceProgress|progress & value = Exception msg}
 			(ValueResult (Value _ stable) _  _ _) = {InstanceProgress|progress & value = if stable Stable Unstable}
 			_                                     = {InstanceProgress|progress & value = Unstable }
+
+	getAttributeChanges :: !UIChange -> [UIAttributeChange]
+	getAttributeChanges (ChangeUI changes _) = changes
+	getAttributeChanges (ReplaceUI (UI _ attrs _)) = [SetAttribute attr val \\ (attr,val) <- 'DM'.toList attrs]
 
 	mbResetUIState instanceNo ResetEvent iworld
 		# (_,iworld) = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld
