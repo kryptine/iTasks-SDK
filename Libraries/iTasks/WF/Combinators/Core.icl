@@ -119,7 +119,7 @@ where
 			(ExceptionResult e, iworld)  = (ExceptionResult e, iworld)
 			(ValueResult _ _ _ _,iworld) = (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
-	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId} iworld
+	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId=taskId=:(TaskId ino tano)} iworld
 		# mbAction = matchAction taskId event
 		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
 		// Right  is a step
@@ -155,22 +155,10 @@ where
 			//No match, just pass through
 			Left res = (res, iworld)
 			//A match, continue with the matched rhs
-			Right ((_, (Task rhs), _), lastEvent, removedTasks)
-				//Execute the rhs with a reset event
-				# (resb, iworld)        = rhs ResetEvent evalOpts iworld
-				= case resb of
-					ValueResult val info change=:(ReplaceUI _) (Task rhs)
-						# info = {TaskEvalInfo|info & lastEvent = max lastEvent info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
-						= (ValueResult
-							val
-							info
-							change
-							//Actually rewrite to the rhs
-							(Task rhs)
-						,iworld)
-					ValueResult _ _ change _
-						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
-					ExceptionResult e = (ExceptionResult e, iworld)
+			Right ((_, (Task rhs), _), lastEval, removedTasks)
+				# info = {TaskEvalInfo|lastEvent=lastEval, removedTasks=removedTasks}
+				= (ValueResult NoValue info NoChange (Task (\_->rhs ResetEvent))
+					, queueEvent ino (RefreshEvent ('DS'.singleton taskId) "step") iworld)
 
 	wrapStepUI taskId evalOpts event actions prevEnabled val change
 		| actionUIs =: []
