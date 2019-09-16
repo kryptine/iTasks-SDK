@@ -160,7 +160,7 @@ where
 				# (resb, iworld)        = rhs ResetEvent evalOpts iworld
 				= case resb of
 					ValueResult val info change=:(ReplaceUI _) (Task rhs)
-						# info = {TaskEvalInfo|info & lastEvent = max lastEval info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
+						# info = {TaskEvalInfo|info & lastEvent = max lastEvent info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
 						= (ValueResult
 							val
 							info
