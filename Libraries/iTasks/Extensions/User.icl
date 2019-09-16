@@ -229,7 +229,7 @@ workAs asUser task
 */
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 assign attr task
-	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, const task)] []
+	=	parallel [(Embedded, \s -> processControl s),(Detached False, const (task <<@ attr))] []
 	@?	result
 where
 	processControl tlist

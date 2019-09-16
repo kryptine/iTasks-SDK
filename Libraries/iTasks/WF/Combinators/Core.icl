@@ -38,10 +38,6 @@ derive gEq ParallelTaskChange
 
 :: Action	= Action !String //Locally unique identifier for actions
 
-:: ParallelTaskType
-	= Embedded                                    //Simplest embedded
-	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
-
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 
 // Data available to parallel sibling tasks
@@ -329,17 +325,17 @@ initParallelTask ::
 	| iTask a
 initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
-		Embedded                                 = mkEmbedded 'DM'.newMap iworld
-		Detached           attributes evalDirect = mkDetached attributes evalDirect iworld
+		Embedded            = mkEmbedded iworld
+		Detached evalDirect = mkDetached evalDirect iworld
 	= case mbTaskStuff of
-		Ok (taskId,attributes,mbTask)
+		Ok (taskId,mbTask)
 			# state =
 				{ ParallelTaskState
 				| taskId      = taskId
 				, index       = index
 				, detached    = isNothing mbTask
 				, implicitAttributes = 'DM'.newMap
-				, explicitAttributes = fmap (\x -> (x,True)) attributes
+				, explicitAttributes = 'DM'.newMap
 				, value       = NoValue
 				, createdAt   = taskTime
 				, lastEvent   = taskTime
@@ -349,19 +345,19 @@ initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTim
 			= (Ok (state,mbTask),iworld)
 		err = (liftError err, iworld)
 where
-	mkEmbedded attributes iworld
+	mkEmbedded iworld
 		# (taskId,iworld) = getNextTaskId iworld
 		# task            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
-		= (Ok (taskId, attributes, Just (taskId,task)), iworld)
-	mkDetached attributes evalDirect iworld
+		= (Ok (taskId, Just (taskId,task)), iworld)
+	mkDetached evalDirect iworld
 		# (mbInstanceNo,iworld) = newInstanceNo iworld
 		= case mbInstanceNo of
 			Ok instanceNo
 				# isTopLevel        = listId == TaskId 0 0
 				# listShare         = if isTopLevel topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo attributes listId evalDirect iworld
+				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo 'DM'.newMap listId evalDirect iworld
 				= case mbTaskId of
-					Ok taskId = (Ok (taskId, attributes, Nothing), iworld)
+					Ok taskId = (Ok (taskId, Nothing), iworld)
 					err       = (liftError err, iworld)
 			err = (liftError err, iworld)
 
