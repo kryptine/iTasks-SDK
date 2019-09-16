@@ -100,45 +100,45 @@ where
 		(case (modify (updateProgress clock newResult) (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld) of
 		  (Error e, iworld) = (Error e, iworld)
 		  (Ok _, iworld) = (Ok (), iworld) )
-	= case mbErr of
-		Error (e,description)           = exitWithException instanceNo description iworld
-		Ok ()
-			//Store or remove reduct
-			# (nextTaskNo,iworld)		= getNextTaskNo iworld
-			# (_,iworld)                =
-				 (modify (maybe Nothing (\r -> if destroyed Nothing (Just {TIReduct|r & task = newTask, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1})))
-					(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld)
-					//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
-			//Store or delete value
-			# newValue                  = case newResult of
-				ValueResult val _ _ _     = Just (TIValue val)
-				ExceptionResult (e,str)   = Just (TIException e str)
-				DestroyedResult           = Nothing
-			# (mbErr,iworld) = write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld
-			= case mbErr of
-				Error (e,description) = exitWithException instanceNo description iworld
-				Ok _
-					= case newResult of
-						ValueResult value _ change _
-							| destroyed = (Ok value,iworld)
-							| otherwise = case compactUIChange change of
-								//Only queue UI changes if something interesting is changed
-								NoChange
-									= (Ok value,iworld)
-								change
-									# (mbErr,iworld) = modify
-										(\attrs -> foldr applyUIAttributeChange attrs (getAttributeChanges change))
-										(sdsFocus instanceNo taskInstanceAttributes) EmptyContext iworld
-									| mbErr=:(Error _)
-										= exitWithException instanceNo "failed to update attributes" iworld
-										= (Ok value, queueUIChange instanceNo change iworld)
-						ExceptionResult (e,description)
-							# iworld = if (type =: StartupInstance)
-								(printStdErr description {iworld & shutdown=Just 1})
-								 iworld
-							= exitWithException instanceNo description iworld
-						DestroyedResult
-							= (Ok NoValue, iworld)
+	| mbErr=:(Error _)
+		# (Error (_,description)) = mbErr
+		= exitWithException instanceNo description iworld
+	//Store or remove reduct
+	# (nextTaskNo,iworld) = getNextTaskNo iworld
+	# (_,iworld)          = modify
+			(maybe Nothing \r -> if destroyed Nothing (Just {TIReduct|r & task = newTask, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
+			(sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
+			//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
+	//Store or delete value
+	# newValue = case newResult of
+		ValueResult val _ _ _   = Just (TIValue val)
+		ExceptionResult (e,str) = Just (TIException e str)
+		DestroyedResult         = Nothing
+	# (mbErr,iworld) = write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld
+	| mbErr=:(Error _)
+		# (Error (_,description)) = mbErr
+		= exitWithException instanceNo description iworld
+	= case newResult of
+		ValueResult value _ change _
+			| destroyed = (Ok value,iworld)
+			| otherwise = case compactUIChange change of
+				//Only queue UI changes if something interesting is changed
+				NoChange
+					= (Ok value,iworld)
+				change
+					# (mbErr,iworld) = modify
+						(\attrs -> foldr applyUIAttributeChange attrs (getAttributeChanges change))
+						(sdsFocus instanceNo taskInstanceAttributes) EmptyContext iworld
+					| mbErr=:(Error _)
+						= exitWithException instanceNo "failed to update attributes" iworld
+						= (Ok value, queueUIChange instanceNo change iworld)
+		ExceptionResult (e,description)
+			# iworld = if (type =: StartupInstance)
+				(printStdErr description {iworld & shutdown=Just 1})
+				 iworld
+			= exitWithException instanceNo description iworld
+		DestroyedResult
+			= (Ok NoValue, iworld)
 
 	exitWithException instanceNo description iworld
 		# iworld = queueException instanceNo description iworld
