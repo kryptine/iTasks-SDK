@@ -349,14 +349,14 @@ listItemTask (title,plan) status
     @!  ()
 where
     items initActions initContacts initIncidents
-        = [(Detached (initAttributes identity (initStatus meta)) True, configureDelayed configer task)
+        = [(Detached True, configureDelayed (initAttributes identity (initStatus meta)) configer task )
           \\ item=:{CatalogAction|identity,meta,tasks=ActionTasks configer task} <- initActions]
     where
-        configureDelayed configer task list
+        configureDelayed attr configer task list
             =   configer initContacts initIncidents
             >>= \(config,status) ->
                 set status (selfActionStatus list)
-            >>| task config (selfActionStatus list)
+            >>| task config (selfActionStatus list) <<@ attr
         initStatus {ItemMeta|title,description}
             = {ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents}
 
@@ -746,7 +746,7 @@ where
 addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
-    >>| appendTask (Detached attributes True) (\l -> (task (selfActionStatus l) @? const NoValue)) list
+    >>| appendTask (Detached True) (\l -> (task (selfActionStatus l) <<@ attributes) @? const NoValue) list
 where
     attributes = initAttributes identity initStatus
 
@@ -755,7 +755,7 @@ addSubActionItem :: [ContactNo] [IncidentNo] CatalogAction (SharedTaskList a) ->
 addSubActionItem initContacts initIncidents item=:{CatalogAction|identity,tasks=ActionTasks configer task} list
     =  (configer initContacts initIncidents
     >>? \(config,initStatus) ->
-        appendTask (Detached (initAttributes identity initStatus) True) (\list -> task config (selfActionStatus list) @? const NoValue) list
+        appendTask (Detached True) (\list -> (task config (selfActionStatus list) <<@ initAttributes identity initStatus) @? const NoValue) list
     ) <<@ InWindow
 
 addTopActionItem :: [ContactNo] [IncidentNo] -> Task (Maybe TaskId)
