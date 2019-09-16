@@ -119,12 +119,10 @@ where
 			(ExceptionResult e, iworld)  = (ExceptionResult e, iworld)
 			(ValueResult _ _ _ _,iworld) = (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
-	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId=taskId=:(TaskId ino tano)} iworld
-		# mbAction = matchAction taskId event
-		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
-		// Right  is a step
-		# (mbCont, iworld) = case res of
-			ValueResult val info rep lhs
+	evalleft lhs prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId=taskId=:(TaskId ino tano)} iworld
+		= case (unTask lhs) event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld of
+			(ValueResult val info rep lhs, iworld)
+				# mbAction = matchAction taskId event
 				= case searchContValue val mbAction conts of
 					//No match
 					Nothing
@@ -133,32 +131,23 @@ where
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
 						# sl = wrapStepUI taskId evalOpts event actions prevEnabledActions val rep
-						= (Left (ValueResult
-							value
-							info
-							sl
-							(Task (evalleft lhs curEnabledActions leftTaskId))
-							)
-						, iworld)
+						= ( ValueResult value info sl (Task (evalleft lhs curEnabledActions leftTaskId))
+						  , iworld)
 					//A match
-					Just rewrite
+					Just (_, rewrite, _)
 						//Send a destroyevent to the lhs
 						# (_, iworld) = (unTask lhs) DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
-						= (Right (rewrite, info.TaskEvalInfo.lastEvent, info.TaskEvalInfo.removedTasks), iworld)
-			ExceptionResult e
+						# info = {TaskEvalInfo|lastEvent=info.TaskEvalInfo.lastEvent, removedTasks=info.TaskEvalInfo.removedTasks}
+						//Continue with the rhs and force the first event to be a Reset, it would've been the queued refresh
+						= ( ValueResult NoValue info rep (Task (\_->(unTask rewrite) ResetEvent))
+						  , queueEvent ino (RefreshEvent ('DS'.singleton taskId) "step") iworld)
+			(ExceptionResult e, iworld)
 				= case searchContException e conts of
-					//No match
-					Nothing      = (Left (ExceptionResult e), iworld)
-					//A match
-					Just rewrite = (Right (rewrite, lastEval, []), iworld)
-		= case mbCont of
-			//No match, just pass through
-			Left res = (res, iworld)
-			//A match, continue with the matched rhs
-			Right ((_, (Task rhs), _), lastEval, removedTasks)
-				# info = {TaskEvalInfo|lastEvent=lastEval, removedTasks=removedTasks}
-				= (ValueResult NoValue info NoChange (Task (\_->rhs ResetEvent))
-					, queueEvent ino (RefreshEvent ('DS'.singleton taskId) "step") iworld)
+					//No match, re-throw exception
+					Nothing = (ExceptionResult e, iworld)
+					//A match, rewrite
+					Just (_, rewrite, _)
+						= (ValueResult NoValue (mkTaskEvalInfo lastEval) NoChange rewrite, iworld)
 
 	wrapStepUI taskId evalOpts event actions prevEnabled val change
 		| actionUIs =: []
@@ -167,7 +156,7 @@ where
 					= ReplaceUI (UI type (addClassAttr "step" attributes) items)
 				_
 					= change
-		| otherwise	//Wrap in a container
+		| otherwise //Wrap in a container
 			= case (event,change) of
 				(ResetEvent,ReplaceUI ui) //On reset generate a new step UI
 					= ReplaceUI (uiac UIContainer (classAttr ["step-actions"]) [ui:actionUIs])
