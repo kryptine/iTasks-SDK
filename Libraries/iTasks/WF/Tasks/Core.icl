@@ -47,12 +47,12 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
+interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task v
 	| iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW shared handlers editor
 	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor modifyCompletely))
 
-interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v)
+interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task v
 	| iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 interactR shared handlers editor
 	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
@@ -78,17 +78,17 @@ evalInteract ::
 	(
 		(r -> w)
 		(sds () r w)
-		(TaskValue (l,v))
+		(TaskValue v)
 		(Event -> UIChange)
-		(w -> Event -> TaskEvalOpts -> *IWorld -> *(TaskResult (l,v),*IWorld))
+		(w -> Event -> TaskEvalOpts -> *IWorld -> *(TaskResult v,*IWorld))
 		Event
 		TaskEvalOpts
 		*IWorld
-		-> *(TaskResult (l,v),*IWorld))
+		-> *(TaskResult v,*IWorld))
 	Event
 	TaskEvalOpts
 	*IWorld
-	-> *(TaskResult (l,v),*IWorld)
+	-> *(TaskResult v,*IWorld)
 	| iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
 evalInteract _ _ _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
@@ -109,7 +109,7 @@ evalInteract l v mst mode sds handlers editor writefun event=:(EditEvent eTaskId
 								// Therefore we delay it by returning the continuation in a value instead of directly:
 								(\w event {TaskEvalOpts|lastEval} iworld->
 									(ValueResult
-										(Value (l, nv) False)
+										(Value nv False)
 										(mkTaskEvalInfo lastEval)
 										change
 										(Task (evalInteract l (Just nv) (Just st) mode sds handlers editor writefun))
@@ -118,7 +118,7 @@ evalInteract l v mst mode sds handlers editor writefun event=:(EditEvent eTaskId
 							//There is no update function
 							Nothing
 								= (ValueResult
-									(Value (l, nv) False)
+									(Value nv False)
 									(mkTaskEvalInfo lastEval)
 									change
 									(Task (evalInteract l (Just nv) (Just st) mode sds handlers editor writefun))
@@ -144,7 +144,7 @@ evalInteract l v mst mode sds handlers editor writefun ResetEvent evalOpts=:{tas
 			# mbv = editor.Editor.valueFromState st
 			# v = maybe v Just mbv
 			= (ValueResult
-				(maybe NoValue (\v->Value (l, v) False) v)
+				(maybe NoValue (\v->Value v False) v)
 				(mkTaskEvalInfo lastEval)
 				change
 				(Task (evalInteract l v (Just st) mode sds handlers editor writefun))
@@ -153,7 +153,7 @@ evalInteract l v mst mode sds handlers editor writefun event=:(RefreshEvent task
 	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
 	# st = fromJust mst
 	| 'DS'.member taskId taskIds
-		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
+		= readRegisterCompletely sds (maybe NoValue (\v->Value v False) v) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
 			(\r event evalOpts iworld
 				# (l, mbV, mbf) = handlers.InteractionHandlers.onRefresh r l v
 				# mbChange = case mbV of
@@ -169,7 +169,7 @@ evalInteract l v mst mode sds handlers editor writefun event=:(RefreshEvent task
 								event evalOpts iworld
 							Nothing
 								= (ValueResult
-									(maybe NoValue (\v -> Value (l, v) False) v)
+									(maybe NoValue (\v -> Value v False) v)
 									(mkTaskEvalInfo lastEval)
 									change
 									(Task (evalInteract l v (Just st) mode sds handlers editor writefun))
@@ -179,7 +179,7 @@ evalInteract l v mst mode sds handlers editor writefun event=:(RefreshEvent task
 evalInteract l v mst mode sds handlers editor writefun event {lastEval} iworld
 	//An event for a sibling?
 	= (ValueResult
-		(maybe NoValue (\v->Value (l, v) False) v)
+		(maybe NoValue (\v->Value v False) v)
 		(mkTaskEvalInfo lastEval)
 		NoChange
 		(Task (evalInteract l v mst mode sds handlers editor writefun))

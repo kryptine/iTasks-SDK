@@ -77,7 +77,7 @@ instance toString OSException
  * Core interaction task. All other interaction tasks are derived from this
  * one. `interactR` is almost identical but does not update the given sds.
  */
-interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
+interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task v | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
 
 //* See documentation on `interactRW`.
-interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
+interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task v | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds

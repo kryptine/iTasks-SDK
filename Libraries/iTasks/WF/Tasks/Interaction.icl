@@ -95,7 +95,7 @@ findSelection target options idxs = target <$> getItems options idxs
 enterInformation :: ![EnterOption m] -> Task m | iTask m
 enterInformation options = enterInformation` (enterEditor options)
 enterInformation` (EnterUsing fromf editor)
-	= interactRW unitShare handlers editor @ (\((),v) -> fromf v)
+	= interactRW unitShare handlers editor @ (\v -> fromf v)
 where
 	handlers = {onInit = const ((), Enter), onEdit = \_ () -> ((), Nothing), onRefresh = \r () _ -> ((),undef,Nothing)}
 
@@ -108,7 +108,7 @@ updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
 	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l v -> (l,v,Nothing)}
-		editor @ (\((),v) -> fromf m v)
+		editor @ (\v -> fromf m v)
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
@@ -151,7 +151,7 @@ editSelection` attributes (SelectUsing toView fromView editor) container sel
 		{onInit = \r   -> ((), Update (toView container,sel))
 		,onEdit = \_ () -> ((), Nothing)
 		,onRefresh = \_ () v -> ((),v,Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
+		} (attributes @>> editor) @ (\(_,sel) -> fromView container sel)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
 editSelectionWithShared options sharedContainer initSel = editSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer initSel
@@ -160,7 +160,7 @@ editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedC
 		{onInit = \r     -> ((), Update(toView r, initSel r))
 		,onEdit = \_ () -> ((), Nothing)
 		,onRefresh = \r () v -> ((),(\(_, sel) -> (toView r,sel)) <$> v,Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> sel))
+		} (attributes @>> editor) @ (\(_,sel) -> sel))
 	-&&- watch sharedContainer //TEMPORARY: Don't use an extra task here
 	) @ (\(sel,container) -> fromView container sel)
 	) <<@ ApplyLayout unwrapUI
@@ -172,7 +172,7 @@ editSharedSelection` attributes (SelectUsing toView fromView editor) container s
 		{onInit = \r        -> ((), Update (toView container,r))
 		,onEdit = \(_,vs) () -> ((), Just (const vs))
 		,onRefresh = \r () v -> ((),(\(vt, _) -> (vt, r)) <$> v,Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
+		} (attributes @>> editor) @ (\(_,sel) -> fromView container sel)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedSelectionWithShared options sharedContainer sharedSel
@@ -182,7 +182,7 @@ editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) s
 		{onInit = \(rc, rs)  -> ((), Update (toView rc,rs))
 		,onEdit = \(_, vs) () -> ((), Just (const vs))
 		,onRefresh = \(rc, rs) _ _ -> ((), Just (toView rc, rs), Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> sel))
+		} (attributes @>> editor) @ snd)
 	-&&- watch sharedContainer //TEMPORARY: Don't use an extra task here
 	) @ (\(sel,container) -> fromView container sel)
 	) <<@ ApplyLayout unwrapUI
