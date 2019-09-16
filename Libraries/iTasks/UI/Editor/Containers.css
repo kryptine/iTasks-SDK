@@ -2,11 +2,11 @@
 *.itasks-viewport {
 	display: flex;
 	margin: 0;
-    font-family: tahoma, arial, verdana, sans-serif;
+	font-family: tahoma, arial, verdana, sans-serif;
 	text-align: left;
 	font-weight: normal;
 
-    overflow: auto;
+	overflow: auto;
 	flex-basis: 0;
 }
 *.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
