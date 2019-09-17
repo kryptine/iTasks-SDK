@@ -24,6 +24,7 @@ import iTasks.Internal.Util
 import iTasks.SDS.Sources.System
 import iTasks.WF.Combinators.Common
 import iTasks.WF.Definition
+import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.System
 import iTasks.WF.Derives
@@ -151,6 +152,8 @@ where
 			"Enable distributed mode (populate the symbols share)"
 		, Option ['s'] ["sdsPort"] (ReqArg (\p->fmap \o->{o & sdsPort=toInt p}) "SDSPORT")
 			("Specify the SDS port (default: " +++ toString defaults.sdsPort +++ ")")
+		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & showInstructions=False}))
+			"Don't show instructions to open the browser"
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
@@ -189,10 +192,11 @@ instance Startable (a,b) | Startable a & Startable b
 where
 	toStartable (x,y) = toStartable x ++ toStartable y
 
-viewWebServerInstructions :: Task String
+viewWebServerInstructions :: Task ()
 viewWebServerInstructions
 	=   get applicationOptions
-	>>- \{EngineOptions|appName,serverPort} ->
+	>>- \{EngineOptions|appName,serverPort,showInstructions}
+		| showInstructions ->
 			traceValue (join OS_NEWLINE
 				["*** " +++ appName +++ " HTTP server ***"
 				,""
@@ -200,7 +204,8 @@ viewWebServerInstructions
 					if (serverPort == 80)
 						"/"
 						(":" +++ toString serverPort +++ "/")
-				])
+				]) @! ()
+		| otherwise -> treturn ()
 
 defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
 defaultEngineOptions world
@@ -209,24 +214,25 @@ defaultEngineOptions world
 	# appDir             = takeDirectory appPath
 	# appName            = (if (takeExtension appPath == "exe") dropExtension id o dropDirectory) appPath
 	# options =
-		{ appName        = appName
-		, appPath        = appPath
-		, appVersion     = appVersion
-		, serverPort     = IF_POSIX_OR_WINDOWS 8080 80
-		, serverUrl      = "http://localhost/"
-		, allowedHosts   = ["127.0.0.1"]
-		, keepaliveTime  = {tv_sec=300,tv_nsec=0} // 5 minutes
-		, sessionTime    = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
-		, persistTasks   = False
-		, autoLayout     = True
-		, distributed    = False
-		, maxEvents      = 5
-		, sdsPort        = 9090
-		, timeout        = Nothing//Just 500
-		, webDirPath     = appDir </> appName +++ "-www"
-		, storeDirPath   = appDir </> appName +++ "-data" </> "stores"
-		, tempDirPath    = appDir </> appName +++ "-data" </> "tmp"
-		, byteCodePath   = appDir </> appName +++ ".bc"
+		{ appName          = appName
+		, appPath          = appPath
+		, appVersion       = appVersion
+		, serverPort       = IF_POSIX_OR_WINDOWS 8080 80
+		, serverUrl        = "http://localhost/"
+		, allowedHosts     = ["127.0.0.1"]
+		, keepaliveTime    = {tv_sec=300,tv_nsec=0} // 5 minutes
+		, sessionTime      = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
+		, persistTasks     = False
+		, autoLayout       = True
+		, distributed      = False
+		, maxEvents        = 5
+		, sdsPort          = 9090
+		, timeout          = Nothing//Just 500
+		, webDirPath       = appDir </> appName +++ "-www"
+		, storeDirPath     = appDir </> appName +++ "-data" </> "stores"
+		, tempDirPath      = appDir </> appName +++ "-data" </> "tmp"
+		, byteCodePath     = appDir </> appName +++ ".bc"
+		, showInstructions = True
 		}
 	= (options,world)
 
