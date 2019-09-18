@@ -10,7 +10,7 @@ import Data.Maybe
 import Text.Encodings.Base64
 import Text.GenJSON
 
-:: *JSWorld = JSWorld
+:: JSWorld = JSWorld
 
 :: JSVal
 	= JSInt !Int

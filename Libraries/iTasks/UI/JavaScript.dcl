@@ -20,7 +20,14 @@ from StdMaybe import :: Maybe
 from StdOverloaded import class toString
 from Text.GenJSON import :: JSONNode
 
-:: *JSWorld
+/**
+ * All impure interfacing with JavaScript is handled through the `*JSWorld`, as
+ * native impure functionality is threaded through `*World`. `JSWorld` is not
+ * unique to be able to instantiate Monad (in `iTasks.UI.JavaScript.Monad`).
+ * Because all functions using `JSWorld` use it in a unique way, sharing is
+ * still prohibited.
+ */
+:: JSWorld
 
 :: JSVal
 :: JSFun :== JSVal
