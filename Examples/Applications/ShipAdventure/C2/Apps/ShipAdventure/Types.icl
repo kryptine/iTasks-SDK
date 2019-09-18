@@ -420,7 +420,7 @@ updateMapStatus mode
                           Value x _ -> Just x
                           _         -> Nothing) sharedMapAction */
       (Title "Map Status" @>> updateInformationWithShared 
-        [UpdateSharedUsing id (const snd) const editor]
+        [UpdateSharedUsing id (const snd) (const o Just) editor]
         (disabledSections |*| maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| myInventoryMap |*| myStatusMap |*| sectionUsersShare |*| myUserActorMap |*| myNetwork |*| myDevices)
         NoAction)
 where
@@ -437,7 +437,7 @@ disabledSections = sharedStore "disabledSections" 'DS'.newSet
 updateSectionStatus :: !Coord3D -> Task (MapAction SectionStatus)
 updateSectionStatus c3d=:(floorIdx, _)
   = Title "Section Status" @>> updateInformationWithShared 
-      [UpdateSharedUsing id (const snd) const editor]
+      [UpdateSharedUsing id (const snd) (const o Just) editor]
       (maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| sdsFocus c3d inventoryInSectionShare |*| sdsFocus c3d statusInSectionShare |*| sdsFocus c3d (actorsInSectionShare myUserActorMap) |*| myNetwork |*| myDevices)
       NoAction
 where

@@ -229,7 +229,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> (Title "Preview" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj const] (perspective >*| standardMapLayers)) <<@ ApplyLayout flexMap @ fst
+        \perspective -> (Title "Preview" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] (perspective >*| standardMapLayers)) <<@ ApplyLayout flexMap @ fst
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective

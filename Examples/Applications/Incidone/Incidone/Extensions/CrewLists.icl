@@ -55,7 +55,7 @@ where
     refs = sdsFocus contactNo crewAliasListsStore
 
     manageCurrentItems
-        = Hint "Manage crew list" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj const] items
+        = Hint "Manage crew list" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] items
     where
         items = sdsDeref refs snd contactsByNosShort derefAliasList
         toPrj l = [(contactIdentity c, aNo, contactTitle c)\\(aNo,c) <-l]

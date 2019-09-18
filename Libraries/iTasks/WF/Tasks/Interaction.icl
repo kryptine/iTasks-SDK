@@ -52,7 +52,7 @@ updateSharedEditor :: [UpdateSharedOption r w] -> UpdateSharedOption r w | iTask
 updateSharedEditor [UpdateSharedUsing tof fromf conflictf editor:_] = UpdateSharedUsing tof fromf conflictf editor
 updateSharedEditor [UpdateSharedAs tof fromf conflictf:_] = UpdateSharedUsing tof fromf conflictf gEditor{|*|}
 updateSharedEditor [_:es] = updateSharedEditor es
-updateSharedEditor [] =  UpdateSharedUsingAuto dynid (flip const) const gEditor{|*|}
+updateSharedEditor [] =  UpdateSharedUsingAuto dynid (flip const) (const o Just) gEditor{|*|}
 where
 	//If r == w then this is just the identity, otherwise the editor will use a default value
 	dynid x = case dynamic id :: A.a: (a -> a) of
@@ -102,12 +102,12 @@ where
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
 viewInformation options m = viewInformation`  (viewEditor options) m
 viewInformation` (ViewUsing tof editor) m
-	= interactR unitShare {onInit = const ((),View $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)} editor @! m
+	= interactR unitShare {onInit = const ((),View $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l v -> (l,v,Nothing)} editor @! m
 
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
-	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l (Just v) -> (l,v,Nothing)}
+	= interactRW unitShare {onInit = const ((), Update $ tof m), onEdit = \_ l -> (l, Nothing), onRefresh = \r l v -> (l,v,Nothing)}
 		editor @ (\((),v) -> fromf m v)
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
@@ -117,13 +117,13 @@ updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 		editor @ fst
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
 	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l -> (l, Just (\r -> fromf r v))
-			, onRefresh = \r _ v -> (r, maybe undef (\r` -> conflictf r` v) (tof r), Nothing)}
+			, onRefresh = \r _ v -> (r, maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)}
 		editor @ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
 viewSharedInformation` (ViewUsing tof editor) sds
-	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \_ l -> (l, Nothing), onRefresh = \r _ _ -> (r,tof r,Nothing)} editor @ fst
+	= interactR sds {onInit = \r -> (r, View $ tof r), onEdit = \_ l -> (l, Nothing), onRefresh = \r _ _ -> (r,Just $ tof r,Nothing)} editor @ fst
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
@@ -131,7 +131,7 @@ updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds 
 	= interactRW sds
 		{onInit = \r -> ((r,m), Update $ tof (r,m))
 		,onEdit = \v (r,m)      -> let nm = fromf (r,m) v in ((r,nm),Nothing)
-		,onRefresh = \r (_,m) _ -> ((r,m),tof (r,m),Nothing)
+		,onRefresh = \r (_,m) _ -> ((r,m),Just $ tof (r,m),Nothing)
 		} gEditor{|*|} @ (snd o fst)
 
 editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a
@@ -140,7 +140,7 @@ editSelection` attributes (SelectUsing toView fromView editor) container sel
 	= interactRW unitShare
 		{onInit = \r   -> ((), Update (toView container,sel))
 		,onEdit = \_ l -> (l, Nothing)
-		,onRefresh = \_ l (Just v) -> (l,v,Nothing)
+		,onRefresh = \_ l v -> (l,v,Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
@@ -149,7 +149,7 @@ editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedC
 	= interactRW sharedContainer
 		{onInit = \r     -> (r, Update(toView r, initSel r))
 		,onEdit = \_ l -> (l, Nothing)
-		,onRefresh = \r l (Just (v,sel)) -> (r,(toView r,sel),Nothing)
+		,onRefresh = \r l v -> (r,(\(_, sel) -> (toView r,sel)) <$> v,Nothing)
 		} (attributes @>> editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
@@ -158,7 +158,7 @@ editSharedSelection` attributes (SelectUsing toView fromView editor) container s
 	= interactRW sharedSel
 		{onInit = \r        -> ((), Update (toView container,r))
 		,onEdit = \(_,vs) l -> (l, Just (const vs))
-		,onRefresh = \r l (Just (vt,vs)) -> (l,(vt,r),Nothing)
+		,onRefresh = \r l v -> (l,(\(vt, _) -> (vt, r)) <$> v,Nothing)
 		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
@@ -168,7 +168,7 @@ editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) s
 	= interactRW (sharedContainer |*< sharedSel)
 		{onInit = \(rc, rs)  -> (rc, Update (toView rc,rs))
 		,onEdit = \(_, vs) l -> (l, Just (const vs))
-		,onRefresh = \(rc, rs)   _ _ -> (rc, (toView rc, rs), Nothing)
+		,onRefresh = \(rc, rs)   _ _ -> (rc, Just (toView rc, rs), Nothing)
 		} (attributes @>> editor) @ (\(container, (_, sel)) -> fromView container sel)
 
 //Core choice tasks

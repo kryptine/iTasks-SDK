@@ -670,7 +670,7 @@ updateActionStatus current = withShared current
         -|| (Hint "Incidents:"  @>> updateSharedIncidentRefList True (incidents updating))
         ) <<@ (Title "Update action")
 where
-    updateMeta status = updateSharedInformation [UpdateSharedAs toPrj fromPrj const] status
+    updateMeta status = updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] status
     where
         toPrj {ActionStatus|title,description} = {ItemMeta|title=title,description=description}
         fromPrj status {ItemMeta|title,description} = {ActionStatus|status & title=title,description=description}

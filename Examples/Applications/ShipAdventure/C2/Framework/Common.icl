@@ -80,7 +80,7 @@ periodicallyUpdateEntity :: !Int -> Task ()
 periodicallyUpdateEntity n = updateEntity n moveEntity // TODO FIXME PERFORMANCE doTaskPeriodically 1 (updateEntity n moveEntity) <<@ NoUserInterface
 
 mapView` :: User [Entity] -> Task ()
-mapView` currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap const] (userMapState currentUser >*< entityMap) @! ())
+mapView` currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap (const o Just)] (userMapState currentUser >*< entityMap) @! ())
   where
   toMap :: (MapState, EntityMap) -> LeafletMap
   toMap ({MapState | perspective}, markers)
@@ -106,7 +106,7 @@ mapView` currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap
 
 
 mapView :: (sds () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w & RWShared sds
-mapView sh radarWorks currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap const] (mapState >*| sh) @! ())
+mapView sh radarWorks currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap (const o Just)] (mapState >*| sh) @! ())
   where
   toMap ({perspective, entities = markers}, shval)
     = toLeafletMap { ContactMap

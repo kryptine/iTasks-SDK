@@ -209,7 +209,7 @@ where
 		= Title "Edit code" @>> updateSharedInformation 
 			[UpdateSharedUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
-						 const
+						 (const o Just)
                          aceTextArea] state
 
 	buildExecutable :: FilePath (Shared sds InspectState) -> Task () | RWShared sds

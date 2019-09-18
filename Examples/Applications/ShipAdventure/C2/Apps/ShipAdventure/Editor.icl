@@ -184,7 +184,7 @@ intMapCrudWith descr cos eos vos uos mkId share = Title descr @>> crudWith cos e
 graphicalMapEditor :: Task ()
 graphicalMapEditor
   = Title "Graphical map editor" @>> updateSharedInformation 
-      [UpdateSharedUsing id (const fst) const imageEditor]
+      [UpdateSharedUsing id (const fst) (const o Just) imageEditor]
       (sharedEditShip >*| (myInventoryMap |*| myNetwork |*| myDevices)) @! ()
 	  @! ()
 where
@@ -199,8 +199,8 @@ where
 editLayout :: Task ()
 editLayout
   = allTasks [ graphicalMapEditor
-             , Title "Edit map dimensions" @>> updateSharedInformation  [UpdateSharedAs toMapsForm fromMapsForm const] maps2DShare @! ()
-             , Title "Edit map" @>> updateSharedInformation [UpdateSharedAs toMapActionForm fromMapActionForm const] sharedEditShip @! ()
+             , Title "Edit map dimensions" @>> updateSharedInformation  [UpdateSharedAs toMapsForm fromMapsForm (const o Just)] maps2DShare @! ()
+             , Title "Edit map" @>> updateSharedInformation [UpdateSharedAs toMapActionForm fromMapActionForm (const o Just)] sharedEditShip @! ()
              , (watch maps2DShare
                -&&- (Title "Quick borders" @>> enterChoiceWithShared [] (mapRead (\ship -> [mapId \\ {Map2D | mapId} <- ship]) maps2DShare))
                >>* [ OnAction (Action "Add outer borders"    ) (hasValue (uncurry (editOuterBorders Wall)))
@@ -249,7 +249,7 @@ editSectionContents :: Task ()
 editSectionContents
   = allTasks [ graphicalMapEditor
              , withSelectedSection (
-                 \mid c2d -> (Title (mkDesc mid c2d "Inventory"))  @>> updateSharedInformation [UpdateSharedAs fromInv toInv const] (sdsFocus (mid, c2d) inventoryInSectionShare)
+                 \mid c2d -> (Title (mkDesc mid c2d "Inventory"))  @>> updateSharedInformation [UpdateSharedAs fromInv toInv (const o Just)] (sdsFocus (mid, c2d) inventoryInSectionShare)
                )
              , withSelectedSection (
                  \mid c2d -> let focusedShare = sdsFocus (mid, c2d) devicesInSectionShare

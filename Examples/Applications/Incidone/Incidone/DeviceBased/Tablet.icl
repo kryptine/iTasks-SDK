@@ -30,7 +30,7 @@ where
             = get (standardMapLayers |*| standardPerspective)
             >>- \(baseLayers,perspective) ->
                 withShared perspective
-                \p -> Title title @>> updateSharedInformation [UpdateSharedAs (toMap baseLayers) fromMap const] (p >*| mapContacts) @ fst
+                \p -> Title title @>> updateSharedInformation [UpdateSharedAs (toMap baseLayers) fromMap (const o Just)] (p >*| mapContacts) @ fst
             //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where

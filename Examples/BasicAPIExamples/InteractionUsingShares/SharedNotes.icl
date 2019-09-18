@@ -20,11 +20,10 @@ sharedNotes
 			(Hint "View on note" @>> viewSharedInformation [ViewUsing id textArea] note)
 			-||-
 			// an editor to update the shared string
-			((Hint "Update shared note 1" @>> updateSharedInformation [UpdateSharedUsing id (const id) const textArea] note)	
+			((Hint "Update shared note 1" @>> updateSharedInformation [UpdateSharedUsing id (const id) (const o Just) textArea] note)
 			  -||-
 			// and an other updating editor
-			 (Hint "Update shared note 2" @>> updateSharedInformation [UpdateSharedUsing id (const id) const textArea] note)	
-					 		
+			 (Hint "Update shared note 2" @>> updateSharedInformation [UpdateSharedUsing id (const id) (const o Just) textArea] note)
 			) <<@ ArrangeHorizontal 
 		)
 	>>= \result -> Hint "Resulting string is:" @>> viewInformation [ViewUsing id textArea] result
