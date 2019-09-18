@@ -475,7 +475,10 @@ instance toJSArgs Int where toJSArgs i = {toJS i}
 instance toJSArgs Bool where toJSArgs b = {toJS b}
 instance toJSArgs String where toJSArgs s = {toJS s}
 instance toJSArgs JSVal where toJSArgs v = {v}
-instance toJSArgs (Maybe b) | gToJS{|*|} b
+instance toJSArgs [a] | gToJS{|*|} a
+where
+	toJSArgs v = {JSArray {toJS x \\ x <- v}}
+instance toJSArgs (Maybe a) | gToJS{|*|} a
 where
 	toJSArgs v = case v of
 		Just v  -> {toJS v}

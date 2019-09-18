@@ -134,7 +134,7 @@ instance .# Int // array access
  * - `()` relates to no arguments; tuples relates to lists of arguments
  */
 class toJSArgs a :: !a -> {!JSVal}
-instance toJSArgs Int, Bool, String, JSVal, (Maybe b) | gToJS{|*|} b, ()
+instance toJSArgs Int, Bool, String, JSVal, [a] | gToJS{|*|} a, (Maybe a) | gToJS{|*|} a, ()
 instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
 instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c
 instance toJSArgs (a,b,c,d) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d
