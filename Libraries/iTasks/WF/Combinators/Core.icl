@@ -119,10 +119,12 @@ where
 			(ExceptionResult e, iworld)  = (ExceptionResult e, iworld)
 			(ValueResult _ _ _ _,iworld) = (ExceptionResult (exception "Failed destroying lhs in step"), iworld)
 	//Execute lhs
-	evalleft lhs prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId=taskId=:(TaskId ino tano)} iworld
-		= case (unTask lhs) event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld of
-			(ValueResult val info rep lhs, iworld)
-				# mbAction = matchAction taskId event
+	evalleft (Task lhs) prevEnabledActions leftTaskId event evalOpts=:{lastEval,taskId} iworld
+		# mbAction = matchAction taskId event
+		# (res, iworld) = lhs event {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
+		// Right  is a step
+		# (mbCont, iworld) = case res of
+			ValueResult val info rep lhs
 				= case searchContValue val mbAction conts of
 					//No match
 					Nothing
@@ -131,23 +133,44 @@ where
 						# actions = contActions taskId val conts
 						# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
 						# sl = wrapStepUI taskId evalOpts event actions prevEnabledActions val rep
-						= ( ValueResult value info sl (Task (evalleft lhs curEnabledActions leftTaskId))
-						  , iworld)
+						= (Left (ValueResult
+							value
+							info
+							sl
+							(Task (evalleft lhs curEnabledActions leftTaskId))
+							)
+						, iworld)
 					//A match
-					Just (_, rewrite, _)
+					Just rewrite
 						//Send a destroyevent to the lhs
 						# (_, iworld) = (unTask lhs) DestroyEvent {TaskEvalOpts|evalOpts&taskId=leftTaskId} iworld
-						# info = {TaskEvalInfo|lastEvent=info.TaskEvalInfo.lastEvent, removedTasks=info.TaskEvalInfo.removedTasks}
-						//Continue with the rhs and force the first event to be a Reset, it would've been the queued refresh
-						= ( ValueResult NoValue info rep (Task (\_->(unTask rewrite) ResetEvent))
-						  , queueEvent ino (RefreshEvent ('DS'.singleton taskId) "step") iworld)
-			(ExceptionResult e, iworld)
+						= (Right (rewrite, info.TaskEvalInfo.lastEvent, info.TaskEvalInfo.removedTasks), iworld)
+			ExceptionResult e
 				= case searchContException e conts of
-					//No match, re-throw exception
-					Nothing = (ExceptionResult e, iworld)
-					//A match, rewrite
-					Just (_, rewrite, _)
-						= (ValueResult NoValue (mkTaskEvalInfo lastEval) NoChange rewrite, iworld)
+					//No match
+					Nothing      = (Left (ExceptionResult e), iworld)
+					//A match
+					Just rewrite = (Right (rewrite, lastEval, []), iworld)
+		= case mbCont of
+			//No match, just pass through
+			Left res = (res, iworld)
+			//A match, continue with the matched rhs
+			Right ((_, (Task rhs), _), lastEvent, removedTasks)
+				//Execute the rhs with a reset event
+				# (resb, iworld)        = rhs ResetEvent evalOpts iworld
+				= case resb of
+					ValueResult val info change=:(ReplaceUI _) (Task rhs)
+						# info = {TaskEvalInfo|info & lastEvent = max lastEvent info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
+						= (ValueResult
+							val
+							info
+							change
+							//Actually rewrite to the rhs
+							(Task rhs)
+						,iworld)
+					ValueResult _ _ change _
+						= (ExceptionResult (exception ("Reset event of task in step failed to produce replacement UI: ("+++ toString (toJSON change)+++")")), iworld)
+					ExceptionResult e = (ExceptionResult e, iworld)
 
 	wrapStepUI taskId evalOpts event actions prevEnabled val change
 		| actionUIs =: []
@@ -156,7 +179,7 @@ where
 					= ReplaceUI (UI type (addClassAttr "step" attributes) items)
 				_
 					= change
-		| otherwise //Wrap in a container
+		| otherwise	//Wrap in a container
 			= case (event,change) of
 				(ResetEvent,ReplaceUI ui) //On reset generate a new step UI
 					= ReplaceUI (uiac UIContainer (classAttr ["step-actions"]) [ui:actionUIs])
@@ -670,7 +693,7 @@ where
 			= (ValueResult
 				(Value () True)
 				(mkTaskEvalInfo lastEval)
-				NoChange
+				(mkUIIfReset event (ui UIEmpty))
 				(treturn ()), iworld)
 		//Mark the task as removed, and update the indices of the tasks afterwards
 		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
@@ -680,9 +703,9 @@ where
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			# (mbe,iworld) = deleteTaskInstance instanceNo iworld
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
-			= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[]} NoChange (treturn ()), iworld)
+			= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[]} (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 		//Pass removal information up
-		= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[(listId,removeId)]} NoChange (treturn ()), iworld)
+		= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[(listId,removeId)]} (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 
 	//When a task is marked as removed, the index of the tasks after that are decreased
 	markAsRemoved removeId [] = []
@@ -703,14 +726,14 @@ where
 		| listId == TaskId 0 0
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) NoChange (treturn ()), iworld)
+					= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//If it is a detached task, replacee the detached instance, if it is embedded schedule the change in the parallel task state
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			= case replaceTaskInstance instanceNo (parTask topLevelTaskList) iworld of
 				(Ok (), iworld)
-					= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) NoChange (treturn ()), iworld)
+					= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 				(Error e, iworld)
 					= (ExceptionResult e,iworld)
 		//Schedule the change in the parallel task state
@@ -718,7 +741,7 @@ where
 		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
 		# (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 		| mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
-		= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) NoChange (treturn ()), iworld)
+		= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 
 	scheduleReplacement replaceId task [] = []
 	scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
