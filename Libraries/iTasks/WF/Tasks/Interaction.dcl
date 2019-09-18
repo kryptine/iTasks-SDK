@@ -27,9 +27,9 @@ from Data.Functor import class Functor
 //The first argument is the new view as computed from the changed sds,
 //and the second argument is the edited view by the user.
 :: UpdateSharedOption a b 
-	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v) & iTask v
-	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
-	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v v -> v) (Editor v) & iTask v
+	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v (Maybe v) -> v) & iTask v
+	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v (Maybe v) -> v) (Editor v) & iTask v
+	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v (Maybe v) -> v) (Editor v) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s

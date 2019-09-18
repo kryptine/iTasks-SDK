@@ -113,11 +113,11 @@ updateInformation` (UpdateUsing tof fromf editor) m
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l -> (l, Just (\r -> fromf r v)), onRefresh = \r _ (Just v) -> (r,conflictf (tof r) v, Nothing)}
+	= interactRW sds {onInit = \r -> (r, Update $ tof r), onEdit = \v l -> (l, Just (\r -> fromf r v)), onRefresh = \r _ v -> (r,conflictf (tof r) v, Nothing)}
 		editor @ fst
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
 	= interactRW sds {onInit = \r -> (r, maybe Enter Update (tof r)), onEdit = \v l -> (l, Just (\r -> fromf r v))
-			, onRefresh = \r _ (Just v) -> (r, maybe v (\r` -> conflictf r` v) (tof r), Nothing)}
+			, onRefresh = \r _ v -> (r, maybe undef (\r` -> conflictf r` v) (tof r), Nothing)}
 		editor @ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
