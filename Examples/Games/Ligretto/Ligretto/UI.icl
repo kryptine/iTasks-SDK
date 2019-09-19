@@ -1,7 +1,7 @@
 implementation module Ligretto.UI
 
 import StdBool, StdEnum, StdList
-from   StdFunc import id, const
+from   StdFunc import id, const, o
 import Data.GenEq
 import iTasks.WF.Tasks.Interaction
 import Graphics.Scalable.Extensions
@@ -9,14 +9,14 @@ import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 ligrettoEditor :: !Color -> UpdateSharedOption GameSt GameSt
-ligrettoEditor me = UpdateSharedUsing id (const id) const (fromSVGEditor
+ligrettoEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
 												})
 
 accoladesEditor :: !Color -> UpdateSharedOption GameSt GameSt
-accoladesEditor me = UpdateSharedUsing id (const id) const (fromSVGEditor
+accoladesEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id

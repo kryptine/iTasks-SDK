@@ -62,7 +62,7 @@ actorWithInstructions user
   pickStartRoom :: Task Coord3D
   pickStartRoom
     = Hint "Which room do you want to start in?" @>> updateInformationWithShared 
-        [UpdateSharedUsing id (const snd) const editor]
+        [UpdateSharedUsing id (const snd) (const o Just) editor]
         (maps2DShare |*| myNetwork) NoAction
     >>* [OnValue (\v -> case v of
                           Value (FocusOnSection c3d) _ = Just (return c3d)
@@ -387,7 +387,7 @@ mkSection :: MyDrawMapForActor
 mkSection
   = \user shStatusMap shUserActor shSectionInventoryMap ->
       Title "Section Status" @>> updateSharedInformation 
-		  [UpdateSharedUsing id (\_ _ -> ()) const editor]
+		  [UpdateSharedUsing id (\_ _ -> ()) (const o Just) editor]
           (sectionForUserShare user |*| myNetwork |*| myDevices |*| shStatusMap |*| sectionUsersShare |*| myUserActorMap |*| shSectionInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| maps2DShare)
           @! ()
   where

@@ -20,16 +20,20 @@ from Data.Functor import class Functor
 	= E.v: UpdateAs     (a -> v) (a v -> a)	& iTask v
 	| E.v: UpdateUsing  (a -> v) (a v -> a) (Editor v) & iTask v
 
-//When using an shared data you have to supply an additional
-//conflict resolution function (v v -> v)
-//When both the view has been edited, and the sds has changed, this
-//function determines what the new view should be.
-//The first argument is the new view as computed from the changed sds,
-//and the second argument is the edited view by the user.
+/**
+ * When using an shared data you have to supply an additional conflict
+ * resolution function `(v (Maybe v) -> Maybe v)`. When both the view has been
+ * edited, and the sds has changed, this function determines what the new view
+ * should be.
+ * The first argument is the new view as computed from the changed sds, and the
+ * second argument is the edited view by the user, if the current view
+ * represents a valid value.
+ * If the result is `Nothing` the view is not updated.
+ */
 :: UpdateSharedOption a b 
-	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v) & iTask v
-	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v v -> v) (Editor v) & iTask v
-	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v v -> v) (Editor v) & iTask v
+	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) & iTask v
+	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v) & iTask v
+	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s

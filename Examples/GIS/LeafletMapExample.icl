@@ -14,7 +14,7 @@ playWithMaps = withShared ({defaultValue & icons = shipIcons},defaultValue) (\m 
 
 derive gDefault LeafletSimpleState, LeafletObjectID
 manipulateMap :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWShared sds
-manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) const (customLeafletEditor eventHandlers defaultValue)] m
+manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) (const o Just) (customLeafletEditor eventHandlers defaultValue)] m
 	<<@ ApplyLayout (setUIAttributes (sizeAttr FlexSize FlexSize)) @! ()
 where
 	eventHandlers = {simpleStateEventHandlers & onHtmlEvent = onHtmlEvent}

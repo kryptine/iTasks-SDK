@@ -397,9 +397,9 @@ updateContactPosition contactNo
     >>- \({Contact|name,type,position},baseLayers) ->
         withShared (position,initPerspective position)
         \tmpInfo ->
-        (Title "Position update" @>> Hint ("Update position of contact "<+++ name) @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) const] tmpInfo
+        (Title "Position update" @>> Hint ("Update position of contact "<+++ name) @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) (const o Just)] tmpInfo
          -||-
-         updateSharedInformation [UpdateSharedAs (toMap baseLayers) (fromMap baseLayers) const] tmpInfo
+         updateSharedInformation [UpdateSharedAs (toMap baseLayers) (fromMap baseLayers) (const o Just)] tmpInfo
          -||-
           (Hint "Search the web" @>> viewSharedInformation  [ViewAs (toSearchURLs o fst)] tmpInfo)
         ) @ fst
@@ -446,7 +446,7 @@ updateSharedContactRefList refs
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation [UpdateSharedAs toPrj fromPrj const] items @ map contactIdentity
+        = updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] items @ map contactIdentity
     where
         items = sdsDeref refs id contactsByNosShort (\_ cs -> cs)
         toPrj l = [(contactIdentity c,contactTitle c) \\ c <-l]
@@ -564,9 +564,9 @@ viewContactsOnMap sharedContacts sel
    >>- \(baseLayers,perspective) ->
        withShared (False,perspective)
        \localState ->
-            Hint "Show AIS contacts:" @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) const] localState
+            Hint "Show AIS contacts:" @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) (const o Just)] localState
             ||-
-            (updateSharedInformation [UpdateSharedAs (toPrj baseLayers) fromPrj const] (mapState localState sharedContacts sel)) @ (\(a,b,c) -> (b,c))
+            (updateSharedInformation [UpdateSharedAs (toPrj baseLayers) fromPrj (const o Just)] (mapState localState sharedContacts sel)) @ (\(a,b,c) -> (b,c))
             >^* [OnAction (Action "/Share map to wall") (hasValue sharePerspective)
                 ]
         @? selection

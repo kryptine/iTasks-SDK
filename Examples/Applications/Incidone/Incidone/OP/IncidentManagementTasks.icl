@@ -172,7 +172,7 @@ updateSharedIncidentRefList compact refs
     >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation [UpdateSharedAs toPrj fromPrj const] items @ map incidentIdentity
+        = updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] items @ map incidentIdentity
     where
         items = sdsDeref refs id incidentsByNosShort (\_ is -> is)
         toPrj l = [(incidentIdentity i,incidentTitle i) \\i <-l]

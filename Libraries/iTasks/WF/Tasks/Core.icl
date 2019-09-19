@@ -151,11 +151,15 @@ evalInteract l v mst mode sds handlers editor writefun ResetEvent evalOpts=:{tas
 			, iworld)
 evalInteract l v mst mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
 	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
+	# st = fromJust mst
 	| 'DS'.member taskId taskIds
 		= readRegisterCompletely sds (maybe NoValue (\v->Value (l, v) False) v) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
 			(\r event evalOpts iworld
-				# (l, v, mbf) = handlers.InteractionHandlers.onRefresh r l v
-				= case withVSt taskId (editor.Editor.onRefresh [] v (fromJust mst)) iworld of
+				# (l, mbV, mbf) = handlers.InteractionHandlers.onRefresh r l v
+				# mbChange = case mbV of
+					Just v  = withVSt taskId (editor.Editor.onRefresh [] v st) iworld
+					Nothing = (Ok (NoChange, st), iworld)
+				= case mbChange of
 					(Error e, iworld) = (ExceptionResult (exception e), iworld)
 					(Ok (change, st), iworld)
 						# v = editor.Editor.valueFromState st

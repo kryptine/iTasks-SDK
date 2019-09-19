@@ -1,7 +1,7 @@
 implementation module Trax.UI
 
 import StdBool, StdList
-from   StdFunc import const, flip, id
+from   StdFunc import const, flip, id, o
 from   Data.List import lookup
 import iTasks.WF.Tasks.Interaction
 import iTasks.Extensions.SVG.SVGEditor
@@ -10,7 +10,7 @@ import Trax.UoD
 :: RenderMode = ViewMode | PlayMode
 
 updateTraxEditor :: Bool -> UpdateSharedOption TraxSt TraxSt
-updateTraxEditor turn 				= UpdateSharedUsing id (const id) const (fromSVGEditor
+updateTraxEditor turn 				= UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
 													{ initView    = id
 													, renderImage = \_ -> toImage PlayMode turn
 													, updModel    = flip const
