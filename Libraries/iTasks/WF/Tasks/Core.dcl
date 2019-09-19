@@ -67,19 +67,17 @@ accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a |
 :: OSException			= OSException !OSError
 instance toString OSException
 
-/**
-* Core interaction task. All other interaction tasks are derived from this one.
-* There are two almost identical versions:
-* The `interactRW` version can update the given sds.
-* The `interactR` version only reads, which means it can also be used for sds's that are not writable.
-*/
 :: InteractionHandlers l r w v =
-    { onInit    :: !(r -> (l, EditMode v))
-    , onEdit    :: !(v l -> (l, Maybe (r -> w)))
-    , onRefresh :: !(r l (Maybe v) -> (l, Maybe v, Maybe (r -> w)))
+	{ onInit    :: !(r -> (l, EditMode v))
+	, onEdit    :: !(v l -> (l, Maybe (r -> w)))
+	, onRefresh :: !(r l (Maybe v) -> (l, Maybe v, Maybe (r -> w)))
 	}
 
-//Version which can write shared data
+/**
+ * Core interaction task. All other interaction tasks are derived from this
+ * one. `interactR` is almost identical but does not update the given sds.
+ */
 interactRW :: !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & RWShared sds
-//Version which does not write shared data
+
+//* See documentation on `interactRW`.
 interactR :: (sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | iTask l & iTask r & iTask v & TC r & TC w & Registrable sds
