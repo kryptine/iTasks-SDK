@@ -44,7 +44,7 @@ board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
 | no_of_tiles trax == zero
 	| it_is_my_turn					= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] [] []
-									   [  tileImage d tile <@< {onclick = start_with_this tile, local = False}
+									   [  tileImage d tile <@< {onclick = \_ st -> start_with_this tile st, local = False}
 									   \\ tile <- gFDomain{|*|}
 									   ] NoHost
 	| otherwise						= voidImage d
@@ -73,9 +73,9 @@ unselectedImage d					= tileShape d <@< {fill = freeTileColor}
 freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
 | isEmpty candidates				= illegalImage d
-| maybe True ((<>) coord) choice	= unselectedImage d <@< {onclick = setcell coord, local = False}
+| maybe True ((<>) coord) choice	= unselectedImage d <@< {onclick = \_ st -> setcell coord st, local = False}
 | otherwise							= above (repeat AtMiddleX) [] (Just d) []
-									        [tileImage (d /. no_of_candidates) tile <@< {onclick = settile coord tile, local = False} \\ tile <- candidates]
+									        [tileImage (d /. no_of_candidates) tile <@< {onclick = \_ st -> settile coord tile st, local = False} \\ tile <- candidates]
 									        (Host (unselectedImage d))
 where
 	candidates						= [tile \\ tile <- possible_tiles trax coord | isJust (mandatory_moves (add_tile coord tile trax) coord)]
