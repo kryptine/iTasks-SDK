@@ -11,7 +11,7 @@ minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task
 where
 	task :: Task ((),String)
 	task = interactR unitShare handlers gEditor{|*|}
-	handlers = {onInit = \() -> ((),Update "Hello world"), onEdit = \_ l -> (l,Nothing), onRefresh = \_ l v -> (l,v,Nothing)}
+	handlers = {onInit = \() -> Update "Hello world", onEdit = \_ -> Nothing, onRefresh = \_ v -> (v,Nothing)}
 
 	events = [Left ResetEvent]
 	exp = [TOUIChange (ReplaceUI expMinimalEditorUI)]
