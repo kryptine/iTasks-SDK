@@ -92,9 +92,16 @@ testEditorWithShare editor model viewMode = (withShared model
 	\smodel ->
 		(Hint "Edit the shared source" @>> updateSharedInformation [] smodel)
 		||-
-	    (Title "Editor under test" @>> interactR smodel {onInit = \r -> (if viewMode View Update $ r)
-	                                        ,onEdit = \v -> (Just (\_ -> v))
-	                                        ,onRefresh = \r _ -> (Just r,Nothing)} editor @ snd)
+		( Title "Editor under test" @>>
+			interactR
+				smodel
+				{ onInit    = \r   -> if viewMode View Update $ r
+				, onEdit    = \v   -> Just (\_ -> v)
+				, onRefresh = \r _ -> (Just r,Nothing)
+				}
+			editor
+			@ snd
+		)
 	) <<@ ArrangeHorizontal
 
 testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a

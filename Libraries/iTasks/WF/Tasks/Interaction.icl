@@ -107,7 +107,7 @@ viewInformation` (ViewUsing tof editor) m
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
-	= interactRW unitShare {onInit = const (Update $ tof m), onEdit = \_ -> Nothing, onRefresh = \r v -> (v,Nothing)}
+	= interactRW unitShare {onInit = const $ Update $ tof m, onEdit = \_ -> Nothing, onRefresh = \r v -> (v,Nothing)}
 		editor @ (\(_,v) -> fromf m v)
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
@@ -116,10 +116,15 @@ updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW sds {onInit = \r -> Update $ tof r, onEdit = \v -> Just (\r -> fromf r v), onRefresh = \r v -> (conflictf (tof r) v, Nothing)}
 		editor @ fst
 
-updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> maybe Enter Update (tof r), onEdit = \v -> (Just (\r -> fromf r v))
-			, onRefresh = \r v -> (maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)}
-		editor @ fst
+updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds =
+	interactRW
+		sds
+		{ onInit    = \r   -> maybe Enter Update (tof r)
+		, onEdit    = \v   -> Just (\r -> fromf r v)
+		, onRefresh = \r v -> (maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)
+		}
+		editor
+		@ fst
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
@@ -131,8 +136,8 @@ updateInformationWithShared options sds m = updateInformationWithShared` (update
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
 	= withShared m \sdsm ->
 	  interactRW (sds |*< sdsm)
-		{onInit = \(r,m) -> (Update $ tof (r,m))
-		,onEdit = \v -> (Just (\(r,m) -> fromf (r,m) v))
+		{onInit    = \(r,m)   -> (Update $ tof (r,m))
+		,onEdit    = \v       -> Just (\(r,m) -> fromf (r,m) v)
 		,onRefresh = \(r,m) _ -> (Just $ tof (r,m), Nothing)
 		} editor @ snd o fst
 
