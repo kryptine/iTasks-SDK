@@ -562,16 +562,16 @@ checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
 
 halt :: !Int !*IWorld -> *IWorld
-halt exitCode iworld=:{ioTasks={todo=[],done},world}
+halt exitCode iworld=:{ioTasks={todo=[]},world}
 	# world = setReturnCode exitCode world
 	= {IWorld|iworld & world = world}
 halt exitCode iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
 	# world = closeRChannel listener world
-	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}, world = world}
 halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
 	# world = closeRChannel rChannel world
 	# world = closeChannel sChannel world
-	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}, world = world}
 
 ioStateString :: !IOStates -> String
 ioStateString ioStates
