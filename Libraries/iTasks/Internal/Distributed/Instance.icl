@@ -89,7 +89,7 @@ instanceServer port domain = tcplisten port True instanceServerShared {Connectio
 	, onShareChange		= onShareChange
 	, onDisconnect 		= onDisconnect
 	, onDestroy= \s->(Ok s, [])
-	} -|| (instanceClient` "127.0.0.1" port domain True) -|| (process instanceServerShared) @! ()
+	} -|| (instanceClient` "127.0.0.1" port Nothing domain True) -|| (process instanceServerShared) @! ()
 where
 	onConnect :: ConnectionId String InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
 	onConnect connId host share=:{InstanceServerShare|lastId,clients}
@@ -457,18 +457,18 @@ getClientIdByDomain (Domain domain)
 					[x] -> return (Just x)
 					_ -> return Nothing
 
-instanceClient :: String Int Domain -> Task ()
-instanceClient host port domain = instanceClient` host port domain False
+instanceClient :: String Int (Maybe Timeout) Domain -> Task ()
+instanceClient host port timeout domain = instanceClient` host port timeout domain False
 
-instanceClient` :: String Int Domain Bool -> Task ()
-instanceClient` host port domain local
+instanceClient` :: String Int (Maybe Timeout) Domain Bool -> Task ()
+instanceClient` host port timeout domain local
 	=                getClientId domain
 	>>- \clientId -> (repeatClient (client clientId) @! ()) -|| (process (instanceClientShare clientId) clientId)
 where
         client :: Int -> Task (Maybe ())
         client clientId
                 = getClientServerId clientId
-                >>- \serverId -> (tcpconnect host port (instanceClientShare clientId) { ConnectionHandlers
+                >>- \serverId -> (tcpconnect host port timeout (instanceClientShare clientId) { ConnectionHandlers
                                                       | onConnect      = (onConnect (maybe "connect" (\id -> ("reconnect " +++ (toString id))) serverId))
                                                       , onData         = onData
 						      , onShareChange  = onShareChange

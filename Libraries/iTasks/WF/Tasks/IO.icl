@@ -105,14 +105,14 @@ where
 
 	rep port = stringDisplay ("Listening for connections on port "<+++ port)
 
-tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
-tcpconnect host port sds handlers = Task evalinit
+tcpconnect :: !String !Int !(Maybe Timeout) !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
+tcpconnect host port timeout sds handlers = Task evalinit
 where
 	//We cannot make ioStates local since the engine uses it
 	evalinit DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
 	evalinit event eo=:{TaskEvalOpts|taskId} iworld
-		= case addConnection taskId host port (wrapConnectionTask handlers sds) iworld of
+		= case addConnection taskId host port timeout (wrapConnectionTask handlers sds) iworld of
 			(Error e,iworld) = (ExceptionResult e, iworld)
 			(Ok _,iworld) = eval event eo iworld
 

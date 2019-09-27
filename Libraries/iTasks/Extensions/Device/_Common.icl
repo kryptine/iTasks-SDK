@@ -9,7 +9,7 @@ derive class iTask DeviceRequestState
 
 deviceRequest :: String (String -> Bool) -> Task String
 deviceRequest request close
-	= tcpconnect "127.0.0.1" 20097 (constShare ())
+	= tcpconnect "127.0.0.1" 20097 Nothing (constShare ())
 		{ ConnectionHandlers
 		| onConnect      = onConnect
 		, onData	 = onData
