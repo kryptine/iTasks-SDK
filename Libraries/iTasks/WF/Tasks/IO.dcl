@@ -3,6 +3,7 @@ definition module iTasks.WF.Tasks.IO
 * This modules provides tasks that support interaction with other systems.
 * Either by running external programs, creating network clients and servers, or exchanging files
 */
+from TCPIP import :: Timeout
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
 from iTasks.Internal.IWorld import :: ConnectionId
@@ -36,10 +37,11 @@ externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe Proce
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname
 * @param Port
+* @param The timeout (in ms) for opening the connection
 * @param A reference to shared data the task has access to
 * @param The event handler functions
 */
-tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
+tcpconnect :: !String !Int !(Maybe Timeout) !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 /**
 * Listen for connections from external systems using TCP.
 * @param Port

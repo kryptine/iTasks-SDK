@@ -42,7 +42,7 @@ onDestroy s = (Ok s, [])
 
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols iworld
-= case addConnection taskId host port connectionTask iworld of
+= case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld)  		= (Error e, iworld)
 	(Ok (id, _), iworld)     	= (Ok id, iworld)
 where
@@ -61,7 +61,7 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueModifyRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
-queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols iworld = case addConnection taskId host port connectionTask iworld of
+queueModifyRequest req=:(SDSModifyRequest p r w) host port taskId symbols iworld = case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld)          = (Error e, iworld)
 	(Ok (id, _), iworld)       = (Ok id, iworld)
 where
@@ -80,7 +80,7 @@ where
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
 queueWriteRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld ->  (!MaybeError TaskException ConnectionId, !*IWorld) | TC r & TC w
-queueWriteRequest req=:(SDSWriteRequest sds p w) host port taskId symbols iworld = case addConnection taskId host port connectionTask iworld of
+queueWriteRequest req=:(SDSWriteRequest sds p w) host port taskId symbols iworld = case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld)          = (Error e, iworld)
 	(Ok (id, _), iworld)       = (Ok id, iworld)
 where
@@ -101,7 +101,7 @@ where
 queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
 queueServiceRequest (SDSRemoteService (Just _) _) _ _ _ iworld = (Error (exception "SDSRemoteService queing request while still a connection id"), iworld)
 queueServiceRequest service=:(SDSRemoteService _ (HTTPShareOptions {host, port, createRequest, fromResponse})) p taskId _ iworld
-= case addConnection taskId host port connectionTask iworld of
+= case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld) = (Error e, iworld)
 	(Ok (id, _), iworld) = (Ok id, iworld)
 where
@@ -132,7 +132,7 @@ where
 			(Ok a) = (Ok (Right a), Nothing)
 
 queueServiceRequest service=:(SDSRemoteService _ (TCPShareOptions {host, port, createMessage, fromTextResponse})) p taskId register iworld
-= case addConnection taskId host port connectionTask iworld of
+= case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld) = (Error e, iworld)
 	(Ok (id, _), iworld) = (Ok id, iworld)
 where
@@ -164,7 +164,7 @@ queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> 
 queueServiceWriteRequest service=:(SDSRemoteService (Just _) _) _ _ _ iworld = (Error (exception "SDSRemoteService queing write request while still containing a connection id"), iworld)
 queueServiceWriteRequest service=:(SDSRemoteService _ (HTTPShareOptions {host, port, writeHandlers})) p w taskId iworld
 | isNothing writeHandlers = (Ok Nothing, iworld) // Writing not supported for this share.
-= case addConnection taskId host port connectionTask iworld of
+= case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld) = (Error e, iworld)
 	(Ok (id, _), iworld) = (Ok (Just id), iworld)
 where
@@ -196,7 +196,7 @@ where
 
 queueServiceWriteRequest service=:(SDSRemoteService _ (TCPShareOptions {host, port, writeMessageHandlers})) p w taskId iworld
 | isNothing writeMessageHandlers = (Ok Nothing, iworld)
-= case addConnection taskId host port connectionTask iworld of
+= case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld) = (Error e, iworld)
 	(Ok (id, _), iworld) = (Ok (Just id), iworld)
 where

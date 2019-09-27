@@ -3,6 +3,7 @@ definition module iTasks.Extensions.Email
 * This module provides basic SMTP email support
 */
 from Text.HTML import :: HtmlTag
+from TCPIP     import :: Timeout
 import iTasks
 
 /**
@@ -32,3 +33,4 @@ sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 	= EmailOptSMTPServer !String              //SMTP server to use. Default: localhost
 	| EmailOptSMTPServerPort !Int             //TCP port of the SMTP server to use. Default: 25
 	| EmailOptExtraHeaders ![(String,String)] //Additional headers to add before the body
+	| EmailOptTimeout !Timeout                // TCP timeout

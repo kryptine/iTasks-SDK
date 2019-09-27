@@ -6,11 +6,12 @@ import Text, Text.HTML
 
 sendEmail :: ![EmailOpt] !String ![String] !String !String -> Task ()
 sendEmail opts sender recipients subject body
-	= tcpconnect server port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onDisconnect=onDisconnect,onShareChange = \l _ = (Ok l, Nothing, [], False), onDestroy= \s->(Ok s, [])}
+	= tcpconnect server port timeout (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onDisconnect=onDisconnect,onShareChange = \l _ = (Ok l, Nothing, [], False), onDestroy= \s->(Ok s, [])}
 	@! ()
 where
 	server 	= getServerOpt opts
 	port	= getPortOpt opts
+	timeout = getTimeoutOpt opts
 	headers = getHeadersOpt opts
 	//Sending the message with SMTP is essentially one-way communication
 	//but we send it in parts. After each part we get a response with a status code.
@@ -94,3 +95,7 @@ getPortOpt [x:xs] 					= getPortOpt xs
 getHeadersOpt [] 							= []
 getHeadersOpt [EmailOptExtraHeaders s:xs]	= s ++ getHeadersOpt xs
 getHeadersOpt [x:xs] 						= getHeadersOpt xs
+
+getTimeoutOpt []                     = Nothing
+getTimeoutOpt [EmailOptTimeout t:xs] = Just t
+getTimeoutOpt [x:xs]                 = getTimeoutOpt xs

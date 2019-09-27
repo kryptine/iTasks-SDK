@@ -129,7 +129,7 @@ request host port request
 where
 	client :: Task (Maybe a) | iTask a
 	client
-		= ((tcpconnect host port (constShare ())
+		= ((tcpconnect host port Nothing (constShare ())
                         { ConnectionHandlers
                         | onConnect      = onConnect
                         , onData	 = onData

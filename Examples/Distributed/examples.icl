@@ -44,14 +44,14 @@ hostTaskPoolServer
 connectToTaskPoolServer :: Task ()
 connectToTaskPoolServer
 	= Hint "Connect to task pool" @>> enterInformation []
-	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> (instanceClient host port (Domain host)) -|| (instanceFilter (const True) (Domain host))
+	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> (instanceClient host port Nothing (Domain host)) -|| (instanceFilter (const True) (Domain host))
 
 intermediateTaskPoolServer :: Task ()
 intermediateTaskPoolServer
 	= Hint "Enter YOUR subdomain" @>> enterInformation []
 	>>= \subdomain -> Hint "Enter a port for YOUR task pool server" @>> enterInformation []
 	>>= \serverPort -> Hint "Connect to (master) task pool" @>> enterInformation []
-	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> ((instanceClient host port (Domain host)) -|| (instanceClameFilter (const True) (Domain host))) -|| instanceServer serverPort subdomain
+	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> ((instanceClient host port Nothing (Domain host)) -|| (instanceClameFilter (const True) (Domain host))) -|| instanceServer serverPort subdomain
 
 askQuestion :: Task String
 askQuestion

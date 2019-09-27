@@ -1,5 +1,6 @@
 definition module iTasks.Internal.Distributed.Instance
 
+from TCPIP import :: Timeout
 from iTasks.WF.Definition import :: InstanceNo
 from iTasks.UI.Editor import :: Editor
 from iTasks.Internal.Generic.Visualization import :: TextFormat
@@ -19,7 +20,7 @@ from iTasks.Extensions.Distributed.Task import :: Domain
 
 instanceServer :: Int Domain -> Task ()
 
-instanceClient :: String Int Domain -> Task ()
+instanceClient :: String Int (Maybe Timeout) Domain -> Task ()
 
 instanceFilter :: (TaskAttributes -> Bool) Domain -> Task ()
 

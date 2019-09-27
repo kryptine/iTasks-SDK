@@ -484,8 +484,8 @@ addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done
 	# ioStates = put taskId (IOActive newMap) ioStates
 	= (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
-addConnection taskId host port connectionTask=:(ConnectionTask handlers sds) iworld
+addConnection :: !TaskId !String !Int !(Maybe Timeout) !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
+addConnection taskId host port timeout connectionTask=:(ConnectionTask handlers sds) iworld
 	= addIOTask taskId sds init tcpConnectionIOOps onInitHandler mkIOTaskInstance iworld
 where
 	init :: !*IWorld -> (!MaybeErrorString (!IPAddress, !*TCP_DuplexChannel), !*IWorld)
@@ -494,7 +494,7 @@ where
 		= case mbIP of
 			Nothing = (Error ("Failed to connect to host " +++ host +++ ": lookup failed"), {iworld & world = world})
 			Just ip
-				# (tReport, mbConn, world) = connectTCP_MT Nothing (fromJust mbIP,port) world
+				# (tReport, mbConn, world) = connectTCP_MT timeout (fromJust mbIP,port) world
 				= case mbConn of
 					Nothing = (Error ("Failed to connect to host " +++ host +++ ":" +++ toString port), {iworld & world = world})
 					Just channel = (Ok (ip, channel), {iworld & world = world})
