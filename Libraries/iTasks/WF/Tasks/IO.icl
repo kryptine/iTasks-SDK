@@ -71,12 +71,25 @@ where
 			liftOSErr (checkProcess ph)                 >-= \mexitcode->case mexitcode of
 				(Just i) = tuple (Ok (ValueResult (Value i True) (mkTaskEvalInfo lastEval) (mkUIIfReset event rep) (treturn i)))
 				Nothing =
-					readRegister taskId clock                            >-= \_->
-					readRegister taskId sdsin                            >-= \(ReadingDone stdinq)->
-					liftOSErr (writePipe (concat stdinq) pio.stdIn)      >-= \_->
-					(if (stdinq =: []) (tuple (Ok WritingDone)) (write [] sdsin EmptyContext)) >-= \WritingDone ->
+					readRegister taskId clock >-= \_->
+					readRegister taskId sdsin >-= \(ReadingDone stdinq)->
+					if (stdinq =: [])
+						(tuple $ Ok WritingDone)
+						(	// the process might have terminated since `checkProcess`,
+							// for this case we ignore the EPIPE error and handle termination at next task evaluation
+							liftOSErr (writePipeNoErrorOnBrokenPipe (concat stdinq) pio.stdIn) >-= \_ ->
+							write [] sdsin EmptyContext
+						)
+					>-= \WritingDone ->
 					tuple (Ok (ValueResult NoValue (mkTaskEvalInfo lastEval) (mkUIIfReset event rep)
 						(Task (eval (ph, pio)))))
+
+	writePipeNoErrorOnBrokenPipe :: !String !WritePipe !*World -> (!MaybeOSError (), !*World)
+	writePipeNoErrorOnBrokenPipe str pipe world
+		# (res, world)= writePipe str pipe world
+		= case res of
+			Error (32, _) = (Ok (), world)
+			res           = (res,   world)
 
 	rep = stringDisplay ("External process: " <+++ cmd)
 	clock = sdsFocus {start=zero,interval=poll} iworldTimespec
