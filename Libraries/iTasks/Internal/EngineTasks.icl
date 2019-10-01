@@ -15,7 +15,7 @@ import iTasks.UI.Definition
 import iTasks.WF.Definition
 import Text
 
-from Data.Map import newMap, member
+from Data.Map import newMap, member, del
 
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
@@ -66,9 +66,11 @@ where
 			(Ok True)
 				# (e,iworld) = deleteTaskInstance instanceNo iworld
 				| e=:(Error _) = (e,iworld)
-				= case write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-					(Error e, iworld) = (Error e, iworld)
-					(Ok WritingDone, iworld) = (Ok (), iworld)
+				# (e,iworld) = write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld
+				| e=:(Error _) = (liftError e,iworld)
+				# (e,iworld) = modify (\output -> del instanceNo output) taskOutput EmptyContext iworld
+				| e=:(Error _) = (liftError e,iworld)
+				= (Ok (),iworld)
 			(Ok False)
 				= (Ok (), iworld)
 			(Error e)

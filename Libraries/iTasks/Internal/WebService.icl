@@ -387,14 +387,19 @@ where
 
     onTick req output (clientname,state,instances) iworld
 		//Check keys
-		# (instances,iworld) = verifyKeys instances iworld
-		//Check for output for all attached instances
-		# (messages, output) = dequeueOutput (map fst instances) output
+		# (activeInstances,removedInstances,revokedInstances,iworld) = verifyInstances instances iworld
+		//Check for output for all active attached instances
+		# (messages, output) = dequeueOutput (map fst activeInstances) output
+		//Add exception messages for the instances for which we could not check the key
+		# messages
+			=  [(i,TOException ("Task instance " +++ toString i +++ " could not be found")) \\ i <- removedInstances]
+			++ [(i,TOException ("You no longer have acces to task instance " +++ toString i)) \\ i <- revokedInstances]
+			++ messages
 		= case messages of //Ignore empty updates
-			[] = ([],False,(clientname,state,instances),Nothing,iworld)
+			[] = ([],False,(clientname,state,activeInstances),Nothing,iworld)
 			messages
 				# json = [wsockTextMsg (toString (jsonMessage message)) \\ message <- messages]
-				= (flatten json,False, (clientname,state,instances), Just output, iworld)
+				= (flatten json,False, (clientname,state,activeInstances), Just output, iworld)
 
 	jsonMessage (instanceNo, TOUIChange change)
 		= JSONArray [JSONInt 0,JSONString "ui-change"
@@ -424,18 +429,16 @@ where
 			(Nothing,q) 	= []
 			(Just x,q) 		= [x:toList q]
 
-	verifyKeys :: [(InstanceNo,String)] *IWorld -> (![(InstanceNo,String)],!*IWorld)
-	verifyKeys instances iworld = filterSt verifyKey instances iworld
+	verifyInstances :: [(InstanceNo,String)] *IWorld -> (![(InstanceNo,String)],![InstanceNo],![InstanceNo],!*IWorld)
+	verifyInstances instances iworld = foldl verify ([],[],[],iworld) instances
 	where
-		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
-			(Ok (ReadingDone {InstanceProgress|instanceKey=Just key}),iworld) = (viewportKey == key,iworld)
-			(_,iworld) = (False,iworld)
-
-		filterSt p [] s = ([],s)
-		filterSt p [x:xs] s
-			# (t,s) = p x s
-			# (xs,s) = filterSt p xs s
-			= (if t [x:xs] xs, s)
+		verify (active,removed,revoked,iworld) (instanceNo,viewportKey)
+			= case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
+				(Ok (ReadingDone {InstanceProgress|instanceKey=Just key}),iworld)
+					= if (viewportKey == key)
+						([(instanceNo,viewportKey):active],removed,revoked,iworld)
+						(active,removed,[instanceNo:revoked],iworld)
+				(_,iworld) = (active,[instanceNo:removed],revoked,iworld)
 
 	eventsResponse messages
 		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
@@ -444,7 +447,6 @@ where
 	formatMessageEvents messages = concat (map format messages)
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
-
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
