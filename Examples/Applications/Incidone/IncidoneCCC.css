@@ -1,10 +1,34 @@
 body {
-    background: url('login-background.jpg') center center no-repeat;
+    background: url('/login-background.jpg') center center no-repeat;
+
+	/* Set colors */
+	--panel-header-base-color: #fb7322;
+	--panel-header-text-color: #fff;
+	--panel-border-color: #fb7322;
+
+	--window-header-base-color: #004584;
+	--window-header-text-color: #fff;
+	--window-border-color: #fb7322;
+
+	--toolbar-base-color: #fb7322;
+
+	--select-base-color: #004584;
+
+	--panel-header-base-color-lighter: #fc9b61;
+	--panel-header-base-color-lighter2: #fdb286;
+	--panel-header-base-color-darker: #b44503;
+	--panel-header-base-color-darker2: #e65804;
+	--window-header-base-color-lighter: #0066c4;
+	--toolbar-base-color-lighter: #fb8036;
+	--toolbar-base-color-darker: #d95404;
+	--toolbar-base-color-darker2: #fb6309;
+	--choicegrid-up-color: #fb833b;
+	--choicegrid-down-color: #fca36d;
 }
 .identify-app {
 	width: 300px;
 	height: 55px;
-	background: url('login-screen.png') top left no-repeat;
+	background: url('/login-screen.png') top left no-repeat;
 
 }
 .identify-app div {
@@ -12,123 +36,123 @@ body {
 }
 .summary-bar {
     color: #fff;
-	background: #004584 url('summary-bar.png') top left no-repeat;
+	background: #004584 url('/summary-bar.png') top left no-repeat;
 	padding: 2px 2px 2px 250px;
 	flex-direction: row;
 }
 .icon-incidents {
-	background-image: url('icons/incident.png');
+	background-image: url('/icons/incident.png');
 }
 .icon-communication {
-	background-image: url('icons/communication.png');
+	background-image: url('/icons/communication.png');
 }
 .icon-new {
-	background-image: url('icons/new.png');
+	background-image: url('/icons/new.png');
 }
 .icon-incident {
-	background-image: url('icons/incident.png');
+	background-image: url('/icons/incident.png');
 }
 .icon-inbound {
-	background-image: url('icons/inbound.png');
+	background-image: url('/icons/inbound.png');
 }
 .icon-outbound {
-	background-image: url('icons/outbound.png');
+	background-image: url('/icons/outbound.png');
 }
 .icon-phone-call {
-	background-image: url('icons/phone-call.png');
+	background-image: url('/icons/phone-call.png');
 }
 .icon-inmarsat-call {
-	background-image: url('icons/inmarsat-call.png');
+	background-image: url('/icons/inmarsat-call.png');
 }
 .icon-vhf-call {
-	background-image: url('icons/vhf-call.png');
+	background-image: url('/icons/vhf-call.png');
 }
 .icon-dsc-message {
-	background-image: url('icons/dsc-message.png');
+	background-image: url('/icons/dsc-message.png');
 }
 .icon-406mhz-message {
-	background-image: url('icons/406mhz-message.png');
+	background-image: url('/icons/406mhz-message.png');
 }
 .icon-p2000-message {
-	background-image: url('icons/p2000-message.png');
+	background-image: url('/icons/p2000-message.png');
 }
 .icon-e-mail-message {
-	background-image: url('icons/email-message.png');
+	background-image: url('/icons/email-message.png');
 }
 .icon-basic-information {
-	background-image: url('icons/basic-information.png');
+	background-image: url('/icons/basic-information.png');
 }
 .icon-details {
-    background-image: url('icons/details.png');
+    background-image: url('/icons/details.png');
 }
 .icon-contacts {
-	background-image: url('icons/contacts.png');
+	background-image: url('/icons/contacts.png');
 }
 .icon-contact-person {
-	background-image: url('icons/contact-person.png');
+	background-image: url('/icons/contact-person.png');
 }
 .icon-contact-vessel {
-	background-image: url('icons/contact-vessel.png');
+	background-image: url('/icons/contact-vessel.png');
 }
 .icon-contact-surfer {
-	background-image: url('icons/contact-surfer.png');
+	background-image: url('/icons/contact-surfer.png');
 }
 .icon-contact-diver {
-	background-image: url('icons/contact-diver.png');
+	background-image: url('/icons/contact-diver.png');
 }
 .icon-contact-airplane {
-	background-image: url('icons/contact-airplane.png');
+	background-image: url('/icons/contact-airplane.png');
 }
 .icon-contact-helicopter {
-	background-image: url('icons/contact-helicopter.png');
+	background-image: url('/icons/contact-helicopter.png');
 }
 .icon-contact-other {
-	background-image: url('icons/contact-vessel.png');
+	background-image: url('/icons/contact-vessel.png');
 }
 .icon-ais {
-    background-image: url('icons/ais.png');
+    background-image: url('/icons/ais.png');
 }
 .icon-actions {
-	background-image: url('icons/actions.png');
+	background-image: url('/icons/actions.png');
 }
 .icon-action-planned {
-    background-image: url('icons/action-planned.png');
+    background-image: url('/icons/action-planned.png');
 }
 .icon-action-active {
-    background-image: url('icons/action-active.png');
+    background-image: url('/icons/action-active.png');
 }
 .icon-action-completed {
-    background-image: url('icons/action-completed.png');
+    background-image: url('/icons/action-completed.png');
 }
 .icon-action-failed {
-    background-image: url('icons/action-failed.png');
+    background-image: url('/icons/action-failed.png');
 }
 .icon-action-canceled {
-    background-image: url('icons/action-canceled.png');
+    background-image: url('/icons/action-canceled.png');
 }
 .icon-action-compound {
-    background-image: url('icons/action-compound.png');
+    background-image: url('/icons/action-compound.png');
 }
 .icon-map {
-	background-image: url('icons/map.png');
+	background-image: url('/icons/map.png');
 }
 .icon-weather {
-	background-image: url('icons/weather.png');
+	background-image: url('/icons/weather.png');
 }
 .icon-log {
-	background-image: url('icons/log.png');
+	background-image: url('/icons/log.png');
 }
 .icon-photos {
-	background-image: url('icons/photos.png');
+	background-image: url('/icons/photos.png');
 }
 .icon-access {
-	background-image: url('icons/access.png');
+	background-image: url('/icons/access.png');
 }
 .icon-share-to-wall {
-    background-image: url('icons/share-to-wall.png');
+    background-image: url('/icons/share-to-wall.png');
 }
 .icon-log-in {
-	background-image: url('icons/outbound.png');
+	background-image: url('/icons/outbound.png');
 }
 .icon-dismiss {
 	background-image: url('/img/icons/cancel.png');
@@ -137,7 +161,7 @@ body {
 	background-image: url('/img/icons/accept.png');
 }
 .icon-add-predefined, .icon-add-custom, .icon-add-all, .icon-add-selected {
-	background-image: url('icons/new.png');
+	background-image: url('/icons/new.png');
 }
 .incident-log {
     width: 700px;
@@ -184,7 +208,7 @@ body {
 /* Wall dashboards */
 .wall-header {
     color: #fff;
-	background: #004584 url('summary-bar.png') top left no-repeat;
+	background: #004584 url('/summary-bar.png') top left no-repeat;
     text-align: right;
     text-transform: uppercase;
     font-size: 14px;

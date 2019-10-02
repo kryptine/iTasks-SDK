@@ -9,7 +9,12 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 
 keepWatch :: [Workspace -> Task ()]
-keepWatch =	[browseCommunications,browseIncidents,browseContacts,browseActions]
+keepWatch =
+	[\ws -> browseCommunications ws <<@ Title "Communication" <<@ Icon "communication"
+	,\ws -> browseIncidents ws      <<@ Title "Incidents"     <<@ Icon "incidents"
+	,\ws -> browseContacts ws       <<@ Title "Contacts"      <<@ Icon "contacts"
+	,\ws -> browseActions ws        <<@ Title "Actions"       <<@ Icon "actions"
+	]
 
 /*
 * The communication dashboard shows all ongoing communication.
@@ -27,7 +32,7 @@ browseCommunications ws
         ] @! ()
 where
 	selectCommunication
-        = Icon "communication" @>> Title "Communication" @>> enterChoiceWithSharedAs [ChooseFromGrid id] allCommunications communicationIdentity
+        = enterChoiceWithSharedAs [ChooseFromGrid id] allCommunications communicationIdentity
     openCommunication ws communicationNo
         = addToWorkspace ((doOrClose (updateCommunication communicationNo)) <<@ InWindow) ws @! ()
 
@@ -52,7 +57,7 @@ browseIncidents ws
             ]
     )
 	(	withSelection viewNoSelection viewIncidentDetails
-	)	<<@ (ArrangeWithSideBar 1 RightSide True) <<@ (Icon "incidents") <<@ (Title "Incidents")
+	)	<<@ (ArrangeWithSideBar 1 RightSide True) 
     @! ()
 where
 	selectIncident
@@ -74,7 +79,7 @@ browseContacts ws
             ]
     )
 	(   withSelection viewNoSelection viewDetails
-	)	<<@ (ArrangeWithSideBar 1 RightSide True) <<@ (Icon "contacts") <<@ (Title "Contacts")
+	)	<<@ (ArrangeWithSideBar 1 RightSide True)
     @! ()
 where
     viewDetails (Left contactNo)    = viewContactDetails contactNo
@@ -109,7 +114,7 @@ where
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation [] ()
             )
-        ) <<@ (ArrangeWithSideBar 0 LeftSide True) <<@ (Icon "actions") <<@ (Title "Actions")
+        ) <<@ (ArrangeWithSideBar 0 LeftSide True) 
 
 
 

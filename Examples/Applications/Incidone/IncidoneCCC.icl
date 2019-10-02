@@ -55,10 +55,10 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	= 	enterCredentials <<@ (ApplyLayout credentialsLayout)
+	= 	(enterCredentials <<@ AddCSSClass "login"
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		]  
+		]) <<@ (ApplyLayout credentialsLayout) 
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -66,7 +66,17 @@ where
 		||-	enterInformation []
 
 	//Compact layout before login, full screen afterwards
-	credentialsLayout = sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact]
+	credentialsLayout = ifHasClass "login" (sequenceLayouts [setUIAttributes (titleAttr "Login"), frameCompact])
+
+	ifHasClass name rule = layoutSubUIs
+		(SelectAND
+			(SelectByPath []) 
+			(SelectByContains 
+				(SelectAND (SelectByDepth 1) (SelectByAttribute "class" (hasClass name)))
+			)
+		) rule
+	where
+		hasClass name json = maybe False (isMember name) (fromJSON json)
 
 	verifyCredentials :: Credentials -> Task (Maybe User)
 	verifyCredentials credentials=:{Credentials|username,password}
@@ -95,10 +105,11 @@ where
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs True
 
 	layoutControlDash = sequenceLayouts
-		[moveSubUIs (SelectByPath [0,0]) [] 1
-		,moveSubUIs (SelectByPath [0,0]) [] 2
-		,removeSubUIs (SelectByPath [0])
+		[removeCSSClass "step-actions"
+//layoutSubUIs (SelectByPath [0]) 
+		//moveSubUIs (SelectByPath [0,0]) [] 1
+		//,moveSubUIs (SelectByPath [0,0]) [] 2
+//		,removeSubUIs (SelectByPath [0])
 		,layoutSubUIs (SelectByType UIAction) actionToButton
 		,addCSSClass "summary-bar"
-		,setUIType UIContainer
         ]
