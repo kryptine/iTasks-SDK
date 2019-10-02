@@ -2,7 +2,7 @@ implementation module iTasks.Internal.TaskServer
 
 import Data.Functor
 import Data.Map => qualified updateAt
-import Data.Tuple
+import Data.Tuple, Data.Func
 import StdEnv
 import System.CommandLine
 import System.Time
@@ -72,10 +72,12 @@ where
 
 	installSignalHandlers iworld=:{signalHandlers,world}
 		= case signalInstall SIGTERM world of
-			(Error (_, e), world) = abort ("Couldn't install SIGTERM: " +++ e)
+			(Error (_, e), world) = abort $ concat ["Couldn't install SIGTERM: ", e, "\n"]
 			(Ok h1, world) = case signalInstall SIGINT world of
-				(Error (_, e), world) = abort ("Couldn't install SIGINT: " +++ e)
-				(Ok h2, world) = {iworld & signalHandlers=[h1,h2:signalHandlers], world=world}
+				(Error (_, e), world) = abort $ concat ["Couldn't install SIGINT: ", e, "\n"]
+				(Ok h2, world) = case signalIgnore SIGPIPE world of
+					(Error (_, e), world) = abort $ concat ["Couldn't ignore SIGPIPE: ", e, "\n"]
+					(Ok _, world) = {iworld & signalHandlers=[h1,h2:signalHandlers], world=world}
 
 loop :: !(*IWorld -> (Maybe Timeout,*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld=:{ioTasks,sdsNotifyRequests,signalHandlers}
