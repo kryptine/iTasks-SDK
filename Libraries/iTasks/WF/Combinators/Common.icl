@@ -104,7 +104,7 @@ foreverIf :: (a -> Bool) !(Task a) -> Task a | iTask a
 foreverIf pred task = step task id [OnValue $ withStable \v->Just (if (pred v) (foreverIf pred task) (return v))]
 
 foreverSt :: a !(a -> Task a) -> Task a | iTask a
-foreverSt st t = step (t st) id [OnValue $ withStable $ Just o forever o t]
+foreverSt st t = step (t st) id [OnValue $ withStable $ \st -> Just $ foreverSt st t]
 
 forever :: (Task a) -> Task a | iTask a
 forever t = step t id [OnValue $ withStable \_->Just $ forever t]
