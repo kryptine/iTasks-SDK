@@ -11,7 +11,7 @@ PIKADAY_JS_URL :== "/pikaday/pikaday.js"
 PIKADAY_CSS_URL :== "/pikaday/css/pikaday.css"
 MOMENT_JS_URL :== "/momentjs/moment.min.js"
 
-pikadayField :: Editor String
+pikadayField :: Editor String String
 pikadayField = leafEditorToEditor {LeafEditor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	genUI attr dp mode vst=:{VSt|taskId,optional}
@@ -91,16 +91,20 @@ where
 		# world            = (me .# "doEditEvent" .$! (taskId, editorId, toJSON value)) world
 		= world
 
-	onEdit dp (tp,e) _ vst = (Ok (ChangeUI [SetAttribute "value" (JSONString (fromMaybe "" e))] [], e),vst)
+	onEdit dp (tp,e) _ vst = (Ok (ChangeUI [SetAttribute "value" (JSONString (fromMaybe "" e))] [], e, unique e),vst)
 
 	onRefresh dp new st vst=:{VSt| optional}
-		| st === Just new = (Ok (NoChange, st), vst)
-		| otherwise       = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [], (Just new)), vst)
+		| st === Just new = (Ok (NoChange, st, Nothing), vst)
+		| otherwise       = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [], (Just new), unique (Just new)), vst)
 
 	valueFromState s = s
 
-pikadayDateField :: Editor Date
+	unique :: (Maybe a) -> *Maybe a
+	unique Nothing = Nothing
+	unique (Just x) = Just x
+
+pikadayDateField :: Editor Date Date
 pikadayDateField = selectByMode
-	(bijectEditorValue toString fromString textView)
-	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
-	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+	(bijectEditorWrite toString fromString $ bijectEditorValue toString fromString textView)
+	(injectEditorWrite toString parseDate $ injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+	(injectEditorWrite toString parseDate $ injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))

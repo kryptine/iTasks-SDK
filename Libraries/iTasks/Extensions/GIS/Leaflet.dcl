@@ -4,7 +4,7 @@ import iTasks
 from Text.HTML import :: SVGElt
 from Data.Set import :: Set
 
-leafletEditor :: Editor LeafletMap
+leafletEditor :: Editor LeafletMap LeafletMap
 
 /*
  * Customization of editors
@@ -13,7 +13,7 @@ leafletEditor :: Editor LeafletMap
  * @param initial value
  * @result editor
  */
-customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) (LeafletMap, s) | iTask s
 
 
 :: LeafletMap =

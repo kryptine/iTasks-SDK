@@ -23,16 +23,16 @@ from Control.GenBimap import generic bimap
 * Definition of an editor.
 * EditMode and Maybe arguments/results are unique to allow deriving bimap for Editor type.
 */
-:: Editor a =
+:: Editor a w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath *(EditMode a) *VSt ->
 		*(MaybeErrorString (!UI, !EditState), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) EditState *VSt ->
-		*(MaybeErrorString (!UIChange, !EditState), *VSt)
+		*(*MaybeErrorString *(!UIChange, !EditState, !*Maybe w), *VSt)
 	//React to a new model value
 	, onRefresh :: !DataPath a EditState *VSt ->
-		*(MaybeErrorString (!UIChange, !EditState), *VSt)
+		*(*MaybeErrorString *(!UIChange, !EditState, !*Maybe w), *VSt)
 	//Get the typed value from the editor state, if the state represents a valid value
 	, valueFromState :: !EditState -> *Maybe a
 	}
@@ -41,47 +41,47 @@ from Control.GenBimap import generic bimap
 *	Definition of a leaf editor using a typed state and edit event.
 *	This is an auxiliary type to define an `Editor` with an untyped state and edit events.
 */
-:: LeafEditor edit st a =
+:: LeafEditor edit st a w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode a) *VSt ->
 		*(MaybeErrorString (!UI, !st), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !edit) st *VSt ->
-		*(MaybeErrorString (!UIChange, !st), *VSt)
+		*(*MaybeErrorString *(!UIChange, !st, !*Maybe w), *VSt)
 	//React to a new model value
 	, onRefresh :: !DataPath a st *VSt ->
-		*(MaybeErrorString (!UIChange, !st), *VSt)
+		*(*MaybeErrorString *(!UIChange, !st, !*Maybe w), *VSt)
 	//Get the typed value from the editor state, if the state represents a valid value
 	, valueFromState :: !st -> Maybe a
 	}
 
-leafEditorToEditor :: !(LeafEditor edit st a) -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
+leafEditorToEditor :: !(LeafEditor edit st a w) -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
-leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, [JSONNode])) !(LeafEditor edit st a)
-                    -> Editor a | JSONDecode{|*|} edit
+leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, [JSONNode])) !(LeafEditor edit st a w)
+                    -> Editor a w | JSONDecode{|*|} edit
 
 /*
 *	Definition of a compound editor using an additional typed state, next to the children's states.
 *	This is an auxiliary type to define an `Editor` with an untyped state.
 *	The function work on the typed additional state and the untyped children's states.
 */
-:: CompoundEditor st a =
+:: CompoundEditor st a w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode a) *VSt ->
 		*(MaybeErrorString (!UI, !st, ![EditState]), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st [EditState] *VSt ->
-		*(MaybeErrorString (!UIChange, !st, ![EditState]), *VSt)
+		*(MaybeErrorString (!UIChange, !st, ![EditState], !Maybe w), *VSt)
 	//React to a new model value
 	, onRefresh :: !DataPath a st [EditState] *VSt ->
-		*(MaybeErrorString (!UIChange, !st, ![EditState]), *VSt)
+		*(MaybeErrorString (!UIChange, !st, ![EditState], !Maybe w), *VSt)
 	//Get the typed value from the editor state, if the state represents a valid value
 	, valueFromState :: !st [EditState] -> Maybe a
 	}
 
-compoundEditorToEditor :: !(CompoundEditor st a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|} st
+compoundEditorToEditor :: !(CompoundEditor st a w) -> Editor a w | JSONDecode{|*|}, JSONEncode{|*|} st
 
 /*
 *	Definition of an editor modifier using an additional typed state, next to the child state.
@@ -89,21 +89,21 @@ compoundEditorToEditor :: !(CompoundEditor st a) -> Editor a | JSONDecode{|*|}, 
 *	This is an auxiliary type to define an `Editor` with an untyped state.
 *	The function work on the typed additional state and the untyped child state.
 */
-:: EditorModifierWithState st a =
+:: EditorModifierWithState st a w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode a) *VSt ->
 		*(MaybeErrorString (!UI, !st, !EditState), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st EditState *VSt ->
-		*(MaybeErrorString (!UIChange, !st, !EditState), *VSt)
+		*(MaybeErrorString (!UIChange, !st, !EditState, !Maybe w), *VSt)
 	//React to a new model value
 	, onRefresh :: !DataPath a st EditState *VSt ->
-		*(MaybeErrorString (!UIChange, !st, !EditState), *VSt)
+		*(MaybeErrorString (!UIChange, !st, !EditState, !Maybe w), *VSt)
 	//Get the typed value from the editor state, if the state represents a valid value
 	, valueFromState :: !st EditState -> Maybe a
 	}
 
-editorModifierWithStateToEditor :: !(EditorModifierWithState st a) -> Editor a | JSONDecode{|*|}, JSONEncode{|*|} st
+editorModifierWithStateToEditor :: !(EditorModifierWithState st a w) -> Editor a w | JSONDecode{|*|}, JSONEncode{|*|} st
 
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]

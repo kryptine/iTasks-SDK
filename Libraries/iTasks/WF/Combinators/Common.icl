@@ -277,7 +277,7 @@ where
 compute :: !String a -> Task a | iTask a
 compute s a = Hint s @>> enterInformation [EnterUsing id ed] >>~ \_->return a
 where
-	ed :: Editor Bool
+	ed :: Editor Bool Bool
 	ed = fieldComponent UILoader Nothing (\_ _ -> True)
 
 valToMaybe :: (TaskValue a) -> Maybe a

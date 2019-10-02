@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.User
 
 import iTasks
 import Text
-import Data.Functor, Data.Either, Data.Maybe
+import Data.Functor, Data.Either, Data.Maybe, Data.Func
 import qualified Data.Map as DM
 import Data.Map.GenJSON
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
@@ -74,10 +74,12 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = bijectEditorValue (\(Username u) -> u) (\s -> (Username s)) (selectByMode
-	textView
-	(withDynamicHintAttributes "username" (withEditModeAttr textField <<@ minlengthAttr 1))
-	(withDynamicHintAttributes "username" (withEditModeAttr textField <<@ minlengthAttr 1)))
+gEditor{|Username|} = bijectEditorWrite fromUsername toUsername $ bijectEditorValue fromUsername toUsername
+	(selectByMode textView usernameField usernameField)
+where
+	fromUsername (Username u) = u
+	toUsername u = Username u
+	usernameField = withDynamicHintAttributes "username" (withEditModeAttr textField <<@ minlengthAttr 1)
 
 derive gDefault			Username
 derive gEq				Username
@@ -102,10 +104,14 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = bijectEditorValue (\(Password p) -> p) (\s -> (Password s)) 
-						(selectByMode (comapEditorValue (const "********") textView)
-									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField  <<@ minlengthAttr 1))
-									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField  <<@ minlengthAttr 1)))
+gEditor{|Password|} = bijectEditorWrite fromPassword toPassword $ bijectEditorValue fromPassword toPassword
+	(selectByMode passwordView passwordEdit passwordEdit)
+where
+	fromPassword (Password p) = p
+	toPassword s = Password s
+
+	passwordView = comapEditorValue (const "********") textView
+	passwordEdit = withDynamicHintAttributes "password" (withEditModeAttr passwordField <<@ minlengthAttr 1)
 
 derive gDefault			Password
 derive gEq				Password

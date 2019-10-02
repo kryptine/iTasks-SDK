@@ -2,7 +2,7 @@ implementation module iTasks.Util.Testing
 
 import iTasks, StdFile, StdMisc
 import iTasks.Extensions.Image
-import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks.Internal.Serialization
 import Text, Text.HTML, Text.GenPrint, System.CommandLine
 import qualified Data.Map as DM
@@ -82,13 +82,13 @@ filterTestsByName :: String [UnitTest] -> [UnitTest]
 filterTestsByName pattern tests = filter (\{UnitTest|name} -> indexOf pattern name >= 0) tests
 
 //UTILITY TASKS
-testEditor :: (Editor a) (EditMode a) -> Task a | iTask a
+testEditor :: (Editor a w) (EditMode a) -> Task a | iTask a
 testEditor editor mode
-	=   (interactR unitShare {onInit = const mode, onEdit = \v -> Nothing, onRefresh = \_ v -> (v,Nothing)} editor @ snd
+	=   (interactR unitShare {onInit = const mode, onEdit = \v -> Nothing, onRefresh = \_ v -> (v,Nothing)} (ignoreEditorWrites editor) @ snd
 	>&> \s -> Title "Editor value" @>> viewSharedInformation [ViewAs (toString o toJSON)] s @? tvFromMaybe
 	)  <<@ ArrangeHorizontal
 
-testEditorWithShare :: (Editor a) a Bool -> Task a | iTask a
+testEditorWithShare :: (Editor a w) a Bool -> Task a | iTask a
 testEditorWithShare editor model viewMode = (withShared model
 	\smodel ->
 		(Hint "Edit the shared source" @>> updateSharedInformation [] smodel)
@@ -100,7 +100,7 @@ testEditorWithShare editor model viewMode = (withShared model
 				, onEdit    = \v   -> Just (\_ -> v)
 				, onRefresh = \r _ -> (Just r,Nothing)
 				}
-			editor
+			(ignoreEditorWrites editor)
 			@ snd
 		)
 	) <<@ ArrangeHorizontal

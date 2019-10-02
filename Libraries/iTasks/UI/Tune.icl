@@ -19,13 +19,13 @@ import qualified iTasks.Internal.SDS as SDS
 (@>>) infixr 2 :: !option !tunedItem -> tunedItem | tune option tunedItem
 (@>>) a t = tune a t
 
-instance tune UIAttribute (Editor a)
+instance tune UIAttribute (Editor a w)
 where
 	tune (k,v) editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 	where
 		genUI attr dp mode vst = editorGenUI ('DM'.put k v attr) dp (mapEditMode id mode) vst
 
-instance tune UIAttributes (Editor a)
+instance tune UIAttributes (Editor a w)
 where
 	tune extra editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 	where
@@ -58,22 +58,22 @@ where
 
 instance tune Title (Task a)
 where tune (Title title) t = tune (titleAttr title) t
-instance tune Title (Editor a)
+instance tune Title (Editor a w)
 where tune (Title title) e = tune (titleAttr title) e
 
 instance tune Hint (Task a)
 where tune (Hint hint) t = tune (hintAttr hint) t
-instance tune Hint (Editor a)
+instance tune Hint (Editor a w)
 where tune (Hint hint) e = tune (hintAttr hint) e
 
 instance tune Icon (Task a)
 where tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
-instance tune Icon (Editor a)
+instance tune Icon (Editor a w)
 where tune (Icon icon) e = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) e
 
 instance tune Label (Task a)
 where tune (Label label) t = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) t
-instance tune Label (Editor a)
+instance tune Label (Editor a w)
 where tune (Label label) e = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) e
 
 instance tune ApplyLayout (Task a)

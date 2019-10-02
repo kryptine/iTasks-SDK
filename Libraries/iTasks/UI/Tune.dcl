@@ -24,18 +24,18 @@ class tune option tunedItem :: !option !tunedItem -> tunedItem
 //* Overwriting attributes with constants
 instance tune UIAttribute  (Task a)
 instance tune UIAttributes (Task a)
-instance tune UIAttribute  (Editor a)
-instance tune UIAttributes (Editor a)
+instance tune UIAttribute  (Editor a w)
+instance tune UIAttributes (Editor a w)
 
 //* Common attributes
 instance tune Title (Task a)
 instance tune Hint  (Task a)
 instance tune Label (Task a)
 instance tune Icon  (Task a)
-instance tune Title (Editor a)
-instance tune Hint  (Editor a)
-instance tune Label (Editor a)
-instance tune Icon  (Editor a)
+instance tune Title (Editor a w)
+instance tune Hint  (Editor a w)
+instance tune Label (Editor a w)
+instance tune Icon  (Editor a w)
 
 //* Apply a layout transform to a task
 :: ApplyLayout = ApplyLayout !LayoutRule

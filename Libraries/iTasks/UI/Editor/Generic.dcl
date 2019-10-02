@@ -12,7 +12,7 @@ from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 /**
 * Main generic editor function
 */
-generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a
+generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a a
 
 derive gEditor
 	UNIT,

@@ -47,12 +47,12 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interactRW :: !(sds () r w) (InteractionHandlers r w v) (Editor v) -> Task (r,v)
+interactRW :: !(sds () r w) (InteractionHandlers r w v) (Editor v w) -> Task (r,v)
 	| iTask r & iTask v & TC r & TC w & RWShared sds
 interactRW shared handlers editor
 	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor modifyCompletely))
 
-interactR :: (sds () r w) (InteractionHandlers r w v) (Editor v) -> Task (r,v)
+interactR :: (sds () r w) (InteractionHandlers r w v) (Editor v w) -> Task (r,v)
 	| iTask r & iTask v & TC r & TC w & Registrable sds
 interactR shared handlers editor
 	= Task (readRegisterCompletely shared NoValue (\event->mkUIIfReset event (asyncSDSLoaderUI Read)) (evalInteractInit shared handlers editor \_ _->modifyCompletely (\()->undef) nullShare))
@@ -90,7 +90,7 @@ evalInteract ::
 	Bool
 	(sds () r w)
 	(InteractionHandlers r w v)
-	(Editor v)
+	(Editor v w)
 	(
 		(r -> w)
 		(sds () r w)
@@ -113,7 +113,7 @@ evalInteract r mst mode sds handlers editor writefun event=:(EditEvent eTaskId n
 	| eTaskId == taskId
 		# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) (fromJust mst)) iworld
 		= case res of
-			Ok (change, st)
+			Ok (change, st, mbw)
 				= case editor.Editor.valueFromState st of
 					Just nv
 						# mbf = handlers.InteractionHandlers.onEdit nv
@@ -160,10 +160,10 @@ evalInteract r mst mode sds handlers editor writefun event=:(RefreshEvent taskId
 				# (mbV, mbf) = handlers.InteractionHandlers.onRefresh r v
 				# mbChange = case mbV of
 					Just v  = withVSt taskId (editor.Editor.onRefresh [] v st) iworld
-					Nothing = (Ok (NoChange, st), iworld)
+					Nothing = (Ok (NoChange, st, Nothing), iworld)
 				= case mbChange of
 					(Error e, iworld) = (ExceptionResult (exception e), iworld)
-					(Ok (change, st), iworld)
+					(Ok (change, st, _), iworld)
 						# v = editor.Editor.valueFromState st
 						= case mbf of
 							Just f = writefun f sds NoValue (\_->change)

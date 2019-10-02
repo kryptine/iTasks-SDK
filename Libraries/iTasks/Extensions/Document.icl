@@ -6,7 +6,7 @@ import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskState
 import StdBool, StdString, StdFile, StdArray, StdInt
 
-import Text.GenJSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error
+import Text.GenJSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error, Data.Func
 import qualified Data.Map as DM
 from StdFunc import const
 
@@ -20,11 +20,11 @@ gText{|Document|} _ Nothing             = [""]
 
 gEditor {|Document|} = selectByMode viewDocument editDocument editDocument
 where
-	viewDocument = comapEditorValue toView htmlView 
+	viewDocument = ignoreEditorWrites $ comapEditorValue toView htmlView
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = bijectEditorValue toView fromView documentField
+	editDocument = bijectEditorWrite toView fromView $ bijectEditorValue toView fromView documentField
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}

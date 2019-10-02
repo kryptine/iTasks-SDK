@@ -12,111 +12,111 @@ from Data.Maybe import :: Maybe
 from Text.GenJSON import :: JSONNode
 
 //# UIContainer
-container  :: Editor ()
-containerl :: !(Editor a) -> Editor [a]
-containerL :: ![Editor a] -> Editor [a]
-container1 :: !(Editor a) -> Editor a
-container2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-container3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-container4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-container5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-containerc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+container  :: Editor () ()
+containerl :: !(Editor a w) -> Editor [a] [w]
+containerL :: ![Editor a w] -> Editor [a] [w]
+container1 :: !(Editor a w) -> Editor a w
+container2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+container3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+container4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+container5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+containerc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIPanel
-panel  :: Editor ()
-panell :: !(Editor a) -> Editor [a]
-panelL :: ![Editor a] -> Editor [a]
-panel1 :: !(Editor a) -> Editor a
-panel2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-panel3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-panel4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-panel5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-panelc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+panel  :: Editor () ()
+panell :: !(Editor a w) -> Editor [a] [w]
+panelL :: ![Editor a w] -> Editor [a] [w]
+panel1 :: !(Editor a w) -> Editor a w
+panel2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+panel3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+panel4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+panel5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+panelc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UITabSet
-tabset  :: Editor ()
-tabsetl :: !(Editor a) -> Editor [a]
-tabsetL :: ![Editor a] -> Editor [a]
-tabset1 :: !(Editor a) -> Editor a
-tabset2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-tabset3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-tabset4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-tabset5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-tabsetc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int,a)
+tabset  :: Editor () ()
+tabsetl :: !(Editor a w) -> Editor [a] [w]
+tabsetL :: ![Editor a w] -> Editor [a] [w]
+tabset1 :: !(Editor a w) -> Editor a w
+tabset2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+tabset3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+tabset4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+tabset5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+tabsetc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int,a) w
 
 //# UIWindow
-window  :: Editor ()
-windowl :: !(Editor a) -> Editor [a]
-windowL :: ![Editor a] -> Editor [a]
-window1 :: !(Editor a) -> Editor a
-window2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-window3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-window4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-window5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-windowc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int,a)
+window  :: Editor () ()
+windowl :: !(Editor a w) -> Editor [a] [w]
+windowL :: ![Editor a w] -> Editor [a] [w]
+window1 :: !(Editor a w) -> Editor a w
+window2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+window3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+window4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+window5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+windowc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int,a) w
 
 //# UIMenu
-menu  :: Editor ()
-menul :: !(Editor a) -> Editor [a]
-menuL :: ![Editor a] -> Editor [a]
-menu1 :: !(Editor a) -> Editor a
-menu2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-menu3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-menu4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-menu5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-menuc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+menu  :: Editor () ()
+menul :: !(Editor a w) -> Editor [a] [w]
+menuL :: ![Editor a w] -> Editor [a] [w]
+menu1 :: !(Editor a w) -> Editor a w
+menu2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+menu3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+menu4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+menu5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+menuc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIToolBar
-toolbar  :: Editor ()
-toolbarl :: !(Editor a) -> Editor [a]
-toolbarL :: ![Editor a] -> Editor [a]
-toolbar1 :: !(Editor a) -> Editor a
-toolbar2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-toolbar3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-toolbar4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-toolbar5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-toolbarc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+toolbar  :: Editor () ()
+toolbarl :: !(Editor a w) -> Editor [a] [w]
+toolbarL :: ![Editor a w] -> Editor [a] [w]
+toolbar1 :: !(Editor a w) -> Editor a w
+toolbar2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+toolbar3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+toolbar4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+toolbar5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+toolbarc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIButtonBar
-buttonbar  :: Editor ()
-buttonbarl :: !(Editor a) -> Editor [a]
-buttonbarL :: ![Editor a] -> Editor [a]
-buttonbar1 :: !(Editor a) -> Editor a
-buttonbar2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-buttonbar3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-buttonbar4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-buttonbar5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-buttonbarc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+buttonbar  :: Editor () ()
+buttonbarl :: !(Editor a w) -> Editor [a] [w]
+buttonbarL :: ![Editor a w] -> Editor [a] [w]
+buttonbar1 :: !(Editor a w) -> Editor a w
+buttonbar2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+buttonbar3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+buttonbar4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+buttonbar5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+buttonbarc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIList
-list  :: Editor ()
-listl :: !(Editor a) -> Editor [a]
-listL :: ![Editor a] -> Editor [a]
-list1 :: !(Editor a) -> Editor a
-list2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-list3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-list4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-list5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-listc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+list  :: Editor () ()
+listl :: !(Editor a w) -> Editor [a] [w]
+listL :: ![Editor a w] -> Editor [a] [w]
+list1 :: !(Editor a w) -> Editor a w
+list2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+list3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+list4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+list5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+listc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIListItem
-listitem  :: Editor ()
-listiteml :: !(Editor a) -> Editor [a]
-listitemL :: ![Editor a] -> Editor [a]
-listitem1 :: !(Editor a) -> Editor a
-listitem2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-listitem3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-listitem4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-listitem5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-listitemc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+listitem  :: Editor () ()
+listiteml :: !(Editor a w) -> Editor [a] [w]
+listitemL :: ![Editor a w] -> Editor [a] [w]
+listitem1 :: !(Editor a w) -> Editor a w
+listitem2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+listitem3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+listitem4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+listitem5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+listitemc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w
 
 //# UIDebug
-debug  :: Editor ()
-debugl :: !(Editor a) -> Editor [a]
-debugL :: ![Editor a] -> Editor [a]
-debug1 :: !(Editor a) -> Editor a
-debug2 :: !(Editor a) !(Editor b) -> Editor (a,b)
-debug3 :: !(Editor a) !(Editor b) !(Editor c) -> Editor (a,b,c)
-debug4 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) -> Editor (a,b,c,d)
-debug5 :: !(Editor a) !(Editor b) !(Editor c) !(Editor d) !(Editor e) -> Editor (a,b,c,d,e)
-debugc :: !(Editor Int) ![((Maybe a) -> a, Editor a)] -> Editor (Int, a)
+debug  :: Editor () ()
+debugl :: !(Editor a w) -> Editor [a] [w]
+debugL :: ![Editor a w] -> Editor [a] [w]
+debug1 :: !(Editor a w) -> Editor a w
+debug2 :: !(Editor a wa) !(Editor b wb) -> Editor (a,b) (wa,wb)
+debug3 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) -> Editor (a,b,c) (wa,wb,wc)
+debug4 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) -> Editor (a,b,c,d) (wa,wb,wc,wd)
+debug5 :: !(Editor a wa) !(Editor b wb) !(Editor c wc) !(Editor d wd) !(Editor e we) -> Editor (a,b,c,d,e) (wa,wb,wc,wd,we)
+debugc :: !(Editor Int Int) ![((Maybe a) -> a, Editor a w)] -> Editor (Int, a) w

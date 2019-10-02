@@ -1,16 +1,22 @@
 implementation module iTasks.Extensions.Currency
 import iTasks
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
-import Text, Data.Maybe
+import Text, Data.Maybe, Data.Func
 import qualified Data.Map as DM
 
 //* Money (ISO4217 currency codes are used)
 gText{|EUR|} _ val = [maybe "" toString val]
 
-gEditor{|EUR|} = selectByMode
-		(comapEditorValue toString textView)
-		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" decimalField))
-		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" decimalField))
+gEditor{|EUR|} = selectByMode eurView eurField eurField 
+where
+	fromEUR (EUR v) = toReal v / 100.0
+	toEUR v = EUR (toInt (100.0 * v))
+
+	eurView = ignoreEditorWrites $ comapEditorValue toString textView
+	eurField
+		= bijectEditorWrite fromEUR toEUR
+		$ bijectEditorValue fromEUR toEUR 
+		$ withDynamicHintAttributes "amount in EUR" decimalField
 
 instance toString EUR
 where
@@ -42,10 +48,16 @@ where
 
 gText{|USD|} _ val = [maybe "" toString val]
 
-gEditor{|USD|} = selectByMode
-		(comapEditorValue toString textView)
-		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" decimalField))
-		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" decimalField))
+gEditor{|USD|} = selectByMode usdView usdField usdField 
+where
+	fromUSD (USD v) = toReal v / 100.0
+	toUSD v = USD (toInt (100.0 * v))
+
+	usdView = ignoreEditorWrites $ comapEditorValue toString textView
+	usdField
+		= bijectEditorWrite fromUSD toUSD
+		$ bijectEditorValue fromUSD toUSD
+		$ withDynamicHintAttributes "amount in USD" decimalField
 
 instance toString USD
 where

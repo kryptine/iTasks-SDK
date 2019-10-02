@@ -11,13 +11,13 @@ import iTasks.UI.Editor.Modifiers
 
 disableOnView e = selectByMode (e <<@ enabledAttr False) e e
 
-textField :: Editor String
+textField :: Editor String String
 textField = fieldComponent UITextField (Just "") isValidString
 
-textArea :: Editor String
+textArea :: Editor String String
 textArea = fieldComponent UITextArea (Just "") isValidString
 
-passwordField :: Editor String
+passwordField :: Editor String String
 passwordField = fieldComponent UIPasswordField (Just "") isValidString
 
 isValidString :: !UIAttributes !String -> Bool
@@ -31,53 +31,53 @@ where
 
 	lStr = size str
 
-integerField :: Editor Int
+integerField :: Editor Int Int
 integerField = fieldComponent UIIntegerField Nothing (\_ _ -> True)
 
-decimalField :: Editor Real
+decimalField :: Editor Real Real
 decimalField = fieldComponent UIDecimalField Nothing (\_ _ -> True)
 
-documentField :: Editor (!String,!String,!String,!String,!Int)
+documentField :: Editor (!String,!String,!String,!String,!Int) (!String,!String,!String,!String,!Int)
 documentField = fieldComponent UIDocumentField Nothing (\_ _ -> True)
 
-checkBox :: Editor Bool
+checkBox :: Editor Bool Bool
 checkBox = fieldComponent UICheckbox (Just False) (\_ _ -> True)
 
-slider :: Editor Int
+slider :: Editor Int Int
 slider = fieldComponent UISlider Nothing (\_ _ -> True)
 
-button :: Editor Bool
+button :: Editor Bool Bool
 button = fieldComponent UIButton Nothing (\_ _ -> True)
 
-label :: Editor String
+label :: Editor String String
 label = viewComponent textAttr UILabel
 
-icon :: Editor (!String,!Maybe String)
+icon :: Editor (!String,!Maybe String) (!String,!Maybe String)
 icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip])
                      UIIcon
 
-textView :: Editor String
+textView :: Editor String String
 textView = viewComponent (valueAttr o JSONString o escapeStr) UITextView
 
-htmlView :: Editor HtmlTag
+htmlView :: Editor HtmlTag HtmlTag
 htmlView = viewComponent (valueAttr o JSONString o toString) UIHtmlView
 
-progressBar :: Editor (Maybe Int, Maybe String)
+progressBar :: Editor (Maybe Int, Maybe String) (Maybe Int, Maybe String)
 progressBar = viewComponent combine UIProgressBar
 where
 	combine (amount,text) =
 		'DM'.unions ((maybe [] (\t -> [textAttr t]) text) ++ (maybe [] (\v -> [valueAttr (JSONInt v)]) amount))
 						
-dropdown :: Editor ([ChoiceText], [Int])
+dropdown :: Editor ([ChoiceText], [Int]) [Int]
 dropdown = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIDropdown
 
-checkGroup :: Editor ([ChoiceText], [Int])
+checkGroup :: Editor ([ChoiceText], [Int]) [Int]
 checkGroup = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UICheckGroup
 
-choiceList :: Editor ([ChoiceText], [Int])
+choiceList :: Editor ([ChoiceText], [Int]) [Int]
 choiceList = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIChoiceList
 
-tabBar :: Editor ([ChoiceText], [Int])
+tabBar :: Editor ([ChoiceText], [Int]) [Int]
 tabBar = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UITabBar
 
 toOptionText {ChoiceText|id,text}= JSONObject [("id",JSONInt id),("text",JSONString text)]
@@ -86,7 +86,7 @@ checkBoundsText options idx = or [id == idx \\ {ChoiceText|id} <- options]
 derive JSONEncode ChoiceText
 derive JSONDecode ChoiceText
 
-grid :: Editor (ChoiceGrid, [Int])
+grid :: Editor (ChoiceGrid, [Int]) [Int]
 grid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption checkBounds UIGrid
 where
 	toOption {ChoiceRow|id,cells}= JSONObject [("id",JSONInt id),("cells",JSONArray (map (JSONString o toString) cells))]
@@ -95,7 +95,7 @@ where
 derive JSONEncode ChoiceGrid, ChoiceRow
 derive JSONDecode ChoiceGrid, ChoiceRow
 
-tree :: Editor ([ChoiceNode], [Int])
+tree :: Editor ([ChoiceNode], [Int]) [Int]
 tree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
 where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
@@ -115,7 +115,7 @@ where
 derive JSONEncode ChoiceNode
 derive JSONDecode ChoiceNode
 
-withConstantChoices :: !choices !(Editor (!choices, ![Int])) -> Editor [Int]
+withConstantChoices :: !choices !(Editor (!choices, ![Int]) [Int]) -> Editor [Int] [Int]
 withConstantChoices choices editor = bijectEditorValue (\sel -> (choices, sel)) snd
                                      (withChangedEditMode editModeFor editor)
 where
@@ -125,12 +125,12 @@ where
 
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent
-	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a
+	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a a
 	| JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a
 fieldComponent type mbEditModeInitValue isValid = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)
 where 
-	leafEditor toJSON =
-		{LeafEditor|genUI=genUI toJSON,onEdit=onEdit,onRefresh=onRefresh toJSON,valueFromState=valueFromState}
+	leafEditor toJSON
+		= {LeafEditor|genUI=genUI toJSON,onEdit=onEdit,onRefresh=onRefresh toJSON,valueFromState=valueFromState}
 
 	genUI toJSON attr dp mode vst=:{VSt|taskId,optional}
 		# mbVal   = maybe mbEditModeInitValue Just $ editModeValue mode
@@ -143,23 +143,23 @@ where
 		                        ]
 		= (Ok (uia type attr, (mbVal, attr)), vst)
 
-	onEdit _ (_, mbVal) (_, attrs) vst = (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs)), vst)
+	onEdit _ (_, mbVal) (_, attrs) vst = (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), unique mbVal`), vst)
 	where
 		(mbVal`, valJSON) = case mbVal of
 			Just val | isValid attrs val = (Just val, toJSON val)
 			_                            = (Nothing,  JSONNull)
 
 	onRefresh toJSON dp new (mbOld, attrs) vst
-		| mbOld === Just new = (Ok (NoChange, (mbOld, attrs)), vst)
-		| otherwise          = (Ok (ChangeUI [SetAttribute "value" (toJSON new)] [], (if (isValid attrs new) (Just new) Nothing, attrs)), vst)
+		| mbOld === Just new = (Ok (NoChange, (mbOld, attrs), Nothing), vst)
+		| otherwise          = (Ok (ChangeUI [SetAttribute "value" (toJSON new)] [], (if (isValid attrs new) (Just new) Nothing, attrs), Nothing), vst)
 
 	valueFromState (mbVal, _) = mbVal
 
-	editorWithJSONEncode :: !((a -> JSONNode) -> Editor a) -> Editor a | JSONEncode{|*|} a
+	editorWithJSONEncode :: !((a -> JSONNode) -> Editor a a) -> Editor a a | JSONEncode{|*|} a
 	editorWithJSONEncode genFunc = genFunc toJSON
 
 //Components which cannot be edited 
-viewComponent :: !(a -> UIAttributes) !UIType -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
+viewComponent :: !(a -> UIAttributes) !UIType -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
 viewComponent toAttributes type = leafEditorToEditor leafEditor
 where
 	leafEditor = {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -170,7 +170,7 @@ where
 
 	onEdit _ (_, ()) _ vst = (Error "Edit event for view component",vst)
 
-	onRefresh dp new val vst = (Ok (changes, new), vst)
+	onRefresh dp new val vst = (Ok (changes, new, Nothing), vst)
 	where
         changes = case setChanges ++ delChanges of
 			[]      = NoChange
@@ -188,7 +188,7 @@ where
 	valueFromState val = Just val
 
 //Choice components that have a set of options
-choiceComponent :: !(a -> UIAttributes) !(a -> [o]) !(o -> JSONNode) !([o] Int -> Bool) !UIType -> Editor (!a, ![Int])
+choiceComponent :: !(a -> UIAttributes) !(a -> [o]) !(o -> JSONNode) !([o] Int -> Bool) !UIType -> Editor (!a, ![Int]) [Int]
                  | JSONEncode{|*|}, JSONDecode{|*|} a
 choiceComponent attr getOptions toOption checkBounds type = disableOnView $
 	leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -203,7 +203,7 @@ where
 	onEdit dp (tp, selection) (mbVal, sel, multiple) vst=:{VSt|optional}
 		# options = maybe [] getOptions mbVal
 		| all (checkBounds options) selection
-			= (Ok (NoChange, (mbVal, selection, multiple)),vst)
+			= (Ok (NoChange, (mbVal, selection, multiple), unique (Just selection)),vst)
 		| otherwise
 			= (Error ("Choice event out of bounds: " +++ toString (toJSON selection)), vst)
 
@@ -218,7 +218,7 @@ where
 		//Check selection, if the selection is out of bounds assume the empty selection
 		# newSel             = if (all (checkBounds newOpts) newSel) newSel []
 		# cSel               = if (newSel =!= oldSel) (ChangeUI [SetAttribute "value" (toJSON newSel)] []) NoChange
-		= (Ok (mergeUIChanges cOptions cSel, (Just newVal, newSel, multiple)),vst)
+		= (Ok (mergeUIChanges cOptions cSel, (Just newVal, newSel, multiple), Nothing),vst)
 
 	valueFromState (Just val, sel, multiple)
 		// Non-multi select choice are only valid with a single selected item
@@ -229,3 +229,8 @@ where
 	valueFromState _               = Nothing
 
 	mbValToOptions mbVal = toOption <$> maybe [] getOptions mbVal
+
+unique:: (Maybe a) -> *(Maybe a)
+unique (Just x) = Just x
+unique Nothing = Nothing
+

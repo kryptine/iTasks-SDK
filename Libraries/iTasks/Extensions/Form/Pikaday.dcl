@@ -3,6 +3,6 @@ import iTasks, iTasks.UI.Editor
 /**
 * Integration of the Pikaday datefield library
 */
-pikadayField :: Editor String
+pikadayField :: Editor String String
 
-pikadayDateField :: Editor Date
+pikadayDateField :: Editor Date Date

@@ -18,7 +18,7 @@ derive gText AnalogClock
 gEditor{|AnalogClock|} = analogClockEditor
 
 //SVG Based analog clock editlet
-analogClockEditor :: Editor AnalogClock
+analogClockEditor :: Editor AnalogClock AnalogClock
 analogClockEditor = leafEditorToEditor
 	{LeafEditor
 	|genUI          = withClientSideInit initUI genUI
@@ -82,7 +82,7 @@ where
 	onRefresh _ new=:(AnalogClock t2) old=:(AnalogClock t1) vst = case ((if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
-						 ) of [] = (Ok (NoChange,old),vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] [],new),vst)
+						 ) of [] = (Ok (NoChange,old,Nothing),vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] [],new,Nothing),vst)
 
-	onEdit dp ([],()) s vst = (Ok (NoChange,s),vst)
+	onEdit dp ([],()) s vst = (Ok (NoChange,s,Nothing),vst)
 	valueFromState s = Just s

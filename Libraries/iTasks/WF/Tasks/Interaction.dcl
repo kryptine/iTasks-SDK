@@ -9,16 +9,16 @@ from Data.Functor import class Functor
 
 /*** General input/update/output tasks ***/
 :: ViewOption a
-	= E.v: ViewAs 	    (a -> v) & iTask v
-	| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v
+	= E.v: ViewAs    (a -> v) & iTask v
+	| E.v: ViewUsing (a -> v) (Editor v v) & iTask v
 
 :: EnterOption a
-	= E.v: EnterAs      (v -> a) & iTask v
-	| E.v: EnterUsing 	(v -> a) (Editor v) & iTask v
+	= E.v: EnterAs    (v -> a) & iTask v
+	| E.v: EnterUsing (v -> a) (Editor v v) & iTask v
 
 :: UpdateOption a
-	= E.v: UpdateAs     (a -> v) (a v -> a)	& iTask v
-	| E.v: UpdateUsing  (a -> v) (a v -> a) (Editor v) & iTask v
+	= E.v: UpdateAs    (a -> v) (a v -> a) & iTask v
+	| E.v: UpdateUsing (a -> v) (a v -> a) (Editor v v) & iTask v
 
 /**
  * When using an shared data you have to supply an additional conflict
@@ -32,8 +32,8 @@ from Data.Functor import class Functor
  */
 :: UpdateSharedOption a b 
 	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) & iTask v
-	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v) & iTask v
-	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v) & iTask v
+	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v v) & iTask v
+	| E.v: UpdateSharedUsingAuto (a -> Maybe v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v v) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s
@@ -43,7 +43,7 @@ from Data.Functor import class Functor
 	| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
 	| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
 	| SelectInTabs       (c -> [ChoiceText]) (c [Int] -> [s])
-	| E.v: SelectUsing   (c -> v) (c [Int] -> [s]) (Editor (v, [Int])) & iTask v
+	| E.v: SelectUsing   (c -> v) (c [Int] -> [s]) (Editor (v, [Int]) [Int]) & iTask v
 	//Common attributes as option
 	| SelectMultiple     !Bool
 

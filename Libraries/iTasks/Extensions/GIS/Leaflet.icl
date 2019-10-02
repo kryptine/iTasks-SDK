@@ -69,10 +69,10 @@ where
 openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
-leafletEditor :: Editor LeafletMap
+leafletEditor :: Editor LeafletMap LeafletMap
 leafletEditor = leafEditorToEditor leafletEditor`
 
-leafletEditor` :: LeafEditor [LeafletEdit] LeafletMap LeafletMap
+leafletEditor` :: LeafEditor [LeafletEdit] LeafletMap LeafletMap LeafletMap
 leafletEditor` =
 	{ LeafEditor
     | genUI          = withClientSideInit initUI genUI
@@ -625,7 +625,7 @@ where
 			= forall` (i + 1) len (f i el world)
 
 	//Process the edits received from the client
-	onEdit dp ([], diffs) m vst = (Ok (NoChange, foldl app m diffs), vst)
+	onEdit dp ([], diffs) m vst = (Ok (NoChange, foldl app m diffs,Nothing), vst)
 	where
 		app m (LDSetZoom zoom)          = {LeafletMap|m & perspective = {m.perspective & zoom = zoom}}
 		app m (LDSetCenter center)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & center = center}}
@@ -648,7 +648,7 @@ where
 					= Rectangle {LeafletRectangle| rect & bounds = bounds}
 			withUpdatedObject obj = obj
 		app m _ = m
-	onEdit _ _ msk ust = (Ok (NoChange,msk),ust)
+	onEdit _ _ msk ust = (Ok (NoChange,msk,Nothing),ust)
 
 	//Check for changed objects and update the client
 	onRefresh _ newMap oldMap vst
@@ -656,7 +656,7 @@ where
 		# attrChanges = diffAttributes oldMap newMap
 		//Determine object changes
 		# childChanges = diffChildren oldMap.LeafletMap.objects newMap.LeafletMap.objects updateFromOldToNew encodeUI
-		= (Ok (ChangeUI attrChanges childChanges, newMap),vst)
+		= (Ok (ChangeUI attrChanges childChanges, newMap, Nothing),vst)
 	where
 		//Only center and zoom are synced to the client, bounds are only synced from client to server
 		diffAttributes {LeafletMap|perspective=p1,icons=i1} {LeafletMap|perspective=p2,icons=i2}
@@ -730,10 +730,10 @@ where
 	toggle (LeafletObjectID "cursor") xs = xs //The cursor can't be selected
 	toggle x xs = if (isMember x xs) (removeMember x xs) ([x:xs])
 
-customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) (LeafletMap, s) | iTask s
 customLeafletEditor handlers initial = leafEditorToEditor (customLeafletEditor` handlers initial)
 
-customLeafletEditor` ::(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
+customLeafletEditor` ::(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) (LeafletMap,s) | iTask s
 customLeafletEditor` handlers initial =
 	{ LeafEditor
     | genUI          = genUI
@@ -748,19 +748,19 @@ where
 
 	onEdit datapath edit (mapState,customState) vst = case leafletEditor`.LeafEditor.onEdit datapath edit mapState vst of
 		(Error e, vst) = (Error e, vst)
-		(Ok (mapChange,mapState), vst) 
+		(Ok (mapChange,mapState,_), vst) 
 			//Apply event handlers
 			# (newMapState,customState) = updateCustomState handlers datapath edit (mapState,customState)
 			//Determine the change to the map
 		 	= case leafletEditor`.LeafEditor.onRefresh datapath newMapState mapState vst of
 				(Error e, vst) = (Error e, vst)
-				(Ok (mapRefreshChange,mapState),vst)	
-					= (Ok (mergeUIChanges mapChange mapRefreshChange, (mapState,customState)),vst)
+				(Ok (mapRefreshChange,mapState,_),vst)	
+					= (Ok (mergeUIChanges mapChange mapRefreshChange, (mapState,customState),Nothing),vst)
 		
 	onRefresh datapath (newMapState,newCustomState) (curMapState,curCustomState) vst
 		 = case leafletEditor`.LeafEditor.onRefresh datapath newMapState curMapState vst of
 			(Error e, vst) = (Error e, vst)
-			(Ok (mapChange,mapState),vst) = (Ok (mapChange,(mapState,newCustomState)),vst)	
+			(Ok (mapChange,mapState,_),vst) = (Ok (mapChange,(mapState,newCustomState),Nothing),vst)	
 
 	valueFromState s = Just s
 
