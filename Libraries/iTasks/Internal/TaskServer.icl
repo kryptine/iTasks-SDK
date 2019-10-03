@@ -7,6 +7,7 @@ import StdEnv
 import System.CommandLine
 import System.Time
 import System.Signal
+import System.OS
 import TCPIP
 import Text
 import iTasks.Engine
@@ -75,7 +76,8 @@ where
 			(Error (_, e), world) = abort $ concat ["Couldn't install SIGTERM: ", e, "\n"]
 			(Ok h1, world) = case signalInstall SIGINT world of
 				(Error (_, e), world) = abort $ concat ["Couldn't install SIGINT: ", e, "\n"]
-				(Ok h2, world) = case signalIgnore SIGPIPE world of
+				// Windows doesn't use SIGPIPE
+				(Ok h2, world) = case IF_WINDOWS (Ok (), world) (signalIgnore SIGPIPE world) of
 					(Error (_, e), world) = abort $ concat ["Couldn't ignore SIGPIPE: ", e, "\n"]
 					(Ok _, world) = {iworld & signalHandlers=[h1,h2:signalHandlers], world=world}
 
