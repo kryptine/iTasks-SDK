@@ -116,7 +116,7 @@ wsockPongMsg payload = wsockControlFrame WS_OP_PONG payload
 
 wsockMsgFrame :: !Int !Bool !String -> String
 wsockMsgFrame opcode final payload
-	| num_bytes < 125   = frame num_bytes "" payload
+	| num_bytes <=  125 = frame num_bytes "" payload
 	| num_bytes < 65536 = frame 126 {toChar (num_bytes >> (8*i)) \\ i <- [1,0]} payload
 	| otherwise         = IF_INT_64_OR_32
 							(frame 127 {toChar (num_bytes >> (8*i)) \\ i <- [7,6,5,4,3,2,1,0]} payload)
