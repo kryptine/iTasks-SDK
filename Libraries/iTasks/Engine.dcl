@@ -61,6 +61,7 @@ instance Startable (a,b) | Startable a & Startable b
 	{ appName       :: String
 	, appPath       :: FilePath // Location of the application's executable
 	, appVersion    :: String
+	, appConfig     :: Map String String //Application specific configuration
 	, serverPort    :: Int
 	, serverUrl     :: String
 	, allowedHosts  :: [String] // Only allow connections from these hosts (default ["127.0.0.1"])

@@ -29,6 +29,7 @@ import iTasks.WF.Tasks.System
 import iTasks.WF.Derives
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 from TCPIP import :: Timeout
 from StdFunc import :: St, seqList
@@ -211,6 +212,7 @@ defaultEngineOptions world
 		{ appName        = appName
 		, appPath        = appPath
 		, appVersion     = appVersion
+		, appConfig      = 'DM'.newMap
 		, serverPort     = IF_POSIX_OR_WINDOWS 8080 80
 		, serverUrl      = "http://localhost/"
 		, allowedHosts   = ["127.0.0.1"]
