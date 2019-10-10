@@ -279,58 +279,58 @@ where
 		  >>= \(JSONString f) -> 'DM'.get f icons
 		  >>= \icon ->           return ('DM'.union (iconClsAttr ("icon-" +++ icon)) attr)
 
-instance tune ArrangeWithTabs Task
+instance tune ArrangeWithTabs (Task a)
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 
-instance tune ArrangeWithSideBar Task 
+instance tune ArrangeWithSideBar (Task a)
 where
     tune (ArrangeWithSideBar index side resize) t = tune (ApplyLayout (arrangeWithSideBar index side resize)) t
 
-instance tune ArrangeWithHeader Task
+instance tune ArrangeWithHeader (Task a)
 where
     tune (ArrangeWithHeader index) t = tune (ApplyLayout (arrangeWithHeader index)) t
 
-instance tune ArrangeAsMenu Task
+instance tune ArrangeAsMenu (Task a)
 where
 	tune (ArrangeAsMenu i) t = tune (ApplyLayout (arrangeAsMenu i)) t
 
-instance tune ArrangeSplit Task
+instance tune ArrangeSplit (Task a)
 where
     tune (ArrangeSplit direction resize) t = tune (ApplyLayout (arrangeSplit direction resize)) t
 
-instance tune ArrangeVertical Task
+instance tune ArrangeVertical (Task a)
 where
     tune ArrangeVertical t = tune (ApplyLayout arrangeVertical)  t
 
-instance tune ArrangeHorizontal Task
+instance tune ArrangeHorizontal (Task a)
 where
     tune ArrangeHorizontal t = tune (ApplyLayout arrangeHorizontal) t
 
-instance tune ScrollContent Task
+instance tune ScrollContent (Task a)
 where
     tune ScrollContent t = tune (ApplyLayout scrollContent) t
 
-instance tune AddCSSClass Task
+instance tune AddCSSClass (Task a)
 where
 	tune (AddCSSClass s) t = tune (ApplyLayout (addCSSClass s)) t
 
-instance tune CSSStyle Task
+instance tune CSSStyle (Task a)
 where
 	tune (CSSStyle s) t = tune ("style",JSONString s) t
 
-instance tune ToWindow Task
+instance tune ToWindow (Task a)
 where
 	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
 
-instance tune InPanel Task
+instance tune InPanel (Task a)
 where
 	tune (InPanel fullscreenable) t =  tune (ApplyLayout (toPanel fullscreenable)) t
 
-instance tune InContainer Task
+instance tune InContainer (Task a)
 where
 	tune InContainer t = tune (ApplyLayout toContainer) t
 
-instance tune NoUserInterface Task
+instance tune NoUserInterface (Task a)
 where
     tune NoUserInterface task = Task (eval task)
     where

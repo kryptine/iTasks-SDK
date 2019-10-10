@@ -13,38 +13,29 @@ import qualified Data.Set as DS
 import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 
-class tune b f :: !b !(f a) -> f a
-class tunev b a f | iTask a :: !(b a) !(f a) -> f a
-
-(<<@) infixl 2 :: !(f a) !b	-> f a | tune b f
+(<<@) infixl 2 :: !tunedItem !option -> tunedItem | tune option tunedItem
 (<<@) t a = tune a t
 
-(@>>) infixr 2 :: !b !(f a)	-> f a | tune b f
+(@>>) infixr 2 :: !option !tunedItem -> tunedItem | tune option tunedItem
 (@>>) a t = tune a t
 
-(<@@) infixl 2 :: !(f a) !(b a) -> f a | tunev b a f & iTask a
-(<@@) t a = tunev a t
-
-(@@>) infixr 2 :: !(b a) !(f a) -> f a | tunev b a f & iTask a
-(@@>) a t = tunev a t
-
-instance tune UIAttribute Editor
+instance tune UIAttribute (Editor a)
 where
 	tune (k,v) editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 	where
 		genUI attr dp mode vst = editorGenUI ('DM'.put k v attr) dp (mapEditMode id mode) vst
 
-instance tune UIAttributes Editor
+instance tune UIAttributes (Editor a)
 where
 	tune extra editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 	where
 		genUI attr dp mode vst = editorGenUI ('DM'.union extra attr) dp (mapEditMode id mode) vst
 
-instance tune UIAttribute Task
+instance tune UIAttribute (Task a)
 where
 	tune attr task = tune ('DM'.fromList [attr]) task
 
-instance tune UIAttributes Task
+instance tune UIAttributes (Task a)
 where
 	tune attrs task = Task (eval task)
 	where
@@ -65,27 +56,27 @@ where
 
 		withExtraAttributes extra result = result
 
-instance tune Title Task
+instance tune Title (Task a)
 where tune (Title title) t = tune (titleAttr title) t
-instance tune Title Editor
+instance tune Title (Editor a)
 where tune (Title title) e = tune (titleAttr title) e
 
-instance tune Hint Task
+instance tune Hint (Task a)
 where tune (Hint hint) t = tune (hintAttr hint) t
-instance tune Hint Editor
+instance tune Hint (Editor a)
 where tune (Hint hint) e = tune (hintAttr hint) e
 
-instance tune Icon Task
+instance tune Icon (Task a)
 where tune (Icon icon) t = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) t
-instance tune Icon Editor
+instance tune Icon (Editor a)
 where tune (Icon icon) e = tune ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]) e
 
-instance tune Label Task
+instance tune Label (Task a)
 where tune (Label label) t = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) t
-instance tune Label Editor
+instance tune Label (Editor a)
 where tune (Label label) e = tune ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]) e
 
-instance tune ApplyLayout Task
+instance tune ApplyLayout (Task a)
 where tune (ApplyLayout l) task = applyLayout l task
 
 applyLayout :: LayoutRule (Task a) -> Task a

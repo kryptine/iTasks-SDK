@@ -148,7 +148,7 @@ editSelection` attributes (SelectUsing toView fromView editor) container sel
 		{onInit = \r -> (Update (toView container,sel))
 		,onEdit = \_ -> Nothing
 		,onRefresh = \_ v -> (v,Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
+		} (withAttributes attributes editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
 editSelectionWithShared options sharedContainer initSel = editSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer initSel
@@ -157,7 +157,7 @@ editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedC
 		{onInit = \r -> Update (toView r, initSel r)
 		,onEdit = \_ -> Nothing
 		,onRefresh = \r v -> ((\(_, sel) -> (toView r,sel)) <$> v,Nothing)
-		} (attributes @>> editor) @ (\(container,(_,sel)) -> fromView container sel)
+		} (withAttributes attributes editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
 editSharedSelection options container sharedSel = editSharedSelection` (selectAttributes options) (selectEditor options) container sharedSel
@@ -166,7 +166,7 @@ editSharedSelection` attributes (SelectUsing toView fromView editor) container s
 		{onInit = \r -> Update (toView container,r)
 		,onEdit = \(_,vs) -> Just (const vs)
 		,onRefresh = \r v -> ((\(vt, _) -> (vt, r)) <$> v,Nothing)
-		} (attributes @>> editor) @ (\(_,(_,sel)) -> fromView container sel)
+		} (withAttributes attributes editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedSelectionWithShared options sharedContainer sharedSel
@@ -176,7 +176,7 @@ editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) s
 		{onInit = \(rc, rs) -> Update (toView rc,rs)
 		,onEdit = \(_, vs) -> Just (const vs)
 		,onRefresh = \(rc, rs) _ -> (Just (toView rc, rs), Nothing)
-		} (attributes @>> editor) @ (\((container,_),(_,sel)) -> fromView container sel)
+		} (withAttributes attributes editor) @ (\((container,_),(_,sel)) -> fromView container sel)
 
 //Core choice tasks
 editChoice :: ![ChoiceOption a] ![a] (Maybe a) -> Task a | iTask a
@@ -365,3 +365,7 @@ crud :: !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
         (sds () (f r) (f` w))
      -> Task r | iTask r & iTask (f r) & iTask w & iTask (f` w) & RWShared sds
 crud toList putItem delItem sh = crudWith [] [] [] [] toList putItem delItem sh
+
+// required to solve overloading
+withAttributes :: !UIAttributes !(Editor a) -> Editor a
+withAttributes attributes editor = attributes @>> editor

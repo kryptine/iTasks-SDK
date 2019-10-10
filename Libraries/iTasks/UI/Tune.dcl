@@ -13,34 +13,31 @@ from iTasks.WF.Definition import :: Task
 * Fine tune a task or editor by specifying custom layouts, tweaking generic layouts,
 * or adding additional titles, hints and descriptions
 */
-class tune b f :: !b !(f a) -> f a
-class tunev b a f | iTask a :: !(b a) !(f a) -> f a
+class tune option tunedItem :: !option !tunedItem -> tunedItem
 
 /**
 * Infix shorthands for the (overloaded) tune combinator.
 */
-(<<@) infixl 2 :: !(f a) !b	-> f a | tune b f
-(@>>) infixr 2 :: !b !(f a)	-> f a | tune b f
-(<@@) infixl 2 :: !(f a) !(b a) -> f a | tunev b a f & iTask a
-(@@>) infixr 2 :: !(b a) !(f a) -> f a | tunev b a f & iTask a
+(<<@) infixl 2 :: !tunedItem !option    -> tunedItem | tune option tunedItem
+(@>>) infixr 2 :: !option    !tunedItem -> tunedItem | tune option tunedItem
 
 //* Overwriting attributes with constants
-instance tune UIAttribute Task
-instance tune UIAttributes Task
-instance tune UIAttribute Editor
-instance tune UIAttributes Editor
+instance tune UIAttribute  (Task a)
+instance tune UIAttributes (Task a)
+instance tune UIAttribute  (Editor a)
+instance tune UIAttributes (Editor a)
 
 //* Common attributes
-instance tune Title Task
-instance tune Hint Task
-instance tune Label Task
-instance tune Icon Task
-instance tune Title Editor
-instance tune Hint Editor
-instance tune Label Editor
-instance tune Icon Editor
+instance tune Title (Task a)
+instance tune Hint  (Task a)
+instance tune Label (Task a)
+instance tune Icon  (Task a)
+instance tune Title (Editor a)
+instance tune Hint  (Editor a)
+instance tune Label (Editor a)
+instance tune Icon  (Editor a)
 
 //* Apply a layout transform to a task
-:: ApplyLayout = ApplyLayout LayoutRule
-instance tune ApplyLayout Task
+:: ApplyLayout = ApplyLayout !LayoutRule
 
+instance tune ApplyLayout (Task a)

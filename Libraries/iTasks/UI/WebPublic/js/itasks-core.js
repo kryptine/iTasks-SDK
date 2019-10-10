@@ -279,11 +279,23 @@ itasks.Component = {
 	setAttribute: function(name,value) {
 		var me = this;
 	
-		me.attributes[name] = value;	
+		me.attributes[name] = value;
 		me.onAttributeChange(name,value);
 	},
-	onAttributeChange: function(name,value) {},
+	onAttributeChange: function(name,value) {
+		var me = this;
 
+		if(name == 'class') {
+			me.domEl.className = '';
+			if(Array.isArray(value)) {
+				value.forEach(function(cls) {
+					me.domEl.classList.add(cls);
+				});
+			} else {
+				me.domEl.classList.add(value);
+			}
+		}
+	},
 	onUIChange: function(change) {
 		var me = this;
 		me.world=me.world.then (function(){
