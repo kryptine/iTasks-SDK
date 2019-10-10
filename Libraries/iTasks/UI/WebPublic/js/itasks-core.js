@@ -65,9 +65,9 @@ itasks.Component = {
 	renderComponent: function() {
 		var me = this;
 		if(me.domEl === null) { //Create a new dom element
-        	me.domEl = document.createElement(me.domTag);
+			me.domEl = document.createElement(me.domTag);
 		} else { //Clear an existing element
-			me.domEl.innerHTML = null;
+			me.domEl.innerHTML = '';
 		}
 		//Initialially make the outer dom element also the container element that holds the child components
 		me.containerEl = me.domEl;
