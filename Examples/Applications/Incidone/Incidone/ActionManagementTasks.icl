@@ -54,7 +54,7 @@ actionStatusByNo :: SDSLens InstanceNo ActionStatus ActionStatus
 actionStatusByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing taskInstanceByNo
 where
     read item = Ok (thd3 (toActionStatus item))
-    write {TaskInstance|attributes} status = Ok (Just (fromActionStatus status attributes))
+    write {TaskInstance|attributes} status = Ok (Just (True,fromActionStatus status attributes))
 
 numActionsByContact :: SDSLens ContactNo Int ()
 numActionsByContact = mapRead length actionStatusesByContact

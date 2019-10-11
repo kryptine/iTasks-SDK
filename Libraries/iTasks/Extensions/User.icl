@@ -143,19 +143,19 @@ userFromAttr _ attr = case 'DM'.get "auth-user" attr of
 		Just (JSONString session) 	= Ok (AnonymousUser session)
 		_							= Ok SystemUser
 
-userToAttr :: a TaskAttributes User -> MaybeError TaskException (Maybe TaskAttributes)
+userToAttr :: a TaskAttributes User -> MaybeError TaskException (Maybe (Bool,TaskAttributes))
 userToAttr _ attr (AuthenticatedUser userId userRoles userTitle)
 	//Update user properties
 	# attr = 'DM'.put "auth-user" (JSONString userId) attr
 	# attr = if (isEmpty userRoles) ('DM'.del "auth-roles" attr) ('DM'.put "auth-roles" (JSONString (join "," userRoles)) attr)
 	# attr = maybe ('DM'.del "auth-title" attr) (\title -> 'DM'.put "auth-title" (JSONString title) attr) userTitle
-	= Ok (Just attr) 
+	= Ok (Just (True,attr))
 userToAttr _ attr _
 	//Remove user properties
 	# attr = 'DM'.del "auth-user" attr
 	# attr = 'DM'.del "auth-roles" attr
 	# attr = 'DM'.del "auth-title" attr
-	= Ok (Just attr)
+	= Ok (Just (True,attr))
 
 processesForUser :: User -> SDSLens () [TaskListItem ()] ()
 processesForUser user = mapRead (filter (forWorker user)) currentProcesses

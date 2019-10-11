@@ -99,7 +99,7 @@ where
 	isStable (_, _, Nothing, _) = False
 	isStable (_, _, Just {InstanceProgress|value}, attributes) = value =: Stable
 
-	isSystem (_, _, Just {InstanceProgress|value}, attributes) = member "system" (fromMaybe newMap attributes)
+	isSystem (_, _, Just {InstanceProgress|value}, attributes) = member "system" (maybe newMap mergeTaskAttributes attributes)
 	isSystem _ = False
 
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v

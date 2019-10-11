@@ -53,11 +53,11 @@ currentTopTask :: SDSLens () TaskId ()
 
 //Task instances
 currentTaskInstanceNo           :: SDSSource () InstanceNo ()
-currentTaskInstanceAttributes   :: SimpleSDSSequence TaskAttributes
+currentTaskInstanceAttributes   :: SDSSequence () TaskAttributes (Bool,TaskAttributes)
 allTaskInstances                :: SDSLens () [TaskInstance] ()
 detachedTaskInstances	        :: SDSLens () [TaskInstance] () //Exclude sessions
-taskInstanceByNo                :: SDSLens InstanceNo TaskInstance TaskAttributes
-taskInstanceAttributesByNo      :: SDSLens InstanceNo TaskAttributes TaskAttributes
+taskInstanceByNo                :: SDSLens InstanceNo TaskInstance (Bool,TaskAttributes)
+taskInstanceAttributesByNo      :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
 taskInstancesByAttribute		:: SDSLens (!String,!JSONNode) [TaskInstance] () //Parameter is (key,value)
 
 // Application

@@ -17,6 +17,8 @@ import StdTuple, StdList, StdString
 from iTasks.Internal.TaskEval  import currentInstanceShare
 from StdFunc import id, o, const
 
+import qualified Data.Map as DM
+
 NS_SYSTEM_DATA :== "SystemData"
 
 currentDateTime :: SDSParallel () DateTime ()
@@ -66,7 +68,7 @@ toTaskListItem (instanceNo,Just {InstanceConstants|type},Just progress, Just att
 	# listId = case type of
 		(PersistentInstance (Just listId)) = listId
 		_ = (TaskId 0 0)
-	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = attributes}
+	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = mergeTaskAttributes attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
 taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|type,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
@@ -75,12 +77,12 @@ taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|type,build,issu
 		(PersistentInstance (Just listId)) = listId
 		_ = (TaskId 0 0)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
+      ,attributes = mergeTaskAttributes attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
 
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
-currentTaskInstanceAttributes :: SimpleSDSSequence TaskAttributes
+currentTaskInstanceAttributes :: SDSSequence () TaskAttributes (Bool,TaskAttributes)
 currentTaskInstanceAttributes
 	= sdsSequence "currentTaskInstanceAttributes"
 		id
@@ -105,7 +107,7 @@ detachedTaskInstances
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
-taskInstanceByNo :: SDSLens InstanceNo TaskInstance TaskAttributes
+taskInstanceByNo :: SDSLens InstanceNo TaskInstance (Bool,TaskAttributes)
 taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
@@ -115,21 +117,29 @@ where
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
-    writeItem _ _   = Error (exception "Task instance not found")
+    writeItem [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
+	where
+		a` = case a of
+			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
+			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
+    writeItem _ _ = Error (exception "Task instance not found")
 
-taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes TaskAttributes
+taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
 taskInstanceAttributesByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
 where
     filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
 
-    readItem [(_,_,_,Just a)]    = Ok a
-    readItem _      = Error (exception "Task instance not found")
+    readItem [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
+    readItem _                = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
-    writeItem _ _   = Error (exception "Task instance not found")
+    writeItem [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
+	where
+		a` = case a of
+			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
+			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
+    writeItem _ _ = Error (exception "Task instance not found")
 
 taskInstancesByAttribute :: SDSLens (!String,!JSONNode) [TaskInstance] ()
 taskInstancesByAttribute

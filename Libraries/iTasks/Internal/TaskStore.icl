@@ -46,6 +46,9 @@ derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
 
+mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
+mergeTaskAttributes (explicit,implicit) = 'DM'.union explicit implicit
+
 //Unfiltered administration
 rawTaskIndex         = storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
 rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
@@ -153,7 +156,7 @@ createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|type=SessionInstance,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just (attributes,'DM'.newMap)) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
@@ -163,7 +166,7 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # (Ok instanceNo,iworld) = newInstanceNo iworld
     # progress              = {InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|type=StartupInstance,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo, Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just (attributes,'DM'.newMap)) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
@@ -179,7 +182,7 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
     # progress             = {InstanceProgress|value=Unstable,instanceKey=Just instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|type=PersistentInstance mbListId,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+    =            'SDS'.write (instanceNo,Just constants,Just progress,Just (attributes,'DM'.newMap)) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
   `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
@@ -225,8 +228,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
 filteredInstanceIndex
-	= sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify)
-		(Just \filter metas -> read filter metas) taskInstanceIndex
+	= sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing taskInstanceIndex
 where
     param tfilter = ()
 
@@ -274,14 +276,14 @@ where
 
         # constants  = if includeConstants (Just {InstanceConstants|type=type,build=build,issuedAt=issuedAt}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
-        # attributes = if includeAttributes (Just attributes) Nothing
+        # attributes = if includeAttributes (Just (attributes,'DM'.newMap)) Nothing
         = (instanceNo,constants,progress,attributes)
 
     updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
         # i = if includeConstants (maybe i (\{InstanceConstants|type,build,issuedAt}
                                             -> {TIMeta|i & instanceType = instanceType i type mbP ,build=build,issuedAt=issuedAt}) mbC) i
         # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
-        # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
+        # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = mergeTaskAttributes attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
 	where
 		instanceType _ (StartupInstance) _ = TIStartup
@@ -302,15 +304,15 @@ where
 	notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
 
 //Filtered views on the instance index
-taskInstance :: SDSLens InstanceNo InstanceData InstanceData
+taskInstance :: SDSLens InstanceNo (InstanceData) (InstanceData)
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) (Just \p ws -> read p ws) filteredInstanceIndex
 where
 	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=True,includeProgress=True,includeAttributes=True}
-	read no [data]  = Ok data
-	read no _       = Error (exception ("Could not find task instance "<+++ no))
-	write no data   = Ok (Just [data])
-	notify no _     = const ((==) no)
+	read no [(n,c,p,a)] = Ok (n,c,p,a)
+	read no _           = Error (exception ("Could not find task instance "<+++ no))
+	write no data       = Ok (Just [data])
+	notify no _         = const ((==) no)
 
 taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> Ok ())  filteredInstanceIndex
@@ -333,15 +335,22 @@ where
 	write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
 	notify no _                 = const ((==) no)
 
-taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes TaskAttributes
-taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> read p ws) filteredInstanceIndex
+taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
+taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing filteredInstanceIndex
 where
 	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=False,includeProgress=False,includeAttributes=True}
-	read no [(_,_,_,Just a)]    = Ok a
-	read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
-	write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
+
+	read no [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
+	read no _                = Error (exception ("Could not find attributes for task instance "<+++ no))
+
+	write no [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
+	where
+		a` = case a of
+			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
+			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
 	write no _ _                = Error (exception ("Could not find attributes for task instance "<+++ no))
+
 	notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic
@@ -356,7 +365,7 @@ where
     where
         items = [{TaskListItem|taskId = TaskId instanceNo 0, listId = listId
                  , detached = True, self = instanceNo == curInstance
-                 , value = NoValue, progress = Just progress, attributes = attributes
+                 , value = NoValue, progress = Just progress, attributes = mergeTaskAttributes attributes
                  } \\ (instanceNo,Just {InstanceConstants|type=PersistentInstance (Just listId)},Just progress, Just attributes) <- instances]
 
     write _ _ [] = Ok Nothing
@@ -364,7 +373,7 @@ where
     where
         updateInstance updates (instanceNo,c,p,a) = (instanceNo,c,p,foldr updateAttributes a updates)
         where
-            updateAttributes (TaskId targetNo 0,attrNew) attrOld = if (targetNo == instanceNo) (Just attrNew) attrOld
+            updateAttributes (TaskId targetNo 0,attrNew) attrOld = if (targetNo == instanceNo) (Just (attrNew,'DM'.newMap)) attrOld
             updateAttributes _ attrOld = attrOld
 
     notify _ _ _ _ = True
@@ -372,7 +381,7 @@ where
     reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(TaskId,TaskAttributes)]
 	reducer p ws = Ok (map ff ws)
 	where
-	  ff (i, _, _, Just attr) = (TaskId i 0, attr)
+	  ff (i, _, _, Just attr) = (TaskId i 0, mergeTaskAttributes attr)
 
 //Evaluation state of instances
 localShare :: SDSLens TaskId a a | iTask a
@@ -501,7 +510,7 @@ where
 
 	read ((listId,items),detachedInstances)
 		# detachedProgress = 'DM'.fromList [(TaskId instanceNo 0,progress) \\ (instanceNo,_,Just progress,_) <- detachedInstances]
-		# detachedAttributes= 'DM'.fromList [(TaskId instanceNo 0,attributes) \\ (instanceNo,_,_,Just attributes) <- detachedInstances]
+		# detachedAttributes= 'DM'.fromList [(TaskId instanceNo 0,mergeTaskAttributes attributes) \\ (instanceNo,_,_,Just attributes) <- detachedInstances]
 		= (listId,[{TaskListItem|item & progress = 'DM'.get taskId detachedProgress
 								, attributes = if detached (fromMaybe 'DM'.newMap ('DM'.get taskId detachedAttributes)) attributes}
 				  \\ item=:{TaskListItem|taskId,detached,attributes} <- items])
