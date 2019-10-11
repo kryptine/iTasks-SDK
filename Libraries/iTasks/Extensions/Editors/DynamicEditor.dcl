@@ -60,14 +60,14 @@ derive class iTask DynamicEditorValue
 :: DynamicEditor a =: DynamicEditor [DynamicEditorElement]
 
 /**
- * valueCorrespondingTo dynamicEditor dynamicEditorValue = value:
- * 	`value` is the actual value corresponding to `dynamicEditorValue` given `dynamicEditor`.
+ * `valueCorrespondingTo dynamicEditor dynamicEditorValue = value`:
+ *     `value` is the actual value corresponding to `dynamicEditorValue` given `dynamicEditor`.
  */
 valueCorrespondingTo :: !(DynamicEditor a) !(DynamicEditorValue a) -> a | TC a
 
 /**
- * stringRepresenting dynamicEditor dynamicEditorValue = string:
- * 	`string` is the string representing `dynamicEditorValue` given `dynamicEditor`.
+ * `stringRepresenting dynamicEditor dynamicEditorValue = string`:
+ *     `string` is the string representing `dynamicEditorValue` given `dynamicEditor`.
  */
 stringCorrespondingTo :: !(DynamicEditor a) !(DynamicEditorValue a) -> String
 
@@ -87,38 +87,38 @@ stringCorrespondingTo :: !(DynamicEditor a) !(DynamicEditorValue a) -> String
 :: DynamicCons
 
 /**
- * functionCons id label function = dynamicCons:
- * 	`dynamicCons` is the dynamic function constructor with identity `id` and `label`.
- * 	The value of the element generated is the result value of `function`.
- * 	For all arguments of `function` the user is given the possibility to enter a dynamic value
- * 	of the corresponding types.
+ * `functionCons id label function = dynamicCons`:
+ *     `dynamicCons` is the dynamic function constructor with identity `id` and `label`.
+ *     The value of the element generated is the result value of `function`.
+ *     For all arguments of `function` the user is given the possibility to enter a dynamic value
+ *     of the corresponding types.
  */
 functionCons :: !DynamicConsId !String !a -> DynamicCons | TC a
 
 /**
- * A variant of `functionCons` using a `Dynamic` value as function.
+ * A variant of {{functionCons}} using a {{Dynamic}} value as function.
  * This variant is more powerful as dynamic values make it possible to use quantified type variables.
  */
 functionConsDyn :: !DynamicConsId !String !Dynamic -> DynamicCons
 
 /**
- *  listCons id label resultFor = dynamicCons:
- * 	`dynamicCons` is the dynamic list constructor with identity `id` and `label`.
- * 	The user is given the possibility to enter a `list` of dynamic value of type `a`.
- * 	The editor's result is given by `resultFor list`.
+ * `listCons id label resultFor = dynamicCons`:
+ *     `dynamicCons` is the dynamic list constructor with identity `id` and `label`.
+ *     The user is given the possibility to enter a `list` of dynamic value of type `a`.
+ *     The editor's result is given by `resultFor list`.
  */
 listCons :: !DynamicConsId !String !([a] -> b) -> DynamicCons | TC a & TC b
 
 /**
- * A variant of `listCons`  using a `Dynamic` value as function.
+ * A variant of {{listCons}}  using a {{Dynamic}} value as function.
  * This variant is more powerful as dynamic values make it possible to use quantified type variables.
  * The dynamic argument must be of type `[a] -> b`, which cannot be enforced by the type system!
  */
 listConsDyn :: !DynamicConsId !String !Dynamic -> DynamicCons
 
 /**
- *  customEditorCons id label editor = dynamicCons:
- * 	`dynamicCons` is the dynamic constructor with identity `id` and `label` corresponding to the iTasks `editor`.
+ * `customEditorCons id label editor = dynamicCons`:
+ *     `dynamicCons` is the dynamic constructor with identity `id` and `label` corresponding to the iTasks `editor`.
  */
 customEditorCons ::
 	!DynamicConsId !String !(Editor a) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
