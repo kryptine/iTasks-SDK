@@ -77,15 +77,16 @@ where
 			_ = case filter (\(cons, _) -> cons.useAsDefault) matchingConses of
 				[(defaultChoice, _): _]
 					# (mbUis, idx, type, label, vst) = genChildEditors dp defaultChoice.consId Enter vst
+					# attrs = 'Map'.union (withContainerClassAttr defaultChoice.uiAttributes) attr
 					= case mbUis of
 						Ok (uis, childSts)
 							| hideCons =
-								( Ok (uiContainer attr uis, Just (defaultChoice.consId, type, True), [nullState: childSts])
+								( Ok (uiContainer attrs uis, Just (defaultChoice.consId, type, True), [nullState: childSts])
 								, vst
 								)
 							| otherwise
 								# (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
-								= ( Ok ( uiContainer attr [consChooseUI: uis]
+								= ( Ok ( uiContainer attrs [consChooseUI: uis]
 									   , Just (defaultChoice.consId, type, True)
 									   , [chooseSt: childSts]
 									   )
