@@ -68,9 +68,10 @@ where
 		Enter = case matchingConses of
 			[(onlyChoice, _)] | hideCons
 				# (mbUis, _, type, _, vst) = genChildEditors dp onlyChoice.consId Enter vst
+				# attrs = 'Map'.union (withContainerClassAttr onlyChoice.uiAttributes) attr
 				# mbUis =
 					( \(uis, childSts) ->
-						(uiContainer attr uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
+						(uiContainer attrs uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
 					) <$>
 						mbUis
 				= (mbUis, vst)
