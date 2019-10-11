@@ -6,3 +6,9 @@ test:
     - apt-get install -y -qq build-essential libsqlite3-dev libmariadbclient-dev-compat
   script:
     - bash ci-tests.bash
+  artifacts:
+    when: always
+    paths:
+      - Tests/Unit/*-junit.xml
+    reports:
+      junit: Tests/Unit/*-junit.xml

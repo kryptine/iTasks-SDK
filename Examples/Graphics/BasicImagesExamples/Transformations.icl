@@ -2,8 +2,9 @@ module Transformations
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
+import iTasks.UI.Definition, iTasks.UI.Tune
+
 import StdFunctions, StdList
 
 //	shorthand definitions for the used fonts in these examples
@@ -12,11 +13,12 @@ times			= normalFontDef "Times New Roman"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Transformations" [ViewUsing id (fromSVGEditor
-																	{ initView    = id
-																	, renderImage = const transformed_images
-																	, updModel    = \_ v = v
-																	})] 0) world
+	= doTasks (Title "Transformations" @>> viewInformation 
+				[ViewUsing id (fromSVGEditor
+					{ initView    = id
+					, renderImage = const transformed_images
+					, updModel    = \_ v = v
+					})] 0) world
 
 /**	transformed_images model tags = image:
 	@image shows all possible transformations on (composite) Image-s.

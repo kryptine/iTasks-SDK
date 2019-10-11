@@ -2,6 +2,7 @@ implementation module iTasks.Engine
 
 import Data.Func
 import Data.Functor
+import Data.List
 import Data.Queue
 import Internet.HTTP
 import StdEnv
@@ -25,8 +26,10 @@ import iTasks.WF.Combinators.Common
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.System
+import iTasks.WF.Derives
 
 import qualified Data.Map as DM
+import Data.Map.GenJSON
 
 from TCPIP import :: Timeout
 from StdFunc import :: St, seqList
@@ -36,15 +39,15 @@ MAX_EVENTS 		        :== 5
 derive class iTask EngineOptions
 
 doTasks :: a !*World -> *World | Startable a
-doTasks startable world = doTasksWithOptions defaultEngineCLIOptions startable world
+doTasks startable world = doTasksWithOptions (defaultEngineCLIOptions startable) world
 
-doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World -> *World | Startable a
-doTasksWithOptions initFun startable world
+doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] (a,EngineOptions)) !*World -> *World | Startable a
+doTasksWithOptions initFun world
 	# (cli,world)                = getCommandLine world
 	# (options,world)            = defaultEngineOptions world
 	# mbOptions                  = initFun cli options
 	| mbOptions =:(Error _)      = show (fromError mbOptions) (setReturnCode 1 world)
-	# options                    = fromOk mbOptions
+	# (startable,options)        = fromOk mbOptions
 	# mbIWorld                   = createIWorld options world
 	| mbIWorld =: Left _
 		# (Left (err, world)) = mbIWorld
@@ -52,21 +55,29 @@ doTasksWithOptions initFun startable world
 	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
-	# iworld                     = serve (startupTasks options) (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
+	# iworld = if (hasDup (requestPaths startable))
+		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
+		iworld
+	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
-    webTasks = [t \\ WebTask t <- toStartable startable]
-	startupTasks {distributed, sdsPort}
+	requestPaths startable = [path\\{path}<-webTasks startable]
+	webTasks startable = [t \\ WebTask t <- toStartable startable]
+	startupTasks startable {distributed, sdsPort}
+		=  if (webTasks startable) =:[]
+		   //if there are no webtasks: stop when stable
+		   [systemTask (startTask stopOnStable)]
+		   //if there are: show instructions andcleanup old sessions
+		   [startTask viewWebServerInstructions
+		   ,systemTask (startTask removeOutdatedSessions)]
 		//If distributed, start sds service task
-		=  (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
+		++ (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
 		++ [systemTask (startTask flushWritesWhenIdle)
-		//If there no webtasks, stop when stable, otherwise cleanup old sessions
-		   ,systemTask (startTask if (webTasks =: []) stopOnStable removeOutdatedSessions)
 		//Start all startup tasks
 		   :[t \\ StartupTask t <- toStartable startable]]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
-	systemTask t = {StartupTask|t&attributes='DM'.put "system" "yes" t.StartupTask.attributes}
+	systemTask t = {StartupTask|t&attributes='DM'.put "system" (JSONBool True) t.StartupTask.attributes}
 
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
@@ -74,10 +85,10 @@ where
 		(Ok noSymbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString noSymbols] iworld.world})
 
 	//Only run a webserver if there are tasks that are started through the web
-	tcpTasks serverPort keepaliveTime
-		| webTasks =: [] = []
+	tcpTasks startable serverPort keepaliveTime
+		| (webTasks startable)=: [] = []
 		| otherwise
-			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService webTasks) taskOutput)]
+			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService (webTasks startable)) taskOutput)]
 
 	// The iTasks engine consist of a set of HTTP Web services
 	engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)]
@@ -94,14 +105,14 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-defaultEngineCLIOptions :: [String] EngineOptions -> MaybeError [String] EngineOptions
-defaultEngineCLIOptions [argv0:argv] defaults
+defaultEngineCLIOptions :: a [String] EngineOptions -> MaybeError [String] (a, EngineOptions)
+defaultEngineCLIOptions tasks [argv0:argv] defaults
 	# (settings, positionals, errs) = getOpt Permute opts argv
 	| not (errs =: []) = Error errs
 	| not (positionals =: []) = Error ["Positional arguments not allowed"]
 	= case foldl (o) id settings (Just defaults) of
 		Nothing = (Error [usageInfo ("Usage " +++ argv0 +++ "[OPTIONS]") opts])
-		Just settings = Ok settings
+		Just settings = Ok (tasks,settings)
 where
 	opts :: [OptDescr ((Maybe EngineOptions) -> Maybe EngineOptions)]
 	opts =
@@ -160,17 +171,11 @@ where
 
 instance Startable (Task a) | iTask a //Default as web task
 where
-	toStartable task =
-		[onStartup viewWebServerInstructions
-		,onRequest "/" task
-		]
+	toStartable task = [onRequest "/" task]
 
 instance Startable (HTTPRequest -> Task a) | iTask a //As web task
 where
-	toStartable task =
-		[onStartup viewWebServerInstructions
-		,onRequestFromRequest "/" task
-		]
+	toStartable task = [onRequestFromRequest "/" task]
 
 instance Startable StartableTask
 where

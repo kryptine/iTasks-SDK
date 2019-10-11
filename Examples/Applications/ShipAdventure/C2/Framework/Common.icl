@@ -5,6 +5,7 @@ import iTasks
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Framework.Core
+import C2.Apps.ShipAdventure.Types
 import C2.Framework.Util
 import C2.Framework.Entity
 import C2.Framework.ContactPosition
@@ -79,7 +80,7 @@ periodicallyUpdateEntity :: !Int -> Task ()
 periodicallyUpdateEntity n = updateEntity n moveEntity // TODO FIXME PERFORMANCE doTaskPeriodically 1 (updateEntity n moveEntity) <<@ NoUserInterface
 
 mapView` :: User [Entity] -> Task ()
-mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (userMapState currentUser >*< entityMap) @! ())
+mapView` currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap (const o Just)] (userMapState currentUser >*< entityMap) @! ())
   where
   toMap :: (MapState, EntityMap) -> LeafletMap
   toMap ({MapState | perspective}, markers)
@@ -105,7 +106,7 @@ mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (
 
 
 mapView :: (sds () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w & RWShared sds
-mapView sh radarWorks currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (mapState >*| sh) @! ())
+mapView sh radarWorks currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap (const o Just)] (mapState >*| sh) @! ())
   where
   toMap ({perspective, entities = markers}, shval)
     = toLeafletMap { ContactMap

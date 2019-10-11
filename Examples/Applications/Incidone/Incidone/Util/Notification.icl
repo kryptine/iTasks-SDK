@@ -30,6 +30,6 @@ viewNotifications :: Task ()
 viewNotifications = forever (
     whileUnchanged currentNotifications
         \notifications -> case notifications of
-            []      = viewInformation () [] () <<@ NoUserInterface
-            list    = (viewInformation (Title "Alert") [] list @! ()) <<@ InNotificationBubble
+            []      = viewInformation [] () <<@ NoUserInterface
+            list    = (Title "Alert" @>> viewInformation [] list @! ()) <<@ InNotificationBubble
     )

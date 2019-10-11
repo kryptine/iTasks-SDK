@@ -19,7 +19,7 @@ crewAliasListsStore = indexedStore "crewAliasLists" []
 //Manage the crew information for a specific contact
 manageContactCrew :: ContactNo -> Task ()
 manageContactCrew contactNo
-    =   updateSharedContactRefList "Manage crew" (sdsFocus contactNo crewListsStore)
+    =   Hint "Manage crew" @>> updateSharedContactRefList (sdsFocus contactNo crewListsStore)
     //Optional Improvements
 //    -|| forever (addStandardCrewMembers contactNo)
     -|| forever (quickAddStandardCrewMembers contactNo)
@@ -38,7 +38,7 @@ where
     quickAddStandardCrewMembers contactNo
         =   get (sdsFocus contactNo crewAliasListsStore)
             -&&-
-            (enterInformation "Enter the numbers of the crew numbers you want to set (comma separated)" [] @ (map (toInt o trim) o (split ",")))
+            (Hint "Enter the numbers of the crew numbers you want to set (comma separated)" @>> enterInformation [] @ (map (toInt o trim) o (split ",")))
         >>* [OnAction (Action "Set members") (hasValue (\(aliasList,enteredNos) ->
                 setCrewMembers contactNo (flatten [[cNo \\ (aNo,cNo) <- aliasList | aNo == eNo] \\ eNo <- enteredNos])))]
 
@@ -55,14 +55,14 @@ where
     refs = sdsFocus contactNo crewAliasListsStore
 
     manageCurrentItems
-        = updateSharedInformation "Manage crew list" [UpdateAs toPrj fromPrj] items
+        = Hint "Manage crew list" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] items
     where
         items = sdsDeref refs snd contactsByNosShort derefAliasList
         toPrj l = [(contactIdentity c, aNo, contactTitle c)\\(aNo,c) <-l]
         fromPrj _ items = [(aNo,cNo) \\ (cNo,aNo,_) <- items]
 
     addItem
-        = (enterInformation "Enter a number to use when refering to this contact" []
+        = (Hint "Enter a number to use when refering to this contact" @>> enterInformation  []
             -&&-
            selectKnownOrDefineNewContact)
         >>? (\(aliasNo,def) -> createContactIfNew def >>- \contactNo -> upd (\r -> r++[(aliasNo,contactNo)]) refs)

@@ -2,7 +2,7 @@ module Linears
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions, StdList
 import Text
@@ -15,7 +15,7 @@ blue			= toSVGColor "blue"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Linears" [ViewUsing id (fromSVGEditor
+	= doTasks (Title "Linears" @>> viewInformation [ViewUsing id (fromSVGEditor
 														{ initView    = id
 														, renderImage = const linears
 														, updModel    = \_ v = v

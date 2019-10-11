@@ -54,101 +54,101 @@ where
 			, publish "/doubleRemote" (const doubleRemoteTest)
 			, publish "/singleRemote" (const singleRemoteTest)]
 
-	sdsSelectRemoteTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 0 selectShare))
+	sdsSelectRemoteTest = ((Hint "Enter the value to be SET for SDSSelect" @>> enterInformation [] >>= \v. set v (sdsFocus 0 selectShare))
 		-&&-
-		(get (sdsFocus 0 selectShare) >>= viewInformation "View the value gotten for SDSSelect by GET" []))
+		(get (sdsFocus 0 selectShare) >>= \value -> Hint "View the value gotten for SDSSelect by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) (sdsFocus 0 selectShare))
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n) (sdsFocus 0 selectShare))
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] (sdsFocus 0 selectShare)))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] (sdsFocus 0 selectShare)))
 		@! ()
 
-	sdsSelectTest = ((enterInformation "Enter the value to be SET for SDSSelect" [] >>= \v. set v (sdsFocus 1 selectShare))
+	sdsSelectTest = ((Hint "Enter the value to be SET for SDSSelect" @>> enterInformation [] >>= \v. set v (sdsFocus 1 selectShare))
 		-&&-
-		(get  (sdsFocus 1 selectShare) >>= viewInformation "View the value gotten for SDSSelect by GET" []))
+		(get  (sdsFocus 1 selectShare) >>= \value -> Hint "View the value gotten for SDSSelect by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n)  (sdsFocus 1 selectShare))
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n)  (sdsFocus 1 selectShare))
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" []  (sdsFocus 1 selectShare)))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation []  (sdsFocus 1 selectShare)))
 		@! ()
 
-	sdsParallelRemoteRightTest = ((enterInformation "Enter the value to be SET for SDSParallelRemoteRight" [] >>= \v. set v parallelWithRightRemote)
+	sdsParallelRemoteRightTest = ((Hint "Enter the value to be SET for SDSParallelRemoteRight" @>> enterInformation  [] >>= \v. set v parallelWithRightRemote)
 		-&&-
-		(get parallelWithRightRemote >>= viewInformation "View the value gotten for SDSParallelRemoteRight by GET" []))
+		(get parallelWithRightRemote >>= \value -> Hint "View the value gotten for SDSParallelRemoteRight by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelWithRightRemote)
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n) parallelWithRightRemote)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] parallelWithRightRemote))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] parallelWithRightRemote))
 		@! ()
 
-	sdsParallelRemoteLeftTest = ((enterInformation "Enter the value to be SET for SDSParallelRemoteLeft" [] >>= \v. set v parallelWithLeftRemote)
+	sdsParallelRemoteLeftTest = ((Hint "Enter the value to be SET for SDSParallelRemoteLeft" @>> enterInformation [] >>= \v. set v parallelWithLeftRemote)
 		-&&-
-		(get parallelWithLeftRemote >>= viewInformation "View the value gotten for SDSParallelRemoteLeft by GET" []))
+		(get parallelWithLeftRemote >>= \value -> Hint "View the value gotten for SDSParallelRemoteLeft by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelWithLeftRemote)
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n) parallelWithLeftRemote)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] parallelWithLeftRemote))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] parallelWithLeftRemote))
 		@! ()
 
-	sdsParallelTest = ((enterInformation "Enter the value to be SET for SDSParallel" [] >>= \v. set v parallelShare)
+	sdsParallelTest = ((Hint "Enter the value to be SET for SDSParallel" @>> enterInformation [] >>= \v. set v parallelShare)
 		-&&-
-		(get parallelShare >>= viewInformation "View the value gotten for SDSParallel by GET" []))
+		(get parallelShare >>= \value -> Hint "View the value gotten for SDSParallel by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) parallelShare)
+		((Hint "Enter the new value for the lens" @>> enterInformation  [] >>= \n. upd (\_. n) parallelShare)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] parallelShare))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation  [] parallelShare))
 		@! ()
 
-	sdsLensTest = ((enterInformation "Enter the value to be SET for SDSLensLocal" [] >>= \v. set v projectedLocal)
+	sdsLensTest = ((Hint "Enter the value to be SET for SDSLensLocal" @>> enterInformation [] >>= \v. set v projectedLocal)
 		-&&-
-		(get projectedLocal >>= viewInformation "View the value gotten for SDSLensLocal by GET" []))
+		(get projectedLocal >>= \value -> Hint "View the value gotten for SDSLensLocal by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) projectedLocal)
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n) projectedLocal)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] projectedLocal))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] projectedLocal))
 		@! ()
 
-	sdsLensRemoteTest = ((enterInformation "Enter the value to be SET for SDSLensRemote" [] >>= \v. set v projectedRemote)
+	sdsLensRemoteTest = ((Hint "Enter the value to be SET for SDSLensRemote" @>> enterInformation [] >>= \v. set v projectedRemote)
 		-&&-
-		(get projectedRemote >>= viewInformation "View the value gotten for SDSLensRemote by GET" []))
+		(get projectedRemote >>= \value -> Hint "View the value gotten for SDSLensRemote by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the lens" [] >>= \n. upd (\_. n) projectedRemote)
+		((Hint "Enter the new value for the lens" @>> enterInformation [] >>= \n. upd (\_. n) projectedRemote)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] projectedRemote))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] projectedRemote))
 		@! ()
 
-	sdsSourceTest = ((enterInformation "Enter the value to be SET for SDSSource" [] >>= \v. set v testShare)
+	sdsSourceTest = ((Hint "Enter the value to be SET for SDSSource" @>> enterInformation [] >>= \v. set v testShare)
 		-&&-
-		(get testShare >>= viewInformation "View the value gotten for SDSSource by GET" []))
+		(get testShare >>= \value -> Hint "View the value gotten for SDSSource by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the number" [] >>= \n. upd (\tr. {tr & number = n}) testShare)
+		((Hint "Enter the new value for the number" @>> enterInformation [] >>= \n. upd (\tr. {tr & number = n}) testShare)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] testShare))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] testShare))
 		@! ()
 
 	// We can get, set, and upd the value of a top-level remote source,
 	sdsRemoteTest =
-		((enterInformation "Enter the value to be SET for SDSRemote" [] >>= \v. set v remoteTestShare)
+		((Hint "Enter the value to be SET for SDSRemote" @>> enterInformation [] >>= \v. set v remoteTestShare)
 		-&&-
-		(get remoteTestShare >>= viewInformation "View the value gotten for SDSRemote by GET" []))
+		(get remoteTestShare >>= \value -> Hint "View the value gotten for SDSRemote by GET" @>> viewInformation [] value))
 		-&&-
-		((enterInformation "Enter the new value for the number" [] >>= \n. upd (\tr. {tr & number = n}) remoteTestShare)
+		((Hint "Enter the new value for the number" @>> enterInformation [] >>= \n. upd (\tr. {tr & number = n}) remoteTestShare)
 		-&&-
-		(viewSharedInformation "View value by viewSharedInformation" [] remoteTestShare))
+		(Hint "View value by viewSharedInformation" @>> viewSharedInformation [] remoteTestShare))
 		@! ()
 
 
-	viewAll = forever ((updateSharedInformation "Value of testShare" [] testShare
-		-&&- updateSharedInformation "Value of leftShare" [] leftShare
-		-&&- updateSharedInformation "Value of rightShare" [] rightShare
-		-&&- updateSharedInformation "Value of intShare" [] intShare)
+	viewAll = forever (((Hint "Value of testShare" @>> updateSharedInformation [] testShare)
+		-&&- (Hint "Value of leftShare" @>> updateSharedInformation  [] leftShare)
+		-&&- (Hint "Value of rightShare" @>> updateSharedInformation  [] rightShare)
+		-&&- (Hint "Value of intShare" @>> updateSharedInformation [] intShare))
 		@! ())
 
-	singleRemoteTest = updateSharedInformation "Update value by viewSharedInformation" [] simpleShare @! ()
+	singleRemoteTest = Hint "Update value by viewSharedInformation" @>> updateSharedInformation [] simpleShare @! ()
 
 	doubleRemoteTest
 	//# setV = enterInformation "Enter the value to be SET for double remote" [] >>= \v. set v doubleRemote >>= viewInformation "Set value" []
 	//# getV = get doubleRemote >>= viewInformation "View the value gotten for double remote by GET" []
 	//# updV = enterInformation "Enter the new value for the number" [] >>= \n. upd (\_. n) doubleRemote >>= viewInformation "Updated value" []
-	# shaV = updateSharedInformation "Update value by viewSharedInformation" [] doubleRemote
+	# shaV = Hint "Update value by viewSharedInformation" @>> updateSharedInformation  [] doubleRemote
  	= shaV @! ()

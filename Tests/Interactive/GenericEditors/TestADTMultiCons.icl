@@ -8,6 +8,7 @@ import iTasks, iTasks.Util.Testing
     | ADTMultiConsMulti Int String
 
 derive class iTask ADTMultiCons
+derive gDefault ADTMultiCons
 
 test :: Task ADTMultiCons
 test = testCommonInteractions "ADTMultiCons"

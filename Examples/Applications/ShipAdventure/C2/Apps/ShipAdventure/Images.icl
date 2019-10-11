@@ -166,7 +166,7 @@ sectionImage disabledSections hilite mngmnt zoomed exitLocks hopLocks inventoryM
       = { fill = toSVGColor (if isLocked "black" "white") }
     doorClick :: !Bool !Coord3D !Dir !(Image (a, MapAction SectionStatus)) -> Image (a, MapAction SectionStatus)
     doorClick False c3d dir img = img
-    doorClick _     c3d dir img = img <@< { onclick = \(x, _) -> (x, ToggleDoor c3d dir), local = False}
+    doorClick _     c3d dir img = img <@< { onclick = \_ (x, _) -> (x, ToggleDoor c3d dir), local = False}
 
 sectionImage` :: !(Bool Coord3D [Object ObjectType] [Device] Real (Image a) [Image a] (Image b) (Image (Maps2D, MapAction SectionStatus))
                    (Image d) (Image e) (Image f) (Image g) -> Image (Maps2D, MapAction SectionStatus))
@@ -388,9 +388,9 @@ editSectionImage hilite mngmnt zoomed allDevices network inventoryMap doorDims s
                                                  <@< {onclick = onClick (FocusOnSection (floorIdx, c)), local = False}
               )     )
 
-rotateWall :: !Int Coord2D Dir !(!Maps2D, MapAction SectionStatus)
+rotateWall :: !Int Coord2D Dir (Span,Span) !(!Maps2D, MapAction SectionStatus)
            -> (!Maps2D, !MapAction SectionStatus)
-rotateWall m c d (maps, edit)
+rotateWall m c d _ (maps, edit)
   = case getMap2D m maps of
       Just map
         = case getSection c map of
@@ -406,5 +406,5 @@ rotateWall m c d (maps, edit)
   rotate Wall = Door
   rotate Door = Open
 
-onClick :: !(MapAction SectionStatus) !(!a, MapAction SectionStatus) -> (!a, !MapAction SectionStatus)
-onClick clck (m, _) = (m, clck)
+onClick :: !(MapAction SectionStatus) (Span,Span) !(!a, MapAction SectionStatus) -> (!a, !MapAction SectionStatus)
+onClick clck _ (m, _) = (m, clck)

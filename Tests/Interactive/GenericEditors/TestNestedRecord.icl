@@ -11,6 +11,7 @@ import iTasks, iTasks.Util.Testing
     , third     :: Bool
     }
 derive class iTask TwoFieldRecord, NestedRecord
+derive gDefault TwoFieldRecord, NestedRecord
 
 test :: Task NestedRecord
 test = testCommonInteractions "NestedRecord"

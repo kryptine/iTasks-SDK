@@ -20,13 +20,13 @@ from iTasks.Internal.Task     import :: ConnectionTask, :: TaskException
 from iTasks.Engine            import :: StartupTask
 
 //Core task server loop
-serve :: ![StartupTask] ![(!Int,!ConnectionTask)] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve :: ![StartupTask] ![(Int,ConnectionTask)] (*IWorld -> (Maybe Timeout,*IWorld)) *IWorld -> *IWorld
 
 //Dynamically add a listener
 addListener :: !TaskId !Int !Bool !(ConnectionTask) !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
 //Dynamically add a connection
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
+addConnection :: !TaskId !String !Int !(Maybe Timeout) !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
 
 ioStateString :: !IOStates -> String
 

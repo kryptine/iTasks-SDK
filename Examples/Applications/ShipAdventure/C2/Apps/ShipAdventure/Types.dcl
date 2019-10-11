@@ -64,9 +64,9 @@ from C2.Apps.ShipAdventure.Images import :: RenderMode
 // physical devices
 
 :: Network =
-  { devices         ::  !Map Coord3D [DeviceId]            // [Coord3D |-> DeviceIds]
-  , cables          ::  !IntMap Cable                      // [CableId |-> Cable]
-  , cableMapping    ::  !IntMap [(!Operational, !Coord3D)] // [CableId |-> Coord3Ds]
+  { devices         ::  !Map Coord3D [DeviceId]          // [Coord3D |-> DeviceIds]
+  , cables          ::  !IntMap Cable                    // [CableId |-> Cable]
+  , cableMapping    ::  !IntMap [(Operational, Coord3D)] // [CableId |-> Coord3Ds]
   }
 :: Device =
   { description     ::  !String
@@ -95,8 +95,8 @@ from C2.Apps.ShipAdventure.Images import :: RenderMode
 
 :: PPDeviceType =
   { kind     :: !DeviceKind
-  , requires :: ![(!CableType, !Capacity)]
-  , produces :: ![(!CableType, !Capacity)]
+  , requires :: ![(CableType, Capacity)]
+  , produces :: ![(CableType, Capacity)]
   }
 
 :: CommandAim =
@@ -125,6 +125,8 @@ from C2.Apps.ShipAdventure.Images import :: RenderMode
 
 :: CapabilityToDeviceKindMap :== Map Capability CapabilityExpr
 
+derive gEditor IntMap
+derive gText IntMap
 derive class iTask PPDevice, PPDeviceType, CommandAim, Capability, CapabilityExpr
 derive gLexOrd CableType, Capability
 derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
@@ -169,8 +171,8 @@ cablesInSectionShare          :: SDSLens Coord3D    [Cable]           [Cable]
 
 cablesForSection              :: !Coord3D !Network -> [Cable]
 
-allActiveAlarms    :: SDSLens () [(!Coord3D, !SectionStatus)] ()
-allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
+allActiveAlarms    :: SDSLens () [(Coord3D, SectionStatus)] ()
+allAvailableActors :: SDSLens () [(Coord3D, MyActor)] ()
 
 // setting and resetting of the detection systems:
 
@@ -203,7 +205,7 @@ allImperiledCommandAims :: !(IntMap Device) !CapabilityToDeviceKindMap ![Command
 
 deviceIsDisabledInSection :: !Coord3D !Device !(IntMap Device) !Network -> Bool
 
-isOperational :: !CableId !(IntMap [(!Operational, !Coord3D)]) -> Bool
+isOperational :: !CableId !(IntMap [(Operational, Coord3D)]) -> Bool
 
 devicesForCable :: !Cable !(IntMap Device) !Network -> [Device]
 

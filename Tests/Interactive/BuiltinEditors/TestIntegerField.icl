@@ -1,5 +1,5 @@
 module TestIntegerField
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task Int
 test = testEditor integerField 42 Update

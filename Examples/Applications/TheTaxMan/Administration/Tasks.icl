@@ -9,6 +9,8 @@ import System.Directory, System.FilePath
 import Cadastre.SDS, ChamberOfCommerce.SDS, Compensation.SDS, CivilAffairs.SDS
 import StdArray, StdFile
 
+derive gDefault Date
+
 batchProcessing :: Task ()
 batchProcessing
 	=				pay
@@ -22,13 +24,13 @@ pay
 		pay_later = filter (\collection=:{Collection | date} -> date >  today) payments
 	in				set pay_later collectionPayments
 	>>|				addToStore pay_now collectionsProcessed
-	>>|				viewInformation "Payments performed on:" [] today
+	>>|				Title "Payments performed on:" @>> viewInformation [] today
 	>>|				pay
 
 viewSelectedCitizen :: Task ()
 viewSelectedCitizen
-	=				(enterChoiceWithShared () [ChooseFromGrid (\{Citizen|name,ssn} -> "" <+++ name <+++ " (" <+++ ssn <+++ ")") ] citizens
-	>&> 			withSelection (viewInformation () [] "Select a citizen")
+	=				(enterChoiceWithShared [ChooseFromGrid (\{Citizen|name,ssn} -> "" <+++ name <+++ " (" <+++ ssn <+++ ")") ] citizens
+	>&> 			withSelection (viewInformation [] "Select a citizen")
 						(\citizen -> viewCitizenInformation citizen.Citizen.ssn defaultValue) )<<@ ApplyLayout (arrangeWithSideBar 0 LeftSide True)
 
 viewCitizenInformation :: SSN Date -> Task ()
@@ -37,26 +39,26 @@ viewCitizenInformation ssn date
 	>>- \mbCit -> 		if (isNothing mbCit) (return ())
 	(					return (fromJust mbCit)
 	>>- \cit=:{Citizen|ssn} ->
-	(					viewInformation "Overview data:" [] ())
-	-|| (				viewInformation (Title "Address information") [] cit
+	(					Title "Overview data:" @>> viewInformation [] ())
+	-|| (				(Title "Address information" @>> viewInformation  [] cit)
 						-&&-
-						enterChoiceWithShared (Title "Real estate")         [ChooseFromGrid id] (currentRealEstate cit)
+						(Title "Real estate" @>> enterChoiceWithShared [ChooseFromGrid id] (currentRealEstate cit))
 						-&&-
-						enterChoiceWithShared (Title "Decisions")           [ChooseFromGrid id] (currentDecisions ssn (\_ -> True) date)
+						(Title "Decisions" @>> enterChoiceWithShared [ChooseFromGrid id] (currentDecisions ssn (\_ -> True) date))
 						-&&-
-						enterChoiceWithShared (Title "You will receive...") [ChooseFromGrid id] (currentPayments ssn date)
+						(Title "You will receive..." @>> enterChoiceWithShared [ChooseFromGrid id] (currentPayments ssn date))
 						-&&-
-						enterChoiceWithShared (Title "You need to pay... ") [ChooseFromGrid id]	(currentClaims ssn date)
+						(Title "You need to pay... " @>> enterChoiceWithShared [ChooseFromGrid id]	(currentClaims ssn date))
 						-&&-
-						enterChoiceWithShared (Title "Received / Payed")    [ChooseFromGrid id] (currentProcessed ssn date)
+						(Title "Received / Payed"  @>> enterChoiceWithShared [ChooseFromGrid id] (currentProcessed ssn date))
 	))
 
 viewAddressOfCurrentUser :: Task ()
 viewAddressOfCurrentUser
 	=				currentCitizen
-	>>-	\citizen ->	viewInformation "My data:" [] citizen
+	>>-	\citizen ->	(Title "My data:" @>> viewInformation  [] citizen)
 					-||
-					viewInformation () [] (if (isNothing citizen.Citizen.homeAddress)
+					viewInformation [] (if (isNothing citizen.Citizen.homeAddress)
 												(Text "Unknown home address")
 												(showAddress (fromJust citizen.Citizen.homeAddress).Address.postcode (fromJust citizen.Citizen.homeAddress).Address.houseNumber))
 	@! ()
@@ -102,7 +104,7 @@ convertExampleData
 						 } \\ line <- lines,
 						 [no,name:_] <- [split "\t" line]
 						 ] companies
-	>>=	\roofers ->	viewInformation "roofing companies:" [] roofers
+	>>=	\roofers ->	Title "roofing companies:" @>> viewInformation [] roofers
 	>>|				readLinesFromFile (examplefilepath curDir "adresses.txt")
 	>>- \lines ->	set [{ Citizen
 						 | ssn         = ssn
@@ -113,12 +115,12 @@ convertExampleData
 						\\ 	line <- lines,
 							[ssn,fore,sur,postcode,no:_] <- [split "\t" line]
 						] citizens
-	>>=	\cvs ->		viewInformation "citizens:" [] cvs
+	>>=	\cvs ->		Title "citizens:" @>> viewInformation [] cvs
 	>>|				readLinesFromFile (examplefilepath curDir "real_estate_owners.txt")
 	>>- \lines ->   set (foldl add_real_estate_owner [] lines) realEstateOwners
-	>>=	\owners ->	viewInformation "real estate owners:" [] owners
+	>>=	\owners ->	Title "real estate owners:" @>> viewInformation [] owners
 	>>|				set (foldl add_cadastre_real_estate [] owners) cadastreRealEstate
-	>>= \cadastre -> viewInformation "cadastre:" [] cadastre
+	>>= \cadastre -> Title "cadastre:" @>> viewInformation [] cadastre
 	>>|				readLinesFromFile (examplefilepath curDir "officers.txt")
 	>>- \officers -> importDemoUsersFlow
 	>>- \demoAccounts -> allTasks
@@ -137,8 +139,8 @@ convertExampleData
 		 								\\ cv <- cvs]
 
 					)
-	>>=				viewInformation "accounts" []
-	>>|	viewInformation "Done!" [] ()
+	>>=	\a -> Title "accounts" @>> viewInformation [] a
+	>>|	viewInformation [] "Done!" @! ()
 where
 	add_real_estate_owner :: [RealEstateOwner] String -> [RealEstateOwner]
 	add_real_estate_owner data line_from_real_estate_owners

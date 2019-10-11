@@ -2,8 +2,6 @@ implementation module C2.Apps.ShipAdventure.Types
 
 //import iTasks
 
-import iTasks.Internal.Tonic
-import iTasks.Extensions.Admin.TonicAdmin
 from   iTasks.Extensions.SVG.SVGEditor import :: SVGEditor(..), :: TagSource, fromSVGEditor
 import qualified Data.List as DL
 from Data.Func import mapSt
@@ -14,6 +12,7 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Set as DS
 import Text.HTML
+import Data.Functor
 
 import C2.Framework.MapEnvironment
 from   C2.Framework.Logging import addLog
@@ -98,7 +97,7 @@ myInventoryMap :: SimpleSDSLens MySectionInventoryMap
 myInventoryMap = sharedStore "myInventoryMap" 'DM'.newMap
 
 viewDisabledDevices :: Task ()
-viewDisabledDevices = viewSharedInformation "Disabled devices" [ViewAs (\(nw, ds) -> map toPPDevice (allDisabledDevices ds nw))] (myNetwork |*| myDevices) @! ()
+viewDisabledDevices = Hint "Disabled devices" @>> viewSharedInformation [ViewAs (\(nw, ds) -> map toPPDevice (allDisabledDevices ds nw))] (myNetwork |*| myDevices) @! ()
 
 //manageDevices :: Bool -> Task ()
 //manageDevices kitchen
@@ -224,7 +223,7 @@ toPPDeviceType { DeviceType | kind, requires, produces } = { PPDeviceType
                                                            , produces = 'DM'.toList produces
                                                            }
 
-isOperational :: !CableId !(IntMap [(!Operational, !Coord3D)]) -> Bool
+isOperational :: !CableId !(IntMap [(Operational, Coord3D)]) -> Bool
 isOperational cableId cableMapping = and [b \\ (b, _) <- fromMaybe [] ('DIS'.get cableId cableMapping)]
 
 smokeDetector :: DeviceType
@@ -383,22 +382,22 @@ patchCable roomNo cableId network = { network & cableMapping = 'DIS'.alter (fmap
 inventoryInSectionShare :: FocusedSectionInventoryShare ObjectType
 inventoryInSectionShare = mapLens "inventoryInSectionShare" myInventoryMap (Just 'DIS'.newMap)
 
-allAvailableActors :: SDSLens () [(!Coord3D, !MyActor)] ()
+allAvailableActors :: SDSLens () [(Coord3D, MyActor)] ()
 allAvailableActors
   = /*toReadOnly */ (sdsProject (SDSLensRead readActors) (SDSBlindWrite \_. Ok Nothing) Nothing (sectionUsersShare |*| myUserActorMap))
   where
-  readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(!Coord3D, !MyActor)]
+  readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(Coord3D, MyActor)]
   readActors (sectionUsersMap, userActorMap)
     = Ok [(c3d, a) \\ us <- 'DM'.elems sectionUsersMap
                     , u  <- us
                     , Just (c3d, a) <- [findUser u sectionUsersMap userActorMap]
                     | a.actorStatus.occupied === Available]
 
-allActiveAlarms :: SDSLens () [(!Coord3D, !SectionStatus)] ()
+allActiveAlarms :: SDSLens () [(Coord3D, SectionStatus)] ()
 allActiveAlarms
   = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) (SDSBlindWrite \_. Ok Nothing) Nothing myStatusMap)
   where
-  readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(!Coord3D, !SectionStatus)]
+  readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(Coord3D, SectionStatus)]
   readAlarms statusMap = Ok [ (number, status) \\ (number, status) <- 'DM'.toList statusMap
                               | isHigh status]
 
@@ -420,8 +419,8 @@ updateMapStatus mode
   = /* project (\tv _ -> case tv of
                           Value x _ -> Just x
                           _         -> Nothing) sharedMapAction */
-      (updateInformationWithShared "Map Status"
-        [UpdateUsing id (const snd) editor]
+      (Title "Map Status" @>> updateInformationWithShared 
+        [UpdateSharedUsing id (const snd) (const o Just) editor]
         (disabledSections |*| maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| myInventoryMap |*| myStatusMap |*| sectionUsersShare |*| myUserActorMap |*| myNetwork |*| myDevices)
         NoAction)
 where
@@ -437,8 +436,8 @@ disabledSections = sharedStore "disabledSections" 'DS'.newSet
 
 updateSectionStatus :: !Coord3D -> Task (MapAction SectionStatus)
 updateSectionStatus c3d=:(floorIdx, _)
-  = updateInformationWithShared "Section Status"
-      [UpdateUsing id (const snd) editor]
+  = Title "Section Status" @>> updateInformationWithShared 
+      [UpdateSharedUsing id (const snd) (const o Just) editor]
       (maps2DShare |*| lockedExitsShare |*| lockedHopsShare |*| sdsFocus c3d inventoryInSectionShare |*| sdsFocus c3d statusInSectionShare |*| sdsFocus c3d (actorsInSectionShare myUserActorMap) |*| myNetwork |*| myDevices)
       NoAction
 where
@@ -484,3 +483,5 @@ isDetector HeatSensor    = True
 isDetector WaterSensor   = True
 isDetector _             = False
 
+derive gEditor IntMap
+derive gText IntMap

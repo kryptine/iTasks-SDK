@@ -2,7 +2,7 @@ module Grids
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions, StdList
 import Text
@@ -12,7 +12,7 @@ lucida			= normalFontDef "Lucida Console"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Grids"
+	= doTasks (Title "Grids" @>> viewInformation
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const grids

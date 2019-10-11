@@ -11,13 +11,13 @@ selectVideoWallContent
     @! ()
 where
     header
-        = viewInformation () [] ("REMOTE CONTROL") //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
+        = viewInformation [] ("REMOTE CONTROL") //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
 
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |*| contactsProvidingHelpGeo)
     selectContent
         = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide False)
 
-    switchContent = enterChoice (Title "Choose Content") [ChooseFromList bigLabel] contentOptions
+    switchContent = (Title "Choose Content") @>> enterChoice [ChooseFromList bigLabel] contentOptions
     contentOptions
         = ["Overview","Incident","Contact","Clock","Countdown"]
 
@@ -30,7 +30,7 @@ where
             = get (standardMapLayers |*| standardPerspective)
             >>- \(baseLayers,perspective) ->
                 withShared perspective
-                \p -> updateSharedInformation (Title title) [UpdateAs (toMap baseLayers) fromMap] (p >*| mapContacts) @ fst
+                \p -> Title title @>> updateSharedInformation [UpdateSharedAs (toMap baseLayers) fromMap (const o Just)] (p >*| mapContacts) @ fst
             //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where
@@ -39,18 +39,19 @@ where
             fromMap _ {LeafletMap|perspective}
                 = fromLeafletPerspective perspective
         configure "Incident"
-            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
+            =   Title title @>> enterChoiceWithSharedAs [ChooseFromList bigLabel] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
         configure "Contact"
-            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
+            =    Title title @>> enterChoiceWithSharedAs [ChooseFromList bigLabel] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
         configure "Clock"
-            =   viewInformation (Title title) [] "No configuration is needed for the clock."
+            =   Title title @>> viewInformation [] "No configuration is needed for the clock."
             //<<@ AfterLayout (tweakUI fill) //FIXME
             @!  WallClock
         configure "Countdown"
             =   get currentDateTime
-            >>- updateInformation (title,"Set the countdown date and time") []
+            >>- \datetime ->
+				Title title @>> Hint "Set the countdown date and time" @>> updateInformation [] datetime
             @   WallCountDown
         configure _
-            = viewInformation (title,"This option is not available yet...") [] () @? const NoValue
+            = Title title @>> Hint "This option is not available yet..." @>> viewInformation [] () @? const NoValue
 
     bigLabel l = SpanTag [StyleAttr "font-size: 24px; font-weight: bold; margin-bottom: 5px;"] [Text (toSingleLineText l)]

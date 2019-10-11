@@ -7,24 +7,16 @@ import Text.GenPrint
 derive gPrint TaskOutputMessage
 derive gPrint UIChange, UIChildChange, UIAttributeChange, UI, UIType, Map, JSONNode
 
-//Test interact
-expPromptUI msg 
-	= uiac UIContainer
-		('DM'.fromList [("marginTop",JSONInt 5),("marginRight",JSONInt 5),("marginBottom",JSONInt 10),("marginLeft",JSONInt 5)
-						,("width",JSONString "flex"),("minWidth",JSONString "wrap"),("height",JSONString "wrap")])
-			[uia UITextView ('DM'.fromList [("value",JSONString msg)])]
-
 minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where
 	task :: Task ((),String)
-	task = interactR "TEST" unitShare handlers gEditor{|*|}
-	handlers = {onInit = \() -> ((),Update "Hello world"), onEdit = \_ l v -> (l,fromJust v,Nothing), onRefresh = \_ l v -> (l,fromJust v,Nothing)}
+	task = interactR unitShare handlers gEditor{|*|}
+	handlers = {onInit = \() -> Update "Hello world", onEdit = \_ -> Nothing, onRefresh = \_ v -> (v,Nothing)}
 
 	events = [Left ResetEvent]
 	exp = [TOUIChange (ReplaceUI expMinimalEditorUI)]
 
-	expMinimalEditorUI
-		= uic UIInteract [expPromptUI "TEST",editor]
+	expMinimalEditorUI = editor
 	where
 		editor = uia UITextField ('DM'.fromList
 			[("hint-type",JSONString "valid")
@@ -35,6 +27,7 @@ where
 			,("taskId",JSONString "1-0")
 			,("value",JSONString "Hello world")
 			,("minlength",JSONInt 1)
+			,("task-type",JSONString "interact")
 			])
 
 tests = [minimalInteractUI]

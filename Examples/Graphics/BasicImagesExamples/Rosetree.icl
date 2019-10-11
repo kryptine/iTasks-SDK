@@ -2,7 +2,7 @@ module Rosetree
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunc, StdList, StdTuple
 
@@ -14,7 +14,7 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Rose tree" [ViewUsing id (fromSVGEditor
+	= doTasks (Hint "Rose tree" @>> viewInformation [ViewUsing id (fromSVGEditor
 															{ initView    = id
 															, renderImage = const roses
 															, updModel    = \_ v = v

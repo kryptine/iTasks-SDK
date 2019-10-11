@@ -16,10 +16,10 @@ editInTextArea model
 				]
 
 editAsListOfLines model
-	=   updateSharedInformation ("Lines","Edit lines") [listEditor] model
+	=   Title "Lines" @>> Hint "Edit lines" @>> updateSharedInformation [listEditor] model
 
-noteEditor = UpdateUsing id (const id) textArea
-listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
+noteEditor = UpdateSharedUsing id (const id) (const o Just) textArea
+listEditor = UpdateSharedAs (split "\n") (\_ l -> join "\n" l) (const o Just)
 
 toMaybe (Value v _) =  (Just v)
 toMaybe _   =  Nothing

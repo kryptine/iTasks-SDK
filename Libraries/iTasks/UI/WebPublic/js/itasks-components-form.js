@@ -141,9 +141,9 @@ itasks.NumberField = {
 		width: 150
 	},
     initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'text';
+		var me = this,
+		    el = this.domEl;
+		el.type = 'number';
 		el.value = (me.attributes.value === undefined || me.attributes.value === null) ? '' : me.attributes.value;
 
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
@@ -355,7 +355,7 @@ itasks.Button = {
 			el.appendChild(me.icon);
 		}
 		if(!me.attributes.enabled) {
-			el.classList.add(me.cssPrefix + 'button-disabled');
+			el.disabled = true;
 		}
 		if(me.attributes.text) {
 			me.label = document.createElement('div');
@@ -387,11 +387,7 @@ itasks.Button = {
 		var me = this;
 		switch(name) {
 			case 'enabled':
-				if(value) {
-					me.domEl.classList.remove(me.cssPrefix + 'button-disabled');
-				} else {
-					me.domEl.classList.add(me.cssPrefix + 'button-disabled');
-				}
+				me.domEl.disabled = !value;
 				break;
 		}
 	}

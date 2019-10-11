@@ -6,11 +6,12 @@ import Text, Text.HTML
 
 sendEmail :: ![EmailOpt] !String ![String] !String !String -> Task ()
 sendEmail opts sender recipients subject body
-	= tcpconnect server port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onDisconnect=onDisconnect,onShareChange = \l _ = (Ok l, Nothing, [], False), onDestroy= \s->(Ok s, [])}
+	= tcpconnect server port timeout (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onDisconnect=onDisconnect,onShareChange = \l _ = (Ok l, Nothing, [], False), onDestroy= \s->(Ok s, [])}
 	@! ()
 where
 	server 	= getServerOpt opts
 	port	= getPortOpt opts
+	timeout = getTimeoutOpt opts
 	headers = getHeadersOpt opts
 	//Sending the message with SMTP is essentially one-way communication
 	//but we send it in parts. After each part we get a response with a status code.
@@ -29,11 +30,11 @@ where
 			]
 
 	//Send the first message
-	onConnect :: !ConnectionId !String !() -> (!MaybeErrorString [(!String, !Int)], !Maybe (), ![String], !Bool)
+	onConnect :: !ConnectionId !String !() -> (!MaybeErrorString [(String, Int)], !Maybe (), ![String], !Bool)
     onConnect _ _ _
         = (Ok messages,Nothing,[],False)
 	//Response to last message: if ok, close connection
-	onData :: !String ![(!String, !Int)] !() -> (!MaybeErrorString [(!String, !Int)], !Maybe (), ![String], !Bool)
+	onData :: !String ![(String, Int)] !() -> (!MaybeErrorString [(String, Int)], !Maybe (), ![String], !Bool)
     onData data [(_,expectedCode)] _
 		| statusCode data == expectedCode
 			= (Ok [],Nothing,[],True)
@@ -94,3 +95,7 @@ getPortOpt [x:xs] 					= getPortOpt xs
 getHeadersOpt [] 							= []
 getHeadersOpt [EmailOptExtraHeaders s:xs]	= s ++ getHeadersOpt xs
 getHeadersOpt [x:xs] 						= getHeadersOpt xs
+
+getTimeoutOpt []                     = Nothing
+getTimeoutOpt [EmailOptTimeout t:xs] = Just t
+getTimeoutOpt [x:xs]                 = getTimeoutOpt xs

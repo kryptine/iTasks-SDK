@@ -18,11 +18,11 @@ derive class iTask Location
 
 editSharedList :: (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedList list
-	= editSharedListWithTask (updateInformation "Item Info" []) list
+	= editSharedListWithTask (\x -> Title "Item Info" @>> updateInformation [] x) list
 
 editSharedListWithTask :: (a -> Task a) (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedListWithTask tupdate list
-	= editSharedListWithTaskTask  (enterInformation "Enter new item" []) tupdate list
+	= editSharedListWithTaskTask  (Hint "Enter new item" @>> enterInformation []) tupdate list
 
 editSharedListWithTaskTask :: (Task a)  (a -> Task a) (Shared sds [a])-> Task () | iTask a & RWShared sds
 editSharedListWithTaskTask tenter tupdate list
@@ -33,7 +33,7 @@ editSharedListWithTaskTask tenter tupdate list
 
 editSharedListGeneric :: [EditSharedListOption a] (Shared sds [a]) -> Task () | iTask a & RWShared sds
 editSharedListGeneric options list
-	= doOrClose (forever (enterChoiceWithShared "Choose an item"
+	= doOrClose (forever (Hint "Choose an item" @>> enterChoiceWithShared
     	[ChooseFromGrid snd]
         (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) list)
   	>>* [OnAction (Action desc) 				(always (addItem t))
@@ -53,7 +53,7 @@ where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! (
                        >>= \item -> upd (\us -> updateAt k item us) list
                        @!  ()
       viewItem t (k,u) = t u @! ()
-      clearAll         = viewInformation "Clear All" []
+      clearAll         = Title "Clear All" @>> viewInformation []
       									 "Are you sure you want to delete all items?"
                          >>* [OnAction ActionOk
                          		(always (upd (\us -> []) list @! ()))
@@ -107,8 +107,7 @@ lastElems :: Int [a] -> [a]
 lastElems n xs = drop (length xs - n) xs
 
 showInfo :: String -> Task String
-showInfo msg = viewInformation ("Information","") [] msg
-
+showInfo msg = Title "Information" @>> viewInformation [] msg
 
 doTasksSequentially :: [Task a] -> Task () | iTask a
 doTasksSequentially []     = return ()
@@ -148,10 +147,10 @@ chats = sharedStore "chats" []
 derive class iTask ChatMessage
 
 viewChats :: Int -> Task ()
-viewChats n = viewSharedInformation "Chats" [] (mapRead (lastElems n) chats) @! ()
+viewChats n = Title "Chats" @>> viewSharedInformation [] (mapRead (lastElems n) chats) @! ()
 
 chatDialog :: User [Entity] -> Task ()
-chatDialog me _ = doOrClose (forever (enterInformation "Type a message" []
+chatDialog me _ = doOrClose (forever (Hint "Type a message" @>> enterInformation []
                      >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()
 where
  doUpate m =               get currentDateTime

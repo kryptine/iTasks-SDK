@@ -29,6 +29,4 @@ gText{|IncidentShort|} _   i = [maybe "" incidentTitle i]
 derive JSONEncode   Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive JSONDecode   Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gEditor      Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
-derive gDefault     Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
 derive gEq          Temperature, Meters, Feet, Miles, Knots, Degrees, ContactShort, IncidentShort
-

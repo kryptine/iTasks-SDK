@@ -13,7 +13,7 @@ controlExercise
 simulatePhoneCalls :: Task ()
 simulatePhoneCalls
     = forever (
-            enterInformation ("Simulate phonecall","Type a phonenumber or leave blank for a call without caller identification") []
+            Title "Simulate phonecall" @>> Hint "Type a phonenumber or leave blank for a call without caller identification" @>> enterInformation []
         >>* [OnAction (Action "Place call") (hasValue (\num -> reportPhoneCallBegin num Nothing))]
      ) @! ()
 
@@ -21,14 +21,14 @@ simulatePhoneCalls
 simulateEmail :: Task ()
 simulateEmail
     = forever (
-            enterInformation ("Simulate e-mail","Type an e-mail message and press send to deliver it to Incidone directly") []
+            Title "Simulate e-mail" @>> Hint "Type an e-mail message and press send to deliver it to Incidone directly" @>> enterInformation []
         >>* [OnAction (Action "Send") (hasValue injectEmail)]
     ) @! ()
 
 simulateAIS :: Task ()
 simulateAIS
-    =   manageBackgroundTask ("Simulate AIS","You can simulate an AIS sensor feed") "ais-simulator" "AIS simulator" simulate
-    -|| viewSharedInformation "Last AIS import" [] lastAISImport
+    =   (Title "Simulate AIS" @>> Hint "You can simulate an AIS sensor feed" @>> manageBackgroundTask "ais-simulator" "AIS simulator" simulate)
+    -|| (Hint "Last AIS import" @>> viewSharedInformation [] lastAISImport)
 where
     simulate
        =   get applicationDirectory

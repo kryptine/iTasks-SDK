@@ -8,7 +8,9 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Apps.ShipAdventure.Editor
+import C2.Apps.ShipAdventure.Types
 import Data.Map.GenJSON
+import Data.Functor
 
 dOffRegisterEntity  :: [User -> Task Entity]
 dOffRegisterEntity = []
@@ -36,7 +38,7 @@ damageControl
 damagePrediction :: Task ()
 damagePrediction
   =    watch disabledSections
-  -&&- (((((viewSharedInformation "Selected section" [] sharedMapAction <<@ ArrangeVertical)
+  -&&- ((((((Hint "Selected section"  @>> viewSharedInformation [] sharedMapAction) <<@ ArrangeVertical)
        -|| showDisabledDevices <<@ ArrangeVertical) <<@ ArrangeVertical)
        -|| ((showImperiledCommandAims <<@ ArrangeHorizontal)
        -|| showCommandAims <<@ ArrangeVertical)) <<@ ArrangeHorizontal)
@@ -61,17 +63,17 @@ derive JSONEncode Set
 derive JSONDecode Set
 
 showCommandAims :: Task ()
-showCommandAims = viewSharedInformation "Current Command Aims" [] commandAims @! ()
+showCommandAims = Hint "Current Command Aims" @>> viewSharedInformation  [] commandAims @! ()
 
 showImperiledCommandAims :: Task ()
 showImperiledCommandAims
-  = viewSharedInformation "Imperiled Command Aims"
+  = Hint "Imperiled Command Aims" @>> viewSharedInformation 
       [ViewAs (\((((disSects, nw), devs), caps), cas) -> allImperiledCommandAims devs caps cas (doDisableCablesInSections disSects nw))]
       (disabledSections |*| myNetwork |*| myDevices |*| capabilityMap |*| commandAims) @! ()
 
 showDisabledDevices :: Task ()
 showDisabledDevices
-  = viewSharedInformation "Disabled devices"
+  = Hint "Disabled devices" @>> viewSharedInformation 
       [ViewAs (\((disSects, nw), devs) -> map (\d -> d.Device.description) (allDisabledDevices devs (doDisableCablesInSections disSects nw)))]
       (disabledSections |*| myNetwork |*| myDevices) @! ()
 

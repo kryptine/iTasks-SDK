@@ -3,16 +3,17 @@ implementation module iTasks.UI.Layout.Common
 import StdEnv
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
-import iTasks.UI.Definition, iTasks.UI.Prompt
-import iTasks.WF.Combinators.Tune
+import iTasks.UI.Definition
+import iTasks.UI.Tune
 import iTasks.WF.Combinators.Overloaded
+import iTasks.WF.Tasks.Interaction
 import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
 import Data.Monoid
 import qualified Data.Map as DM
 import Data.Map.GenJSON
 from Data.Func import $
 from StdListExtensions import foldlSt
-from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
+from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TaskTime
 import qualified Data.Foldable
 import qualified Text as T
 from Text import class Text, instance Text String
@@ -20,14 +21,23 @@ from Text import class Text, instance Text String
 addCSSClass :: String -> LayoutRule
 addCSSClass className = modifyUIAttributes (SelectKeys ["class"]) add
 where
-	add attr = 'DM'.put "class" (maybe 
+	add attr = 'DM'.put "class" (maybe
 		(JSONArray [JSONString className])
-		(\(JSONArray classNames) -> JSONArray (classNames ++ [JSONString className]))
-		('DM'.get "class" attr)) attr
+		(\v->case v of
+			(JSONArray classNames) = JSONArray (classNames ++ [JSONString className])
+			(JSONString s) = JSONArray [JSONString s, JSONString className]
+		) ('DM'.get "class" attr)) attr
+
+removeCSSClass :: String -> LayoutRule
+removeCSSClass className = modifyUIAttributes (SelectKeys ["class"]) remove
+where
+	remove attr = case 'DM'.get "class" attr of
+		(Just (JSONArray items)) = 'DM'.put "class" (JSONArray [item \\ item=:(JSONString name) <- items | name <> className]) attr
+		_ = attr
 
 arrangeWithTabs :: Bool -> LayoutRule
 arrangeWithTabs closeable = layoutSubUIs
-	(SelectAND (SelectByPath []) (SelectByType UIParallel))
+	(SelectAND (SelectByPath []) (SelectOR (SelectByClass "parallel") (SelectByClass "parallel-actions")))
 	(sequenceLayouts
 		[setUIType UITabSet
 		,layoutSubUIs SelectChildren scrollContent
@@ -198,20 +208,12 @@ scrollContent = addCSSClass "itasks-scroll-content"
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
 	[wrapUI UIWindow
-	,interactToWindow
 	//Move title and class attributes to window
-	,copySubUIAttributes (SelectKeys ["title","class"]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title","class"]))
+	,copySubUIAttributes (SelectKeys ["title"]) [0] []
+	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title"]))
 	//Set window specific attributes
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
-where
-	//If the first child is an interact, move the title one level up
-	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
-		(sequenceLayouts [copySubUIAttributes (SelectKeys ["title"]) [0,0] []
-							 ,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
-							 ])
-
 
 insertToolBar :: [String] -> LayoutRule
 insertToolBar actions = sequenceLayouts
@@ -277,80 +279,68 @@ where
 		  >>= \(JSONString f) -> 'DM'.get f icons
 		  >>= \icon ->           return ('DM'.union (iconClsAttr ("icon-" +++ icon)) attr)
 
-instance tune ArrangeWithTabs Task
+instance tune ArrangeWithTabs (Task a)
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 
-instance tune ArrangeWithSideBar Task 
+instance tune ArrangeWithSideBar (Task a)
 where
     tune (ArrangeWithSideBar index side resize) t = tune (ApplyLayout (arrangeWithSideBar index side resize)) t
 
-instance tune ArrangeWithHeader Task
+instance tune ArrangeWithHeader (Task a)
 where
     tune (ArrangeWithHeader index) t = tune (ApplyLayout (arrangeWithHeader index)) t
 
-instance tune ArrangeAsMenu Task
+instance tune ArrangeAsMenu (Task a)
 where
 	tune (ArrangeAsMenu i) t = tune (ApplyLayout (arrangeAsMenu i)) t
 
-instance tune ArrangeSplit Task
+instance tune ArrangeSplit (Task a)
 where
     tune (ArrangeSplit direction resize) t = tune (ApplyLayout (arrangeSplit direction resize)) t
 
-instance tune ArrangeVertical Task
+instance tune ArrangeVertical (Task a)
 where
     tune ArrangeVertical t = tune (ApplyLayout arrangeVertical)  t
 
-instance tune ArrangeHorizontal Task
+instance tune ArrangeHorizontal (Task a)
 where
     tune ArrangeHorizontal t = tune (ApplyLayout arrangeHorizontal) t
 
-instance tune ScrollContent Task
+instance tune ScrollContent (Task a)
 where
     tune ScrollContent t = tune (ApplyLayout scrollContent) t
 
-instance tune AddCSSClass Task
+instance tune AddCSSClass (Task a)
 where
 	tune (AddCSSClass s) t = tune (ApplyLayout (addCSSClass s)) t
 
-instance tune CSSStyle Task
+instance tune CSSStyle (Task a)
 where
-	tune (CSSStyle s) t = tune (ApplyAttribute "style" s) t
+	tune (CSSStyle s) t = tune ("style",JSONString s) t
 
-instance tune ToWindow Task
+instance tune ToWindow (Task a)
 where
 	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
 
-instance tune InPanel Task
+instance tune InPanel (Task a)
 where
 	tune (InPanel fullscreenable) t =  tune (ApplyLayout (toPanel fullscreenable)) t
 
-instance tune InContainer Task
+instance tune InContainer (Task a)
 where
 	tune InContainer t = tune (ApplyLayout toContainer) t
 
-instance tune NoUserInterface Task
+instance tune NoUserInterface (Task a)
 where
-    tune NoUserInterface (Task eval) = Task eval` 
+    tune NoUserInterface task = Task (eval task)
     where
-	    eval` event repOpts state iworld = case eval event repOpts state iworld of
-			(ValueResult taskvalue evalinfo _ tasktree, iworld)
+	    eval (Task task) event repOpts iworld = case task event repOpts iworld of
+			(ValueResult taskvalue evalinfo _ newtask, iworld)
 				# change = case event of 
 					ResetEvent = ReplaceUI (ui UIEmpty)
 					_          = NoChange
-				= (ValueResult taskvalue evalinfo change tasktree, iworld)
+				= (ValueResult taskvalue evalinfo change (Task (eval newtask)), iworld)
 			other = other
-
-instance tune Title Task
-where
-	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
-	
-instance tune Icon Task
-where
-	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
-
-instance tune Label Task
-where
-	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
 
 toFormItem :: LayoutRule
 toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))

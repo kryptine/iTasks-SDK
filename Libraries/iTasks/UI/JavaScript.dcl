@@ -192,6 +192,11 @@ jsDocument :== jsGlobal "document"
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 
 /**
+ * Like {{`jsWrapFun`}}, but the Clean function can return a result.
+ */
+jsWrapFunWithResult :: !({!JSVal} *JSWorld -> *(JSVal, *JSWorld)) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
+
+/**
  * Wrap a function receiving a reference to a JavaScript iTasks component to
  * one matching the calling convention for the JavaScript interface (i.e.,
  * receiving an array of JavaScript values) so that it can be called using the
@@ -205,7 +210,7 @@ wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *
 /**
  * Deserialize a graph that was serialized using the tools in
  * `iTasks.Internal.Client.Serialization`.
- * @param The string to deserialize.
+ * @param The string to deserialize in base64 encoding.
  * @result The deserialized value.
  */
 jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
@@ -225,7 +230,16 @@ addJSFromUrl :: !String !(Maybe JSFun) !*JSWorld -> *JSWorld
 
 /**
  * A simple wrapper around JavaScript's `console.log`.
+ * Use {{`jsTraceVal`}} to trace JavaScript values.
  * @param The value to log.
  * @param The value to return.
  */
 jsTrace :: !a .b -> .b | toString a
+
+/**
+ * A simple wrapper around JavaScript's `console.log`.
+ * Use {{`jsTrace`}} to trace Clean values.
+ * @param The value to log.
+ * @param The value to return.
+ */
+jsTraceVal :: !JSVal .a -> .a

@@ -4,8 +4,6 @@ import StdArray
 import iTasks
 
 import iTasks.UI.Definition
-import iTasks.Internal.Tonic
-import iTasks.Extensions.Admin.TonicAdmin
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 from Data.Map import :: Map, instance Functor (Map k)
@@ -16,6 +14,7 @@ import qualified Data.Heap as DH
 from Data.Heap import :: Heap
 import Data.GenLexOrd
 from C2.Framework.Logging import addLog
+import C2.Apps.ShipAdventure.Types
 import Data.List
 import Data.Eq
 import Data.Maybe
@@ -132,7 +131,7 @@ colToGraph floorIdx rowIdx (graph, colIdx) section
   #! graph       = 'DM'.put (floorIdx, currCoord2D) (getCoord3Ds section floorIdx currCoord2D section.borders) graph
   = (graph, colIdx + 1)
 
-getCoord3Ds :: !Section !Int !Coord2D !Borders -> [(!Maybe Dir, !Coord3D)]
+getCoord3Ds :: !Section !Int !Coord2D !Borders -> [(Maybe Dir, Coord3D)]
 getCoord3Ds section floorIdx currCoord2D borders
   #! acc = []
   #! acc = addOnOpening floorIdx borders.n N currCoord2D acc
@@ -142,7 +141,7 @@ getCoord3Ds section floorIdx currCoord2D borders
   #! acc = acc ++ map (\h -> (Nothing, h)) section.hops
   = acc
   where
-  addOnOpening :: !Int !Border !Dir !Coord2D ![(!Maybe Dir, !Coord3D)] -> [(!Maybe Dir, !Coord3D)]
+  addOnOpening :: !Int !Border !Dir !Coord2D ![(Maybe Dir, Coord3D)] -> [(Maybe Dir, Coord3D)]
   addOnOpening _        Wall _   _       acc = acc
   addOnOpening floorIdx b    dir coord2D acc = [(Just dir, (floorIdx, twin dir coord2D)) : acc]
 
@@ -328,7 +327,7 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
                  (   upd ('DM'.put actor.userName actor) userToActorShare
                  >>| move (0, {col = 0, row = 0}) location actor.userName
                  >>| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
-                 (viewInformation ("Section with number: " <+++ location <+++ " does not exist") [] () >>| return ())
+                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>| return ())
 
 :: UITag :== [Int]
 
@@ -341,18 +340,19 @@ uiToRefs :: UI -> TaskUITree
 uiToRefs (UI _ _ subs) = case recurse [] subs of
                            [x : _] -> x
                            _       -> Ed []
-  where
-  uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
-  uiToRefs` path (i, UI UIParallel _ subs)
-    # curPath = path ++ [i]
-    = [Par curPath (recurse curPath subs)]
-  uiToRefs` path (i, UI UIStep _ subs)
-    # curPath = path ++ [i]
-    = [Step curPath (recurse curPath subs)]
-  uiToRefs` path (i, _)
-    # curPath = path ++ [i]
-    = [Ed curPath]
-  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+where
+	uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
+  	uiToRefs` path (i, UI type attr subs)
+		# curPath = path ++ [i]
+		| hasClass "parallel" attr || hasClass "parallel-actions" attr = [Par curPath (recurse curPath subs)]
+		| hasClass "step" attr || hasClass "step-actions" attr = [Step curPath (recurse curPath subs)]
+		| otherwise = [Ed curPath]
+	where
+		hasClass name attr = case 'DM'.get "class" attr of
+			(Just (JSONArray items)) = isMember name [item \\ JSONString item <- items]
+			_ = False
+
+	recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
 
 getSubTree :: UI [Int] -> Maybe UI
 getSubTree ui [] = Just ui
@@ -429,19 +429,19 @@ moveAround viewDeck user inventoryForSectionShare
   changeDecks :: Task ()
   changeDecks
     =    watch (lockedHopsShare |*| roomNoForCurrentUserShare)
-    -&&- enterChoiceWithShared "Change deck" [prettyPrintHops] nearbyHops
+    -&&- (Hint "Change deck" @>> enterChoiceWithShared  [prettyPrintHops] nearbyHops)
     >>*  [OnAction (Action "Change deck") changeDeck]
 
   pickUpItems :: Task ()
   pickUpItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items nearby" [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare)
+    -&&- (Hint "Items nearby" @>> enterChoiceWithShared [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare))
     >>*  [OnAction (Action "Grab selected item") (withSelectedObject userToActorShare inventoryForSectionShare pickupObject)]
 
   dropItems :: Task ()
   dropItems
     =    watch roomNoForCurrentUserShare
-    -&&- enterChoiceWithShared "Items in inventory" [prettyPrintItems] (inventoryShare userToActorShare)
+    -&&- (Hint "Items in inventory" @>> enterChoiceWithShared  [prettyPrintItems] (inventoryShare userToActorShare))
     >>*  [OnAction (Action "Drop selected item") (withSelectedObject userToActorShare inventoryForSectionShare dropObject)]
 
   moveAroundUI :: TaskUITree -> TaskUILayout
@@ -683,7 +683,7 @@ doorIsLocked roomNo exit lockMap
 
 // utility functions to find things located in the map
 
-findAllObjects :: !(SectionInventoryMap o) -> [(!Coord3D, !Object o)] | iTask o
+findAllObjects :: !(SectionInventoryMap o) -> [(Coord3D, Object o)] | iTask o
 findAllObjects objectMap = [ (roomNo, object)
                            \\ (roomNo, objects) <- 'DM'.toList objectMap
                            , object <- 'DIS'.elems objects

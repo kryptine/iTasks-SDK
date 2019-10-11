@@ -1,22 +1,22 @@
 implementation module Ligretto.UI
 
 import StdBool, StdEnum, StdList
-from   StdFunc import id, const
+from   StdFunc import id, const, o
 import Data.GenEq
 import iTasks.WF.Tasks.Interaction
 import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
-ligrettoEditor :: !Color -> UpdateOption GameSt GameSt
-ligrettoEditor me = UpdateUsing id (const id) (fromSVGEditor
+ligrettoEditor :: !Color -> UpdateSharedOption GameSt GameSt
+ligrettoEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
 												})
 
-accoladesEditor :: !Color -> UpdateOption GameSt GameSt
-accoladesEditor me = UpdateUsing id (const id) (fromSVGEditor
+accoladesEditor :: !Color -> UpdateSharedOption GameSt GameSt
+accoladesEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
@@ -74,7 +74,7 @@ pile_image side pile
 row_images :: !Bool !RowPlayer -> [Image GameSt]
 row_images interactive row
   = [  tuneIf interactive (card_image Front row_card)
-              {onclick = play_row_card row_card.back no, local = False}
+              {onclick = \_ st -> play_row_card row_card.back no st, local = False}
 	\\ row_card <- row
 	 & no       <- [1..]
 	]
@@ -83,8 +83,8 @@ hand_images :: !Bool !Hand !Color -> [Image GameSt]
 hand_images interactive {conceal,discard} color
   #! conceal_pile = pile_image Back  conceal
   #! discard_pile = pile_image Front discard
-  = [ tuneIf interactive conceal_pile {onclick = play_concealed_pile color, local = False}
-    , tuneIf interactive discard_pile {onclick = play_hand_card      color, local = False}
+  = [ tuneIf interactive conceal_pile {onclick = \_ st -> play_concealed_pile color st, local = False}
+    , tuneIf interactive discard_pile {onclick = \_ st -> play_hand_card      color st, local = False}
     ]
 
 player_arc :== 0.45 * pi

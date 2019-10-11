@@ -2,7 +2,7 @@ module Box
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunctions
 
@@ -11,7 +11,7 @@ none			= toSVGColor "none"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Box"
+	= doTasks (Title "Box" @>> viewInformation 
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const box2

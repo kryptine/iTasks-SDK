@@ -2,7 +2,7 @@ module Clean
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import Graphics.Scalable.Extensions
 import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdFunctions, StdList
@@ -16,7 +16,7 @@ white			= toSVGColor "white"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "100% Clean!"
+	= doTasks (Title "100% Clean!" @>> viewInformation 
 		[ViewUsing id (fromSVGEditor
 			{ initView    = id
 			, renderImage = const clean

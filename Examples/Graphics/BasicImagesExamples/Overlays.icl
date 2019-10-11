@@ -2,7 +2,7 @@ module Overlays
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
+import iTasks.UI.Definition, iTasks.UI.Tune
 import iTasks.Extensions.SVG.SVGEditor
 import StdFunc, StdList
 import Text
@@ -12,7 +12,7 @@ lucida			= normalFontDef "Lucida Console"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "Overlays" [ViewUsing id (fromSVGEditor
+	= doTasks (Title "Overlays" @>> viewInformation [ViewUsing id (fromSVGEditor
 														{ initView    = id
 														, renderImage = const overlays
 														, updModel    = \_ v = v

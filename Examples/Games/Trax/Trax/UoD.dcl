@@ -18,7 +18,6 @@ derive   gEditor    TraxTile
 derive   gText      TraxTile
 derive   JSONEncode TraxTile
 derive   JSONDecode TraxTile
-derive   gDefault   TraxTile
 derive   gEq        TraxTile
 derive   gFDomain   TraxTile
 instance fromTuple  TileEdge TileEdge TraxTile
@@ -74,13 +73,11 @@ col :: !Coordinate -> Int
 */
 row :: !Coordinate -> Int
 
-
 :: Trax
 derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
-derive   gDefault   Trax
 derive   gEq        Trax
 instance ==         Trax
 instance zero       Trax
@@ -140,10 +137,10 @@ free_coordinates :: !Trax -> [Coordinate]
 */
 linecolors :: !Trax !Coordinate -> LineColors
 
-/** possible_tiles @colors = @trax:
-       returns those @trax that match with @colors.
+/** possible_tiles @trax @coordinate = @tiles:
+		returns those @tiles that constitute a legal move in @trax at @coordinate.
 */
-possible_tiles :: !LineColors -> [TraxTile]
+possible_tiles :: !Trax !Coordinate -> [TraxTile]
 
 :: Line
 
@@ -171,19 +168,22 @@ loops :: !Trax -> [(LineColor,Line)]
 */
 winning_lines :: !Trax -> [(LineColor,Line)]
 
-/** mandatory_moves @trax @coordinate = @trax`:
-       assumes that the tile at @coordinate in @trax is the most recently placed tile.
-       It performs the mandatory moves that require filling empty places next to this
-       tile, and all subsequent other empty places, thus resulting in @trax`.
-*/
-mandatory_moves :: !Trax !Coordinate -> Trax
-
 :: TraxSt
  = { trax   :: !Trax              // the current set of placed tiles
    , names  :: ![User]            // the current two players
    , turn   :: !Bool
    , choice :: !Maybe Coordinate
    }
+
+/** mandatory_moves @trax @coordinate = Just @trax`:
+       assumes that the tile at @coordinate in @trax is the most recently placed tile.
+       It performs the mandatory moves that require filling empty places next to this
+       tile, and all subsequent other empty places, resulting in @trax`.
+    mandatory_moves @trax @coordinate = Nothing:
+       at least one mandatory move occurred that resulted in an illegal configuration:
+       an empty tile with three or four of the same line colors.
+*/
+mandatory_moves :: !Trax !Coordinate -> Maybe Trax
 
 /** game_over @st:
 		returns True only if the given configuration in @st.trax contains one or more

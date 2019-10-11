@@ -104,7 +104,7 @@ rescanCodeBase codebase
 
 navigateCodebase :: CodeBase -> Task SourceTreeSelection
 navigateCodebase codebase
-    = enterChoice () [/* ChooseWith (ChooseFromTree (groupModules (sourceTreeRoots codebase)))*/] (modulesOf codebase)
+    = enterChoice [/* ChooseWith (ChooseFromTree (groupModules (sourceTreeRoots codebase)))*/] (modulesOf codebase)
 where
     modulesOf codebase
         = flatten [[SelSourceTree name rootPath:[moduleSelection modName modType modPath \\ (modName,modType,modPath) <- modules]] \\ {SourceTree|name,rootPath,modules} <- codebase]

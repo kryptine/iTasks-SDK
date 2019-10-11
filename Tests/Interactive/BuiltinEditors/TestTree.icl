@@ -1,5 +1,5 @@
 module TestTree
-import iTasks, iTasks.Internal.Test.Definition 
+import iTasks, iTasks.Util.Testing
 
 test :: Task ([ChoiceNode],[Int])
 test = testEditor (tree <<@ multipleAttr False)

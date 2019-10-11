@@ -12,6 +12,7 @@ import iTasks, iTasks.Util.Testing
     }
 
 derive class iTask ADTMultiCons, RecordWithADT
+derive gDefault ADTMultiCons, RecordWithADT
 
 test :: Task RecordWithADT
 test = testCommonInteractions "Record with ADT"

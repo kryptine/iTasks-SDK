@@ -22,12 +22,12 @@ where
 */
 createNewIncident :: Task (Maybe IncidentNo)
 createNewIncident
-	=	enterInformation ("Create new incident", "Fill in the following basic information to create a new incident") []
+	=	Title "Create new incident" @>> Hint "Fill in the following basic information to create a new incident" @>> enterInformation []
 	>>? createIncident
 
 createNewContact :: Task (Maybe ContactNo)
 createNewContact
-	=	enterInformation ("New contact","Enter the basic information of the new contact") []
+	=	Title "New contact" @>> Hint "Enter the basic information of the new contact" @>> enterInformation []
 	>>? createContact
 
 indexedStore :: String v -> SDSLens k v v | Eq k & Ord k & iTask k & iTask v
@@ -47,8 +47,8 @@ where
     writel = SDSWriteConst (\_ w -> Ok (Just w))
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-viewDetails	:: !d (sds1 () (Maybe i) ()) (sds2 i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c & RWShared sds1 & RWShared sds2
-viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) (targetShare sel target))
+viewDetails	:: (sds1 () (Maybe i) ()) (sds2 i c c) (c -> v) -> Task (Maybe v) | iTask i & iTask v & iTask c & RWShared sds1 & RWShared sds2
+viewDetails sel target prj = viewSharedInformation [] (mapRead (fmap prj) (targetShare sel target))
 where
 	targetShare :: (sds1 () (Maybe i) ()) (sds2 i c c) -> SDSSequence () (Maybe c) () | iTask i & iTask c & RWShared sds1 & RWShared sds2
     targetShare sel target = sdsSequence "viewDetailsSeq" id (\_ i -> i) (\_ _ -> Right snd) writel writer sel (valueShare target)
@@ -90,13 +90,13 @@ viewAndEdit view edit
     = forever (view >>* [OnAction (Action "Edit") (always edit)])
 
 //Move to common tasks
-viewOrEdit :: d (Shared sds a) (a a -> Task ()) -> Task () | toPrompt d & iTask a & RWShared sds
-viewOrEdit prompt s log
+viewOrEdit :: (Shared sds a) (a a -> Task ()) -> Task () | iTask a & RWShared sds
+viewOrEdit s log
 	= forever (view >>* [OnAction (Action "/Edit") (hasValue edit)]) @! ()
 where
-	view = viewSharedInformation prompt [] s
+	view = viewSharedInformation [] s
 	edit old
-		=	updateInformation prompt [] old
+		=	updateInformation [] old
 		>>?	\new ->
 			set new s
         >>| log old new
@@ -145,12 +145,12 @@ viewNoSelection = viewTitle "Select..." @! ()
 							,OnValue  					    (ifStable (\a -> taskbf a @ Just))
 							]
 
-oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
-oneOrAnother desc (labela,taska) (labelb,taskb)
-    =   updateChoice desc [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize))
+oneOrAnother :: (String,Task a) (String,Task b) -> Task (Either a b) | iTask a & iTask b
+oneOrAnother (labela,taska) (labelb,taskb)
+    =   updateChoice [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize))
     >&> \s -> whileUnchanged s (
         \choice -> case choice of
-            Nothing = (viewInformation () [] "You have to make a choice" @? const NoValue)
+            Nothing = (viewInformation [] "You have to make a choice" @? const NoValue)
             (Just 0) = (taska @ Left)
             (Just 1) = (taskb @ Right)
         )
@@ -164,7 +164,7 @@ where
     allStable cur (_,Value _ s) = cur && s
     allStable cur _             = False
 
-    more list =   viewInformation () [] ()
+    more list =   viewInformation [] ()
               >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
 
 manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
@@ -183,9 +183,9 @@ where
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\v -> get (taskListSelfId l) >>- \id -> removeTask id l @! v))]
 
-manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
-manageBackgroundTask d identity title task
-    =   viewSharedInformation d [ViewAs (view title)] taskPid
+manageBackgroundTask :: !String !String (Task a) -> Task () | iTask a
+manageBackgroundTask identity title task
+    =   viewSharedInformation [ViewAs (view title)] taskPid
     >^* [OnAction (Action "Start") (ifValue isNothing startTask)
         ,OnAction (Action "Stop") (ifValue isJust stopTask)
         ]
@@ -197,22 +197,22 @@ where
     status (Just (_,Stable))    = (LightOnGreen,"stopped")
     status (Just (_,Exception _)) = (LightOnRed,"stopped with an error")
 
-    taskPid = mapRead find (sdsFocus ("name",identity) taskInstancesByAttribute)
+    taskPid = mapRead find (sdsFocus ("name",JSONString identity) taskInstancesByAttribute)
     where
         find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,attributes} <- instances | hasName identity attributes] of
             [(i,v):_]   = Just (TaskId i 0,v)
             _           = Nothing
 
-        hasName name attributes = maybe False ((==) name) ('DM'.get "name" attributes)
+        hasName name attributes = maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)
 
-    startTask _ = appendTask (NamedDetached identity defaultValue True) (removeWhenStable (task @! ())) topLevelTasks @! ()
+    startTask _ = appendTask (Detached ('DM'.singleton "name" (JSONString identity)) True) (removeWhenStable (task @! ())) topLevelTasks @! ()
     stopTask (Just (taskId,_)) = removeTask taskId topLevelTasks @! ()
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
 
 syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared sds ([m],Bool,[m],Bool)) -> Task () | iTask m & RWShared sds
 syncNetworkChannel server port msgSeparator decodeFun encodeFun channel
-    = tcpconnect server port channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])} @! ()
+    = tcpconnect server port Nothing channel {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])} @! ()
 where
     onConnect _ _ (received,receiveStopped,send,sendStopped)
         = (Ok "",if (not (isEmpty send)) (Just (received,False,[],sendStopped)) Nothing, map encodeFun send,False)

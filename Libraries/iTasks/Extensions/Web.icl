@@ -1,4 +1,5 @@
 implementation module iTasks.Extensions.Web
+
 import iTasks
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
@@ -14,7 +15,6 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.List as DL
 
-//* URL
 gText{|URL|}	_ val	= [maybe "" toString val]
 
 gEditor{|URL|} = selectByMode
@@ -185,7 +185,7 @@ where
 
 callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
-    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])}
+    =   tcpconnect uriRegName port Nothing (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect,onDestroy= \s->(Ok s, [])}
     @?  taskResult
 where
     port = fromMaybe 80 uriPort
@@ -215,5 +215,3 @@ callHTTP _ url _ _
 callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
 	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
-
-

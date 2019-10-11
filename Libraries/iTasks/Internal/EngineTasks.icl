@@ -9,28 +9,29 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
+import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.UI.Definition
 import iTasks.WF.Definition
 import Text
 
-from Data.Map import newMap, member
+from Data.Map import newMap, member, del
 
-everyTick :: (*IWorld -> *(!MaybeError TaskException (), !*IWorld)) -> Task ()
+everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
 where
-	eval DestroyEvent evalOpts tree iworld
+	eval DestroyEvent evalOpts iworld
 		= (DestroyedResult, iworld)
-	eval event evalOpts tree=:(TCInit taskId ts) iworld
+	eval event {taskId,lastEval} iworld
 		# (merr, iworld) = f iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		# (merr, iworld) = readRegister taskId tick iworld
 		| isError merr = (ExceptionResult (fromError merr), iworld)
 		= (ValueResult
 				NoValue
-				{TaskEvalInfo|lastEvent=ts,removedTasks=[],attributes=newMap}
+				(mkTaskEvalInfo lastEval)
 				NoChange
-				(TCInit taskId ts)
+				(Task eval)
 			, iworld)
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
@@ -65,9 +66,11 @@ where
 			(Ok True)
 				# (e,iworld) = deleteTaskInstance instanceNo iworld
 				| e=:(Error _) = (e,iworld)
-				= case write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-					(Error e, iworld) = (Error e, iworld)
-					(Ok WritingDone, iworld) = (Ok (), iworld)
+				# (e,iworld) = write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld
+				| e=:(Error _) = (liftError e,iworld)
+				# (e,iworld) = modify (\output -> del instanceNo output) taskOutput EmptyContext iworld
+				| e=:(Error _) = (liftError e,iworld)
+				= (Ok (),iworld)
 			(Ok False)
 				= (Ok (), iworld)
 			(Error e)

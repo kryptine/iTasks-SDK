@@ -6,14 +6,18 @@ definition module iTasks.UI.Layout.Common
 */
 import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
-from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
 from iTasks.WF.Definition import :: Task
-from iTasks.WF.Combinators.Tune import class tune
+from iTasks.UI.Tune import class tune
 
 /**
 * Add a CSS class to customize styling
 */
 addCSSClass :: String -> LayoutRule
+
+/**
+* Remove a CSS class (to prevent standard styling)
+*/
+removeCSSClass :: String -> LayoutRule
 
 /**
 * Create a tabset with all child items as separate tabs
@@ -82,34 +86,34 @@ insertToolBar :: [String] -> LayoutRule
 
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs Bool
-instance tune ArrangeWithTabs Task
+instance tune ArrangeWithTabs (Task a)
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Bool
-instance tune ArrangeWithSideBar Task
+instance tune ArrangeWithSideBar (Task a)
 
 :: ArrangeWithHeader = ArrangeWithHeader !Int
-instance tune ArrangeWithHeader Task
+instance tune ArrangeWithHeader (Task a)
 
 :: ArrangeAsMenu = ArrangeAsMenu [[Int]]
-instance tune ArrangeAsMenu Task
+instance tune ArrangeAsMenu (Task a)
 
 :: ArrangeSplit = ArrangeSplit !UIDirection !Bool
-instance tune ArrangeSplit Task
+instance tune ArrangeSplit (Task a)
 
 :: ArrangeVertical = ArrangeVertical
-instance tune ArrangeVertical Task
+instance tune ArrangeVertical (Task a)
 
 :: ArrangeHorizontal = ArrangeHorizontal
-instance tune ArrangeHorizontal Task
+instance tune ArrangeHorizontal (Task a)
 
 :: ScrollContent = ScrollContent
-instance tune ScrollContent Task
+instance tune ScrollContent (Task a)
 
 :: AddCSSClass = AddCSSClass !String
-instance tune AddCSSClass Task
+instance tune AddCSSClass (Task a)
 
 :: CSSStyle = CSSStyle !String
-instance tune CSSStyle Task
+instance tune CSSStyle (Task a)
 
 //Changing container types
 
@@ -122,25 +126,20 @@ toEmpty     ::                                   LayoutRule
 InWindow                :== InFloatingWindow
 InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
-instance tune ToWindow Task
+instance tune ToWindow (Task a)
 
 :: InPanel          = InPanel Bool      //Indicate that a task should be wrapped in a panel
-instance tune InPanel Task
+instance tune InPanel (Task a)
 
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
-instance tune InContainer Task
+instance tune InContainer (Task a)
 
 :: NoUserInterface  = NoUserInterface   //Replace the UI by an empty UI
-instance tune NoUserInterface Task
+instance tune NoUserInterface (Task a)
 
 actionToButton :: LayoutRule
 
 setActionIcon :: (Map String String) -> LayoutRule
-
-//Setting attributes 
-instance tune Title Task
-instance tune Label Task
-instance tune Icon Task
 
 /*
  * Format a basic editor as if it was a generic labelled iconized edtior

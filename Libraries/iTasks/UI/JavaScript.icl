@@ -7,6 +7,7 @@ import StdOverloadedList
 
 import Data.Func
 import Data.Maybe
+import Text.Encodings.Base64
 import Text.GenJSON
 
 :: *JSWorld = JSWorld
@@ -69,7 +70,9 @@ where
 			# dest & [i] = '\''
 			-> (dest,i+1)
 		JSReal r
-			// TODO: this will trigger a warning in get_clean_string; try to write a copy_real à la copy_int
+			// NB: this will trigger a warning in get_clean_string because the created String cannot be removed from the heap.
+			// Better would be to write a copy_real à la copy_int, but this is non-trivial.
+			// Another option is to walk the JSVal in JavaScript instead of creating a string.
 			-> copy_chars (toString r) dest i
 
 		JSVar v
@@ -529,6 +532,13 @@ jsGlobal s = JSVar s
 jsWrapFun :: !({!JSVal} *JSWorld -> *JSWorld) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
 jsWrapFun f attach_to world = (share attach_to \(JSArray args) w -> f args w, world)
 
+jsWrapFunWithResult :: !({!JSVal} *JSWorld -> *(JSVal, *JSWorld)) !JSVal !*JSWorld -> *(!JSFun, !*JSWorld)
+jsWrapFunWithResult f attach_to world = (share attach_to fun, world)
+where
+	fun (JSArray args) w
+	# (r,w) = f args w
+	= hyperstrict (js_val_to_string r,w)
+
 wrapInitUIFunction :: !(JSVal *JSWorld -> *JSWorld) -> {!JSVal} -> *JSWorld -> *JSWorld
 wrapInitUIFunction f = init
 where
@@ -570,7 +580,7 @@ where
 		}
 
 jsDeserializeGraph :: !*String !*JSWorld -> *(!.a, !*JSWorld)
-jsDeserializeGraph s w = (deserialize s, w)
+jsDeserializeGraph s w = (deserialize (base64Decode s), w)
 where
 	deserialize :: !*String -> .a
 	deserialize _ = code {
@@ -605,9 +615,12 @@ where
 	}
 
 jsTrace :: !a .b -> .b | toString a
-jsTrace s x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {JSString (toString s)})) of
+jsTrace s x = jsTraceVal (JSString (toString s)) x
+
+jsTraceVal :: !JSVal .a -> .a
+jsTraceVal v x = case eval_js (js_val_to_string (JSCall (JSVar "console.log") {v})) of
 	True  -> x
-	False -> abort_with_node s // just in case it is a JSVal
+	False -> abort_with_node v
 
 set_js :: !*String !*String -> Bool
 set_js var val = code {

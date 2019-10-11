@@ -1,6 +1,5 @@
 module main
 
-import iTasks.Extensions.Admin.TonicAdmin, iTasks.Internal.Tonic
 import iTasks
 import qualified Data.List as DL
 import C2.Navy.Roles.DOff, C2.Navy.Roles.Commander, C2.Navy.Roles.Suspect, C2.Navy.Roles.HVU, C2.Navy.Roles.Simulator, C2.Navy.Roles.Sailor
@@ -15,7 +14,6 @@ Start world = doTasks
 	,onStartup importDemoUsersFlow
 	,onStartup (installWorkflows myTasks)
 	,onRequest "/" (ccMain registerTasks continuousTasks alwaysOnTasks optionalTasks <<@ (Title "C2 System"))
-	,onRequest "/tonic" (tonicDashboard [])
 	,onRequest "/debug" showDebug
 	,onRequest "/adventure" (loginAndManageWork "Adventure" Nothing Nothing False)
 	,onRequest "/alarm" (setSectionDetectors)
@@ -30,7 +28,7 @@ Start world = doTasks
 	] world
 
 editMaps2D :: Task Maps2D
-editMaps2D = updateSharedInformation "Edit map" [] maps2DShare
+editMaps2D = Hint "Edit map" @>> updateSharedInformation [] maps2DShare
 
 importDemoUsers :: Task [UserAccount]
 importDemoUsers = allTasks (map mkDemoUser namesRoles)
