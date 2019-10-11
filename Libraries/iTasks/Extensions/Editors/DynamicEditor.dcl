@@ -112,7 +112,10 @@ listCons :: !DynamicConsId !String !([a] -> b) -> DynamicCons | TC a & TC b
 /**
  * A variant of {{listCons}}  using a {{Dynamic}} value as function.
  * This variant is more powerful as dynamic values make it possible to use quantified type variables.
- * The dynamic argument must be of type `[a] -> b`, which cannot be enforced by the type system!
+ * The dynamic argument must be of type `(a -> b, [b] -> c)`, which cannot be enforced by the type system!
+ * All common type variables in `a` and `c` are unified.
+ * The possible remaining variables in `a` do not have to be unifiable for all list elements,
+ * as long as all values of type `b` to which they are mapped are unifiable.
  */
 listConsDyn :: !DynamicConsId !String !Dynamic -> DynamicCons
 

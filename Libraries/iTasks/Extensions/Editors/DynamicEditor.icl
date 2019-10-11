@@ -366,13 +366,14 @@ where
 			_                                     = Nothing
 
 		matchl f = case (f, dynamic dynEd) of
-			(f :: [a] -> b, _ :: DynamicEditor b) = Just $ ListCons (dynamic f)
-			_                                     = Nothing
+			(f :: (a -> b, [b] -> c), _ :: DynamicEditor c) = Just $ ListCons (dynamic f)
+			_                                               = Nothing
 
 	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)]
-	listBuilderEditor (lbuilder :: [a] -> b) = listEditor (Just $ const Nothing) True True Nothing childrenEd`
+	listBuilderEditor ((mapF, _) :: (a -> b, [b] -> c)) =
+		listEditor (Just $ const Nothing) True True Nothing childrenEd`
 	where
-		childrenEd  = childrenEditorList lbuilder
+		childrenEd  = childrenEditorList mapF
 		childrenEd` =
 			bijectEditorValue
 				(\(cid, val)                   -> DynamicEditorValue cid val)
@@ -380,7 +381,7 @@ where
 				childrenEd
 
 		// first argument only used for type
-		childrenEditorList :: ([a] -> b) -> Editor (DynamicEditorValue a) | TC a
+		childrenEditorList :: (a -> b) -> Editor (DynamicEditorValue a) | TC a
 		childrenEditorList _ = dynamicEditor (DynamicEditor elements)
 	listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
@@ -472,7 +473,7 @@ where
 		DEApplication args = case cons.builder of
 			FunctionCons fbuilder =
 				foldl (flip stringCorrespondingTo`) [" ", cons.DynamicCons.label : accum] args
-			ListCons lbuilder
+			ListCons _
 				# listElStrs =
 					flatten $
 						intersperse
@@ -508,7 +509,7 @@ where
 :: DynamicConsBuilder
 	=      FunctionCons     !Dynamic
 	| E.a: CustomEditorCons !(Editor a) & JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|}, TC a
-	|      ListCons         !Dynamic    //* must contain a value of type [a] -> b
+	|      ListCons         !Dynamic    //* must contain a value of type (a -> b, [b] -> c)
 
 functionCons :: !DynamicConsId !String !a -> DynamicCons | TC a
 functionCons consId label func = functionConsDyn consId label (dynamic func)
@@ -525,7 +526,7 @@ functionConsDyn consId label func =
 	}
 
 listCons :: !DynamicConsId !String !([a] -> b) -> DynamicCons | TC a & TC b
-listCons consId label func = listConsDyn consId label (dynamic func)
+listCons consId label func = listConsDyn consId label (dynamic (id, func) :: (a^ -> a^, [a^] -> b^))
 
 listConsDyn :: !DynamicConsId !String !Dynamic -> DynamicCons
 listConsDyn consId label func =
@@ -585,22 +586,22 @@ where
 		fromJSON` _ json = fromMaybe (abort "corrupt dynamic editor value") $ fromJSON json
 
 	valueCorrespondingToList :: !Dynamic ![(DynamicConsId, DEVal)] -> Dynamic
-	valueCorrespondingToList (f :: [a] -> b) [] = dynamic (f [])
-	valueCorrespondingToList f args=:[fst : _] = case (f, valueCorrespondingTo` fst) of
-		(g :: [a] -> b, _ :: a) -> dynamic (g $ fromDynList [valueCorrespondingTo` val \\ val <- args])
-		_                       -> abort "corrupt dynamic editor value"
+	valueCorrespondingToList ((f, g) :: (a -> b, [b] -> c)) args =
+		dynamic (g $ fromDynList (dynamic f) [valueCorrespondingTo` val \\ val <- args])
 	valueCorrespondingToList _ _ = abort "corrupt dynamic editor value"
 
-	fromDynList :: ![Dynamic] -> [a] | TC a
-	fromDynList dyns = fromDynList` dyns []
+	fromDynList :: !Dynamic ![Dynamic] -> [b] | TC b
+	fromDynList mapFunc dyns = fromDynList` dyns []
 	where
-		fromDynList` [] acc = reverse acc
-		fromDynList` [(a :: a^) : dyns] acc = fromDynList` dyns [a:acc]
-		fromDynList` _ _ = abort "corrupt dynamic editor value"
+		fromDynList` []           acc = reverse acc
+		fromDynList` [dyn : dyns] acc =
+			case (mapFunc, dyn) of
+				(mapFunc :: a -> b^, a :: a) = fromDynList` dyns [mapFunc a: acc]
+				_                            = abort "corrupt dynamic editor value"
+		fromDynList` _            _   = abort "corrupt dynamic editor value"
 
 :: E = E.a: E (Editor (DynamicEditorValue a)) & TC a
 :: ConsType = Function | List | CustomEditor
-
 consWithId :: !DynamicConsId ![(DynamicCons, Maybe String)] -> (!DynamicCons, !Int)
 consWithId cid conses = case filter (\(({consId}, _), _) -> consId == cid) $ zip2 conses [0..] of
 	[((cons, _), idx)] = (cons, idx)
