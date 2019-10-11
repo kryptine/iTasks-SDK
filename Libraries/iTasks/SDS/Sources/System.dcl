@@ -65,4 +65,3 @@ applicationName			:: SDSSource () String ()         // Application name
 applicationVersion      :: SDSSource () String ()          // Application build identifier
 applicationDirectory	:: SDSSource () FilePath ()       // Directory in which the applicaton resides
 applicationOptions      :: SDSSource () EngineOptions ()   //Full engine options
-applicationConfig       :: SDSLens () (Map String String) () //Just the application specific config from engine options

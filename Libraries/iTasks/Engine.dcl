@@ -56,12 +56,10 @@ instance Startable StartableTask
 instance Startable [StartableTask]
 instance Startable (a,b) | Startable a & Startable b
 
-
 :: EngineOptions =
 	{ appName       :: String
 	, appPath       :: FilePath // Location of the application's executable
 	, appVersion    :: String
-	, appConfig     :: Map String String //Application specific configuration
 	, serverPort    :: Int
 	, serverUrl     :: String
 	, allowedHosts  :: [String] // Only allow connections from these hosts (default ["127.0.0.1"])
@@ -102,7 +100,7 @@ startEngine :== doTasks //Backwards compatibility
 * @param The world
 * @return The world
 */
-doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] EngineOptions) a !*World
+doTasksWithOptions :: ([String] EngineOptions -> MaybeError [String] (a,EngineOptions)) !*World
 	-> *World | Startable a
 
 startEngineWithOptions :== doTasksWithOptions
@@ -118,7 +116,7 @@ startEngineWithOptions :== doTasksWithOptions
 * @return When Ok the engine options the engine is not started,
 *         when Error, the message to printed to the console
 */
-defaultEngineCLIOptions :: [String] EngineOptions -> MaybeError [String] EngineOptions 
+defaultEngineCLIOptions :: a [String] EngineOptions -> MaybeError [String] (a, EngineOptions)
 
 /**
 * Determines the default options for an application

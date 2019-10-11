@@ -162,6 +162,4 @@ applicationOptions = createReadOnlySDS options
 where
 	options () iworld=:{IWorld|options} = (options,iworld)
 
-applicationConfig :: SDSLens () (Map String String) ()
-applicationConfig = mapRead (\{EngineOptions|appConfig} -> appConfig) applicationOptions
 
