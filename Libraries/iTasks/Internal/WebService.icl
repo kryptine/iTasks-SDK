@@ -282,7 +282,7 @@ where
 
 	reqFun taskUrls req output iworld=:{IWorld|options={appName}}
 		//Check for WebSocket upgrade headers
-        | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
+        | (toLowerCase <$> 'DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketKey       = trim (fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers))
             # secWebSocketAccept    = wsockHandShake secWebSocketKey
             //Create handshake response
