@@ -5,7 +5,6 @@ module IncrementingSequence
 
 import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
-import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor
 import StdEnum, StdFunctions, StdList, StdReal
 
@@ -14,11 +13,11 @@ none  = toSVGColor "none"
 
 Start :: *World -> *World
 Start world
-	= doTasks (viewInformation "IncrementingSequence" [ViewUsing id (fromSVGEditor
-																	{ initView    = id
-																	, renderImage = const sequence
-																	, updModel    = \_ v = v
-																	})] 1) world
+	= doTasks (viewInformation [ViewUsing id (fromSVGEditor
+												{ initView    = id
+												, renderImage = const sequence
+												, updModel    = \_ v = v
+												})] 1) world
 
 /**	sequence model tags = image:
 	@image shows a grid of circles, initially just 1.
@@ -35,7 +34,7 @@ sequence n tags
 		        ]
 		    ) host
 //	  ) <@< {onclick=((*) 2),local=False}
-	  ) <@< {onclick=((+) c),local=True}
+	  ) <@< {onclick = \_ n = c+n,local=True}
 where
 	c    = 100
 	r    = px 6
