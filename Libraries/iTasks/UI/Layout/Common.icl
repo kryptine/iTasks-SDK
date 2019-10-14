@@ -367,8 +367,7 @@ where
 	where
 		createLabelText attr = textAttr text
 		where	
-			text = formatDefaultLabel label +++ (if (enterOrUpdate && not optional) "*" "") +++ ":"
-			formatted = formatDefaultLabel label
+			text = toLabelText label +++ (if (enterOrUpdate && not optional) "*" "") +++ ":"
 			enterOrUpdate = maybe False (\(JSONString m) -> isMember m ["enter","update"]) ('DM'.get "mode" attr) 
 			optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr) 
 			label = maybe "-" (\(JSONString s) -> s) ('DM'.get "label" attr)
@@ -391,15 +390,15 @@ where
 			iconCls = maybe "icon-info" (\(JSONString t) -> "icon-" +++ t) ('DM'.get HINT_TYPE_ATTRIBUTE attr)
 			tooltip = maybe "-" (\(JSONString s) -> s) ('DM'.get HINT_ATTRIBUTE attr)
 
-	formatDefaultLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
-	where
-		[lname:lnames]		= fromString label
-		addspace []			= []
-		addspace [c:cs]
-			| c == '_'			= [' ':addspace cs]
-			| isUpper c			= [' ',toLower c:addspace cs]
-			| otherwise			= [c:addspace cs]
-
 	removeLabelAttribute = layoutSubUIs (SelectAND SelectChildren (SelectByHasAttribute "label"))
 	                                    (delUIAttributes (SelectKeys ["label"]))
 
+toLabelText :: !String -> String
+toLabelText label = {c \\ c <- [toUpper lname : addspace lnames]}
+where
+	[lname:lnames] = fromString label
+	addspace [] = []
+	addspace [c:cs]
+		| c == '_'  = [' ':addspace cs]
+		| isUpper c = [' ',toLower c:addspace cs]
+		| otherwise = [c:addspace cs]
