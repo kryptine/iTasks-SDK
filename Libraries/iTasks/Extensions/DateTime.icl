@@ -18,7 +18,7 @@ import iTasks.Internal.SDS
 
 import StdBool, StdArray, StdEnum, StdList, StdString
 
-import Text, Text.GenJSON, System.Time
+import Text, Text.GenJSON, Text.GenPrint, System.Time
 import Data.Maybe, Data.Error 
 import qualified Data.Map as DM
 
@@ -113,6 +113,7 @@ gEditor{|Time|} = selectByMode
 
 derive gDefault		Time
 derive gEq			Time
+derive gPrint       Time
 
 instance toString DateTime
 where

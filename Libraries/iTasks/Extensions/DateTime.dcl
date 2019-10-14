@@ -5,6 +5,7 @@ definition module iTasks.Extensions.DateTime
 import iTasks.WF.Definition
 
 from Data.Error import :: MaybeError, :: MaybeErrorString
+from Text.GenPrint import generic gPrint, :: PrintState, class PrintOutput
 from StdString import class toString, class fromString
 from StdClass import class <
 from StdOverloaded import class ==
@@ -21,6 +22,8 @@ from StdOverloaded import class ==
 	, min	:: !Int
 	, sec	:: !Int
 	}
+
+derive gPrint Time
 
 :: DateTime =
 	{ year	:: !Int
@@ -54,7 +57,6 @@ derive JSONDecode		Date, Time, DateTime
 derive gEq				Date, Time, DateTime
 derive gText	        Date, Time, DateTime
 derive gEditor 			Date, Time, DateTime
-
 
 /*** Time & Date Conversion ***/
 /**
