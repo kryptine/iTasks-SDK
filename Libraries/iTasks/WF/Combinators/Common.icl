@@ -238,11 +238,9 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions
-	>>- \eo->appendTask (Detached evalDirect) (\_->mtune eo task @! ()) topLevelTasks
+	>>- \eo->appendTask (Detached evalDirect attr) (\_->mtune eo task @! ()) topLevelTasks
 where
-	mtune eo task = withLayout <<@ attr
-	where
-		withLayout = if eo.autoLayout (task <<@ ApplyLayout defaultSessionLayout) task
+	mtune eo task = if eo.autoLayout (task <<@ ApplyLayout defaultSessionLayout) task
 
 compute :: !String a -> Task a | iTask a
 compute s a = Hint s @>> enterInformation [EnterUsing id ed] >>~ \_->return a

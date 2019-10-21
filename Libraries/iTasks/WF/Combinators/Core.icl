@@ -325,8 +325,8 @@ initParallelTask ::
 	| iTask a
 initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
-		Embedded            = mkEmbedded iworld
-		Detached evalDirect = mkDetached evalDirect iworld
+		Embedded                = mkEmbedded iworld
+		(Detached evalDirect attr) = mkDetached evalDirect attr iworld
 	= case mbTaskStuff of
 		Ok (taskId,mbTask)
 			# state =
@@ -350,13 +350,13 @@ where
 		# (taskId,iworld) = getNextTaskId iworld
 		# task            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
 		= (Ok (taskId, Just (taskId,task)), iworld)
-	mkDetached evalDirect iworld
+	mkDetached evalDirect managementAttr iworld
 		# (mbInstanceNo,iworld) = newInstanceNo iworld
 		= case mbInstanceNo of
 			Ok instanceNo
 				# isTopLevel        = listId == TaskId 0 0
 				# listShare         = if isTopLevel topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo 'DM'.newMap listId evalDirect iworld
+				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo managementAttr listId evalDirect iworld
 				= case mbTaskId of
 					Ok taskId = (Ok (taskId, Nothing), iworld)
 					err       = (liftError err, iworld)

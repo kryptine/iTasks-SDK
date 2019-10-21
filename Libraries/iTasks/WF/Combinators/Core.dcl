@@ -34,7 +34,8 @@ ActionClose		:==	Action "Close"
 
 :: ParallelTaskType
 	= Embedded
-	| Detached !Bool //* The boolean indicates whether the task should be evaluated directly
+	| Detached !Bool !TaskAttributes //* The boolean indicates whether the task should be evaluated directly
+	                                 //  ,the attributes are the initial managmenet attributes
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 
