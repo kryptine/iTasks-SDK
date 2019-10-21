@@ -78,7 +78,8 @@ where
 	insertSpaces i s
 		| i == size s = []
 		| s % (i, i+2) == "API" = [' ','A','P','I':insertSpaces (i+3) s]
-		| isUpper s.[i] && (i == 0  || s.[i-1] <> '/') = [' ',s.[i]:insertSpaces (i+1) s]
+		| isUpper s.[i] && (i == 0  || s.[i-1] <> pathSeparator) = [' ',s.[i]:insertSpaces (i+1) s]
+		| s.[i] == pathSeparator = ['/':insertSpaces (i+1) s]
 		= [s.[i]:insertSpaces (i+1) s]
 
 Start w
