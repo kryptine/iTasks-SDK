@@ -266,7 +266,8 @@ where
         existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
 
     selectRows tfilter is = filter (filterPredicate tfilter) is
-    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceType,build,issuedAt,progress,attributes}
+    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes}
+		{TIMeta|instanceNo,instanceType,build,issuedAt,progress,taskAttributes,managementAttributes}
 		# listId = case instanceType of
 			(TIPersistent _ (Just listId)) = listId
 			_                              = TaskId 0 0
@@ -277,14 +278,15 @@ where
 
         # constants  = if includeConstants (Just {InstanceConstants|type=type,build=build,issuedAt=issuedAt}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
-        # attributes = if includeAttributes (Just (attributes,'DM'.newMap)) Nothing
+        # attributes = if includeAttributes (Just (managementAttributes,taskAttributes)) Nothing
         = (instanceNo,constants,progress,attributes)
 
     updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
         # i = if includeConstants (maybe i (\{InstanceConstants|type,build,issuedAt}
                                             -> {TIMeta|i & instanceType = instanceType i type mbP ,build=build,issuedAt=issuedAt}) mbC) i
         # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
-        # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = mergeTaskAttributes attributes}) mbA) i
+        # i = if includeAttributes (maybe i (\(managementAttributes,taskAttributes) ->
+			{TIMeta|i & managementAttributes = managementAttributes, taskAttributes = taskAttributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
 	where
 		instanceType _ (StartupInstance) _ = TIStartup
@@ -300,7 +302,7 @@ where
 		     (includeDetached && i.instanceType =: (TIPersistent _ _)) ||
 		     (includeStartup && i.instanceType =: (TIStartup))
 		    )
-		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.attributes))) matchAttribute)
+		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.taskAttributes) || maybe False ((==) mv) ('DM'.get mk i.TIMeta.managementAttributes)  ) ) matchAttribute)
 
 	notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
 
@@ -336,22 +338,16 @@ where
 	write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
 	notify no _                 = const ((==) no)
 
-taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
+taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing filteredInstanceIndex
 where
 	param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing
 			   ,includeConstants=False,includeProgress=False,includeAttributes=True}
 
-	read no [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
+	read no [(_,_,_,Just a)] = Ok a
 	read no _                = Error (exception ("Could not find attributes for task instance "<+++ no))
 
-	write no [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
-	where
-		a` = case a of
-			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
-			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
-	write no _ _                = Error (exception ("Could not find attributes for task instance "<+++ no))
-
+	write no [(n,c,p,a)] a` = Ok (Just [(n,c,p,Just a`)])
 	notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic

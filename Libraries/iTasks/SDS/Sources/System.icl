@@ -82,7 +82,7 @@ taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|type,build,issu
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
-currentTaskInstanceAttributes :: SDSSequence () TaskAttributes (Bool,TaskAttributes)
+currentTaskInstanceAttributes :: SDSSequence () TaskAttributes TaskAttributes
 currentTaskInstanceAttributes
 	= sdsSequence "currentTaskInstanceAttributes"
 		id
@@ -91,7 +91,7 @@ currentTaskInstanceAttributes
 		(SDSWriteConst (\_ _ -> Ok Nothing))
     (SDSWrite (\no r w -> (Ok (Just w))))
 		currentTaskInstanceNo
-		taskInstanceAttributes
+		taskInstanceAttributesByNo
 
 allTaskInstances :: SDSLens () [TaskInstance] ()
 allTaskInstances
@@ -107,7 +107,8 @@ detachedTaskInstances
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
-taskInstanceByNo :: SDSLens InstanceNo TaskInstance (Bool,TaskAttributes)
+
+taskInstanceByNo :: SDSLens InstanceNo TaskInstance TaskAttributes
 taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
@@ -117,14 +118,10 @@ where
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
-	where
-		a` = case a of
-			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
-			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
+    writeItem [(n,c,p,a)] new = Ok (Just [(n,c,p,Just (maybe (new,'DM'.newMap) (\(m,t) -> ('DM'.union new m, t)) a))])
     writeItem _ _ = Error (exception "Task instance not found")
 
-taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
+taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributesByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
@@ -134,11 +131,7 @@ where
     readItem [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
     readItem _                = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,a)] (explicit,new) = Ok (Just [(n,c,p,Just a`)])
-	where
-		a` = case a of
-			Nothing    -> if explicit (new,'DM'.newMap)    ('DM'.newMap,new)
-			Just (e,i) -> if explicit ('DM'.union new e,i) (e,'DM'.union new i)
+    writeItem [(n,c,p,a)] new = Ok (Just [(n,c,p,Just (maybe (new,'DM'.newMap) (\(m,t) -> ('DM'.union new m, t)) a))])
     writeItem _ _ = Error (exception "Task instance not found")
 
 taskInstancesByAttribute :: SDSLens (!String,!JSONNode) [TaskInstance] ()

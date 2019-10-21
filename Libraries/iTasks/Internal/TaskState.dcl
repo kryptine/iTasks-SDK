@@ -33,9 +33,10 @@ derive JSONDecode TIMeta, TIType, TIReduct
     , build         :: !String              //Application build version when the instance was created
     , issuedAt      :: !Timespec
     //Evaluation information
-	, progress		:: !InstanceProgress
+	, progress		        :: !InstanceProgress
     //Identification and classification information
-	, attributes    :: !TaskAttributes      //Arbitrary meta-data
+	, taskAttributes        :: !TaskAttributes  //Cached attributes from the task UI
+	, managementAttributes  :: !TaskAttributes  //Arbitrary writable attributes for managing collections of task instances
 	}
 derive gDefault TIMeta
 

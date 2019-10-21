@@ -127,7 +127,7 @@ where
 					= (Ok value,iworld)
 				change
 					# (mbErr,iworld) = modify
-						(\attrs -> (False, foldr applyUIAttributeChange attrs (getAttributeChanges change)))
+						(\(managementAttributes,taskAttributes)-> (managementAttributes, foldr applyUIAttributeChange taskAttributes (getAttributeChanges change)))
 						(sdsFocus instanceNo taskInstanceAttributes) EmptyContext iworld
 					| mbErr=:(Error _)
 						= exitWithException instanceNo "failed to update attributes" iworld

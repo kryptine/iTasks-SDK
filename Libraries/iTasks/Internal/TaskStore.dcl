@@ -36,7 +36,7 @@ derive class iTask InstanceFilter
 	( !InstanceNo
 	, !Maybe InstanceConstants
 	, !Maybe InstanceProgress
-	, !Maybe (TaskAttributes,TaskAttributes) // fst are explicit attributes; snd are implicit
+	, !Maybe (TaskAttributes,TaskAttributes) // fst are management attributes; snd are implicit task attributes
 	)
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
@@ -64,8 +64,8 @@ taskInstance            :: SDSLens InstanceNo InstanceData InstanceData
 taskInstanceConstants   :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
 
-//* When writing, the boolean signals whether the attributes are explicit.
-taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes (Bool,TaskAttributes)
+//* fst are management attributes, snd are implicit task attributes 
+taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
 
 // === Evaluation state of instances: ===
 taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIReduct)
