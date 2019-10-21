@@ -48,10 +48,12 @@ allWork = workList detachedTaskInstances
 workList instances = mapRead projection (instances |*| currentTopTask)
 where
 	projection (instances,ownPid)
-		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
+		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i && notHidden i]
 
 	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
 	notSelf ownPid _ = False
+
+	notHidden {TaskInstance|attributes} = case 'DM'.get "hidden" attributes of (Just (JSONBool True)) = False ; _ = True
 
 	isActive {TaskInstance|value} = value === Unstable
 
@@ -60,12 +62,19 @@ where
 		|taskNr		= Just (toString instanceNo)
 		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title" attributes)
 		,priority   = fmap (\(JSONInt x) -> toString x) ('DM'.get "priority" attributes)
-		,createdBy	= fmap toString ('DM'.get "createdBy" attributes)
-		,date       = fmap toString ('DM'.get "createdAt" attributes)
-		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
-		,createdFor = fmap toString ('DM'.get "createdFor" attributes)
+		,createdBy	= fmap (toString o toUserConstraint) ('DM'.get "createdBy" attributes)
+		,date       = fmap (toString o toDateTime) ('DM'.get "createdAt" attributes)
+		,deadline   = fmap (toString o toDateTime) ('DM'.get "completeBefore" attributes)
+		,createdFor = fmap (toString o toUserConstraint) ('DM'.get "createdFor" attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
+
+	//Fix Overloading
+	toUserConstraint :: JSONNode -> UserConstraint
+	toUserConstraint json = fromJust $ fromJSON json
+
+	toDateTime :: JSONNode -> DateTime
+	toDateTime json = fromJust $ fromJSON json
 
 // SHARES
 // Available workflows

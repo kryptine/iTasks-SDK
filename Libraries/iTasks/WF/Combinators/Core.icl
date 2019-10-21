@@ -809,7 +809,7 @@ where
 
 withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
 withCleanupHook patch orig
-	= appendTopLevelTask 'DM'.newMap False patch
+	= appendTopLevelTask ('DM'.singleton "hidden" (JSONBool True)) False patch
 	>>- \x->Task (eval x orig)
 where
 	eval tosignal (Task orig) DestroyEvent opts iw
