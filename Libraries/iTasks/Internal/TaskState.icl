@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.TaskState
 
-import Text.GenJSON, StdString, Data.Func, Data.GenEq, Data.Maybe, Data.Functor, Data.Map.GenJSON
+import Text.GenJSON, StdString, Data.Func, Data.GenEq, Data.Maybe, Data.Functor, Data.Map.GenJSON, Data.Set.GenJSON
 import iTasks.UI.Definition, iTasks.UI.Layout
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: AttachmentStatus

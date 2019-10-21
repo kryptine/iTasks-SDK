@@ -28,6 +28,7 @@ from Data.Map import instance Functor (Map k)
 import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Set as DS
+import Data.Set.GenJSON
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
 from Control.Applicative import class Alternative(<|>)
@@ -398,7 +399,7 @@ where
 	notify taskId _ = const ((==) taskId)
 	reducer taskId shares = read taskId shares
 
-derive gText ParallelTaskState
+derive gText ParallelTaskState, Set
 
 taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 taskInstanceParallelTaskList = sdsLens "taskInstanceParallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> read p ws) (removeMaybe (Just 'DM'.newMap) taskInstanceParallelTaskLists)
@@ -488,8 +489,8 @@ where
 		where
 			items = [{TaskListItem|taskId = taskId, listId = listId
 					 , detached = detached, self = taskId == selfId
-					 , value = decode value, progress = Nothing, attributes = 'DM'.union (fmap fst explicitAttributes) implicitAttributes
-					 } \\ {ParallelTaskState|taskId,detached,implicitAttributes,explicitAttributes,value,change} <- states | change =!= Just RemoveParallelTask]
+					 , value = decode value, progress = Nothing, attributes = 'DM'.union managementAttributes taskAttributes
+					 } \\ {ParallelTaskState|taskId,detached,taskAttributes,managementAttributes,value,change} <- states | change =!= Just RemoveParallelTask]
 
 			decode NoValue	= NoValue
 			decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
@@ -497,13 +498,13 @@ where
 		write (listId,selfId,{TaskListFilter|includeAttributes=False}) _ _ = Ok Nothing
 		write (listId,selfId,listFilter) states [] = Ok (Just states)
 		write (listId,selfId,listFilter) states [(t,a):updates]
-			# states = [if (taskId == t) {ParallelTaskState|pts & explicitAttributes = fmap (\x -> (x,True)) a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
+			# states = [if (taskId == t) {ParallelTaskState|pts & managementAttributes = a, unsyncedAttributes = 'DS'.fromList $ 'DM'.keys a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
 			= (write (listId,selfId,listFilter) states updates)
 
 		notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 		lensReducer (listId, selfId, listFilter) ws
-			= (Ok ([(taskId, fmap fst explicitAttributes) \\ {ParallelTaskState|taskId,detached,explicitAttributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
+			= (Ok ([(taskId, managementAttributes) \\ {ParallelTaskState|taskId,detached,managementAttributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
 					 ,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}

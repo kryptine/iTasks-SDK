@@ -331,16 +331,17 @@ initParallelTask evalOpts listId index parType parTask iworld=:{current={taskTim
 		Ok (taskId,mbTask)
 			# state =
 				{ ParallelTaskState
-				| taskId      = taskId
-				, index       = index
-				, detached    = isNothing mbTask
-				, implicitAttributes = 'DM'.newMap
-				, explicitAttributes = 'DM'.newMap
-				, value       = NoValue
-				, createdAt   = taskTime
-				, lastEvent   = taskTime
-				, change      = Nothing
-				, initialized = False
+				| taskId               = taskId
+				, index                = index
+				, detached             = isNothing mbTask
+				, taskAttributes       = 'DM'.newMap
+				, managementAttributes = 'DM'.newMap
+				, unsyncedAttributes   = 'DS'.newSet
+				, value                = NoValue
+				, createdAt            = taskTime
+				, lastEvent            = taskTime
+				, change               = Nothing
+				, initialized          = False
 				}
 			= (Ok (state,mbTask),iworld)
 		err = (liftError err, iworld)
@@ -378,11 +379,11 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 				//Remove all entries that are marked as removed from the list, they have been cleaned up by now
 				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=False}
 
-                # (mbError,iworld)      = modify (\l -> [clearExplicitAttributeChange x \\ x <- l | not (isRemoved x)])
+                # (mbError,iworld)      = modify (\l -> [clearAttributeSync x \\ x <- l | not (isRemoved x)])
 											(sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
 				//Bit of a hack... find updated attributes
-				# completed = reverse [(t,addAttributeChanges explicitAttributes c) \\ (t,c) <- reverse completed & {ParallelTaskState|explicitAttributes} <- directResult (fromOk mbList) ]
+				# completed = reverse [(t,addManagementAttributeChanges pts c) \\ (t,c) <- reverse completed & pts <- directResult (fromOk mbList) ]
                 = (Ok (map snd completed),iworld)
 
 			Just (_,(type,task),_) //Add extension
@@ -405,22 +406,21 @@ where
 	isRemoved {ParallelTaskState|change=Just RemoveParallelTask} = True
 	isRemoved _ = False
 
-	addAttributeChanges explicitAttributes (ValueResult val evalInfor rep tree)
+	addManagementAttributeChanges {ParallelTaskState|managementAttributes,unsyncedAttributes} (ValueResult val evalInfor rep tree)
 		//Add the explicit attributes
 		# rep = case rep of
 			ReplaceUI (UI type attr items)
-				# expAtt = 'DM'.fromList [(k,v) \\ (k,(v,True)) <- 'DM'.toList explicitAttributes]
-				= (ReplaceUI (UI type ('DM'.union expAtt attr) items))
+				= (ReplaceUI (UI type ('DM'.union managementAttributes attr) items))
 			ChangeUI attrChanges itemChanges
-				# expChanges = [SetAttribute k v \\ (k,(v,True)) <- 'DM'.toList explicitAttributes]
-				= (ChangeUI (attrChanges ++ expChanges) itemChanges)
-			NoChange = case [SetAttribute k v \\ (k,(v,True)) <- 'DM'.toList explicitAttributes] of
+				# extraChanges = [SetAttribute k v \\ (k,v) <- 'DM'.toList managementAttributes | 'DS'.member k unsyncedAttributes]
+				= (ChangeUI (attrChanges ++ extraChanges) itemChanges)
+			NoChange = case [SetAttribute k v \\ (k,v) <- 'DM'.toList managementAttributes | 'DS'.member k unsyncedAttributes] of
 				[] = NoChange
 				attrChanges = (ChangeUI attrChanges [])
 		= (ValueResult val evalInfor rep tree)
-	addAttributeChanges explicitAttributes c = c
+	addManagementAttributeChanges pts c = c
 
-	clearExplicitAttributeChange pts=:{ParallelTaskState|explicitAttributes} = {pts & explicitAttributes = fmap (\(v,_) -> (v,False)) explicitAttributes}
+	clearAttributeSync pts = {ParallelTaskState| pts & unsyncedAttributes = 'DS'.newSet}
 
 //Evaluate an embedded parallel task
 evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [t=:{ParallelTaskState|taskId=taskId=:(TaskId _ taskNo)}:todo] iworld
@@ -464,7 +464,7 @@ where
 				= (Ok (ExceptionResult e),iworld)
 			(ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep task, iworld)
 				# result = ValueResult val evalInfo rep task
-				# implicitAttributeUpdate = case rep of
+				# taskAttributeUpdate = case rep of
 					ReplaceUI (UI _ attributes _) = const attributes
 					ChangeUI changes _ = \a -> foldl (flip applyUIAttributeChange) a changes
 					_ = id
@@ -477,12 +477,12 @@ where
                 # (mbError,iworld) = if valueChanged
                     (modify
 						(\pts -> {ParallelTaskState|pts & value = encode val,
-							implicitAttributes = implicitAttributeUpdate pts.ParallelTaskState.implicitAttributes,initialized = True})
+							taskAttributes = taskAttributeUpdate pts.ParallelTaskState.taskAttributes,initialized = True})
                         (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
                     (modify
 						(\pts -> {ParallelTaskState|pts &
-							implicitAttributes = implicitAttributeUpdate pts.ParallelTaskState.implicitAttributes, initialized = True})
+							taskAttributes = taskAttributeUpdate pts.ParallelTaskState.taskAttributes, initialized = True})
                         (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem)
 						EmptyContext iworld)
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
