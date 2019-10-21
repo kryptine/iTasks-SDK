@@ -191,16 +191,22 @@ where
 		= get currentUser @ userRoles
 		>>- \roles ->
 			forever
-			(	enterChoiceWithSharedAs [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
-				>>* (continuations roles taskList)
+			(	(enterChoiceWithSharedAs [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask)) @? tvToMaybe)
+				-&&- watch (sdsFocus {gDefault{|*|} & includeAttributes=True} taskList)
+				>>* continuations roles taskList
 			)
 
 	worklist roles = if (isMember "admin" roles) allWork  myWork
 	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
 	where
-		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList <<@ InWindow <<@ AddCSSClass "new-work-window")) taskList @! () ))
-		open = OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
-		delete = OnAction (Action "Delete") (ifValue (\x -> snd x || isMember "admin" roles) (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
+		new = OnAction (Action "New")
+			$ ifValue (\(_, (_, tlitems))->isEmpty [()\\tli<-tlitems | isJust $ 'DM'.get "manageWork:open" tli.TaskListItem.attributes])
+			\_->appendTask Embedded (removeWhenStable $ addNewTask taskList <<@ InWindow <<@ AddCSSClass "new-work-window" <<@ ("manageWork:open", JSONNull)) taskList @! ()
+		open = OnAction (Action "Open")
+			$ ifValue (isJust o fst) \(Just (taskId, _), _)->openTask taskList taskId @! ()
+		delete = OnAction (Action "Delete")
+			$ ifValue (\(x, _) -> isJust x && snd (fromJust x) || isMember "admin" roles)
+			\(Just (taskId, _), _) -> removeTask taskId topLevelTasks @! ()
 
 	userRoles (AuthenticatedUser _ roles _)  = roles
 	userRoles _ = []
@@ -289,7 +295,7 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (Hint "Enter parameters" @>> enterIn
 
 openTask :: !(SharedTaskList ()) !TaskId -> Task ()
 openTask taskList taskId
-	=	appendOnce taskId (workOnTask taskId) taskList @! ()
+	= appendOnce taskId (workOnTask taskId) taskList @! ()
 
 workOnTask :: !TaskId -> Task ()
 workOnTask taskId
