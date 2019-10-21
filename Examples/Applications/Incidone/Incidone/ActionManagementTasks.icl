@@ -54,7 +54,7 @@ actionStatusByNo :: SDSLens InstanceNo ActionStatus ActionStatus
 actionStatusByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing taskInstanceByNo
 where
     read item = Ok (thd3 (toActionStatus item))
-    write {TaskInstance|attributes} status = Ok (Just (True,fromActionStatus status attributes))
+    write {TaskInstance|attributes} status = Ok (Just (fromActionStatus status attributes))
 
 numActionsByContact :: SDSLens ContactNo Int ()
 numActionsByContact = mapRead length actionStatusesByContact
@@ -349,7 +349,7 @@ listItemTask (title,plan) status
     @!  ()
 where
     items initActions initContacts initIncidents
-        = [(Detached True, configureDelayed (initAttributes identity (initStatus meta)) configer task )
+        = [(Detached True 'DM'.newMap, configureDelayed (initAttributes identity (initStatus meta)) configer task )
           \\ item=:{CatalogAction|identity,meta,tasks=ActionTasks configer task} <- initActions]
     where
         configureDelayed attr configer task list
@@ -746,7 +746,7 @@ where
 addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
-    >>| appendTask (Detached True) (\l -> (task (selfActionStatus l) <<@ attributes) @? const NoValue) list
+    >>| appendTask (Detached True attributes) (\l -> (task (selfActionStatus l)) @? const NoValue) list
 where
     attributes = initAttributes identity initStatus
 
@@ -755,7 +755,7 @@ addSubActionItem :: [ContactNo] [IncidentNo] CatalogAction (SharedTaskList a) ->
 addSubActionItem initContacts initIncidents item=:{CatalogAction|identity,tasks=ActionTasks configer task} list
     =  (configer initContacts initIncidents
     >>? \(config,initStatus) ->
-        appendTask (Detached True) (\list -> (task config (selfActionStatus list) <<@ initAttributes identity initStatus) @? const NoValue) list
+        appendTask (Detached True (initAttributes identity initStatus)) (\list -> (task config (selfActionStatus list)) @? const NoValue) list
     ) <<@ InWindow
 
 addTopActionItem :: [ContactNo] [IncidentNo] -> Task (Maybe TaskId)
