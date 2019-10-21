@@ -586,8 +586,18 @@ where
 		fromJSON` _ json = fromMaybe (abort "corrupt dynamic editor value") $ fromJSON json
 
 	valueCorrespondingToList :: !Dynamic ![(DynamicConsId, DEVal)] -> Dynamic
-	valueCorrespondingToList ((f, g) :: (a -> b, [b] -> c)) args =
-		dynamic (g $ fromDynList (dynamic f) [valueCorrespondingTo` val \\ val <- args])
+	valueCorrespondingToList funcs args =
+		case [valueCorrespondingTo` val \\ val <- args] of
+			[] =
+				case funcs of
+					((_, g) :: (a -> b, [b] -> c)) = dynamic g []
+					_ = abort "corrupt dynamic editor valueU"
+			// we have to use the first element to update the type,
+			// the `b` and `c` type variable is required to be equal for all list elements
+			args=:[fst: _] =
+				case (funcs, fst) of
+					((f, g) :: (a -> b, [b] -> c), _ :: a) = dynamic (g $ fromDynList (dynamic f) args)
+					_                                      = abort "corrupt dynamic editor value"
 	valueCorrespondingToList _ _ = abort "corrupt dynamic editor value"
 
 	fromDynList :: !Dynamic ![Dynamic] -> [b] | TC b
