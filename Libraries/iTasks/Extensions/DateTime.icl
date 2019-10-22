@@ -5,6 +5,7 @@ import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
+import iTasks.SDS.Combinators.Common
 import iTasks.WF.Combinators.Overloaded
 import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
@@ -237,3 +238,8 @@ waitForTimer interval =
     get currentTimestamp                                  >>- \(Timestamp now) ->
     timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
     waitForDateTime endTime
+
+dateTimeStampedShare :: (sds p (DateTime,a) (DateTime,a)) -> SDSLens p (DateTime, a) a | gText{|*|} p & TC p & TC a & RWShared sds
+dateTimeStampedShare sds
+	= sdsTranslate "dateTimeStampedShare" (\p->(p, ()))
+		(sdsStamp sds currentDateTime (\x y->(x, y)))

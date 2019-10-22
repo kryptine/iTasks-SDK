@@ -2,10 +2,12 @@ implementation module iTasks.SDS.Combinators.Common
 
 import StdTuple, StdList
 import iTasks.SDS.Definition, iTasks.SDS.Combinators.Core, iTasks.SDS.Sources.Core
+import iTasks.SDS.Sources.System
 import iTasks.WF.Combinators.Core
 from StdFunc import o, const, flip, id
 from iTasks.Internal.Task import exception, :: TaskException
 import qualified Data.Map as DM
+import Data.Func
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 from Data.Map import :: Map
@@ -46,6 +48,23 @@ where
     read` p rs          = Ok (read (snd (param p)) rs)
     write` p rs w       = Ok (Just (fst (write (snd (param p)) rs w)))
     notify` p rs w ts pq   = (snd (write (snd (param p)) rs w)) ts (snd (param pq))
+
+sdsStamp :: !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) (r2 w -> w1) -> SDSLens (p1, p2) r1 w | gText{|*|}, TC p1 & gText{|*|}, TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds2 & RWShared sds1
+sdsStamp source helper writefun = sdsLens "*<" id
+	(SDSRead  \_ (r1, r2)->Ok r1)
+	(SDSWrite \_ (r1, r2) w->Ok $ Just $ (writefun r2 w, ()))
+	(SDSNotifyConst \_ _ _ _->True)
+	Nothing
+	$ sdsParallel ">**<" id id
+		(SDSWriteConst $ const $ Ok o Just o fst)
+		(SDSWriteConst $ const $ Ok o Just o snd)
+		source
+		(mapWrite (\_ _->Nothing) Nothing $ SDSNoNotify helper)
+
+timespecStampedShare :: (sds p (Timespec,a) (Timespec,a)) -> SDSLens p (Timespec, a) a | gText{|*|} p & TC p & TC a & RWShared sds
+timespecStampedShare sds
+	= sdsTranslate "timespecStampedShare" (\p->(p, ()))
+	$ sdsStamp sds currentTimespec \x y->(x, y)
 
 removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | gText{|*|} p & TC p & TC a & RWShared sds
 removeMaybe defaultValue sds = sdsLens "removeMaybe" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst (\_ _ _ _ -> True)) (Just reducer) sds
