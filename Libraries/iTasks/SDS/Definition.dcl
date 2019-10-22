@@ -339,4 +339,4 @@ required type w. The reducer has the job to turn this ws into w.
 
 :: SDSDebug p r w = E. sds: SDSDebug !String !(sds p r w) & RWShared sds
 
-:: SDSNoNotify p r w = E.sds: SDSNoNotify (sds p r w) & RWShared sds
+:: SDSNoNotify p r w = E.sds: SDSNoNotify !(sds p r w) & RWShared sds
