@@ -992,3 +992,39 @@ readAndMbRegisterSDS :: !(sds p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdent
 readAndMbRegisterSDS sds p c mbRegister iworld = case mbRegister of
 	Just (regTaskId, reqSDSId) = readRegisterSDS sds p c regTaskId reqSDSId iworld
 	Nothing                    = readSDS sds p c iworld
+
+instance Identifiable SDSNoNotify where
+	nameSDS (SDSNoNotify sds) c = ["!":nameSDS sds ["!":c]]
+instance Readable SDSNoNotify where
+	readSDS (SDSNoNotify sds) p c iworld
+		= case readSDS sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ReadResult r sds), iworld)
+				= (Ok (ReadResult r sds), iworld)
+			(Ok (AsyncRead sds), iworld)
+				= (Ok (AsyncRead sds), iworld)
+
+instance Writeable SDSNoNotify where
+	writeSDS (SDSNoNotify sds) p c w iworld
+		= case writeSDS sds p c w iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (WriteResult set sds), iworld)
+				= (Ok (WriteResult set (SDSNoNotify sds)), iworld)
+			(Ok (AsyncWrite sds), iworld)
+				= (Ok (AsyncWrite (SDSNoNotify sds)), iworld)
+instance Registrable SDSNoNotify where
+	readRegisterSDS (SDSNoNotify sds) p c _ _ iworld
+		= case readSDS sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ReadResult r sds), iworld)
+				= (Ok (ReadResult r sds), iworld)
+			(Ok (AsyncRead sds), iworld)
+				= (Ok (AsyncRead sds), iworld)
+instance Modifiable SDSNoNotify where
+	modifySDS mf (SDSNoNotify sds) p c iworld
+		= case modifySDS mf sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ModifyResult set r w sds), iworld)
+				= (Ok (ModifyResult set r w (SDSNoNotify sds)), iworld)
+			(Ok (AsyncModify sds mf), iworld)
+				= (Ok (AsyncModify (SDSNoNotify sds) mf), iworld)
