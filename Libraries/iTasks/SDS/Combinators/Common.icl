@@ -2,10 +2,12 @@ implementation module iTasks.SDS.Combinators.Common
 
 import StdTuple, StdList
 import iTasks.SDS.Definition, iTasks.SDS.Combinators.Core, iTasks.SDS.Sources.Core
+import iTasks.SDS.Sources.System
 import iTasks.WF.Combinators.Core
 from StdFunc import o, const, flip, id
 from iTasks.Internal.Task import exception, :: TaskException
 import qualified Data.Map as DM
+import Data.Func
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 from Data.Map import :: Map

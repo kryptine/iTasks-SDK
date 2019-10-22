@@ -5,6 +5,7 @@ import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
+import iTasks.SDS.Combinators.Common
 import iTasks.WF.Combinators.Overloaded
 import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
