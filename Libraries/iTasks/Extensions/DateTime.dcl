@@ -3,6 +3,7 @@ definition module iTasks.Extensions.DateTime
 * This module provides types for working with dates and times
 */
 import iTasks.WF.Definition
+import iTasks.SDS.Definition
 
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from Text.GenPrint import generic gPrint, :: PrintState, class PrintOutput
@@ -150,3 +151,10 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 waitForTimer	:: !Int -> Task DateTime
 
 
+/**
+ * Automatically stamp the share data with the datetime of writing
+ *
+ * @param the sds to automatically stamp the data for
+ * @return the resulting sds
+ */
+dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds

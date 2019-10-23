@@ -239,7 +239,7 @@ waitForTimer interval =
     timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
     waitForDateTime endTime
 
-dateTimeStampedShare :: (sds p (DateTime,a) (DateTime,a)) -> SDSLens p (DateTime, a) a | gText{|*|} p & TC p & TC a & RWShared sds
+dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 dateTimeStampedShare sds
 	= sdsTranslate "dateTimeStampedShare" (\p->(p, ()))
 		(sdsStamp sds currentDateTime (\x y->(x, y)))

@@ -61,7 +61,7 @@ sdsStamp source helper writefun = sdsLens "*<" id
 		source
 		(mapWrite (\_ _->Nothing) Nothing $ SDSNoNotify helper)
 
-timespecStampedShare :: (sds p (Timespec,a) (Timespec,a)) -> SDSLens p (Timespec, a) a | gText{|*|} p & TC p & TC a & RWShared sds
+timespecStampedShare :: !(sds p b (Timespec,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 timespecStampedShare sds
 	= sdsTranslate "timespecStampedShare" (\p->(p, ()))
 	$ sdsStamp sds currentTimespec \x y->(x, y)

@@ -57,7 +57,7 @@ sdsStamp :: !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) (r2 w -> w1) -> SDSLens (p1, p2) r
  * @param the sds to automatically stamp the data for
  * @return the resulting sds
  */
-timespecStampedShare :: (sds p (Timespec,a) (Timespec,a)) -> SDSLens p (Timespec, a) a | gText{|*|} p & TC p & TC a & RWShared sds
+timespecStampedShare :: !(sds p b (Timespec,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 
 // Treat symmetric sources with optional values as if they always have a value.
 // You can provide a default value, if you don't it will trigger a read error
