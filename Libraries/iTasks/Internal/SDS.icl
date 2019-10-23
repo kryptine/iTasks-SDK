@@ -974,11 +974,6 @@ readSDSDebug (SDSDebug name sds) p context mbRegister iworld
 		db (Ok (AsyncRead sds), iworld)
 			= (Ok (AsyncRead (SDSDebug name sds)), iShow ["AsyncRead " +++ name] iworld)
 
-// toString instances for SDSDebug
-instance toString (TaskId, Maybe RemoteNotifyOptions) where
-	toString (taskId, Nothing) = "local " +++ toString taskId
-	toString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
-
 instance toString RemoteNotifyOptions where
 	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
 
