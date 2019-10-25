@@ -13,12 +13,12 @@ manageStore
 
 selectStore :: Task (String,String) //Namespace and store name
 selectStore
-    =   (enterChoiceWithShared (Title "Namespace") [] storeNamespaces
+    =   (enterChoiceWithShared [] storeNamespaces <<@ Title "Namespace"
     >&> \sNamespace -> whileUnchanged sNamespace
         \mbNamespace -> case mbNamespace of
-            Nothing = enterChoice (Title "Stores") [ChooseFromGrid id] []
-            Just ns = enterChoiceWithShared (Title "Stores") [ChooseFromGrid id] (sdsFocus ns storeNames) @ (\s -> (ns,s))
-    ) <<@ (ArrangeWithSideBar 0 TopSide 55 False)
+            Nothing = enterChoice [ChooseFromGrid id] [] <<@ Title "Store"
+            Just ns = enterChoiceWithShared [ChooseFromGrid id] (sdsFocus ns storeNames) <<@ Title "Stores" @ (\s -> (ns,s))
+    ) <<@ ArrangeWithSideBar 0 TopSide False
 
 //Low-level access
 deleteStore :: (String,String) -> Task ()
