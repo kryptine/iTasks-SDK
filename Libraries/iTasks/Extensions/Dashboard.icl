@@ -56,9 +56,9 @@ where
     where
     	glassgr = RadialGradientElt [IdAttr "glass-gradient"] []
 				   [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "100%",StopColorAttr "white",StopOpacityAttr "0"]]
-    	flaregr = LinearGradientElt [IdAttr "flare-gradient"] [X1Attr ("0",PX),X2Attr ("0",PX),Y1Attr ("0",PX),Y2Attr ("1",PX)] 
+    	flaregr = LinearGradientElt [IdAttr "flare-gradient"] [X1Attr (SVGLength "0" PX),X2Attr (SVGLength "0" PX),Y1Attr (SVGLength "0" PX),Y2Attr (SVGLength "1" PX)] 
                    [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "90%",StopColorAttr "white",StopOpacityAttr "0"]]
 
-    light val = CircleElt [] [CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX),FillAttr (PaintColor (SVGColorText val) Nothing)]
-    glass = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI ("#glass-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
-    flare = EllipseElt [] [FillAttr (PaintFuncIRI (IRI ("#flare-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("45",PX),RxAttr ("35",PX),RyAttr ("30",PX)]
+    light val = CircleElt [] [CxAttr (SVGLength "50" PX),CyAttr (SVGLength "50" PX),RAttr (SVGLength "45" PX),FillAttr (PaintColor (SVGColorText val) Nothing)]
+    glass = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI ("#glass-gradient")) Nothing),CxAttr (SVGLength "50" PX),CyAttr (SVGLength "50" PX),RAttr (SVGLength "45" PX)]
+    flare = EllipseElt [] [FillAttr (PaintFuncIRI (IRI ("#flare-gradient")) Nothing),CxAttr (SVGLength "50" PX),CyAttr (SVGLength "45" PX),RxAttr (SVGLength "35" PX),RyAttr (SVGLength "30" PX)]

@@ -1092,13 +1092,13 @@ where
 			  = StrokeAttr (PaintColor color Nothing)
 			genSVGImageAttr (BasicImgStrokeWidthAttr (PxSpan w))
 			  #! w` = toString w
-			  = StrokeWidthAttr (StrokeWidthLength (w`, PX))
+			  = StrokeWidthAttr (StrokeWidthLength (SVGLength w`  PX))
 			genSVGImageAttr (BasicImgXRadiusAttr (PxSpan r))
 			  #! r` = toString r
-			  = RxAttr (r`, PX)
+			  = RxAttr (SVGLength r` PX)
 			genSVGImageAttr (BasicImgYRadiusAttr (PxSpan r))
 			  #! r` = toString r
-			  = RyAttr (r`, PX)
+			  = RyAttr (SVGLength r` PX)
 			genSVGImageAttr (BasicImgStrokeOpacityAttr op)
 			  = StrokeOpacityAttr (toString op)
 			genSVGImageAttr (BasicImgFillOpacityAttr op)
@@ -1130,7 +1130,7 @@ where
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "rect"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "rect"))
 	genSVGBasicHostImg no CircleImg attrs taskId es markers paths spans grids
-	  #! elt = CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]
+	  #! elt = CircleElt [] [RAttr (SVGLength radius PX), CxAttr (SVGLength radius PX), CyAttr (SVGLength radius PX) : attrs]
 	  = [elt]
 	where
 		radius            = case 'Data.Map'.get no spans of
@@ -1138,7 +1138,7 @@ where
 		                      Just (_,_)                = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "circle"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "circle"))
 	genSVGBasicHostImg no EllipseImg attrs taskId es markers paths spans grids
-	  #! elt = EllipseElt [] [RxAttr (xradius,PX), CxAttr (xradius,PX), RyAttr (yradius,PX), CyAttr (yradius,PX) : attrs]
+	  #! elt = EllipseElt [] [RxAttr (SVGLength xradius PX), CxAttr (SVGLength xradius PX), RyAttr (SVGLength yradius PX), CyAttr (SVGLength yradius PX) : attrs]
 	  = [elt]
 	where
 		(xradius,yradius) = case 'Data.Map'.get no spans of
@@ -1184,10 +1184,10 @@ where
 			= ( MarkerElt [ IdAttr mid ]
 			              [ OrientAttr       "auto"
                           , ViewBoxAttr      "0" "0" wStr hStr
-                          , RefXAttr         (wStr, PX)
-                          , RefYAttr         (to2decString (h / 2.0), PX)
-                          , MarkerHeightAttr (hStr, PX)
-                          , MarkerWidthAttr  (wStr, PX)
+                          , RefXAttr         (SVGLength wStr PX)
+                          , RefYAttr         (SVGLength (to2decString (h / 2.0)) PX)
+                          , MarkerHeightAttr (SVGLength hStr PX)
+                          , MarkerWidthAttr  (SVGLength wStr PX)
                           ]
                           (genSVGElts img taskId es markers paths spans grids)
 			  , posAttr (mkUrl mid)
@@ -1256,7 +1256,7 @@ where
   f (RectElt     hattrs attrs)                                                   = RectElt    hattrs (keepTransformAttrsTogether tfattr attrs)
   f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt  hattrs (keepTransformAttrsTogether (dualTransformTranslate x y x` y`) attrs)
   f (CircleElt   hattrs attrs)                                                   = CircleElt  hattrs (keepTransformAttrsTogether tfattr attrs)
-  f (LineElt _ [X1Attr (x1, PX), X2Attr (x2, PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : attrs]) = LineElt [] [X1Attr (lineAdd x1 x, PX), X2Attr (lineAdd x2 x, PX), Y1Attr (lineAdd y1 y, PX), Y2Attr (lineAdd y2 y, PX) : attrs]
+  f (LineElt _ [X1Attr (SVGLength x1  PX), X2Attr (SVGLength x2  PX), Y1Attr (SVGLength y1  PX), Y2Attr (SVGLength y2  PX) : attrs]) = LineElt [] [X1Attr (SVGLength (lineAdd x1 x) PX), X2Attr (SVGLength (lineAdd x2 x) PX), Y1Attr (SVGLength (lineAdd y1 y) PX), Y2Attr (SVGLength (lineAdd y2 y) PX) : attrs]
   f elt                                                                                      = GElt    [] [tfattr] [elt]
 
   lineAdd :: !String !SVGNumber -> String

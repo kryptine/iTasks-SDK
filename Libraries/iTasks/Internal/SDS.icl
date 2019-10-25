@@ -939,7 +939,7 @@ instance Writeable SDSDebug where
 			db (Error e, iworld) = (Error e, iShow [snd e] iworld)
 			db (Ok (WriteResult notify sds), iworld)
 				= (Ok (WriteResult notify (SDSDebug name sds)),
-					iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map toString ('Set'.toList notify))] iworld)
+					iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map notifyToString ('Set'.toList notify))] iworld)
 			db (Ok (AsyncWrite sds), iworld)
 				= (Ok (AsyncWrite (SDSDebug name sds)), iShow ["AsyncWrite from share " +++ name] iworld)
 
@@ -958,7 +958,7 @@ instance Modifiable SDSDebug where
 		db (Error e, iworld) = (Error e, iShow [snd e] iworld)
 		db (Ok (ModifyResult notify r w sds), iworld)
 			= (Ok (ModifyResult notify r w (SDSDebug name sds)),
-				iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map toString ('Set'.toList notify))] iworld)
+				iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map notifyToString ('Set'.toList notify))] iworld)
 		db (Ok (AsyncModify sds f), iworld) = (Ok (AsyncModify (SDSDebug name sds) f), iShow ["AsyncModify from share " + name] iworld)
 
 readSDSDebug :: !(SDSDebug p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
@@ -975,9 +975,9 @@ readSDSDebug (SDSDebug name sds) p context mbRegister iworld
 			= (Ok (AsyncRead (SDSDebug name sds)), iShow ["AsyncRead " +++ name] iworld)
 
 // toString instances for SDSDebug
-instance toString (TaskId, Maybe RemoteNotifyOptions) where
-	toString (taskId, Nothing) = "local " +++ toString taskId
-	toString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
+notifyToString :: (TaskId, Maybe RemoteNotifyOptions) -> String
+notifyToString (taskId, Nothing) = "local " +++ toString taskId
+notifyToString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
 
 instance toString RemoteNotifyOptions where
 	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
