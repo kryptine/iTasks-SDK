@@ -104,7 +104,7 @@ updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | i
 *
 * @return					Last value of the monitored state
 */
-viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 
 /*** Special tasks for a mix of manipulating shared and local information ***/
 
@@ -180,7 +180,7 @@ editSharedMultipleChoiceWithSharedAs :: ![ChoiceOption o] !(sds1 () [o] w) (o ->
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 
 
 /*** Special tasks for choosing actions ***/
@@ -202,7 +202,7 @@ viewTitle :: !a -> Task a | iTask a
 /**
 * View shared data as a title
 */
-viewSharedTitle :: !(sds () r w) -> Task r | iTask r & Registrable sds & TC w
+viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds & TC w
 
 /**
 * Basic Create, Read, Update, Delete (CRUD) editor for a shared collection

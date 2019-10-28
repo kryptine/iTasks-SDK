@@ -94,88 +94,73 @@ findSelection target options idxs = target <$> getItems options idxs
 enterInformation :: ![EnterOption m] -> Task m | iTask m
 enterInformation options = enterInformation` (enterEditor options)
 enterInformation` (EnterUsing fromf editor)
-	= interactRW unitShare handlers (ignoreEditorWrites editor) @ (fromf o snd)
-where
-	handlers = {onInit = const Enter, onEdit = \_ -> Nothing, onRefresh = \r _ -> (undef,Nothing)}
+	= withShared Nothing (interactRW (ignoreEditorReads (lensEditor id (\_ w -> Just $ Just $ fromf w) editor)))
 
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
-viewInformation options m = viewInformation`  (viewEditor options) m
+viewInformation options m = viewInformation` (viewEditor options) m
 viewInformation` (ViewUsing tof editor) m
-	= interactR unitShare {onInit = const (View $ tof m), onEdit = \_ -> Nothing, onRefresh = \r v -> (v,Nothing)} (ignoreEditorWrites editor) @! m
+	= interactR (lensEditor tof (\_ _ -> Nothing) editor) (constShare (Just m))
 
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
-	= interactRW unitShare {onInit = const $ Update $ tof m, onEdit = \_ -> Nothing, onRefresh = \r v -> (v,Nothing)}
-		(ignoreEditorWrites editor) @ (\(_,v) -> fromf m v)
+	= withShared (Just m) (interactRW (lensEditor tof (\m v -> Just $ Just $ fromf m v) editor))
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW sds {onInit = \r -> Update $ tof r, onEdit = \v -> Just (\r -> fromf r v), onRefresh = \r v -> (conflictf (tof r) v, Nothing)}
-		(ignoreEditorWrites editor) @ fst
+	= interactRW (lensEditor tof (\r w -> Just (fromf r w)) editor) (mapRead Just sds)
+updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds = abort "FIXME: UpdateSharedUsingAuto"
 
-updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds =
+/* //TODO: Fix the 'Auto' choice problem separately
+updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
+	= interactRW (lensEditor (fromJust o tof) fromf editor) sds
 	interactRW
-		sds
+		sds (\mbr -> maybe Enter (Update o Just) mbr)
 		{ onInit    = \r   -> maybe Enter Update (tof r)
-		, onEdit    = \v   -> Just (\r -> fromf r v)
 		, onRefresh = \r v -> (maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)
 		}
-		(ignoreEditorWrites editor)
+		(lensEditor (fromJust o tof) fromf editor) //TODO Should map to a maybe editor instead...
 		@ fst
+*/
 
-viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
 viewSharedInformation` (ViewUsing tof editor) sds
-	= interactR sds {onInit = \r -> View $ tof r, onEdit = \_ -> Nothing, onRefresh = \r _ -> (Just $ tof r,Nothing)} (ignoreEditorWrites editor) @ fst
+	= interactR (lensEditor tof (\_ _ -> Nothing) editor) (mapRead Just sds)
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
 	= withShared m \sdsm ->
-	  interactRW (sds |*< sdsm)
-		{onInit    = \(r,m)   -> (Update $ tof (r,m))
-		,onEdit    = \v       -> Just (\(r,m) -> fromf (r,m) v)
-		,onRefresh = \(r,m) _ -> (Just $ tof (r,m), Nothing)
-		} (ignoreEditorWrites editor) @ snd o fst
+	  interactRW (lensEditor tof (\r w -> Just (fromf r w)) editor) (mapRead Just (sds |*< sdsm)) @ snd
 
 editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a
 editSelection options container sel = editSelection` (selectAttributes options) (selectEditor options) container sel
 editSelection` attributes (SelectUsing toView fromView editor) container sel
-	= interactRW unitShare
-		{onInit = \r -> (Update (toView container,sel))
-		,onEdit = \_ -> Nothing
-		,onRefresh = \_ v -> (v,Nothing)
-		} (withAttributes attributes (ignoreEditorWrites editor)) @ (\(_,(_,sel)) -> fromView container sel)
+	= withShared (Just sel) (interactRW (lensEditor (\r -> (toView container,r)) (\_ w -> Just $ Just w) (withAttributes attributes editor)))
+	@ (fromView container)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
 editSelectionWithShared options sharedContainer initSel = editSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer initSel
 editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer initSel
-	= interactRW sharedContainer
-		{onInit = \r -> Update (toView r, initSel r)
-		,onEdit = \_ -> Nothing
-		,onRefresh = \r v -> ((\(_, sel) -> (toView r,sel)) <$> v,Nothing)
-		} (withAttributes attributes (ignoreEditorWrites editor)) @ (\(container,(_,sel)) -> fromView container sel)
+	= withShared [] \selsds -> let state = sharedContainer |*< selsds in
+		upd (\(c,_) -> initSel c) state //Initialize the selection
+		>-| interactRW (lensEditor (\(c,r) -> (toView c,r)) (\_ s -> Just s) (withAttributes attributes editor)) (mapRead Just state)
+	@ (\(container,sel) -> fromView container sel)
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
 editSharedSelection options container sharedSel = editSharedSelection` (selectAttributes options) (selectEditor options) container sharedSel
 editSharedSelection` attributes (SelectUsing toView fromView editor) container sharedSel
-	= interactRW sharedSel
-		{onInit = \r -> Update (toView container,r)
-		,onEdit = \(_,vs) -> Just (const vs)
-		,onRefresh = \r v -> ((\(vt, _) -> (vt, r)) <$> v,Nothing)
-		} (withAttributes attributes editor) @ (\(_,(_,sel)) -> fromView container sel)
+	= interactRW (lensEditor (\r -> (toView container,r)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just sharedSel)
+	@ (fromView container)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedSelectionWithShared options sharedContainer sharedSel
 	= editSharedSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer sharedSel
 editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer sharedSel
-	= interactRW (sharedContainer |*< sharedSel)
-		{onInit = \(rc, rs) -> Update (toView rc,rs)
-		,onEdit = \(_, vs) -> Just (const vs)
-		,onRefresh = \(rc, rs) _ -> (Just (toView rc, rs), Nothing)
-		} (withAttributes attributes editor) @ (\((container,_),(_,sel)) -> fromView container sel)
+	= interactRW (lensEditor (\(rc,rs) -> (toView rc,rs)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just (sharedContainer |*< sharedSel))
+	@ (\(container,sel) -> fromView container sel)
 
 //Core choice tasks
 editChoice :: ![ChoiceOption a] ![a] (Maybe a) -> Task a | iTask a
@@ -313,7 +298,7 @@ where
 	tof (options,mbv) = findIndices target mbv options
 	fromf w (options,_) = Just (findSelection target options w)
 
-wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & Registrable sds
+wait :: (r -> Bool) !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 wait pred shared
 	=	viewSharedInformation [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
@@ -329,7 +314,7 @@ where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
-viewSharedTitle :: !(sds () r w) -> Task r | iTask r & Registrable sds & TC w
+viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds & TC w
 viewSharedTitle s = whileUnchanged s viewTitle
 
 crudWith :: ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r]

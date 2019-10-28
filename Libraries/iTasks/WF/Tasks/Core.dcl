@@ -70,17 +70,12 @@ accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a
 :: OSException			= OSException !OSError
 instance toString OSException
 
-:: InteractionHandlers r w v =
-	{ onInit    :: !(r -> (EditMode v))
-	, onEdit    :: !(v -> (Maybe (r -> w)))
-	, onRefresh :: !(r (Maybe v) -> (Maybe v, Maybe (r -> w)))
-	}
-
 /**
  * Core interaction task. All other interaction tasks are derived from this
  * one. `interactR` is almost identical but does not update the given sds.
  */
-interactRW :: !(sds () r w) (InteractionHandlers r w v) (Editor v w) -> Task (r,v) | iTask r & iTask v & TC r & TC w & RWShared sds
+interactRW :: (Editor r w) !(sds () (Maybe r) w) -> Task r | iTask r & TC r & TC w & RWShared sds
 
 //* See documentation on `interactRW`.
-interactR :: (sds () r w) (InteractionHandlers r w v) (Editor v w) -> Task (r,v) | iTask r & iTask v & TC r & TC w & Registrable sds
+interactR :: (Editor r w) (sds () (Maybe r) w) -> Task r | iTask r & TC r & TC w & Registrable sds
+

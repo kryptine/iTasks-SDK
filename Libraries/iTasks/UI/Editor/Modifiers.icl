@@ -120,7 +120,7 @@ where
 viewConstantValue :: !a !(Editor a w) -> Editor () w
 viewConstantValue val e = bijectEditorValue (const val) (const ()) $ withChangedEditMode (const $ View val) e
 
-ignoreEditorWrites :: !(Editor a wb) -> Editor a w
+ignoreEditorWrites :: !(Editor ra wb) -> Editor ra wa
 ignoreEditorWrites editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
 	= {Editor|editor & onEdit=onEdit, onRefresh = onRefresh}
 where
@@ -131,6 +131,14 @@ where
 	onRefresh dp new st vst = case editorOnRefresh dp new st vst of
 		(Ok (ui,st,_),vst) = (Ok (ui,st,Nothing),vst)
 		(Error e,vst) = (Error e,vst)
+
+ignoreEditorReads :: !(Editor rb wa) -> Editor ra wa
+ignoreEditorReads editor=:{Editor|genUI=editorGenUI, onRefresh=editorOnRefresh}
+	= {Editor|editor & genUI=genUI, onRefresh=onRefresh, valueFromState=valueFromState}
+where
+	genUI attr dp mode vst = editorGenUI attr dp Enter vst
+	onRefresh dp new st vst = (Ok (NoChange,st,Nothing),vst)
+	valueFromState st = Nothing
 
 bijectEditorValue :: !(a -> b) !(b -> a) !(Editor b w) -> Editor a w
 bijectEditorValue tof fromf editor=:{Editor|genUI=editorGenUI,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
@@ -234,3 +242,27 @@ where
 	onRefresh dp newB _ st vst = appFst (fmap (\(ui, st, mbw) -> (ui, Just newB, st, mbw))) $
 	                             editorOnRefresh dp (tof newB) st vst
 	valueFromState mbB _       = mbB
+
+lensEditor :: !(b -> a) !(b wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+lensEditor tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
+	= editorModifierWithStateToEditor
+		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+where
+	genUI attr dp mode vst
+		= appFst (fmap (\(ui, st) -> (ui, editModeValue mode, st)))
+	    $ editorGenUI attr dp (mapEditMode tof mode) vst
+
+	onEdit dp event mbB st vst
+		= appFst (fmap (\(ui, st, mbw) -> (ui, mbB, st, modWrite mbB mbw)))
+		$ editorOnEdit dp event st vst
+
+	onRefresh dp newB mbB st vst
+		= appFst (fmap (\(ui, st, mbw) -> (ui, mbB, st, modWrite mbB mbw)))
+		$ editorOnRefresh dp (tof newB) st vst
+
+	modWrite Nothing Nothing = Nothing
+	modWrite Nothing (Just wa) = Nothing //FIXME: We can't pass along the write without a 'b' value
+	modWrite (Just b) (Just wa) = fromf b wa
+
+	valueFromState mbB st = mbB
+

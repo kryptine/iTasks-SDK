@@ -43,9 +43,14 @@ selectByMode :: !(Editor a w) !(Editor a w) !(Editor a w) -> Editor a w
 viewConstantValue :: !a !(Editor a w) -> Editor () w
 
 /**
-* Drop all writes that the editor producs
+* Drop all writes that the editor produces
 */
-ignoreEditorWrites :: !(Editor a wb) -> Editor a w
+ignoreEditorWrites :: !(Editor ra wb) -> Editor ra wa
+
+/**
+* Ignore all data reads
+*/
+ignoreEditorReads :: !(Editor rb wa) -> Editor ra wa
 
 // ### Changing the model value of the editor ###
 
@@ -71,3 +76,11 @@ surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b w) -> E
 * Map the value of an editor to another domain, without mapping changes in the editor back
 */
 comapEditorValue :: !(b -> a) !(Editor a w) -> Editor b w | JSONEncode{|*|}, JSONDecode{|*|} b
+
+/**
+* Select part of a larger datastructure and map writes back
+*/
+lensEditor :: !(b -> a) !(b wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+
+
+
