@@ -19,7 +19,8 @@ import iTasks.Internal.Generic.Defaults
 import iTasks.WF.Tasks.Core
 
 import System.Process
-import Text, Text.GenJSON, StdString, StdInt, StdBool, StdList, StdTuple, Data.Tuple, Data.Func, StdFunc
+import Text, Text.GenJSON, StdString, StdInt, StdBool, StdList, StdTuple, Data.Tuple, Data.Func
+import StdFunc => qualified return
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 

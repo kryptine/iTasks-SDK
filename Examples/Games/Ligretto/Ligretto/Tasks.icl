@@ -4,12 +4,13 @@ import iTasks
 import Ligretto.UoD
 import Ligretto.UI
 import Data.Maybe
+from Control.Monad import class Monad(bind), `b`
 
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color,!String)
 play_Ligretto
 	=            get currentUser
-	>>= \me   -> invite_friends
+	>>- \me   -> invite_friends
 	>>= \them -> let us = zip2 (colors (1+length them)) [me : them]
 	              in allTasks (repeatn (length us) (get randomInt))
 	>>= \rs   -> let gameSt = init_gameSt us rs
@@ -30,11 +31,11 @@ play :: !(!Color,!String) !(Shared sds GameSt) -> Task (Color,String) | RWShared
 play (me,name) game_st
     =   Hint name @>> updateSharedInformation [ligrettoEditor me] game_st
     >>* [OnValue (withValue (\gameSt -> determine_winner gameSt
-                            >>= \winner -> return (accolades winner me game_st >>| return winner)))]
+                            `b` \winner -> Just (accolades winner me game_st >>| treturn winner)))]
 
 show_winner :: Color (Shared sds GameSt) GameSt -> Task (Color,String) | RWShared sds
 show_winner me game_st gameSt
-	= accolades winner me game_st >>| return winner
+	= accolades winner me game_st >>| treturn winner
 where
 	{color,name} = fromJust (and_the_winner_is gameSt)
 	winner		 = (color,name)
@@ -42,8 +43,8 @@ where
 game_over :: !Color !(Shared sds GameSt) !GameSt -> Maybe (Task (Color,String)) | RWShared sds
 game_over me game_st gameSt
   =                    and_the_winner_is gameSt
-  >>= \{color,name} -> (let winner = (color,name)
-					   in return (accolades winner me game_st >>| return winner))
+  `b` \{color,name} -> (let winner = (color,name)
+					   in Just (accolades winner me game_st >>| treturn winner))
 
 accolades :: !(!Color,!String) !Color !(Shared sds GameSt) -> Task GameSt | RWShared sds
 accolades winner me game_st

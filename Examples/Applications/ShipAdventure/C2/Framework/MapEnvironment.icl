@@ -1,9 +1,7 @@
 implementation module C2.Framework.MapEnvironment
 
 import StdArray
-import iTasks
 
-import iTasks.UI.Definition
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 from Data.Map import :: Map, instance Functor (Map k)
@@ -14,12 +12,13 @@ import qualified Data.Heap as DH
 from Data.Heap import :: Heap
 import Data.GenLexOrd
 from C2.Framework.Logging import addLog
-import C2.Apps.ShipAdventure.Types
+import C2.Apps.ShipAdventure.Types => qualified >>=, return, >>|, sequence
 import Data.List
 import Data.Eq
 import Data.Maybe
 import Data.Functor
 import Data.Either
+import Control.Monad => qualified forever
 
 import StdMisc
 
@@ -323,11 +322,11 @@ addActorToMap :: !(DrawMapForActor r o a) !(Actor o a) !Coord3D
               -> Task () | iTask r & iTask o & iTask a
 addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare
   =            get maps2DShare
-  >>= \ms2d -> if (existsSection location ms2d)
+  >>- \ms2d -> if (existsSection location ms2d)
                  (   upd ('DM'.put actor.userName actor) userToActorShare
-                 >>| move (0, {col = 0, row = 0}) location actor.userName
-                 >>| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
-                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>| return ())
+                 >-| move (0, {col = 0, row = 0}) location actor.userName
+                 >-| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
+                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>- \_->treturn ())
 
 :: UITag :== [Int]
 
@@ -531,7 +530,7 @@ pickupObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectio
              -> Task () | iTask o & iTask a
 pickupObject c3d object user userActorShare shFocusedSectionInventory
   =   upd f userActorShare
-  >>| upd (\inv -> 'DIS'.fromList [(obj.objId, obj) \\ obj <- 'DIS'.elems inv | obj.objId /= object.objId]) (sdsFocus c3d shFocusedSectionInventory) @! ()
+  >-| upd (\inv -> 'DIS'.fromList [(obj.objId, obj) \\ obj <- 'DIS'.elems inv | obj.objId /= object.objId]) (sdsFocus c3d shFocusedSectionInventory) @! ()
   where
   f userActorMap = case 'DM'.get user userActorMap of
                      Just actor
@@ -542,7 +541,7 @@ dropObject :: !Coord3D !(Object o) !User !(UserActorShare o a) !(FocusedSectionI
            -> Task () | iTask o & iTask a
 dropObject c3d object user userActorShare shFocusedSectionInventory
   =   upd f userActorShare
-  >>| upd (\inv -> 'DIS'.put object.objId object inv) (sdsFocus c3d shFocusedSectionInventory) @! ()
+  >-| upd (\inv -> 'DIS'.put object.objId object inv) (sdsFocus c3d shFocusedSectionInventory) @! ()
   where
   f userActorMap = case 'DM'.get user userActorMap of
                      Just actor
@@ -557,7 +556,7 @@ useObject c3d object user userActorShare shFocusedSectionInventory
                          Just actor
                            | hasObject object actor
                            = set ('DM'.put user {actor & carrying = removeObject object actor.carrying} userActorMap) userActorShare @! True
-                         _ = return False
+                         _ = treturn False
 
 hasObject :: !(Object o) !(Actor o a) -> Bool
 hasObject obj actor = length [0 \\ obj` <- actor.carrying | obj.objId == obj`.objId] > 0
@@ -589,7 +588,7 @@ autoMove :: !Coord3D !Coord3D
             !User !(Shared sds (SectionStatusMap r)) !(UserActorShare o a)
          -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 autoMove thisSection target pathFun user shipStatusShare userToActorShare
-  | thisSection == target = return True
+  | thisSection == target = treturn True
   | otherwise
       =                 get sectionUsersShare
       >>- \actorMap  -> case sectionForUser user actorMap of
@@ -601,11 +600,11 @@ autoMove thisSection target pathFun user shipStatusShare userToActorShare
                             >>- \graph     -> case pathFun thisSection target statusMap exitLocks hopLocks graph of
                                                 Just (path=:[nextSection:_], _)
                                                   =   waitForTimer 1
-                                                  >>| move roomCoord nextSection user
-                                                  >>| addLog user "" ("Has moved to Section " <+++ nextSection)
-                                                  >>| autoMove nextSection target pathFun user shipStatusShare userToActorShare
-                                                _ = return False
-                          _ = return False
+                                                  >-| move roomCoord nextSection user
+                                                  >-| addLog user "" ("Has moved to Section " <+++ nextSection)
+                                                  >-| autoMove nextSection target pathFun user shipStatusShare userToActorShare
+                                                _ = treturn False
+                          _ = treturn False
 
 // room updating
 
@@ -614,9 +613,9 @@ autoMove thisSection target pathFun user shipStatusShare userToActorShare
 updActorStatus :: !User !(a -> a) !(UserActorShare o a) -> Task () | iTask a & iTask o
 updActorStatus user upd userToActorShare
   =                    get userToActorShare
-  >>= \userActorMap -> case 'DM'.get user userActorMap of
+  >>- \userActorMap -> case 'DM'.get user userActorMap of
                          Just actor -> set ('DM'.put user {actor & actorStatus = upd actor.actorStatus} userActorMap) userToActorShare @! ()
-                         Nothing    -> return ()
+                         Nothing    -> treturn ()
 
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 sectionForUser u sectionUsersMap = listToMaybe [k \\ (k, us) <- 'DM'.toList sectionUsersMap, u` <- us | u` == u]
@@ -652,7 +651,7 @@ toggleDoor roomNo=:(floorIdx, c2d) exit
   =              get focus1
   >>- \locks1 -> get focus2
   >>- \locks2 -> set (newLocks exit locks1) focus1
-  >>|            set (newLocks (opposite exit) locks2) focus2 @! ()
+  >-|            set (newLocks (opposite exit) locks2) focus2 @! ()
   where
   newLocks :: !Dir ![Dir] -> [Dir]
   newLocks dir locks
@@ -667,7 +666,7 @@ toggleHop fromRoom toRoom
   =              get focus1
   >>- \locks1 -> get focus2
   >>- \locks2 -> set (newLocks fromRoom locks1) focus1
-  >>|            set (newLocks toRoom locks2) focus2 @! ()
+  >-|            set (newLocks toRoom locks2) focus2 @! ()
   where
   newLocks :: !Coord3D ![Coord3D] -> [Coord3D]
   newLocks c3d locks
