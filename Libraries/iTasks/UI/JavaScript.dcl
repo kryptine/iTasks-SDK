@@ -20,7 +20,14 @@ from StdMaybe import :: Maybe
 from StdOverloaded import class toString
 from Text.GenJSON import :: JSONNode
 
-:: *JSWorld
+/**
+ * All impure interfacing with JavaScript is handled through the `*JSWorld`, as
+ * native impure functionality is threaded through `*World`. `JSWorld` is not
+ * unique to be able to instantiate Monad (in `iTasks.UI.JavaScript.Monad`).
+ * Because all functions using `JSWorld` use it in a unique way, sharing is
+ * still prohibited.
+ */
+:: JSWorld
 
 :: JSVal
 :: JSFun :== JSVal
@@ -134,7 +141,7 @@ instance .# Int // array access
  * - `()` relates to no arguments; tuples relates to lists of arguments
  */
 class toJSArgs a :: !a -> {!JSVal}
-instance toJSArgs Int, Bool, String, JSVal, (Maybe b) | gToJS{|*|} b, ()
+instance toJSArgs Int, Bool, String, JSVal, [a] | gToJS{|*|} a, (Maybe a) | gToJS{|*|} a, ()
 instance toJSArgs (a,b) | gToJS{|*|} a & gToJS{|*|} b
 instance toJSArgs (a,b,c) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c
 instance toJSArgs (a,b,c,d) | gToJS{|*|} a & gToJS{|*|} b & gToJS{|*|} c & gToJS{|*|} d

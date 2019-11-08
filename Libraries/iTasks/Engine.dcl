@@ -57,24 +57,25 @@ instance Startable [StartableTask]
 instance Startable (a,b) | Startable a & Startable b
 
 :: EngineOptions =
-	{ appName       :: String
-	, appPath       :: FilePath // Location of the application's executable
-	, appVersion    :: String
-	, serverPort    :: Int
-	, serverUrl     :: String
-	, allowedHosts  :: [String] // Only allow connections from these hosts (default ["127.0.0.1"])
-	, keepaliveTime :: Timespec
-	, sessionTime   :: Timespec
-	, persistTasks  :: Bool
-	, autoLayout    :: Bool
-	, maxEvents     :: Int
-	, timeout       :: Maybe Int // The timeout
-	, distributed   :: Bool
-	, sdsPort       :: Int
-	, webDirPath    :: FilePath  // Location of public files that are served by the iTask webserver
-	, storeDirPath  :: FilePath  // Location of the application's persistent data files 
-	, tempDirPath   :: FilePath  // Location for temporary files used in tasks
-	, byteCodePath  :: FilePath  // Location of the application's bytecode
+	{ appName          :: !String
+	, appPath          :: !FilePath  //* Location of the application's executable
+	, appVersion       :: !String
+	, serverPort       :: !Int
+	, serverUrl        :: !String
+	, allowedHosts     :: ![String]  //* Only allow connections from these hosts (default ["127.0.0.1"])
+	, keepaliveTime    :: !Timespec
+	, sessionTime      :: !Timespec
+	, persistTasks     :: !Bool
+	, autoLayout       :: !Bool
+	, maxEvents        :: !Int
+	, timeout          :: !Maybe Int //* The timeout
+	, distributed      :: !Bool
+	, sdsPort          :: !Int
+	, webDirPath       :: !FilePath  //* Location of public files that are served by the iTask webserver
+	, storeDirPath     :: !FilePath  //* Location of the application's persistent data files
+	, tempDirPath      :: !FilePath  //* Location for temporary files used in tasks
+	, byteCodePath     :: !FilePath  //* Location of the application's bytecode
+	, showInstructions :: !Bool      //* Whether instructions to open the browser should be shown
 	}
 derive class iTask EngineOptions
 

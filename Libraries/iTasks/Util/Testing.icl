@@ -106,8 +106,8 @@ testEditorWithShare editor model viewMode = (withShared model
 
 testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
 testCommonInteractions typeName
-	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [])
-	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue)
+	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [] >>= viewInformation [])
+	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue >>= viewInformation [])
 	-||- (withShared defaultValue
 			\s -> ((Title "Update shared" @>> Hint ("Update shared value of type " +++ typeName) @>> updateSharedInformation [] s)
 				   -||

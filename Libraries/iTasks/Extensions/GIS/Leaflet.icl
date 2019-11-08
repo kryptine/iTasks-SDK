@@ -724,7 +724,7 @@ where
 		,icon = Just (LeafletIconID "cursor"),title=Nothing,popup=Nothing}
 	icon = {LeafletIcon|iconId=LeafletIconID "cursor", iconUrl= svgIconURL (CircleElt hattrs sattrs) (10,10), iconSize = (10,10)}
 	where
-        sattrs = [CxAttr ("5",PX),CyAttr ("5",PX),RAttr ("3",PX)]
+        sattrs = [CxAttr (SVGLength "5" PX),CyAttr (SVGLength "5" PX),RAttr (SVGLength "3" PX)]
 		hattrs = [StyleAttr "fill:none;stroke:#00f;stroke-width:2"]
 
 	toggle (LeafletObjectID "cursor") xs = xs //The cursor can't be selected
