@@ -6,6 +6,7 @@ import StdEnv
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskIO
 import iTasks.Internal.TaskServer
 import iTasks.Internal.TaskState
 import iTasks.Internal.Util

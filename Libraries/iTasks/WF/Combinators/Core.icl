@@ -13,6 +13,7 @@ import iTasks.Internal.EngineTasks
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
+import iTasks.Internal.TaskIO
 import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import iTasks.Internal.Util

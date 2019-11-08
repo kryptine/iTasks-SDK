@@ -16,6 +16,7 @@ import iTasks.Internal.SDS
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskState
+import iTasks.Internal.TaskIO
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition

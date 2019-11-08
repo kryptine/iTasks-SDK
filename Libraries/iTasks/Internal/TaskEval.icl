@@ -3,6 +3,7 @@ implementation module iTasks.Internal.TaskEval
 import StdList, StdBool, StdTuple, StdMisc, StdString
 import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.GenJSON
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.SDS, iTasks.Internal.AsyncSDS
+import iTasks.Internal.TaskIO
 import iTasks.Internal.Store, iTasks.Internal.Util
 import iTasks.UI.Definition, iTasks.UI.Layout
 import iTasks.Internal.SDSService
@@ -19,8 +20,6 @@ from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Combinators.Common      import sdsFocus, >*|, mapReadWrite, mapReadWriteError
 from StdFunc import const, o
-import qualified Data.CircularStack as DCS
-from Data.CircularStack import :: CircularStack
 
 derive gEq TIMeta, TIType
 

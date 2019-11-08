@@ -116,7 +116,6 @@ mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 //Fresh identifier generation
 newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
-newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
 //=== Task instance index: ===
 
@@ -150,11 +149,6 @@ topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(
 taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 
-//=== Task instance input: ===
-
-//When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
-taskEvents :: SimpleSDSLens (Queue (InstanceNo,Event))
-
 //Filtered views on evaluation state of instances:
 
 //Shared source
@@ -171,25 +165,7 @@ taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask 
 //Public interface used by parallel tasks
 parallelTaskList                    :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 
-//===  Task instance output: ===
-
-//When task instances are evaluated, their output consists of instructions to modify the user interface
-//of that instance to reflect the instance's new state
-
-:: TaskOutputMessage
-	= TOUIChange !UIChange
-	| TOException !String
-	| TODetach !InstanceNo
-
-derive gEq TaskOutputMessage
-
-:: TaskOutput :== Queue TaskOutputMessage
-
-taskOutput          :: SimpleSDSLens (Map InstanceNo TaskOutput)
-taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
-
 //=== Access functions: ===
-
 
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 
@@ -225,50 +201,8 @@ replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskExcepti
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
-/**
-* Queue an event for a task instance
-* events are applied in FIFO order when the task instance is evaluated
-*
-* By splitting up event queuing and instance evaluation, events can come in asynchronously without
-* the need to directly processing them.
-*/
-queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-
-/**
-* Convenience function for queueing multiple refresh multiple refresh events at once
-*/
-queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
-
-/**
-* Dequeue a task event
-*/
-dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
-
-/**
-* Queue ui change task output
-*/
-queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
-/**
-* Convenience function that queues multiple changes at once
-*/
-queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
-/**
-* Queue exception change task output
-*/
-queueException :: !InstanceNo !String !*IWorld -> *IWorld
-
-/**
-* When a new viewport is attached to an instance, all events and output are removed
-* and a single Reset event is queued
-*/
-attachViewport :: !InstanceNo !*IWorld -> *IWorld
-
-/**
-* When a new viewport is detached from an instance, all events and output are removed
-*/
-detachViewport :: !InstanceNo !*IWorld -> *IWorld
-
-//Documents
+//FIXME: Documents should not be part of the core server
+newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
