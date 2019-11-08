@@ -8,6 +8,8 @@ from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditState
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUINo, :: LUIEffectStage
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
+from iTasks.Util.DeferredJSON import :: DeferredJSON
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.GenDefault import generic gDefault
 from Data.Map import :: Map
@@ -18,7 +20,6 @@ from Data.Error import :: MaybeError
 from Data.Either import :: Either
 from System.Time import :: Timestamp, :: Timespec
 from Data.GenEq import generic gEq
-from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
 derive JSONEncode TIMeta, TIType, TIReduct
 derive JSONDecode TIMeta, TIType, TIReduct
@@ -38,7 +39,25 @@ derive JSONDecode TIMeta, TIType, TIReduct
 	, taskAttributes        :: !TaskAttributes  //Cached attributes from the task UI
 	, managementAttributes  :: !TaskAttributes  //Arbitrary writable attributes for managing collections of task instances
 	}
-derive gDefault TIMeta
+
+:: ParallelTaskState =
+	{ taskId               :: !TaskId                       //Identification
+	, index                :: !Int                          //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
+	, detached             :: !Bool
+	, taskAttributes       :: !TaskAttributes            //Attributes that reflect the latest attributes from the task UI
+	, managementAttributes :: !TaskAttributes            //Attributes that are explicitly written to the list through the tasklist
+	, unsyncedAttributes   :: !Set String                //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
+	, value                :: !TaskValue DeferredJSON    //Value (only for embedded tasks)
+	, createdAt			   :: !TaskTime                  //Time the entry was added to the set (used by layouts to highlight new items)
+	, lastEvent			   :: !TaskTime                  //Last modified time
+	, change               :: !Maybe TaskChange          //Changes like removing or replacing a parallel task are only done when the
+	                                                     //parallel is evaluated. This field is used to schedule such changes.
+	, initialized       :: !Bool
+	}
+
+:: TaskChange
+    = RemoveTask                            //Mark for removal from the set on the next evaluation
+    | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
 
 :: TIType
 	= TIStartup
@@ -57,34 +76,4 @@ derive gDefault TIMeta
    = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
 
-:: AsyncAction = Read | Write | Modify
-
-:: DeferredJSON
-	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
-	|		DeferredJSONNode !JSONNode
-
-instance toString DeferredJSON
-fromDeferredJSON :: !DeferredJSON -> Maybe a | TC, JSONDecode{|*|} a
-derive JSONEncode DeferredJSON
-derive JSONDecode DeferredJSON
-derive gEq        DeferredJSON
-derive gText      DeferredJSON
-
-:: ParallelTaskState =
-	{ taskId               :: !TaskId                       //Identification
-	, index                :: !Int                          //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
-	, detached             :: !Bool
-	, taskAttributes       :: !TaskAttributes            //Attributes that reflect the latest attributes from the task UI
-	, managementAttributes :: !TaskAttributes            //Attributes that are explicitly written to the list through the tasklist
-	, unsyncedAttributes   :: !Set String                //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
-	, value                :: !TaskValue DeferredJSON    //Value (only for embedded tasks)
-	, createdAt			   :: !TaskTime                  //Time the entry was added to the set (used by layouts to highlight new items)
-	, lastEvent			   :: !TaskTime                  //Last modified time
-	, change               :: !Maybe ParallelTaskChange  //Changes like removing or replacing a parallel task are only done when the
-	                                                     //parallel is evaluated. This field is used to schedule such changes.
-	, initialized       :: !Bool
-	}
-
-:: ParallelTaskChange
-    = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
-    | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
+derive gDefault TIMeta

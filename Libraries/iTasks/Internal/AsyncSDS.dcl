@@ -1,10 +1,11 @@
 definition module iTasks.Internal.AsyncSDS
 
-from iTasks.Internal.TaskState import :: AsyncAction
 import iTasks.SDS.Definition
 from iTasks.WF.Definition import :: TaskId, :: TaskValue, :: Event, :: TaskEvalOpts, :: TaskResult
 from iTasks.Internal.IWorld import :: IOState, :: IOStates
 from iTasks.Internal.SDS import :: SDSIdentity, :: SDSNotifyRequest
+
+:: AsyncAction = Read | Write | Modify
 
 :: SDSRequest p r w = E. sds: SDSReadRequest !(sds p r w) p & gText{|*|} p & TC p & TC r & TC w & Readable sds
 	/*

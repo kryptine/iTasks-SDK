@@ -9,7 +9,7 @@ from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
 import iTasks.SDS.Combinators.Common
-from iTasks.Internal.TaskState		import :: DeferredJSON, :: AsyncAction
+from iTasks.Internal.TaskState		import :: DeferredJSON
 from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 from iTasks.Extensions.DateTime import waitForTimer

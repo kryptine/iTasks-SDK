@@ -18,6 +18,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import iTasks.Internal.Util
 import iTasks.Internal.AsyncSDS
+import iTasks.Util.DeferredJSON
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle, removeMaybe
 import iTasks.WF.Combinators.Common
@@ -34,7 +35,7 @@ import Text.GenJSON
 from Data.Functor import <$>, class Functor(fmap)
 from Data.Map import qualified instance Functor (Map k)
 
-derive gEq ParallelTaskChange
+derive gEq TaskChange
 
 :: Action	= Action !String //Locally unique identifier for actions
 
@@ -403,7 +404,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 		//There is more work to do:
 		todo    = evalParallelTasks event evalOpts conts completed todo iworld
 where
-	isRemoved {ParallelTaskState|change=Just RemoveParallelTask} = True
+	isRemoved {ParallelTaskState|change=Just RemoveTask} = True
 	isRemoved _ = False
 
 	addManagementAttributeChanges {ParallelTaskState|managementAttributes,unsyncedAttributes} (ValueResult val evalInfor rep tree)
@@ -450,7 +451,7 @@ where
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
 		//Evaluate or destroy branch
-		| change === Just RemoveParallelTask
+		| change === Just RemoveTask
 			# (result, iworld) = destroyEmbeddedParallelTask listId taskId iworld
 			= case result of
 				(Ok res) = (Ok res,iworld)
@@ -669,7 +670,7 @@ where
 			err = (liftError err, iworld)
 	where
 		//To determine the next index we need to disregard states that are marked as removed
-		nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | not (change =: (Just RemoveParallelTask))]
+		nextIndex states = length [p\\p=:{ParallelTaskState|change} <- states | not (change =: (Just RemoveTask))]
 
 /**
 * Removes (and stops) a task from a task list
@@ -706,7 +707,7 @@ where
 	//When a task is marked as removed, the index of the tasks after that are decreased
 	markAsRemoved removeId [] = []
 	markAsRemoved removeId [s=:{ParallelTaskState|taskId}:ss]
-		| taskId == removeId = [{ParallelTaskState|s & change = Just RemoveParallelTask}
+		| taskId == removeId = [{ParallelTaskState|s & change = Just RemoveTask}
 		                       :[{ParallelTaskState|s` & index = index - 1} \\ s`=:{ParallelTaskState|index} <- ss]]
 		| otherwise          = [s:markAsRemoved removeId ss]
 
@@ -741,7 +742,7 @@ where
 
 	scheduleReplacement replaceId task [] = []
 	scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
-		| taskId == replaceId   = [{ParallelTaskState|s & change = Just (ReplaceParallelTask (dynamic task :: Task a^))}:ss]
+		| taskId == replaceId   = [{ParallelTaskState|s & change = Just (ReplaceTask (dynamic task :: Task a^))}:ss]
 		| otherwise             = [s:scheduleReplacement replaceId task ss]
 
 attach :: !InstanceNo !Bool -> Task AttachmentStatus

@@ -88,6 +88,12 @@ instance toInstanceNo TaskId
     , issuedAt		:: !Timespec            //* When was the task created
     }
 
+/**
+* There are three types of task instances:
+* Startup instances: temporary tasks that are started when a task server starts up, typically driven by a clock or external I/O.
+* Session instances: temporary tasks that represent and facilitate interactive sessions between a user and the server.
+* Persistent instances: persistent long-running tasks that may be shared between users and exist between sessions.
+*/
 :: InstanceType
 	= StartupInstance
 	| SessionInstance

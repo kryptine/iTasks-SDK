@@ -9,6 +9,7 @@ import iTasks.Internal.TaskEval, iTasks.Internal.Util, iTasks.UI.Definition
 import iTasks.Internal.Serialization
 import iTasks.Internal.Generic.Defaults
 import iTasks.Internal.Generic.Visualization
+import iTasks.Util.DeferredJSON
 
 import iTasks.UI.Tune
 import iTasks.UI.Layout.Default
@@ -35,16 +36,16 @@ from Control.Applicative import class Alternative(<|>)
 import Data.GenEq
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange
+derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, TaskChange
 derive JSONEncode Queue, Event
 
-derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange
+derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, TaskChange
 derive JSONDecode Queue, Event
 
 derive gDefault InstanceFilter
 
-derive gEq ParallelTaskChange, TaskOutputMessage
-derive gText ParallelTaskChange
+derive gEq TaskChange, TaskOutputMessage
+derive gText TaskChange
 derive class iTask InstanceFilter
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
@@ -486,7 +487,7 @@ where
 			items = [{TaskListItem|taskId = taskId, listId = listId
 					 , detached = detached, self = taskId == selfId
 					 , value = decode value, progress = Nothing, attributes = 'DM'.union managementAttributes taskAttributes
-					 } \\ {ParallelTaskState|taskId,detached,taskAttributes,managementAttributes,value,change} <- states | change =!= Just RemoveParallelTask]
+					 } \\ {ParallelTaskState|taskId,detached,taskAttributes,managementAttributes,value,change} <- states | change =!= Just RemoveTask]
 
 			decode NoValue	= NoValue
 			decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
@@ -500,7 +501,7 @@ where
 		notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 		lensReducer (listId, selfId, listFilter) ws
-			= (Ok ([(taskId, managementAttributes) \\ {ParallelTaskState|taskId,detached,managementAttributes,value,change} <- ws | change =!= Just RemoveParallelTask]))
+			= (Ok ([(taskId, managementAttributes) \\ {ParallelTaskState|taskId,detached,managementAttributes,value,change} <- ws | change =!= Just RemoveTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
 					 ,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}

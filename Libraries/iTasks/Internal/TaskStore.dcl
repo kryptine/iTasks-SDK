@@ -1,9 +1,9 @@
 definition module iTasks.Internal.TaskStore
 /**
-* This module provides storage of task instances
-* It contains two types of task instances:
-* Session instances: temporary tasks for each interactive session between a user and the server.
-* Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
+* This module provides storage of tasks and their state.
+*
+* When accessing and updating task instance data in the store as shared data sources, the store checks which task is writing data
+* and makes sure no self references are introduced.
 */
 
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.UI.Definition, iTasks.Internal.SDS
