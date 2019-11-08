@@ -13,8 +13,9 @@ import Text
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
+import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
-import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskState
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition

@@ -19,7 +19,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
 import iTasks.Internal.SDSService
 import iTasks.Internal.TaskServer
-import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskState
 import iTasks.Internal.Util
 import iTasks.SDS.Sources.System
 import iTasks.WF.Combinators.Common

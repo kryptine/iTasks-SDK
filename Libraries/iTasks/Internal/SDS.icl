@@ -11,7 +11,7 @@ from Data.Set import instance Foldable Set, instance < (Set a)
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
-import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
+import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval
 
 import iTasks.SDS.Sources.Core
 import iTasks.WF.Tasks.IO

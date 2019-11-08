@@ -12,7 +12,9 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Util
 import iTasks.WF.Derives
 
-import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskState
+import iTasks.WF.Combinators.Core
+
 import StdTuple, StdList, StdString
 from iTasks.Internal.TaskEval  import currentInstanceShare
 from StdFunc import id, o, const
