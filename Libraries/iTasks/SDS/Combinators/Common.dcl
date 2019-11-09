@@ -40,6 +40,25 @@ sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} 
 // Introduce a new parameter
 sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(Maybe (SDSReducer p ws w)) !(sds ps rs ws) -> SDSLens p r w | gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
 
+/*
+ * Read the data from the rhs when writing the lhs.
+ * The resulting share is only notified when the lhs is notified.
+ *
+ * @param the sds to read and write from
+ * @param the sds to only read from when writing
+ * @param the function with which you combine the values for actually writing
+ * @return the resulting sds
+ */
+sdsStamp :: !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) (r2 w -> w1) -> SDSLens (p1, p2) r1 w | gText{|*|}, TC p1 & gText{|*|}, TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds2 & RWShared sds1
+
+/*
+ * Automatically stamp the share data with the timespec of writing
+ *
+ * @param the sds to automatically stamp the data for
+ * @return the resulting sds
+ */
+timespecStampedShare :: !(sds p b (Timespec,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
+
 // Treat symmetric sources with optional values as if they always have a value.
 // You can provide a default value, if you don't it will trigger a read error
 removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | gText{|*|} p & TC p & TC a & RWShared sds

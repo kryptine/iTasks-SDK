@@ -3,9 +3,12 @@ Global
 	ProjectRoot:	.
 	Target:	iTasks
 	Exec:	{Project}*TestADTSingleConsMulti
+	ByteCode:	{Project}*TestADTSingleConsMulti.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
+		OptimiseABC:	True
+		GenerateByteCode:	True
 	Application
 		HeapSize:	20971520
 		StackSize:	512000
@@ -40,6 +43,9 @@ Global
 		ResourceSource:	
 		GenerateDLL:	False
 		ExportedNames:	
+		StripByteCode:	True
+		KeepByteCodeSymbols:	True
+		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
 	Precompile:	

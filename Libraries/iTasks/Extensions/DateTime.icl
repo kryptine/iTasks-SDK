@@ -5,6 +5,7 @@ import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
+import iTasks.SDS.Combinators.Common
 import iTasks.WF.Combinators.Overloaded
 import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
@@ -18,7 +19,7 @@ import iTasks.Internal.SDS
 
 import StdBool, StdArray, StdEnum, StdList, StdString
 
-import Text, Text.GenJSON, System.Time
+import Text, Text.GenJSON, Text.GenPrint, System.Time
 import Data.Maybe, Data.Error 
 import qualified Data.Map as DM
 
@@ -113,6 +114,7 @@ gEditor{|Time|} = selectByMode
 
 derive gDefault		Time
 derive gEq			Time
+derive gPrint       Time
 
 instance toString DateTime
 where
@@ -236,3 +238,8 @@ waitForTimer interval =
     get currentTimestamp                                  >>- \(Timestamp now) ->
     timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
     waitForDateTime endTime
+
+dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
+dateTimeStampedShare sds
+	= sdsTranslate "dateTimeStampedShare" (\p->(p, ()))
+		(sdsStamp sds currentDateTime (\x y->(x, y)))

@@ -39,14 +39,14 @@ where
                           ,hand 50 (degrees 1 min) "#666"
                           ,hand 40 (degrees 2 hour) "#999"])
 
-    face = [RectElt [WidthAttr "100px",HeightAttr "100px",StyleAttr "fill:#ccc;stroke: #000;stroke-width: 3px"] [XAttr ("0",PX),YAttr ("0",PX)]
+    face = [RectElt [WidthAttr "100px",HeightAttr "100px",StyleAttr "fill:#ccc;stroke: #000;stroke-width: 3px"] [XAttr (SVGLength "0" PX),YAttr (SVGLength "0" PX)]
            :[RectElt [WidthAttr "10px",HeightAttr "2px",StyleAttr "fill: #ddd;"]
-                     [XAttr ("90",PX),YAttr ("50",PX),TransformAttr [RotateTransform (toString (30*i)) (Just ("50","50"))]] \\ i <- [0..11]
+                     [XAttr (SVGLength "90" PX),YAttr (SVGLength "50" PX),TransformAttr [RotateTransform (toString (30*i)) (Just ("50","50"))]] \\ i <- [0..11]
             ]]
 
     hand len angle color
         = RectElt [WidthAttr (toString len +++"px"),HeightAttr "2px",StyleAttr ("fill: "+++color)]
-                  [XAttr ("50",PX),YAttr ("50",PX),TransformAttr [RotateTransform (toString (angle - 90)) (Just ("50","50"))]]
+                  [XAttr (SVGLength "50" PX),YAttr (SVGLength "50" PX),TransformAttr [RotateTransform (toString (angle - 90)) (Just ("50","50"))]]
 
 	initUI me world
 		//Register listener for ui diffs from the server

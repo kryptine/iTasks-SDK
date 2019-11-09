@@ -52,7 +52,8 @@ where
 
 sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 sendHtmlEmail opts sender recipients subject body =
-	sendEmail [EmailOptExtraHeaders [("content-type", "text/html")]: opts] sender recipients subject htmlString
+	sendEmail
+		[EmailOptExtraHeaders [("content-type", "text/html; charset=UTF8")]: opts] sender recipients subject htmlString
 where
 	// avoid too long lines (SMTP allows a max length of 1000 characters only)
 	// by inserting a newline (\r\n is required for mails) after each tag

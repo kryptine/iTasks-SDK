@@ -939,7 +939,7 @@ instance Writeable SDSDebug where
 			db (Error e, iworld) = (Error e, iShow [snd e] iworld)
 			db (Ok (WriteResult notify sds), iworld)
 				= (Ok (WriteResult notify (SDSDebug name sds)),
-					iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map toString ('Set'.toList notify))] iworld)
+					iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map notifyToString ('Set'.toList notify))] iworld)
 			db (Ok (AsyncWrite sds), iworld)
 				= (Ok (AsyncWrite (SDSDebug name sds)), iShow ["AsyncWrite from share " +++ name] iworld)
 
@@ -958,7 +958,7 @@ instance Modifiable SDSDebug where
 		db (Error e, iworld) = (Error e, iShow [snd e] iworld)
 		db (Ok (ModifyResult notify r w sds), iworld)
 			= (Ok (ModifyResult notify r w (SDSDebug name sds)),
-				iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map toString ('Set'.toList notify))] iworld)
+				iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map notifyToString ('Set'.toList notify))] iworld)
 		db (Ok (AsyncModify sds f), iworld) = (Ok (AsyncModify (SDSDebug name sds) f), iShow ["AsyncModify from share " + name] iworld)
 
 readSDSDebug :: !(SDSDebug p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
@@ -975,9 +975,9 @@ readSDSDebug (SDSDebug name sds) p context mbRegister iworld
 			= (Ok (AsyncRead (SDSDebug name sds)), iShow ["AsyncRead " +++ name] iworld)
 
 // toString instances for SDSDebug
-instance toString (TaskId, Maybe RemoteNotifyOptions) where
-	toString (taskId, Nothing) = "local " +++ toString taskId
-	toString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
+notifyToString :: (TaskId, Maybe RemoteNotifyOptions) -> String
+notifyToString (taskId, Nothing) = "local " +++ toString taskId
+notifyToString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
 
 instance toString RemoteNotifyOptions where
 	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
@@ -992,3 +992,39 @@ readAndMbRegisterSDS :: !(sds p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdent
 readAndMbRegisterSDS sds p c mbRegister iworld = case mbRegister of
 	Just (regTaskId, reqSDSId) = readRegisterSDS sds p c regTaskId reqSDSId iworld
 	Nothing                    = readSDS sds p c iworld
+
+instance Identifiable SDSNoNotify where
+	nameSDS (SDSNoNotify sds) c = ["!":nameSDS sds ["!":c]]
+instance Readable SDSNoNotify where
+	readSDS (SDSNoNotify sds) p c iworld
+		= case readSDS sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ReadResult r sds), iworld)
+				= (Ok (ReadResult r sds), iworld)
+			(Ok (AsyncRead sds), iworld)
+				= (Ok (AsyncRead sds), iworld)
+
+instance Writeable SDSNoNotify where
+	writeSDS (SDSNoNotify sds) p c w iworld
+		= case writeSDS sds p c w iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (WriteResult set sds), iworld)
+				= (Ok (WriteResult set (SDSNoNotify sds)), iworld)
+			(Ok (AsyncWrite sds), iworld)
+				= (Ok (AsyncWrite (SDSNoNotify sds)), iworld)
+instance Registrable SDSNoNotify where
+	readRegisterSDS (SDSNoNotify sds) p c _ _ iworld
+		= case readSDS sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ReadResult r sds), iworld)
+				= (Ok (ReadResult r sds), iworld)
+			(Ok (AsyncRead sds), iworld)
+				= (Ok (AsyncRead sds), iworld)
+instance Modifiable SDSNoNotify where
+	modifySDS mf (SDSNoNotify sds) p c iworld
+		= case modifySDS mf sds p c iworld of
+			(Error e, iworld) = (Error e, iworld)
+			(Ok (ModifyResult set r w sds), iworld)
+				= (Ok (ModifyResult set r w (SDSNoNotify sds)), iworld)
+			(Ok (AsyncModify sds mf), iworld)
+				= (Ok (AsyncModify (SDSNoNotify sds) mf), iworld)

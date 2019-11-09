@@ -24,7 +24,7 @@ sendEmail :: ![EmailOpt] !String ![String] !String !String -> Task ()
 * @param Sender: The sender address
 * @param Recipients: The recipient addresses
 * @param Subject: The subject line of the e-mail message
-* @param Body: The HTML body of the e-mail message
+* @param Body: The HTML body of the e-mail message. Text has to be UTF-8 encoded.
 */
 sendHtmlEmail :: ![EmailOpt] !String ![String] !String !HtmlTag -> Task ()
 
