@@ -236,6 +236,59 @@ whileUnchangedWith eq share task
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
+import Data.Map.GenJSON
+
+workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
+workOnChosenTask choiceOption options =
+	withShared Nothing \previousChoiceIdx ->
+	updateChoiceAs [choiceOption fst] [(label,n) \\ (label,_) <- options & n <- [1..]] snd 1 >&> \choiceIdx ->
+		( parallel
+			[(Embedded, managementTask choiceIdx previousChoiceIdx): [(Embedded, \_ -> task) \\ (_, task) <- options]]
+			[]
+			<<@ ApplyLayout
+				( layoutSubUIs
+					( SelectAND
+						(SelectByDepth 1)
+						(SelectNOT $ SelectByAttribute "visible" $ \val -> val =: (JSONBool True))
+					)
+					hideUI
+				)
+		)
+	-&&-
+		(watch choiceIdx <<@ ApplyLayout hideUI)
+	@? \taskValue ->
+		case taskValue of
+			Value (values, Just choiceIdx) _ -> snd $ values !! choiceIdx
+			_                                -> NoValue
+where
+	managementTask choiceIdx previousChoiceIdx taskList =
+		(whileUnchanged choiceIdx (\choice -> updateVisibleAttr choice @? const noValue)) @? const NoValue
+	where
+		updateVisibleAttr choiceIdx = setForChoice -&&- unsetForPrevChoice -&&- set choiceIdx previousChoiceIdx
+		where
+			setForChoice =
+				case choiceIdx of
+					Nothing = return ()
+					Just choiceIdx =
+						get (taskListIds taskList) >>- \taskIds ->
+						upd
+							(\item -> 'DM'.put "visible" (JSONBool True) item.TaskListItem.attributes)
+							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
+						@! ()
+			unsetForPrevChoice =
+				get previousChoiceIdx >>- \prevChoiceIdx ->
+				case prevChoiceIdx of
+					Nothing = return ()
+					Just choiceIdx =
+						get (taskListIds taskList) >>- \taskIds ->
+						upd
+							(\item -> 'DM'.put "visible" (JSONBool False) item.TaskListItem.attributes)
+							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
+						@! ()
+
+	noValue :: TaskValue ()
+	noValue = NoValue
+
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions
 	>>- \eo->appendTask (Detached evalDirect attr) (\_->mtune eo task @! ()) topLevelTasks
