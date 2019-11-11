@@ -81,7 +81,6 @@ derive JSONDecode TIMeta, TIType, TIReduct
 	, change               :: !Maybe TaskChange          //Changes like removing or replacing a parallel task are only done when the
 	                                                     //parallel is evaluated. This field is used to schedule such changes.
 	, initialized       :: !Bool
-	, value                :: !TaskValue DeferredJSON    //Value (only for embedded tasks)
 	}
 
 :: TaskChange
@@ -161,7 +160,9 @@ taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (Ta
 taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIReduct)
 taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
 taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
+
 taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [ParallelTaskState])) (Maybe (Map TaskId [ParallelTaskState]))
+taskInstanceParallelValues  :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
 
 topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
@@ -175,9 +176,11 @@ localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
+taskInstanceParallelTaskListValues  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON)) 
 
 //Private interface used during evaluation of parallel combinator
-taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
+taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) ParallelTaskState ParallelTaskState
+taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
 
 taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask a
 

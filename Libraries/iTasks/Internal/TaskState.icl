@@ -71,10 +71,11 @@ rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
 
 rawInstanceIO        = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
 
-rawInstanceReduct    = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceValue     = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceShares    = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceParallels = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceReduct         = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceValue          = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceShares         = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceParallels      = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+rawInstanceParallelValues = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 
 //Master instance index
 taskInstanceIndex :: SimpleSDSLens [TIMeta]
@@ -111,6 +112,9 @@ taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [ParallelTaskState])) (Maybe (Map TaskId [ParallelTaskState]))
 taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") rawInstanceParallels
+
+taskInstanceParallelValues :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
+taskInstanceParallelValues = sdsTranslate "taskInstanceParallelValues" (\t -> t +++> "-parvalues") rawInstanceParallelValues
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
@@ -438,18 +442,47 @@ where
 		merge` [] ns = [n \\ (i,n) <- zip2 [listLength ..] ns | inFilter listFilter (i,n)] //All new elements are only added if they are within the filter
 		merge` os [] = [o \\ (i,o) <- os | not (inFilter listFilter (i,o))] //Only keep old elements if they were outside the filter
 
-taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
+taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON)) 
+taskInstanceParallelTaskListValues = sdsLens "taskInstanceParallelTaskListValues" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> read p ws) (removeMaybe (Just 'DM'.newMap) taskInstanceParallelValues)
+where
+	param (TaskId instanceNo _,listFilter) = instanceNo
+	read (listId,listFilter) lists = case 'DM'.get listId lists of
+		Just list = Ok list //TODO: Prune the map based on the listfilter
+		Nothing = Ok  'DM'.newMap //Error (exception ("Could not find parallel values of " <+++ listId))
+
+	write (taskId,listFilter) lists w //
+		= Ok (Just ('DM'.put taskId w lists))
+
+	notify (listId,listFilter) states ts (regListId,regListFilter)
+		= listId == regListId //TODO: If we keep this SDS, we need to be more precise in notifying based on the filter
+	
+taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId) ParallelTaskState ParallelTaskState
 taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskList
 where
 	//In this SDS the include value and include attributes flags are used to indicate what is written for notification
 	//During a read the whole ParallelTaskState record is used
-	param (listId,taskId,includeValue)
-		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=includeValue,includeAttributes=True,includeProgress=False})
-	read p=:(listId,taskId,_) [] = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
-	read p=:(_,taskId,_) [x:xs] = if (x.ParallelTaskState.taskId == taskId) (Ok x) (read p xs)
-	write (_,taskId,_) list pts = Ok (Just [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
-	notify (listId,taskId,_) _ = const ((==) taskId o snd3)
+	param (listId,taskId)
+		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=False})
+	read p=:(listId,taskId) [] = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
+	read p=:(_,taskId) [x:xs] = if (x.ParallelTaskState.taskId == taskId) (Ok x) (read p xs)
+	write (_,taskId) list pts = Ok (Just [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
+	notify (listId,taskId) _ = const ((==) taskId o snd)
 	reducer p ws = read p ws
+
+taskInstanceParallelTaskListValue :: SDSLens (TaskId,TaskId) (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
+taskInstanceParallelTaskListValue = sdsLens "taskInstanceParallelTaskListValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskListValues
+where
+	//In this SDS the include value and include attributes flags are used to indicate what is written for notification
+	//During a read the whole ParallelTaskState record is used
+	param (listId,taskId)
+		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False})
+	read p=:(listId,taskId) values = case 'DM'.get taskId values of
+		(Just x) = (Ok x)
+		_        = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
+	write (_,taskId) values value = Ok (Just ('DM'.put taskId value values))
+	notify (listId,taskId) _ = const ((==) taskId o snd)
+	reducer p ws = read p ws
+
 
 taskInstanceEmbeddedTask :: SDSLens TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceReduct
@@ -471,31 +504,31 @@ parallelTaskList
 	= sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
 	filteredTaskStates
-		= sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just lensReducer) taskInstanceParallelTaskList
+		= sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just lensReducer) (taskInstanceParallelTaskList >*< taskInstanceParallelTaskListValues)
 	where
 		param (listId,selfId,listFilter=:{TaskListFilter|onlySelf,onlyTaskId})
 			= (listId,{TaskListFilter|listFilter & onlyTaskId = if onlySelf (Just [selfId:fromMaybe [] onlyTaskId]) onlyTaskId})
 
-		read (listId,selfId,listFilter) states  = Ok (listId,items)
+		read (listId,selfId,listFilter) (states,values)  = Ok (listId,items)
 		where
 			items = [{TaskListItem|taskId = taskId, listId = listId
 					 , detached = detached, self = taskId == selfId
-					 , value = decode value, progress = Nothing, attributes = 'DM'.union managementAttributes taskAttributes
-					 } \\ {ParallelTaskState|taskId,detached,taskAttributes,managementAttributes,value,change} <- states | change =!= Just RemoveTask]
+					 , value = maybe NoValue decode ('DM'.get taskId values), progress = Nothing, attributes = 'DM'.union managementAttributes taskAttributes
+					 } \\ {ParallelTaskState|taskId,detached,taskAttributes,managementAttributes,change} <- states | change =!= Just RemoveTask]
 
 			decode NoValue	= NoValue
 			decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromDeferredJSON json)
 
 		write (listId,selfId,{TaskListFilter|includeAttributes=False}) _ _ = Ok Nothing
-		write (listId,selfId,listFilter) states [] = Ok (Just states)
-		write (listId,selfId,listFilter) states [(t,a):updates]
+		write (listId,selfId,listFilter) (states,values) [] = Ok (Just (states,values))
+		write (listId,selfId,listFilter) (states,values) [(t,a):updates]
 			# states = [if (taskId == t) {ParallelTaskState|pts & managementAttributes = a, unsyncedAttributes = 'DS'.fromList $ 'DM'.keys a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
-			= (write (listId,selfId,listFilter) states updates)
+			= (write (listId,selfId,listFilter) (states,values) updates)
 
 		notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
-		lensReducer (listId, selfId, listFilter) ws
-			= (Ok ([(taskId, managementAttributes) \\ {ParallelTaskState|taskId,detached,managementAttributes,value,change} <- ws | change =!= Just RemoveTask]))
+		lensReducer (listId, selfId, listFilter) (ws,_)
+			= (Ok ([(taskId, managementAttributes) \\ {ParallelTaskState|taskId,detached,managementAttributes,change} <- ws | change =!= Just RemoveTask]))
 
 	param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [taskId \\ {TaskListItem|taskId,detached} <- items | detached],notInstanceNo=Nothing
 					 ,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
