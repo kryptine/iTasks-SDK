@@ -21,7 +21,7 @@ import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Combinators.Common      import sdsFocus, >*|, mapReadWrite, mapReadWriteError
 from StdFunc import const, o
 
-derive gEq TIMeta, TIType, TaskChange
+derive gEq TaskMeta, TIType, TaskChange
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =

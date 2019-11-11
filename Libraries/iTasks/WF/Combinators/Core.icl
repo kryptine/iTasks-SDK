@@ -292,23 +292,28 @@ initParallelTask ::
 	!(ParallelTask a)
 	!*IWorld
 	->
-	(!MaybeError TaskException (ParallelTaskState, Maybe (TaskId,Task a)), !*IWorld)
+	(!MaybeError TaskException (TaskMeta, Maybe (TaskId,Task a)), !*IWorld)
 	| iTask a
-initParallelTask evalOpts listId parType parTask iworld=:{current={taskTime}}
+initParallelTask evalOpts listId parType parTask iworld=:{clock,current={taskTime}}
 	# (mbTaskStuff,iworld) = case parType of
 		Embedded                = mkEmbedded iworld
 		(Detached evalDirect attr) = mkDetached evalDirect attr iworld
 	= case mbTaskStuff of
 		Ok (taskId,mbTask)
 			# state =
-				{ ParallelTaskState
+				{ TaskMeta
 				| taskId               = taskId
-				, detached             = isNothing mbTask
+				, instanceType         = TIPersistent "FIXME" (Just listId)//FIXME: Redundant information
+				, build                = "FIXME"
+				, createdAt            = clock
+				, valuestatus          = Unstable
+				, attachedTo           = []
+				, instanceKey          = Nothing
+				, firstEvent           = Just clock
+				, lastEvent            = Just clock
 				, taskAttributes       = 'DM'.newMap
 				, managementAttributes = 'DM'.newMap
 				, unsyncedAttributes   = 'DS'.newSet
-				, createdAt            = taskTime
-				, lastEvent            = taskTime
 				, change               = Nothing
 				, initialized          = False
 				}
@@ -333,7 +338,7 @@ where
 
 evalParallelTasks :: !Event !TaskEvalOpts
 	[TaskCont [(TaskTime,TaskValue a)] (ParallelTaskType,ParallelTask a)]
-	[(TaskId, TaskResult a)] [ParallelTaskState] (Map TaskId (TaskValue DeferredJSON)) !*IWorld
+	[(TaskId, TaskResult a)] [TaskMeta] (Map TaskId (TaskValue DeferredJSON)) !*IWorld
 	->
 	(MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
 evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [] values iworld
@@ -364,7 +369,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 					  # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=True}
 					  # (mbError,iworld)          = modify (\states -> states ++ [state]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 					  | mbError =:(Error _)       = (liftError mbError,iworld)
-					  # taskId                    = state.ParallelTaskState.taskId
+					  # taskId                    = state.TaskMeta.taskId
 					  //Store the task function
 					  # (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
 					  | mbError =:(Error _)       = (liftError mbError,iworld)
@@ -373,10 +378,10 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 		//There is more work to do:
 		todo    = evalParallelTasks event evalOpts conts completed todo values iworld
 where
-	isRemoved {ParallelTaskState|change=Just RemoveTask} = True
+	isRemoved {TaskMeta|change=Just RemoveTask} = True
 	isRemoved _ = False
 
-	addManagementAttributeChanges {ParallelTaskState|managementAttributes,unsyncedAttributes} (ValueResult val evalInfor rep tree)
+	addManagementAttributeChanges {TaskMeta|managementAttributes,unsyncedAttributes} (ValueResult val evalInfor rep tree)
 		//Add the explicit attributes
 		# rep = case rep of
 			ReplaceUI (UI type attr items)
@@ -390,10 +395,10 @@ where
 		= (ValueResult val evalInfor rep tree)
 	addManagementAttributeChanges pts c = c
 
-	clearAttributeSync pts = {ParallelTaskState| pts & unsyncedAttributes = 'DS'.newSet}
+	clearAttributeSync meta = {TaskMeta| meta & unsyncedAttributes = 'DS'.newSet}
 
 //Evaluate an embedded parallel task
-evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [t=:{ParallelTaskState|taskId=taskId=:(TaskId _ taskNo)}:todo] values iworld
+evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [t=:{TaskMeta|taskId=taskId=:(TaskId _ taskNo)}:todo] values iworld
 	# lastValue = fromMaybe NoValue $ 'DM'.get taskId values
 	= case evalParallelTask listId event evalOpts t lastValue iworld of
 		(Error e, iworld) = (Error e,iworld)
@@ -408,14 +413,16 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 		(Ok result=:DestroyedResult, iworld)
 			= evalParallelTasks event evalOpts conts [(taskId, result):completed] todo values iworld
 where
-	evalParallelTask :: TaskId !Event !TaskEvalOpts ParallelTaskState (TaskValue DeferredJSON) !*IWorld
+	evalParallelTask :: TaskId !Event !TaskEvalOpts TaskMeta (TaskValue DeferredJSON) !*IWorld
 		-> *(MaybeError TaskException (TaskResult a), !*IWorld) | iTask a
-	evalParallelTask listId event evalOpts taskState=:{ParallelTaskState|detached} value iworld
+	evalParallelTask listId=:(TaskId listInstance _) event evalOpts taskState=:{TaskMeta|taskId=TaskId taskInstance _} value iworld
 		| detached  = evalDetachedParallelTask listId event evalOpts taskState iworld
 		            = evalEmbeddedParallelTask listId event evalOpts taskState value iworld
+	where
+		detached = taskInstance <> listInstance
 
 	evalEmbeddedParallelTask listId event evalOpts
-		{ParallelTaskState|taskId,createdAt,change,initialized} value iworld=:{current={taskTime}}
+		{TaskMeta|taskId,createdAt,change,initialized} value iworld=:{current={taskTime}}
 		//Lookup task evaluation function and task evaluation state
 		# (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
@@ -446,8 +453,8 @@ where
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
 				//Write meta data
                 # (mbError,iworld) = modify
-						(\pts -> {ParallelTaskState|pts &
-							taskAttributes = taskAttributeUpdate pts.ParallelTaskState.taskAttributes, initialized = True})
+						(\meta -> {TaskMeta|meta &
+							taskAttributes = taskAttributeUpdate meta.TaskMeta.taskAttributes, initialized = True})
                         (sdsFocus (listId,taskId) taskInstanceParallelTaskListItem)
 						EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
@@ -467,8 +474,8 @@ where
 		(TaskId instanceNo taskNo)   = taskId
 	
 	//Retrieve result of detached parallel task
-	evalDetachedParallelTask :: !TaskId !Event !TaskEvalOpts !ParallelTaskState !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
-	evalDetachedParallelTask listId event evalOpts {ParallelTaskState|taskId=taskId=:(TaskId instanceNo _)} iworld
+	evalDetachedParallelTask :: !TaskId !Event !TaskEvalOpts !TaskMeta !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
+	evalDetachedParallelTask listId event evalOpts {TaskMeta|taskId=taskId=:(TaskId instanceNo _)} iworld
 		= case readRegister listId (sdsFocus instanceNo (removeMaybe Nothing taskInstanceValue)) iworld of
 			(Error e,iworld) = (Error e,iworld)
 			(Ok (ReadingDone (TIException dyn msg)),iworld) = (Ok (ExceptionResult (dyn,msg)),iworld)
@@ -503,10 +510,12 @@ where
 	minimalTaskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
 	                        ,includeValue=False,includeAttributes=False,includeProgress=False}
 
-	destroyParallelTask listId (_,exceptions,iworld) {ParallelTaskState|taskId,detached}
+	destroyParallelTask listId=:(TaskId listInstance _) (_,exceptions,iworld) {TaskMeta|taskId=taskId=:(TaskId taskInstance _)}
 		= case (if detached destroyDetachedParallelTask destroyEmbeddedParallelTask) listId taskId iworld of
 			(Error e, iworld) = (DestroyedResult, e ++ exceptions,iworld)
 			(Ok res, iworld) = (res, exceptions,iworld)
+	where
+		detached = taskInstance <> listInstance
 
 	destroyResult :: (TaskResult a) -> (TaskResult [(Int,TaskValue a)])
 	destroyResult DestroyedResult = DestroyedResult
@@ -622,7 +631,7 @@ where
 		# (mbStateMbTask, iworld) = initParallelTask mkEvalOpts listId parType parTask iworld
 		= case mbStateMbTask of
 			Ok (state,mbTask)
-				# taskId = state.ParallelTaskState.taskId
+				# taskId = state.TaskMeta.taskId
 				| listId == TaskId 0 0 //For the top-level list, we don't need to do anything else
 					//TODO: Make sure we don't lose the attributes!
 					= (Ok taskId, iworld)
@@ -671,8 +680,8 @@ where
 
 	//When a task is marked as removed, the index of the tasks after that are decreased
 	markAsRemoved removeId [] = []
-	markAsRemoved removeId [s=:{ParallelTaskState|taskId}:ss]
-		| taskId == removeId = [{ParallelTaskState|s & change = Just RemoveTask}:ss]
+	markAsRemoved removeId [s=:{TaskMeta|taskId}:ss]
+		| taskId == removeId = [{TaskMeta|s & change = Just RemoveTask}:ss]
 		| otherwise          = [s:markAsRemoved removeId ss]
 
 replaceTask :: !TaskId !(ParallelTask a) !(SharedTaskList a) -> Task () | iTask a
@@ -705,8 +714,8 @@ where
 		= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)
 
 	scheduleReplacement replaceId task [] = []
-	scheduleReplacement replaceId task [s=:{ParallelTaskState|taskId}:ss]
-		| taskId == replaceId   = [{ParallelTaskState|s & change = Just (ReplaceTask (dynamic task :: Task a^))}:ss]
+	scheduleReplacement replaceId task [s=:{TaskMeta|taskId}:ss]
+		| taskId == replaceId   = [{TaskMeta|s & change = Just (ReplaceTask (dynamic task :: Task a^))}:ss]
 		| otherwise             = [s:scheduleReplacement replaceId task ss]
 
 attach :: !InstanceNo !Bool -> Task AttachmentStatus

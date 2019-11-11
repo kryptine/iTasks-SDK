@@ -31,8 +31,10 @@ from System.FilePath import :: FilePath
 //FIXME: Extensions should not be imported in core
 from iTasks.Extensions.Document import :: Document, :: DocumentId
 
-derive JSONEncode TIMeta, TIType, TIReduct
-derive JSONDecode TIMeta, TIType, TIReduct
+derive JSONEncode TaskMeta, TIType, TIReduct
+derive JSONDecode TaskMeta, TIType, TIReduct
+
+derive gDefault TaskMeta
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -49,7 +51,7 @@ derive JSONDecode TIMeta, TIType, TIReduct
 	}
 */
 
-:: TIMeta =
+:: TaskMeta =
     //Static information
 	{ taskId        :: !TaskId	            //Unique global identification
 	, instanceType  :: !TIType              //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
@@ -68,19 +70,6 @@ derive JSONDecode TIMeta, TIType, TIReduct
 	// Control information 
 	, change               :: !Maybe TaskChange //Changes like removing or replacing a parallel task are only done when the
 	, initialized          :: !Bool //TODO: Get rid of in this record
-	}
-
-:: ParallelTaskState =
-	{ taskId               :: !TaskId                       //Identification
-	, detached             :: !Bool
-	, taskAttributes       :: !TaskAttributes            //Attributes that reflect the latest attributes from the task UI
-	, managementAttributes :: !TaskAttributes            //Attributes that are explicitly written to the list through the tasklist
-	, unsyncedAttributes   :: !Set String                //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
-	, createdAt			   :: !TaskTime                  //Time the entry was added to the set (used by layouts to highlight new items)
-	, lastEvent			   :: !TaskTime                  //Last modified time
-	, change               :: !Maybe TaskChange          //Changes like removing or replacing a parallel task are only done when the
-	                                                     //parallel is evaluated. This field is used to schedule such changes.
-	, initialized       :: !Bool
 	}
 
 :: TaskChange
@@ -104,7 +93,6 @@ derive JSONDecode TIMeta, TIType, TIReduct
    = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
 
-derive gDefault TIMeta
 
 :: InstanceFilter =
 	{ //'Vertical' filters
@@ -143,7 +131,7 @@ newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 nextInstanceNo :: SimpleSDSLens Int
 
 //This index contains all meta-data about the task instances on this engine
-taskInstanceIndex :: SimpleSDSLens [TIMeta]
+taskInstanceIndex :: SimpleSDSLens [TaskMeta]
 
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
@@ -161,7 +149,7 @@ taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIRe
 taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
 taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
 
-taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [ParallelTaskState])) (Maybe (Map TaskId [ParallelTaskState]))
+taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [TaskMeta])) (Maybe (Map TaskId [TaskMeta]))
 taskInstanceParallelValues  :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
 
 topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
@@ -175,11 +163,11 @@ allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
-taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
+taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [TaskMeta] [TaskMeta]
 taskInstanceParallelTaskListValues  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON)) 
 
 //Private interface used during evaluation of parallel combinator
-taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) ParallelTaskState ParallelTaskState
+taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) TaskMeta TaskMeta 
 taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
 
 taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask a
