@@ -66,14 +66,14 @@ where
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 toTaskListItem :: !InstanceData -> TaskListItem a
-toTaskListItem (instanceNo,Just {InstanceConstants|type},Just progress, Just attributes) //TODO Set self for current evaluating instance
+toTaskListItem (taskId,Just {InstanceConstants|type},Just progress, Just attributes) //TODO Set self for current evaluating instance
 	# listId = case type of
 		(PersistentInstance (Just listId)) = listId
 		_ = (TaskId 0 0)
-	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = mergeTaskAttributes attributes}
+	= {TaskListItem|taskId = taskId, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = mergeTaskAttributes attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|type,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
+taskInstanceFromInstanceData (TaskId instanceNo _,Just {InstanceConstants|type,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
 	# session = (type =: SessionInstance)
 	# listId = case type of
 		(PersistentInstance (Just listId)) = listId
@@ -115,7 +115,7 @@ taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    filter no = {InstanceFilter|onlyInstanceNo=Just [TaskId no 0],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
 
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")
@@ -128,7 +128,7 @@ taskInstanceAttributesByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
       (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+    filter no = {InstanceFilter|onlyInstanceNo=Just [TaskId no 0],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
 
     readItem [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
     readItem _                = Error (exception "Task instance not found")

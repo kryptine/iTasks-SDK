@@ -56,7 +56,7 @@ where
 	queueAll iworld
 		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
 		= case mbIndex of
-			Ok (ReadingDone index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadingDone index)    = foldl (\w (TaskId instanceNo _,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(Int,ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)

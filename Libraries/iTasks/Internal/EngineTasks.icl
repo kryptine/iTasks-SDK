@@ -46,7 +46,7 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated options (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
+    removeIfOutdated options ((TaskId instanceNo _),_,_,_) iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
 			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up

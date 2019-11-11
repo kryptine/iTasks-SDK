@@ -10,7 +10,7 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.SDS.Definition import :: SimpleSDSLens, :: SDSLens, :: SDSSequence
 from iTasks.Util.DeferredJSON import :: DeferredJSON
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: TaskEvalOpts, :: Event
-from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: InstanceConstants
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: InstanceConstants, :: ValueStatus
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.WF.Combinators.Core import :: TaskListFilter, :: TaskListItem
@@ -37,32 +37,51 @@ derive JSONDecode TIMeta, TIType, TIReduct
 //Persistent context of active tasks
 //Split up version of task instance information
 
+// This type is not actually used, because the parts are independent and accessed through different SDSs
+// We include it to illustrate what state a task consists of.
+/*
+:: TaskState =
+	{ task        :: Dynamic            // (Task a): The task, rewrites after each event
+	, meta        :: TaskMeta           // Constant data, and management 
+	, value       :: Value              // Last value
+	, progress    :: TaskProgress       //  tasks -attributes and evaluation info
+	, localshares :: Map TaskId Dynamic // Locally shared data (directly manipulated by subtasks)
+	}
+*/
+
 :: TIMeta =
     //Static information
-	{ instanceNo	:: !InstanceNo			//Unique global identification
+	{ taskId        :: !TaskId	            //Unique global identification
 	, instanceType  :: !TIType              //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
     , build         :: !String              //Application build version when the instance was created
-    , issuedAt      :: !Timespec
+    , createdAt     :: !Timespec
     //Evaluation information
-	, progress		        :: !InstanceProgress
+	, valuestatus   :: !ValueStatus
+    , attachedTo    :: ![TaskId]
+	, instanceKey   :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
+	, firstEvent    :: !Maybe Timespec    //* When was the first work done on this task
+	, lastEvent     :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
     //Identification and classification information
 	, taskAttributes        :: !TaskAttributes  //Cached attributes from the task UI
 	, managementAttributes  :: !TaskAttributes  //Arbitrary writable attributes for managing collections of task instances
+	, unsyncedAttributes    :: !Set String      //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
+	// Control information 
+	, change               :: !Maybe TaskChange //Changes like removing or replacing a parallel task are only done when the
+	, initialized          :: !Bool //TODO: Get rid of in this record
 	}
 
 :: ParallelTaskState =
 	{ taskId               :: !TaskId                       //Identification
-	, index                :: !Int                          //Explicit index (when shares filter the list, you want to keep access to the index in the full list)
 	, detached             :: !Bool
 	, taskAttributes       :: !TaskAttributes            //Attributes that reflect the latest attributes from the task UI
 	, managementAttributes :: !TaskAttributes            //Attributes that are explicitly written to the list through the tasklist
 	, unsyncedAttributes   :: !Set String                //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
-	, value                :: !TaskValue DeferredJSON    //Value (only for embedded tasks)
 	, createdAt			   :: !TaskTime                  //Time the entry was added to the set (used by layouts to highlight new items)
 	, lastEvent			   :: !TaskTime                  //Last modified time
 	, change               :: !Maybe TaskChange          //Changes like removing or replacing a parallel task are only done when the
 	                                                     //parallel is evaluated. This field is used to schedule such changes.
 	, initialized       :: !Bool
+	, value                :: !TaskValue DeferredJSON    //Value (only for embedded tasks)
 	}
 
 :: TaskChange
@@ -90,8 +109,8 @@ derive gDefault TIMeta
 
 :: InstanceFilter =
 	{ //'Vertical' filters
-	  onlyInstanceNo    :: !Maybe [InstanceNo]
-	, notInstanceNo     :: !Maybe [InstanceNo]
+	  onlyInstanceNo    :: !Maybe [TaskId]
+	, notInstanceNo     :: !Maybe [TaskId]
 	, includeSessions   :: !Bool
 	, includeDetached   :: !Bool
 	, includeStartup    :: !Bool
@@ -105,7 +124,7 @@ derive gDefault InstanceFilter
 derive class iTask InstanceFilter
 
 :: InstanceData :==
-	( !InstanceNo
+	( !TaskId
 	, !Maybe InstanceConstants
 	, !Maybe InstanceProgress
 	, !Maybe (TaskAttributes,TaskAttributes) // fst are management attributes; snd are implicit task attributes
