@@ -30,14 +30,17 @@ where
 			((dynamicCompoundEditor $ editor p).CompoundEditor.onEdit dp event mbSt childSts vst)
 
 	onRefresh dp (p, new) st=:(p`, mbSt) childSts vst
-		| p === p` =
+		# (uiForOldP, vst) = (dynamicCompoundEditor $ editor p`).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst
+		| isError uiForOldP = (liftError uiForOldP, vst)
+		# (uiForOldP, _, _) = fromOk uiForOldP
+		# (uiForNewP, vst) = (dynamicCompoundEditor $ editor p).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst
+		| isError uiForNewP = (liftError uiForNewP, vst)
+		# (uiForNewP, st, childSts) = fromOk uiForNewP
+		| uiForOldP === uiForNewP =
 			appFst
 				(fmap $ appSnd3 \st -> (p, st))
 				((dynamicCompoundEditor $ editor p).CompoundEditor.onRefresh dp new mbSt childSts vst)
-		| otherwise =
-			appFst
-				(fmap $ \(ui, st, childSts) -> (ReplaceUI ui, (p, st), childSts))
-				((dynamicCompoundEditor $ editor p).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst)
+		| otherwise = (Ok (ReplaceUI uiForNewP, (p, st), childSts), vst)
 
 	valueFromState (p, st) childSts
 		= (\val -> (p, val)) <$> (dynamicCompoundEditor $ editor p).CompoundEditor.valueFromState st childSts
@@ -598,7 +601,6 @@ where
 				case (funcs, fst) of
 					((f, g) :: (a -> b, [b] -> c), _ :: a) = dynamic (g $ fromDynList (dynamic f) args)
 					_                                      = abort "corrupt dynamic editor value"
-	valueCorrespondingToList _ _ = abort "corrupt dynamic editor value"
 
 	fromDynList :: !Dynamic ![Dynamic] -> [b] | TC b
 	fromDynList mapFunc dyns = fromDynList` dyns []

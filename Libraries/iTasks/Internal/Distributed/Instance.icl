@@ -18,7 +18,8 @@ from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Internal.Distributed.Domain import Domain
 from iTasks.UI.Editor.Common import emptyEditor
 import iTasks.Internal.SDS
-from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
+import Control.Applicative
+import Data.Maybe
 
 :: Source = Client Int InstanceNo
 	  | Server Int InstanceNo
@@ -132,8 +133,8 @@ where
 	notConnectedClientRequest [] = Nothing
 	notConnectedClientRequest [request:rest]
 		= case 'T'.split " " request of
-			["connect"]               -> return (-1, rest)
-			["reconnect", id]	  -> return (toInt id, rest)
+			["connect"]               -> pure (-1, rest)
+			["reconnect", id]	  -> pure (toInt id, rest)
 			_			  -> case notConnectedClientRequest rest of
 							(Just (id, reqs)) -> (Just (id, [request:reqs]))
 							Nothing            -> Nothing
