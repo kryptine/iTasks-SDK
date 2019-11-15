@@ -11,7 +11,6 @@ import StdBool, StdList, StdMisc, StdTuple, Data.Functor, Data.Maybe, StdString
 import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
-import iTasks.WF.Combinators.Overloaded
 import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.SDS
 import iTasks.SDS.Sources.Core

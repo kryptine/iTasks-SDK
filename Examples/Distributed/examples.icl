@@ -1,6 +1,7 @@
 module examples
 
 import iTasks.Extensions.Distributed.iTasks
+import iTasks.WF.Combinators.Common
 
 import Data.Functor
 import Data.Maybe
