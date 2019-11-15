@@ -12,11 +12,13 @@ import qualified iTasks.Internal.SDS as SDS
 import System.Time, Text, Text.GenJSON, Internet.HTTP, Data.Error
 import System.File, System.FilePath, System.Directory
 import iTasks.Engine
-import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
+import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskIO
 import iTasks.UI.Definition, iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.Internal.IWorld
 import iTasks.SDS.Combinators.Common
 import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
 import Text.HTML
+
+import iTasks.Extensions.Document
 
 from iTasks.Internal.HttpUtil import http_addRequestData, http_parseArguments
 

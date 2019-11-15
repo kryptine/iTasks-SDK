@@ -37,33 +37,8 @@ ActionClose		:==	Action "Close"
 	| Detached !Bool !TaskAttributes //* The boolean indicates whether the task should be evaluated directly
 	                                 //  ,the attributes are the initial managmenet attributes
 
-:: ParallelTask a	:== (SharedTaskList a) -> Task a
-
-// Data available to parallel sibling tasks
-:: TaskList a :== (!TaskId,![TaskListItem a])
 :: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
-
-:: TaskListItem a =
-	{ taskId			:: !TaskId
-    , listId            :: !TaskId
-    , detached          :: !Bool
-    , self              :: !Bool
-	, value				:: !TaskValue a
-	, attributes        :: !TaskAttributes
-	, progress		    :: !Maybe InstanceProgress //Only possible for detached tasks
-	}
-
-:: TaskListFilter =
-    //Which rows to filter
-    { onlyIndex         :: !Maybe [Int]
-    , onlyTaskId        :: !Maybe [TaskId]
-    , onlySelf          :: !Bool
-    //What to include
-    , includeValue      :: !Bool
-    , includeAttributes :: !Bool
-    , includeProgress   :: !Bool
-    }
-derive gDefault TaskListFilter
+:: ParallelTask a	:== (SharedTaskList a) -> Task a
 
 /**
 * State of another task instance.

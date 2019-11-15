@@ -1,7 +1,8 @@
 implementation module iTasks.Extensions.CSVFile
 
 import StdBool, StdList, System.FilePath, Text, Text.CSV, System.File, Data.Error 
-import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskStore
+import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState
+import iTasks.Extensions.Document
 
 importCSVFile :: !FilePath -> Task [[String]]
 importCSVFile filename = mkInstantTask eval

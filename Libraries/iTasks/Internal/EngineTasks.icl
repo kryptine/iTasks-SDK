@@ -6,9 +6,9 @@ import StdEnv
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskIO
 import iTasks.Internal.TaskServer
 import iTasks.Internal.TaskState
-import iTasks.Internal.TaskStore
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.UI.Definition
@@ -46,7 +46,7 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated options (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
+    removeIfOutdated options ((TaskId instanceNo _),_,_,_) iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
 			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up

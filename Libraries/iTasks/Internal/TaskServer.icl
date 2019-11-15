@@ -13,8 +13,10 @@ import Text
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
+import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
-import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskIO
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
@@ -54,7 +56,7 @@ where
 	queueAll iworld
 		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
 		= case mbIndex of
-			Ok (ReadingDone index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadingDone index)    = foldl (\w (TaskId instanceNo _,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(Int,ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
