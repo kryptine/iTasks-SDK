@@ -143,11 +143,11 @@ where
 		                        ]
 		= (Ok (uia type attr, (mbVal, attr)), vst)
 
-	onEdit _ (_, mbVal) (_, attrs) vst = (Ok (NoChange, (mbVal`, attrs)), vst)
+	onEdit _ (_, mbVal) (_, attrs) vst = (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs)), vst)
 	where
-		mbVal` = case mbVal of
-			Just val | isValid attrs val = Just val
-			_                            = Nothing
+		(mbVal`, valJSON) = case mbVal of
+			Just val | isValid attrs val = (Just val, trace_n "json" $ toJSON val)
+			_                            = (Nothing,  JSONNull)
 
 	onRefresh toJSON dp new (mbOld, attrs) vst
 		| mbOld === Just new = (Ok (NoChange, (mbOld, attrs)), vst)
@@ -157,7 +157,7 @@ where
 
 	editorWithJSONEncode :: !((a -> JSONNode) -> Editor a) -> Editor a | JSONEncode{|*|} a
 	editorWithJSONEncode genFunc = genFunc toJSON
-
+import StdDebug
 //Components which cannot be edited 
 viewComponent :: !(a -> UIAttributes) !UIType -> Editor a | JSONEncode{|*|}, JSONDecode{|*|} a
 viewComponent toAttributes type = leafEditorToEditor leafEditor

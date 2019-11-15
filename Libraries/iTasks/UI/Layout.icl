@@ -1108,9 +1108,10 @@ where
 			= Just (ChangeChild change)
 		| otherwise
 			= Nothing
-
+import Debug.Trace
 extractAttributeChanges :: !UIAttributes !LUIChanges !LUIEffects -> [UIAttributeChange]
 extractAttributeChanges attr changes=:{setAttributes,delAttributes} effects=:{overwrittenAttributes,hiddenAttributes}
+	# attr = trace_stdout attr
 	//Apply changes to the attributes
 	# changes = foldl (applySetAttribute overwrittenAttributes hiddenAttributes) [] ('DM'.toList setAttributes)
 	# changes = foldl (applyDelAttribute overwrittenAttributes hiddenAttributes) changes ('DS'.toList delAttributes)

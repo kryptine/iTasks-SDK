@@ -264,7 +264,7 @@ workOnChosenTask choiceOption options =
 						(SelectByDepth 1)
 						(SelectNOT $ SelectByAttribute "visible" $ \val -> val =: (JSONBool True))
 					)
-					hideUI
+					(addCSSClass "itasks-hidden")
 				)
 		)
 	-&&-
