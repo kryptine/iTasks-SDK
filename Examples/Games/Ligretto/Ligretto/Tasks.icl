@@ -31,11 +31,11 @@ play :: !(!Color,!String) !(Shared sds GameSt) -> Task (Color,String) | RWShared
 play (me,name) game_st
     =   Hint name @>> updateSharedInformation [ligrettoEditor me] game_st
     >>* [OnValue (withValue (\gameSt -> determine_winner gameSt
-                            `b` \winner -> Just (accolades winner me game_st >>| treturn winner)))]
+                            `b` \winner -> Just (accolades winner me game_st >>| return winner)))]
 
 show_winner :: Color (Shared sds GameSt) GameSt -> Task (Color,String) | RWShared sds
 show_winner me game_st gameSt
-	= accolades winner me game_st >>| treturn winner
+	= accolades winner me game_st >>| return winner
 where
 	{color,name} = fromJust (and_the_winner_is gameSt)
 	winner		 = (color,name)
@@ -44,7 +44,7 @@ game_over :: !Color !(Shared sds GameSt) !GameSt -> Maybe (Task (Color,String)) 
 game_over me game_st gameSt
   =                    and_the_winner_is gameSt
   `b` \{color,name} -> (let winner = (color,name)
-					   in Just (accolades winner me game_st >>| treturn winner))
+					   in Just (accolades winner me game_st >>| return winner))
 
 accolades :: !(!Color,!String) !Color !(Shared sds GameSt) -> Task GameSt | RWShared sds
 accolades winner me game_st

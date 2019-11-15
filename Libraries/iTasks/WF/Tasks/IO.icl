@@ -70,7 +70,7 @@ where
 				       ,stderrq ++ filter ((<>)"") [stderrData]
 				       ) sdsout EmptyContext))          >-= \WritingDone->
 			liftOSErr (checkProcess ph)                 >-= \mexitcode->case mexitcode of
-				(Just i) = tuple (Ok (ValueResult (Value i True) (mkTaskEvalInfo lastEval) (mkUIIfReset event rep) (treturn i)))
+				(Just i) = tuple (Ok (ValueResult (Value i True) (mkTaskEvalInfo lastEval) (mkUIIfReset event rep) (return i)))
 				Nothing =
 					readRegister taskId clock >-= \_->
 					readRegister taskId sdsin >-= \(ReadingDone stdinq)->
