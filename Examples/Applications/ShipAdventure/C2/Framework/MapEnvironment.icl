@@ -12,13 +12,13 @@ import qualified Data.Heap as DH
 from Data.Heap import :: Heap
 import Data.GenLexOrd
 from C2.Framework.Logging import addLog
-import C2.Apps.ShipAdventure.Types => qualified >>=, return, >>|, sequence
+import C2.Apps.ShipAdventure.Types => qualified >>=, >>|, sequence
 import Data.List
 import Data.Eq
 import Data.Maybe
 import Data.Functor
 import Data.Either
-import Control.Monad => qualified forever
+import Control.Monad => qualified forever, return
 
 import StdMisc
 
@@ -326,7 +326,7 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
                  (   upd ('DM'.put actor.userName actor) userToActorShare
                  >-| move (0, {col = 0, row = 0}) location actor.userName
                  >-| moveAround roomViz actor.userName inventoryForSectionShare shipStatusShare userToActorShare inventoryForAllSectionsShare)
-                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>- \_->treturn ())
+                 (Hint ("Section with number: " <+++ location <+++ " does not exist") @>> viewInformation [] () >>- \_->return ())
 
 :: UITag :== [Int]
 
@@ -556,7 +556,7 @@ useObject c3d object user userActorShare shFocusedSectionInventory
                          Just actor
                            | hasObject object actor
                            = set ('DM'.put user {actor & carrying = removeObject object actor.carrying} userActorMap) userActorShare @! True
-                         _ = treturn False
+                         _ = return False
 
 hasObject :: !(Object o) !(Actor o a) -> Bool
 hasObject obj actor = length [0 \\ obj` <- actor.carrying | obj.objId == obj`.objId] > 0
@@ -588,7 +588,7 @@ autoMove :: !Coord3D !Coord3D
             !User !(Shared sds (SectionStatusMap r)) !(UserActorShare o a)
          -> Task Bool | iTask r & iTask o & iTask a & RWShared sds
 autoMove thisSection target pathFun user shipStatusShare userToActorShare
-  | thisSection == target = treturn True
+  | thisSection == target = return True
   | otherwise
       =                 get sectionUsersShare
       >>- \actorMap  -> case sectionForUser user actorMap of
@@ -603,8 +603,8 @@ autoMove thisSection target pathFun user shipStatusShare userToActorShare
                                                   >-| move roomCoord nextSection user
                                                   >-| addLog user "" ("Has moved to Section " <+++ nextSection)
                                                   >-| autoMove nextSection target pathFun user shipStatusShare userToActorShare
-                                                _ = treturn False
-                          _ = treturn False
+                                                _ = return False
+                          _ = return False
 
 // room updating
 
@@ -615,7 +615,7 @@ updActorStatus user upd userToActorShare
   =                    get userToActorShare
   >>- \userActorMap -> case 'DM'.get user userActorMap of
                          Just actor -> set ('DM'.put user {actor & actorStatus = upd actor.actorStatus} userActorMap) userToActorShare @! ()
-                         Nothing    -> treturn ()
+                         Nothing    -> return ()
 
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 sectionForUser u sectionUsersMap = listToMaybe [k \\ (k, us) <- 'DM'.toList sectionUsersMap, u` <- us | u` == u]
@@ -640,7 +640,7 @@ findUser :: !User !SectionUsersMap !(UserActorMap o a) -> Maybe (!Coord3D, !Acto
 findUser usr sectionUsersMap userActorMap
   =         'DM'.get usr userActorMap
   >>= \a -> sectionForUser usr sectionUsersMap
-  >>= \s -> return (s, a)
+  >>= \s -> pure (s, a)
 
 // room status updating
 toggleDoor :: !Coord3D !Dir -> Task ()
