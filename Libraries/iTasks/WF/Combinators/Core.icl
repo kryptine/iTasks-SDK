@@ -218,7 +218,7 @@ where
 		= case initParallelTasks evalOpts taskId initTasks iworld of
 			(Ok (taskList,embeddedTasks),iworld)
 				//Write the local task list
-				# taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+				# taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 				# (e,iworld) = (write taskList (sdsFocus (taskId, taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Write the local embedded tasks
@@ -343,7 +343,7 @@ evalParallelTasks :: !Event !TaskEvalOpts
 	(MaybeError TaskException [TaskResult a],!*IWorld) | iTask a
 evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [] values iworld
 	//(re-)read the tasklist to check if it contains items we have not yet evaluated
-	# taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+	# taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 	# (mbList,iworld)       = read (sdsFocus (listId,taskListFilter) (taskInstanceParallelTaskList |*| taskInstanceParallelTaskListValues)) EmptyContext iworld
 	| mbList =:(Error _)    = (Error (fromError mbList),iworld)
 	# (states,values)       = directResult (fromOk mbList)
@@ -352,7 +352,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 		[]  = case searchContValue (genParallelValue (reverse (map snd completed))) (matchAction listId event) conts of
 			Nothing //We have evaluated all branches and nothing is added
 				//Remove all entries that are marked as removed from the list, they have been cleaned up by now
-				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=False}
+				# taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=True,includeProgress=False}
 
                 # (mbError,iworld)      = modify (\l -> [clearAttributeSync x \\ x <- l | not (isRemoved x)])
 											(sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
@@ -366,7 +366,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 				= case mbStateMbTask of
 					Ok (state,mbTask)
 					  //Update the task list (TODO, be specific about what we are writing here)
-					  # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=True}
+					  # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=True,includeProgress=True}
 					  # (mbError,iworld)          = modify (\states -> states ++ [state]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 					  | mbError =:(Error _)       = (liftError mbError,iworld)
 					  # taskId                    = state.TaskMeta.taskId
@@ -507,7 +507,7 @@ destroyParallelTasks listId=:(TaskId instanceNo _) iworld
 				= (destroyResult result, iworld)
 			= (ExceptionResult (exception (ExceptionList exceptions)), iworld)
 where
-	minimalTaskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
+	minimalTaskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing
 	                        ,includeValue=False,includeAttributes=False,includeProgress=False}
 
 	destroyParallelTask listId=:(TaskId listInstance _) (_,exceptions,iworld) {TaskMeta|taskId=taskId=:(TaskId taskInstance _)}
@@ -616,7 +616,8 @@ readListId slist iworld = case read (sdsFocus taskListFilter slist) EmptyContext
 	(Ok e,iworld)	= (Ok (fst (directResult e)), iworld)
 	(Error e, iworld)	    = (Error e, iworld)
 where
-    taskListFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
+    taskListFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing
+		,includeValue=False,includeAttributes=False,includeProgress=False}
 
 appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | iTask a
 appendTask parType parTask slist = mkInstantTask eval
@@ -636,7 +637,7 @@ where
 					//TODO: Make sure we don't lose the attributes!
 					= (Ok taskId, iworld)
 			  	//Update the task list
-				# taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+				# taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 				# (mbError,iworld)    =  modify (\states -> states ++ [state]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 				| mbError =:(Error _) = (liftError mbError,iworld)
 				//If the task is an embedded one, we also need to store the task function
@@ -667,7 +668,7 @@ where
 				(mkUIIfReset event (ui UIEmpty))
 				(treturn ()), iworld)
 		//Mark the task as removed, and update the indices of the tasks afterwards
-		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 		# (mbError,iworld)      = modify (markAsRemoved removeId) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 		| mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
 		//If it is a detached task, remove the detached instance, if it is embedded, pass notify the currently evaluating parallel
@@ -708,7 +709,7 @@ where
 					= (ExceptionResult e,iworld)
 		//Schedule the change in the parallel task state
 		# task                  = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
-		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+		# taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 		# (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 		| mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
 		= (ValueResult (Value () True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn ()), iworld)

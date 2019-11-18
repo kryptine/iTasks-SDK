@@ -235,7 +235,7 @@ where
 	processControl tlist
 		= viewSharedInformation [ViewAs toView] (sdsFocus filter tlist) @? const NoValue
     where
-        filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
+        filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, notTaskId=Nothing, onlyIndex = Just [1],onlyAttribute=Nothing
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 
     toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =

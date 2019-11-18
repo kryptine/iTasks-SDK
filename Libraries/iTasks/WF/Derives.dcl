@@ -32,10 +32,10 @@ derive gText      {}
 //Common iTasks system types
 derive class iTask TaskId, TaskListFilter, AttachmentStatus
 
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
+derive JSONEncode		TaskValue, TaskListItem, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
+derive JSONDecode		TaskValue, TaskListItem, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
+derive gEq				TaskValue, TaskListItem, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
 
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
+derive gText	        TaskValue, TaskListItem, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEditor			TaskValue, TaskListItem, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
 

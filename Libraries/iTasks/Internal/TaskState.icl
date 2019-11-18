@@ -62,6 +62,9 @@ derive gText TaskChange, Set
 
 derive class iTask InstanceFilter
 
+instance < TaskMeta where
+	(<) {TaskMeta|taskId=t1} {TaskMeta|taskId=t2} = t1 < t2
+
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 mergeTaskAttributes (explicit,implicit) = 'DM'.union explicit implicit
 
@@ -76,6 +79,11 @@ rawInstanceValue          = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 rawInstanceShares         = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 rawInstanceParallels      = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
 rawInstanceParallelValues = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+
+allTaskLists :: SDSLens TaskId [TaskMeta] [TaskMeta]
+allTaskLists  = sdsTranslate "allTaskLists" param $ storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
+where
+	param (TaskId instanceNo taskNo) = "tasklist-"+++toString instanceNo +++ "-" +++toString taskNo
 
 //Master instance index
 taskInstanceIndex :: SimpleSDSLens [TaskMeta]
@@ -205,7 +213,7 @@ replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskT
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
 	//Delete in index
-	# taskFilter = {defaultValue & includeSessions = True, includeDetached = True, includeStartup = True}
+	# taskFilter = {InstanceFilter|defaultValue & includeSessions = True, includeDetached = True, includeStartup = True}
 	# (mbe,iworld)    = 'SDS'.modify (\is -> [i \\ i=:(taskId,_,_,_) <- is | taskId <> TaskId instanceNo 0])
 		(sdsFocus taskFilter filteredInstanceIndex) 'SDS'.EmptyContext iworld
 	| mbe =: (Error _) = (toME mbe,iworld)
@@ -217,6 +225,74 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
   where
 	toME (Ok ('SDS'.ModifyingDone _)) = Ok ()
 	toME (Error e) = (Error e)
+
+taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
+taskListMetaData
+	= sdsLens "taskListMetaData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskLists
+where
+	param (listId,_,_,_) = listId
+	read (listId,selfId,tfilter,efilter) rows
+		= Ok (listId, map snd $ filter (inFilter tfilter efilter) $ enumerate rows)
+
+	write (listId,selfId,tfilter,efilter) rows updates
+		= Ok $ Just $ update (inFilter tfilter efilter) (enumerate $ sort rows) (sort updates)
+	where
+		update pred [(i,o):os] [n:ns]
+			| o.TaskMeta.taskId == n.TaskMeta.taskId //Potential update
+				| pred (i,o) = [n:update pred os ns] //Only update the item if it matches the filter
+				| otherwise  = [o:update pred os ns]
+			| o.TaskMeta.taskId < n.TaskMeta.taskId //The taskId of the old item is not in the written set
+				| pred (i,o) = update pred os [n:ns] //The old item was in the filter, so it was removed
+				| otherwise  = [o:update pred os [n:ns]] //The old item was not in the filter, so it is ok that is not in the written list
+			| otherwise
+				| pred (-1,n) = [n:update pred [(i,o):os] ns] //New items don't have an index yet
+				| otherwise  = update pred [(i,o):os] ns
+
+		update pred [] ns = [n \\ n <- ns | pred (-1,n)] //All new elements are only added if they are within the filter
+		update pred os [] = [o \\ (i,o) <- os | not (pred (i,o))] //Only keep old elements if they were outside the filter
+
+	notify (plistId,pselfId,ptfilter,pefilter) rows updates ts (qlistId,qselfId,qtfilter,qefilter)
+		| plistId <> qlistId = False //Not the same list
+		| pselfId == qselfId = False //To prevent self referencing loops, don't notify when the writing branch is the same as the registered branch
+		//Check overlap:
+		//This is similar to updating, but now we just determine the rows that would be affected and then check
+		//if these rows also matched the registered filter
+		| otherwise = check (inFilter ptfilter pefilter) (inFilter qtfilter qefilter) (enumerate $ sort rows) (sort updates)
+	where
+		check ppred qpred [] [] = False //We haven't found a reason to notify
+		check ppred qpred [(i,o):os] [n:ns]
+			| o.TaskMeta.taskId == n.TaskMeta.taskId //Potential update
+				| ppred (i,o) && qpred (i,o) = True //This item would be updated, and matches the registered filter
+				| otherwise  = check ppred qpred os ns
+			| o.TaskMeta.taskId < n.TaskMeta.taskId //The taskId of the old item is not in the written set
+				| ppred (i,o) && qpred (i,o) = True //This item would be deleted, and matches the registered filter
+				| otherwise  = check ppred qpred os [n:ns] //The old item was not in the filter, so it is ok that is not in the written list
+			| otherwise
+				| ppred (-1,n) && qpred (-1,n) = True//This item would be inserted, and matches the registered filter
+				| otherwise  = check ppred qpred [(i,o):os] ns
+		check ppred qpred [] [n:ns]
+			| ppred (-1,n) && qpred (-1,n) = True //This item would be newly appended and macthes the registered filter
+			| otherwise = check ppred qpred [] ns
+		check ppred qpred [(i,o):os] []
+			| (not $ ppred (i,o)) && qpred (i,o) = True //This item would be deleted and matches the registered filter
+			| otherwise = check ppred qpred os []
+
+	enumerate l = [(i,x) \\ x <- l & i <- [0..]]
+
+	inFilter
+		{TaskListFilter|onlyTaskId,notTaskId,onlyIndex,onlyAttribute}
+		{ExtendedTaskListFilter|includeSessions,includeDetached,includeStartup}
+		(index, {TaskMeta|taskId,instanceType,taskAttributes,managementAttributes})
+		=  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
+		&& maybe True (\taskIds -> not (isMember taskId taskIds)) notTaskId
+		&& maybe True (\indices -> isMember index indices) onlyIndex
+		&& maybe True (\(mk,mv) ->
+			(maybe False ((==) mv) ('DM'.get mk taskAttributes)
+			|| maybe False ((==) mv) ('DM'.get mk managementAttributes))) onlyAttribute
+        && ((includeSessions && instanceType =: (TISession _)) ||
+		    (includeDetached && instanceType =: (TIPersistent _ _)) ||
+		    (includeStartup && instanceType =: (TIStartup))
+		   )
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
@@ -418,9 +494,11 @@ where
 	//enumerate = zip2 [0..]
 	enumerate l = [(i,x) \\ x <- l & i <- [0..]]
 
-	inFilter {TaskListFilter|onlyTaskId,onlyIndex} (index, {TaskMeta|taskId})
+	inFilter {TaskListFilter|onlyTaskId,notTaskId,onlyIndex,onlyAttribute} (index, {TaskMeta|taskId,taskAttributes,managementAttributes})
 		=  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
+		&& maybe True (\taskIds -> not (isMember taskId taskIds)) notTaskId
 		&& maybe True (\indices -> isMember index indices) onlyIndex
+		&& maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk taskAttributes) || maybe False ((==) mv) ('DM'.get mk managementAttributes))) onlyAttribute
 
 	//ASSUMPTION: BOTH LISTS ARE SORTED BY TASK ID
 	merge:: TaskListFilter [(Int,TaskMeta)] [TaskMeta] -> [TaskMeta]
@@ -460,7 +538,7 @@ taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId) TaskMeta TaskMeta
 taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskList
 where
 	param (listId,taskId)
-		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=False,includeAttributes=True,includeProgress=False})
+		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=True,includeProgress=False})
 	read p=:(listId,taskId) [] = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
 	read p=:(_,taskId) [x:xs] = if (x.TaskMeta.taskId == taskId) (Ok x) (read p xs)
 	write (_,taskId) list pts = Ok (Just [if (x.TaskMeta.taskId == taskId) pts x \\ x <- list])
@@ -471,7 +549,7 @@ taskInstanceParallelTaskListValue :: SDSLens (TaskId,TaskId) (TaskValue Deferred
 taskInstanceParallelTaskListValue = sdsLens "taskInstanceParallelTaskListValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskListValues
 where
 	param (listId,taskId)
-		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False})
+		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=False,includeProgress=False})
 	read p=:(listId,taskId) values = case 'DM'.get taskId values of
 		(Just x) = (Ok x)
 		_        = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))

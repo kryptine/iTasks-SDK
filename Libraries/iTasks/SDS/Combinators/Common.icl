@@ -161,23 +161,23 @@ where
 taskListState :: !(SharedTaskList a) -> SDSLens () [TaskValue a] () | TC a
 taskListState tasklist = mapRead (\(_,items) -> [value \\ {TaskListItem|value} <- items]) (toReadOnly (sdsFocus listFilter tasklist))
 where
-    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False}
+    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=False,includeProgress=False}
 
 taskListMeta :: !(SharedTaskList a) -> SDSLens () [TaskListItem a] [(TaskId,TaskAttributes)] | TC a
 taskListMeta tasklist = mapRead (\(_,items) -> items) (sdsFocus listFilter tasklist)
 where
-    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
+    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
 
 taskListIds :: !(SharedTaskList a) -> SDSLens () [TaskId] () | TC a
 taskListIds tasklist = mapRead prj (toReadOnly (sdsFocus listFilter tasklist))
 where
-    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
+    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=False}
     prj (_,items) = [taskId \\ {TaskListItem|taskId} <- items]
 
 taskListEntryMeta :: !(SharedTaskList a) -> SDSLens TaskId (TaskListItem a) TaskAttributes | TC a
 taskListEntryMeta tasklist = mapSingle (sdsSplit "taskListEntryMeta" param read write (Just reducer) tasklist)
 where
-    param p = ({onlyIndex=Nothing,onlyTaskId=Just [p],onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True},p)
+    param p = ({onlyIndex=Nothing,onlyTaskId=Just [p],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True},p)
     read p (_,items) = [i \\ i=:{TaskListItem|taskId} <- items | taskId == p]
     write p _ attributes    = ([(p,a) \\ a <- attributes], const ((==) p))
     reducer _ l = Ok (snd (unzip l))
@@ -185,7 +185,7 @@ where
 taskListSelfId :: !(SharedTaskList a) -> SDSLens () TaskId () | TC a
 taskListSelfId tasklist = mapRead (\(_,items) -> hd [taskId \\ {TaskListItem|taskId,self} <- items | self]) (toReadOnly (sdsFocus listFilter tasklist))
 where
-    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=True,includeValue=False,includeAttributes=False,includeProgress=False}
+    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=True,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=False}
 
 taskListSelfManagement :: !(SharedTaskList a) -> SimpleSDSLens TaskAttributes | TC a
 taskListSelfManagement tasklist = mapReadWriteError (toPrj,fromPrj) (Just reducer) (sdsFocus listFilter tasklist)
@@ -197,15 +197,15 @@ where
     fromPrj attributes (_,[{TaskListItem|taskId}])
         = Ok (Just [(taskId,attributes)])
 
-    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=True,includeValue=False,includeAttributes=True,includeProgress=False}
+    listFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=True,onlyAttribute=Nothing,includeValue=False,includeAttributes=True,includeProgress=False}
 
     reducer _ [(_,attr)] = Ok attr
 
 taskListItemValue :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) (TaskValue a) () | TC a
 taskListItemValue tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemValue" listFilter tasklist))
 where
-    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False}
-    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=True,includeAttributes=False,includeProgress=False}
+    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=False,includeProgress=False}
+    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=False,includeProgress=False}
 
     read (_,items) = case [value \\ {TaskListItem|value} <- items] of
         vs=:[v:_]   = (Ok v)
@@ -214,8 +214,8 @@ where
 taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) InstanceProgress () | TC a
 taskListItemProgress tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemProgress" listFilter tasklist))
 where
-    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=True}
-    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=True}
+    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=True}
+    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=True}
 
     read (_,items) = case [p \\ {TaskListItem|progress=Just p} <- items] of
         [p:_]   = Ok p

@@ -10,7 +10,7 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.SDS.Definition import :: SimpleSDSLens, :: SDSLens, :: SDSSequence
 from iTasks.Util.DeferredJSON import :: DeferredJSON
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: TaskEvalOpts, :: Event
-from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: InstanceConstants, :: ValueStatus
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: ValueStatus
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.WF.Combinators.Core import :: TaskListFilter, :: TaskListItem
@@ -43,10 +43,9 @@ derive gDefault TaskMeta
 // We include it to illustrate what state a task consists of.
 /*
 :: TaskState =
-	{ task        :: Dynamic            // (Task a): The task, rewrites after each event
+	{ task        :: Task a             // (Task a): The task, rewrites after each event
 	, meta        :: TaskMeta           // Constant data, and management 
 	, value       :: Value              // Last value
-	, progress    :: TaskProgress       //  tasks -attributes and evaluation info
 	, localshares :: Map TaskId Dynamic // Locally shared data (directly manipulated by subtasks)
 	}
 */
@@ -81,6 +80,16 @@ derive gDefault TaskMeta
 	| TISession !InstanceKey
 	| TIPersistent !InstanceKey !(Maybe TaskId)
 
+//Internally we need more options to filter task list data
+:: ExtendedTaskListFilter =
+	//Extra filter on task type
+	{ includeSessions   :: !Bool
+	, includeDetached   :: !Bool
+	, includeStartup    :: !Bool
+	//Extra horizontal filtering options
+	, includeTaskReduct :: !Bool
+	}
+
 :: TIReduct =
 	{ task			:: !Task DeferredJSON               //Main task definition
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
@@ -92,7 +101,6 @@ derive gDefault TaskMeta
 :: TIValue
    = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
-
 
 :: InstanceFilter =
 	{ //'Vertical' filters
@@ -107,6 +115,7 @@ derive gDefault TaskMeta
 	, includeProgress   :: !Bool
 	, includeAttributes :: !Bool
 	}
+
 derive gDefault InstanceFilter
 derive class iTask InstanceFilter
 
@@ -116,6 +125,24 @@ derive class iTask InstanceFilter
 	, !Maybe InstanceProgress
 	, !Maybe (TaskAttributes,TaskAttributes) // fst are management attributes; snd are implicit task attributes
 	)
+
+// Instance data which does not change after creation (except when a task is replaced)
+:: InstanceConstants =
+    { type          :: !InstanceType        //* The type of task instance: startup, session or persistent
+    , build         :: !String              //* Application build version when the instance was created
+    , issuedAt		:: !Timespec            //* When was the task created
+    }
+
+/**
+* There are three types of task instances:
+* Startup instances: temporary tasks that are started when a task server starts up, typically driven by a clock or external I/O.
+* Session instances: temporary tasks that represent and facilitate interactive sessions between a user and the server.
+* Persistent instances: persistent long-running tasks that may be shared between users and exist between sessions.
+*/
+:: InstanceType
+	= StartupInstance
+	| SessionInstance
+	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
@@ -130,8 +157,7 @@ newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 //This counter is used to ensure unique instance numbers
 nextInstanceNo :: SimpleSDSLens Int
 
-//This index contains all meta-data about the task instances on this engine
-taskInstanceIndex :: SimpleSDSLens [TaskMeta]
+taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
 
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
@@ -150,9 +176,8 @@ taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIVal
 taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
 
 taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [TaskMeta])) (Maybe (Map TaskId [TaskMeta]))
-taskInstanceParallelValues  :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
+taskInstanceParallelValues    :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
 
-topLevelTaskList        :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
@@ -172,8 +197,46 @@ taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue Deferr
 
 taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask a
 
+
+//Access to tasklists
+/*
+:: InstanceFilter =
+	{ //'Vertical' filters
+	  onlyInstanceNo    :: !Maybe [TaskId]
+	, notInstanceNo     :: !Maybe [TaskId]
+	, includeSessions   :: !Bool
+	, includeDetached   :: !Bool
+	, includeStartup    :: !Bool
+	, matchAttribute 	:: !Maybe (!String,!JSONNode)
+	  //'Horizontal' filters
+	, includeConstants  :: !Bool
+	, includeProgress   :: !Bool
+	, includeAttributes :: !Bool
+	}
+:: TaskListFilter =
+    //Which rows to filter
+    { onlyIndex         :: !Maybe [Int]
+    , onlyTaskId        :: !Maybe [TaskId]
+    , notTaskId         :: !Maybe [TaskId] //NEW
+	, onlyAttribute 	:: !Maybe (!String,!JSONNode) //New
+    , onlySelf          :: !Bool
+	//Filter based on type 
+    , includeValue      :: !Bool
+    , includeAttributes :: !Bool
+    , includeProgress   :: !Bool
+    }
+
+taskListData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId, [TaskMeta], Map TaskId (TaskValue a), Task a) | iTask a
+taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
+taskListValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+taskListTaskData  :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
+*/
+
+
 //Public interface used by parallel tasks
-parallelTaskList                    :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
+parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
+
+topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
 
 //=== Access functions: ===
 
