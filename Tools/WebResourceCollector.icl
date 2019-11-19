@@ -1,6 +1,6 @@
 module WebResourceCollector
 /**
-* This program collects and creates all the necessary public web resources that an iTasks program 
+* This program collects and creates all the necessary public web resources that an iTasks program
 * needs to run. These are for example, static javascript files, images and the html launch page.
 *
 * To find bundled public resources it looks in a project file which modules are
@@ -10,7 +10,7 @@ module WebResourceCollector
 * It also creates an aggregated css file with additional style rules that are needed by Clean modules.
 * If for an imported Clean module a file exists with the same name, but a .css extension it is included in the aggregation.
 * The total collected css is written to "<applicationname>-webpublic/css/itasks-modules.css"
-* 
+*
 * To always bundle the right versions of web resources, this program must be run after every build in the link phase.
 */
 
@@ -18,6 +18,8 @@ import StdEnv
 import System.CommandLine
 import System.File, System.FilePath, System.Directory
 import Data.Error
+import Data.Tuple
+import System.OSError
 import Text
 
 Start :: *World -> *World
@@ -26,8 +28,8 @@ Start world
 	# (argv,world) = getCommandLine world
 	| length argv <> 5 = world //Fail
 	# (content,world) = readFile (argv !! 2) world //When called by the IDE or cpm the second argument will be the 'linkopts' file
-	| isError content 
-		= print (toString (fromError content)) world 
+	| isError content
+		= abort ("Error opening " +++ argv !! 2)
 	# content = fromOk content
 	# outDir = exePathToOutputDir (lookupExePath content)
 	# inDirs = objectPathsToInputDirs (lookupObjectPaths content)
@@ -37,15 +39,13 @@ Start world
 	//Create output dir and 'css' dir in it
 	# (mbErr,world) = createDirectory outDir world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
-		# (errorcode,errormsg) = fromError mbErr
-		= print errormsg world
+		= abort ("Unable to create directory: " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	# (mbErr,world) = createDirectory (outDir </> "css") world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
-		# (errorcode,errormsg) = fromError mbErr
-		= print errormsg world
+		= abort ("Unable to create directory: " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	//Create the aggregated css file
 	# (mbErr,world) = writeFile cssFile "" world
-	# world = foldr (\f w -> aggregateCSS f cssFile w) world cssParts 
+	# world = foldr (\f w -> aggregateCSS f cssFile w) world cssParts
 	//Copy the contents of the input dirs if they exist
 	# world = foldr (\d w -> copyWebResources d outDir w) world inDirs
 	= world
@@ -84,21 +84,21 @@ where
 objectPathsToCSSFiles :: [FilePath] -> [FilePath]
 objectPathsToCSSFiles paths = map rewrite paths
 where
-	rewrite path = addExtension (join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (dropExtension path))))) "css" 
+	rewrite path = addExtension (join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (dropExtension path))))) "css"
 
 //Copy the web resources if the input directory exists
 copyWebResources :: !FilePath !FilePath !*World -> *World
 copyWebResources indir outdir world
 	# (dir,world) = isDirectory indir world
-	| dir       
+	| dir
 		# world = print ("Copying resources from "+++indir) world
 		= copyDirectoryContent indir outdir world
 	| otherwise = world
 
 aggregateCSS :: !FilePath !FilePath !*World -> *World
-aggregateCSS inFile outFile world 
+aggregateCSS inFile outFile world
 	# (exists,world) = fileExists inFile world
-	| exists 
+	| exists
 		# world = print ("Adding css file "+++inFile) world
 		= copyFile inFile outFile True world
 	| otherwise = world
@@ -107,7 +107,7 @@ aggregateCSS inFile outFile world
 isDirectory :: !FilePath !*World -> (!Bool, !*World)
 isDirectory path world = case getFileInfo path world of
 	(Ok {FileInfo|directory},world) = (directory,world)
-	(_,world) 						= (False,world)
+	(_,world)                       = (False,world)
 
 copyDirectoryContent :: !FilePath !FilePath !*World -> *World
 copyDirectoryContent indir outdir world
@@ -119,7 +119,9 @@ where
 		| item == "." || item == ".." = world
 		# (dir,world) = isDirectory (indir </> item) world
 		| dir //Create the target directory and recursively copy content
-			# (_,world) = createDirectory (outdir </> item) world
+			# (mbErr,world) = createDirectory (outdir </> item) world
+			| isError mbErr && not (mbErr =: (Error (17, _)))
+				= abort ("Error creating directory: " +++ outdir </> item +++ ": " +++ toString (fromError mbErr) +++ "\n")
 			= copyDirectoryContent (indir </> item) (outdir </> item) world
 		| otherwise //Copy the file
 			= copyFile (indir </> item) (outdir </> item) False world
@@ -128,16 +130,18 @@ copyFile :: !FilePath !FilePath !Bool !*World -> *World
 copyFile inf outf append world
 	# (ok,inh,world)    = fopen inf FReadData world
 	| not ok
-		= world 
-	# (ok,outh,world)   = fopen outf (if append FAppendData FWriteData) world   
-    | not ok
-		= world 
+		# (e, w) = getLastOSError world
+		= abort ("Couldn't open " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
+	# (ok,outh,world)   = fopen outf (if append FAppendData FWriteData) world
+	| not ok
+		# (e, w) = getLastOSError world
+		= abort ("Couldn't open " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
 	# (inh,outh) = copy inh outh
 	# (_,world) = fclose inh world
-	# (_,world) = fclose outh world     
+	# (_,world) = fclose outh world
 	= world
-where       
-	copy inh outh   
+where
+	copy inh outh
 		# (string, inh) = freads inh 1000
 		| string == "" = (inh, outh)
 		| otherwise
