@@ -144,6 +144,7 @@ itasks.NumberField = {
 		var me = this,
 		    el = this.domEl;
 		el.type = 'number';
+		el.step = me.allowDecimal ? 'any' : 1;
 		el.value = (me.attributes.value === undefined || me.attributes.value === null) ? '' : me.attributes.value;
 
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
