@@ -41,6 +41,7 @@ arrangeWithTabs closeable = layoutSubUIs
 	(sequenceLayouts
 		[setUIType UITabSet
 		,layoutSubUIs SelectChildren scrollContent
+		,modifyUIAttributes (SelectKeys ["class"]) (removeClassAttr "parallel-actions")
 		:if closeable [moveCloseToTab] []
 		])
 where
