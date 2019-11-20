@@ -29,20 +29,20 @@ Start world
 	| length argv <> 5 = world //Fail
 	# (content,world) = readFile (argv !! 2) world //When called by the IDE or cpm the second argument will be the 'linkopts' file
 	| isError content
-		= abort ("Error opening " +++ argv !! 2)
+		= abort ("Error opening " +++ argv !! 2 +++ ": " +++ toString (fromError content) +++ "\n")
 	# content = fromOk content
 	# outDir = exePathToOutputDir (lookupExePath content)
 	# inDirs = objectPathsToInputDirs (lookupObjectPaths content)
 	# cssParts = objectPathsToCSSFiles (lookupObjectPaths content)
-	# cssFile = outDir </> "css" </>"itasks-modules.css"
+	# cssFile = outDir </> "css" </> "itasks-modules.css"
 	# world = print ("Output css file " +++ cssFile) world
 	//Create output dir and 'css' dir in it
 	# (mbErr,world) = createDirectory outDir world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
-		= abort ("Unable to create directory: " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n")
+		= abort ("Error creating directory " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	# (mbErr,world) = createDirectory (outDir </> "css") world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
-		= abort ("Unable to create directory: " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n")
+		= abort ("Error creating directory " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	//Create the aggregated css file
 	# (mbErr,world) = writeFile cssFile "" world
 	# world = foldr (\f w -> aggregateCSS f cssFile w) world cssParts
@@ -121,7 +121,7 @@ where
 		| dir //Create the target directory and recursively copy content
 			# (mbErr,world) = createDirectory (outdir </> item) world
 			| isError mbErr && not (mbErr =: (Error (17, _)))
-				= abort ("Error creating directory: " +++ outdir </> item +++ ": " +++ toString (fromError mbErr) +++ "\n")
+				= abort ("Error creating directory " +++ outdir </> item +++ ": " +++ toString (fromError mbErr) +++ "\n")
 			= copyDirectoryContent (indir </> item) (outdir </> item) world
 		| otherwise //Copy the file
 			= copyFile (indir </> item) (outdir </> item) False world
@@ -131,11 +131,11 @@ copyFile inf outf append world
 	# (ok,inh,world)    = fopen inf FReadData world
 	| not ok
 		# (e, w) = getLastOSError world
-		= abort ("Couldn't open " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
+		= abort ("Error opening " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
 	# (ok,outh,world)   = fopen outf (if append FAppendData FWriteData) world
 	| not ok
 		# (e, w) = getLastOSError world
-		= abort ("Couldn't open " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
+		= abort ("Error opening " +++ outf +++ ": " +++ toString (fromError e) +++ "\n")
 	# (inh,outh) = copy inh outh
 	# (_,world) = fclose inh world
 	# (_,world) = fclose outh world
