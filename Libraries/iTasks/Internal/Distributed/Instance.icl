@@ -7,7 +7,6 @@ import Data.Map.GenJSON
 import qualified Text as T
 import Text.Encodings.Base64
 import iTasks.Extensions.Distributed._Evaluation
-import iTasks.Extensions.Distributed._Formatter
 import iTasks.Extensions.Distributed._Util
 import iTasks.Extensions.Distributed._Types
 import iTasks.Internal.Distributed.Symbols

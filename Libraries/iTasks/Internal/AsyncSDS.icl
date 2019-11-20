@@ -9,6 +9,7 @@ import Internet.HTTP
 
 import iTasks.Engine
 import iTasks.Internal.Distributed.Symbols
+import iTasks.Internal.Distributed.Formatter
 import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
 import iTasks.Internal.Task
@@ -18,8 +19,6 @@ import iTasks.UI.Definition
 import iTasks.WF.Tasks.IO
 import iTasks.WF.Derives
 import iTasks.Internal.Serialization
-
-import iTasks.Extensions.Distributed._Formatter
 
 from iTasks.Internal.TaskServer import addConnection
 from iTasks.SDS.Sources.Core import unitShare

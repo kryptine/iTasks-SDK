@@ -1,4 +1,4 @@
-definition module iTasks.Extensions.Distributed._Formatter
+definition module iTasks.Internal.Distributed.Formatter
 
 import StdMaybe
 import symbols_in_program
