@@ -19,8 +19,10 @@ import System.CommandLine
 import System.File, System.FilePath, System.Directory
 import Data.Error
 import Data.Tuple
-import System.OSError
+import System.OS, System.OSError
 import Text
+
+FILE_EXISTS :== IF_WINDOWS 183 17
 
 Start :: *World -> *World
 Start world
@@ -38,10 +40,10 @@ Start world
 	# world = print ("Output css file " +++ cssFile) world
 	//Create output dir and 'css' dir in it
 	# (mbErr,world) = createDirectory outDir world
-	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
+	| not (mbErr =: (Ok _) || mbErr =: (Error (FILE_EXISTS,_))) //Ignore 'File exists' errors
 		= abort ("Error creating directory " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	# (mbErr,world) = createDirectory (outDir </> "css") world
-	| not (mbErr =: (Ok _) || mbErr =: (Error (17,_))) //Ignore 'File exists' errors
+	| not (mbErr =: (Ok _) || mbErr =: (Error (FILE_EXISTS,_))) //Ignore 'File exists' errors
 		= abort ("Error creating directory " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n")
 	//Create the aggregated css file
 	# (mbErr,world) = writeFile cssFile "" world
@@ -120,7 +122,7 @@ where
 		# (dir,world) = isDirectory (indir </> item) world
 		| dir //Create the target directory and recursively copy content
 			# (mbErr,world) = createDirectory (outdir </> item) world
-			| isError mbErr && not (mbErr =: (Error (17, _)))
+			| isError mbErr && not (mbErr =: (Error (FILE_EXISTS, _)))
 				= abort ("Error creating directory " +++ outdir </> item +++ ": " +++ toString (fromError mbErr) +++ "\n")
 			= copyDirectoryContent (indir </> item) (outdir </> item) world
 		| otherwise //Copy the file
