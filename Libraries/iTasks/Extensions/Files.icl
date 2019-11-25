@@ -145,7 +145,7 @@ selectFileTreeLazy multi root = accWorld (readDirectoryTree root (Just 1)) >>- \
 where
 	mergeIn j newtree = foldTree \(i, t) cs->if (i == j) newtree (RNode t cs)
 
-	unstable a = treturn a @? \(Value a _)->Value a False
+	unstable a = return a @? \(Value a _)->Value a False
 
 	selOpt :: SelectOption (RTree (Int, (FilePath, MaybeOSError FileInfo))) (Int, (FilePath, MaybeOSError FileInfo))
 	selOpt = SelectInTree

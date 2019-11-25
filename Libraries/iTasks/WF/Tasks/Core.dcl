@@ -17,7 +17,10 @@ from iTasks.UI.Editor import :: EditMode
 *				@default ()
 * @return A task that will return the value defined by the parameter
 */
-treturn :: !a -> Task a | iTask a
+return :: !a -> Task a | iTask a
+
+//Backwards compatibility
+treturn :== return
 
 /**
 * Exception throwing. This will throw an exception of arbitrary type e which has to be caught

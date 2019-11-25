@@ -23,7 +23,6 @@ import
     ,   iTasks.WF.Tasks.Interaction
     ,   iTasks.WF.Combinators.Core
     ,   iTasks.WF.Combinators.SDS
-    ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
 	// Distributed iTasks
 	,   iTasks.Internal.Distributed.Domain

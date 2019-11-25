@@ -60,4 +60,4 @@ wrapTaskContinuation tf val :== case val of
  */
 unTask (Task t) :== t
 
-nopTask :: Task a
+nopTask :: Task a | iTask a

@@ -132,4 +132,3 @@ class iTask a
 	//Data
 	, gEq{|*|}
 	, TC a
-
