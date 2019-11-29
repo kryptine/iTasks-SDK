@@ -17,6 +17,10 @@ import Text
 
 from Data.Map import newMap, member, del
 
+derive gText TaskId, TaskListFilter, ExtendedTaskListFilter
+derive JSONEncode TaskId, TaskListFilter, ExtendedTaskListFilter
+derive gDefault TaskId, TaskListFilter
+
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
 where
@@ -37,8 +41,8 @@ where
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
 removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
-	case read (sdsFocus {InstanceFilter|defaultValue & includeSessions=True} filteredInstanceIndex) EmptyContext iworld of
-		(Ok (ReadingDone index), iworld) = checkAll (removeIfOutdated options) index iworld
+	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue,{ExtendedTaskListFilter|defaultValue &includeSessions=True}) taskListMetaData) EmptyContext iworld of
+		(Ok (ReadingDone (_,index)), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
@@ -46,7 +50,7 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated options ((TaskId instanceNo _),_,_,_) iworld=:{options={appVersion},clock=tNow}
+    removeIfOutdated options {TaskMeta|taskId=TaskId instanceNo _} iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
 			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up
@@ -86,8 +90,8 @@ flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworl
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all non-system tasks are stable
 stopOnStable :: Task ()
-stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True, includeStartup=True, includeAttributes=True} filteredInstanceIndex) EmptyContext iworld of
-		(Ok (ReadingDone index), iworld)
+stopOnStable = everyTick \iworld->case read (sdsFocus selection taskListMetaData) EmptyContext iworld of
+		(Ok (ReadingDone (_,index)), iworld)
 			# iworld = if (isNothing iworld.shutdown && all isStable (filter (not o isSystem) index))
 				{IWorld | iworld & shutdown=Just 0}
 				iworld
@@ -96,11 +100,11 @@ stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultVal
 			= (Error (exception "Unexpeced SDS state"),iworld)
 		(Error e, iworld)  = (Error e, iworld)
 where
-	isStable (_, _, Nothing, _) = False
-	isStable (_, _, Just {InstanceProgress|value}, attributes) = value =: Stable
+	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|defaultValue & includeAttributes=True,includeProgress=True}
+		,{ExtendedTaskListFilter|defaultValue & includeStartup=True})
 
-	isSystem (_, _, Just {InstanceProgress|value}, attributes) = member "system" (maybe newMap mergeTaskAttributes attributes)
-	isSystem _ = False
+	isStable {TaskMeta|valuestatus} = valuestatus =: Stable
+	isSystem {TaskMeta|taskAttributes} = member "system" taskAttributes
 
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
 printStdErr v iw=:{world}

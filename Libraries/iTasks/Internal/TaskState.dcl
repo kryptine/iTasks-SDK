@@ -31,10 +31,10 @@ from System.FilePath import :: FilePath
 //FIXME: Extensions should not be imported in core
 from iTasks.Extensions.Document import :: Document, :: DocumentId
 
-derive JSONEncode TaskMeta, TIType, TIReduct
-derive JSONDecode TaskMeta, TIType, TIReduct
+derive JSONEncode TaskMeta, TIReduct
+derive JSONDecode TaskMeta, TIReduct
 
-derive gDefault TaskMeta
+derive gDefault TaskMeta, ExtendedTaskListFilter
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -53,7 +53,7 @@ derive gDefault TaskMeta
 :: TaskMeta =
     //Static information
 	{ taskId        :: !TaskId	            //Unique global identification
-	, instanceType  :: !TIType              //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
+	, instanceType  :: !InstanceType        //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
     , build         :: !String              //Application build version when the instance was created
     , createdAt     :: !Timespec
     //Evaluation information
@@ -71,14 +71,20 @@ derive gDefault TaskMeta
 	, initialized          :: !Bool //TODO: Get rid of in this record
 	}
 
+/**
+* There are three types of task instances:
+* Startup instances: temporary tasks that are started when a task server starts up, typically driven by a clock or external I/O.
+* Session instances: temporary tasks that represent and facilitate interactive sessions between a user and the server.
+* Persistent instances: persistent long-running tasks that may be shared between users and exist between sessions.
+*/
+:: InstanceType
+	= StartupInstance
+	| SessionInstance
+	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
+
 :: TaskChange
     = RemoveTask                            //Mark for removal from the set on the next evaluation
     | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
-
-:: TIType
-	= TIStartup
-	| TISession !InstanceKey
-	| TIPersistent !InstanceKey !(Maybe TaskId)
 
 //Internally we need more options to filter task list data
 :: ExtendedTaskListFilter =
@@ -102,47 +108,12 @@ derive gDefault TaskMeta
    = TIValue !(TaskValue DeferredJSON)
    | TIException !Dynamic !String
 
-:: InstanceFilter =
-	{ //'Vertical' filters
-	  onlyInstanceNo    :: !Maybe [TaskId]
-	, notInstanceNo     :: !Maybe [TaskId]
-	, includeSessions   :: !Bool
-	, includeDetached   :: !Bool
-	, includeStartup    :: !Bool
-	, matchAttribute 	:: !Maybe (!String,!JSONNode)
-	  //'Horizontal' filters
-	, includeConstants  :: !Bool
-	, includeProgress   :: !Bool
-	, includeAttributes :: !Bool
-	}
-
-derive gDefault InstanceFilter
-derive class iTask InstanceFilter
-
-:: InstanceData :==
-	( !TaskId
-	, !Maybe InstanceConstants
-	, !Maybe InstanceProgress
-	, !Maybe (TaskAttributes,TaskAttributes) // fst are management attributes; snd are implicit task attributes
-	)
-
 // Instance data which does not change after creation (except when a task is replaced)
 :: InstanceConstants =
     { type          :: !InstanceType        //* The type of task instance: startup, session or persistent
     , build         :: !String              //* Application build version when the instance was created
     , issuedAt		:: !Timespec            //* When was the task created
     }
-
-/**
-* There are three types of task instances:
-* Startup instances: temporary tasks that are started when a task server starts up, typically driven by a clock or external I/O.
-* Session instances: temporary tasks that represent and facilitate interactive sessions between a user and the server.
-* Persistent instances: persistent long-running tasks that may be shared between users and exist between sessions.
-*/
-:: InstanceType
-	= StartupInstance
-	| SessionInstance
-	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
@@ -152,18 +123,17 @@ newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 
 //=== Task instance index: ===
 
-//A global index of all task instances is maintained
-
 //This counter is used to ensure unique instance numbers
 nextInstanceNo :: SimpleSDSLens Int
 
+//Task state is accessible as shared data sources
+//taskListData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId, [TaskMeta], Map TaskId (TaskValue a), Task a) | iTask a
 taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
-
-//Task instance state is accessible as shared data sources
-filteredInstanceIndex   :: SDSLens InstanceFilter [InstanceData] [InstanceData]
+taskListValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+//taskListTaskData  :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
 //Filtered views on the instance index
-taskInstance            :: SDSLens InstanceNo InstanceData InstanceData
+taskInstance            :: SDSLens InstanceNo TaskMeta TaskMeta
 taskInstanceConstants   :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
 
@@ -175,9 +145,7 @@ taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIRe
 taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
 taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
 
-taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [TaskMeta])) (Maybe (Map TaskId [TaskMeta]))
-taskInstanceParallelValues    :: SDSLens InstanceNo (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON)))) (Maybe (Map TaskId (Map TaskId (TaskValue DeferredJSON))))
-
+//taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [TaskMeta])) (Maybe (Map TaskId [TaskMeta]))
 
 taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
@@ -188,55 +156,18 @@ allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
 localShare              			:: SDSLens TaskId a a | iTask a
 
 //Core parallel task list state structure
-taskInstanceParallelTaskList        :: SDSLens (TaskId,TaskListFilter) [TaskMeta] [TaskMeta]
-taskInstanceParallelTaskListValues  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON)) 
+taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
+taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 
 //Private interface used during evaluation of parallel combinator
 taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) TaskMeta TaskMeta 
-taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
+taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue a) (TaskValue a) | iTask a
 
 taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask a
 
-
-//Access to tasklists
-/*
-:: InstanceFilter =
-	{ //'Vertical' filters
-	  onlyInstanceNo    :: !Maybe [TaskId]
-	, notInstanceNo     :: !Maybe [TaskId]
-	, includeSessions   :: !Bool
-	, includeDetached   :: !Bool
-	, includeStartup    :: !Bool
-	, matchAttribute 	:: !Maybe (!String,!JSONNode)
-	  //'Horizontal' filters
-	, includeConstants  :: !Bool
-	, includeProgress   :: !Bool
-	, includeAttributes :: !Bool
-	}
-:: TaskListFilter =
-    //Which rows to filter
-    { onlyIndex         :: !Maybe [Int]
-    , onlyTaskId        :: !Maybe [TaskId]
-    , notTaskId         :: !Maybe [TaskId] //NEW
-	, onlyAttribute 	:: !Maybe (!String,!JSONNode) //New
-    , onlySelf          :: !Bool
-	//Filter based on type 
-    , includeValue      :: !Bool
-    , includeAttributes :: !Bool
-    , includeProgress   :: !Bool
-    }
-
-taskListData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId, [TaskMeta], Map TaskId (TaskValue a), Task a) | iTask a
-taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
-taskListValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
-taskListTaskData  :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
-*/
-
-
 //Public interface used by parallel tasks
-parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
-
-topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)]
+parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
+topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 
 //=== Access functions: ===
 

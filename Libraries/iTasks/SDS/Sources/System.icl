@@ -10,6 +10,7 @@ import iTasks.Engine
 import iTasks.Internal.SDS
 import iTasks.Internal.IWorld
 import iTasks.Internal.Util
+import iTasks.WF.Definition
 import iTasks.WF.Derives
 
 import iTasks.Internal.TaskState
@@ -20,6 +21,10 @@ from iTasks.Internal.TaskEval  import currentInstanceShare
 from StdFunc import id, o, const
 
 import qualified Data.Map as DM
+
+derive gText ExtendedTaskListFilter
+derive JSONEncode ExtendedTaskListFilter
+derive gDefault TaskListFilter, TaskId
 
 NS_SYSTEM_DATA :== "SystemData"
 
@@ -53,33 +58,36 @@ topLevelTasks = topLevelTaskList
 
 currentSessions :: SDSLens () [TaskListItem ()] ()
 currentSessions
-    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
+    = mapRead (map (toTaskListItem self) o snd) (toReadOnly (sdsFocus param taskListMetaData))
 where
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=True,includeDetached=False,includeStartup=False,matchAttribute=Nothing
-             ,includeConstants=True,includeProgress=True,includeAttributes=True}
+	self = TaskId 0 0
+	param = (TaskId 0 0,self,defaultValue,efilter)
+	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = True, includeDetached = False, includeStartup = False}
 
 currentProcesses :: SDSLens () [TaskListItem ()] ()
 currentProcesses
-    = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
+    = mapRead (map (toTaskListItem self) o snd) (toReadOnly (sdsFocus param taskListMetaData))
 where
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=False,includeDetached=True,includeStartup=False,matchAttribute=Nothing
-             ,includeConstants=True,includeProgress=True,includeAttributes=True}
+	self = TaskId 0 0
+	param = (TaskId 0 0,self,defaultValue,efilter)
+	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
 
-toTaskListItem :: !InstanceData -> TaskListItem a
-toTaskListItem (taskId,Just {InstanceConstants|type},Just progress, Just attributes) //TODO Set self for current evaluating instance
-	# listId = case type of
-		(PersistentInstance (Just listId)) = listId
-		_ = (TaskId 0 0)
-	= {TaskListItem|taskId = taskId, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = mergeTaskAttributes attributes}
+toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a 
+toTaskListItem selfId {TaskMeta|taskId,instanceType,valuestatus,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
+	# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
+	= {TaskListItem|taskId = taskId, listId = listId, detached = True, self = taskId == selfId
+	  ,value = NoValue, progress = Just progress, attributes = mergeTaskAttributes (taskAttributes,managementAttributes)}
+where
+	progress = {InstanceProgress|value=valuestatus,attachedTo=attachedTo,instanceKey=instanceKey,firstEvent=firstEvent,lastEvent=lastEvent}
 
-taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (TaskId instanceNo _,Just {InstanceConstants|type,build,issuedAt},Just progress=:{InstanceProgress|value,instanceKey,firstEvent,lastEvent},Just attributes)
-	# session = (type =: SessionInstance)
-	# listId = case type of
+taskInstanceFromMetaData :: TaskMeta -> TaskInstance
+taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,valuestatus,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
+	# session = (instanceType =: SessionInstance )
+	# listId = case instanceType of
 		(PersistentInstance (Just listId)) = listId
 		_ = (TaskId 0 0)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = mergeTaskAttributes attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
+      ,attributes = mergeTaskAttributes (taskAttributes,managementAttributes), value = valuestatus, issuedAt = createdAt, firstEvent = firstEvent, lastEvent = lastEvent}
 
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
@@ -98,51 +106,65 @@ currentTaskInstanceAttributes
 allTaskInstances :: SDSLens () [TaskInstance] ()
 allTaskInstances
     = (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
-       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus param taskListMetaData))
 where
-    readInstances is = Ok (map taskInstanceFromInstanceData is)
+	self = TaskId 0 0
+	param = (TaskId 0 0,self,defaultValue,defaultValue)
+
+    readInstances (_,is) = Ok (map taskInstanceFromMetaData is)
 
 detachedTaskInstances :: SDSLens () [TaskInstance] ()
 detachedTaskInstances
     =  (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
-       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=False,includeDetached=True,includeStartup=False,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus param taskListMetaData))
 where
-    readInstances is = Ok (map taskInstanceFromInstanceData is)
+	self = TaskId 0 0
+	param = (TaskId 0 0,self,defaultValue,efilter)
+	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
 
+    readInstances (_,is) = Ok (map taskInstanceFromMetaData is)
 
 taskInstanceByNo :: SDSLens InstanceNo TaskInstance TaskAttributes
 taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
-      (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
+      (sdsTranslate "taskInstanceByNo" param taskListMetaData)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [TaskId no 0],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+	self = TaskId 0 0
+	param no = (TaskId 0 0,self,tfilter no,defaultValue)
+	tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-    readItem [i]    = Ok (taskInstanceFromInstanceData i)
+    readItem (_,[i]) = Ok (taskInstanceFromMetaData i)
     readItem _      = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,a)] new = Ok (Just [(n,c,p,Just (maybe (new,'DM'.newMap) (\(m,t) -> ('DM'.union new m, t)) a))])
+    writeItem (_,[meta]) new = Ok (Just [{TaskMeta|meta & managementAttributes = 'DM'.union new meta.TaskMeta.managementAttributes}])
     writeItem _ _ = Error (exception "Task instance not found")
 
 taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributesByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
-      (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
+      (sdsTranslate "taskInstanceAttributesByNo" param taskListMetaData)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [TaskId no 0],notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+	self = TaskId 0 0
+	param no = (TaskId 0 0,self,tfilter no,defaultValue)
+	tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-    readItem [(_,_,_,Just a)] = Ok (mergeTaskAttributes a)
-    readItem _                = Error (exception "Task instance not found")
+    readItem (_,[{TaskMeta|taskAttributes,managementAttributes}]) = Ok (mergeTaskAttributes (taskAttributes,managementAttributes))
+    readItem _ = Error (exception "Task instance not found")
 
-    writeItem [(n,c,p,a)] new = Ok (Just [(n,c,p,Just (maybe (new,'DM'.newMap) (\(m,t) -> ('DM'.union new m, t)) a))])
+    writeItem (_,[meta]) new = Ok (Just [{TaskMeta|meta & managementAttributes = 'DM'.union new meta.TaskMeta.managementAttributes}])
     writeItem _ _ = Error (exception "Task instance not found")
 
 taskInstancesByAttribute :: SDSLens (!String,!JSONNode) [TaskInstance] ()
 taskInstancesByAttribute
     =
       (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
-       (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,includeSessions=True,includeDetached=True,includeStartup=True,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
+       (sdsTranslate "taskInstancesByAttribute" param taskListMetaData))
 where
-    readInstances is = Ok (map taskInstanceFromInstanceData is)
+	self = TaskId 0 0
+	param p = (TaskId 0 0,self, tfilter p, defaultValue)
+	tfilter p = {TaskListFilter|defaultValue & onlyAttribute = Just p}
+
+    readInstances (_,is) = Ok (map taskInstanceFromMetaData is)
 
 currentTopTask :: SDSLens () TaskId ()
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare
