@@ -20,7 +20,7 @@ from Data.Maybe import :: Maybe
 * @return The value read
 * @throws SharedException
 */
-get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
+get :: !(sds () a w) -> Task a | TC a & Readable sds & TC w
 
 /**
 * Writes shared data.
@@ -30,7 +30,7 @@ get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 * @return The value written
 * @throws SharedException
 */
-set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
+set :: !a !(sds () r a)  -> Task a | TC a & TC r & Writeable sds
 
 /**
 * Updates shared data in one atomic operation.
@@ -40,7 +40,7 @@ set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 * @return The value written
 * @throws SharedException
 */
-upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
+upd :: !(r -> w) !(sds () r w) -> Task w | TC r & TC w & RWShared sds
 
 /**
 * Reads shared data continously
@@ -49,5 +49,4 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 * @return The value read
 * @throws SharedException
 */
-watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
-
+watch :: !(sds () r w) -> Task r | TC r & TC w & Readable, Registrable sds
