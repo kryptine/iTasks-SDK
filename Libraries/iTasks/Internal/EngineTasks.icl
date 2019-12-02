@@ -40,8 +40,8 @@ where
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
-removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
-	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue,{ExtendedTaskListFilter|defaultValue &includeSessions=True}) taskListMetaData) EmptyContext iworld of
+removeOutdatedSessions = everyTick \iworld=:{IWorld|options} ->
+	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, {ExtendedTaskListFilter|defaultValue &includeSessions=True}) taskListMetaData) EmptyContext iworld of
 		(Ok (ReadingDone (_,index)), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
@@ -50,35 +50,17 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated options {TaskMeta|taskId=TaskId instanceNo _} iworld=:{options={appVersion},clock=tNow}
-		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-			//If there is I/O information, we check that age first
-			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up
-				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
-			//If there is no I/O information, get meta-data and check builtId and creation date
-			(Ok (ReadingDone Nothing),iworld)
-				= case read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld of
-					(Ok (ReadingDone {InstanceConstants|build,issuedAt=tInstance}),iworld)
-						| build <> appVersion = (Ok True,iworld)
-						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
-						= (Ok False,iworld)
-					(Error e,iworld)
-						= (Error e,iworld)
-			(Error e,iworld)
-				= (Error e,iworld)
-		= case remove of
-			(Ok True)
+    removeIfOutdated options {TaskMeta|taskId=TaskId instanceNo _,connectedTo,lastIO,build,createdAt} iworld=:{options={appVersion},clock=tNow}
+		| if (lastIO =:(Just _))
+			(tNow - fromJust lastIO > options.EngineOptions.sessionTime)
+			((build <> appVersion) || ((tNow - createdAt) > options.EngineOptions.sessionTime))
 				# (e,iworld) = deleteTaskInstance instanceNo iworld
 				| e=:(Error _) = (e,iworld)
-				# (e,iworld) = write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld
-				| e=:(Error _) = (liftError e,iworld)
 				# (e,iworld) = modify (\output -> del instanceNo output) taskOutput EmptyContext iworld
 				| e=:(Error _) = (liftError e,iworld)
-				= (Ok (),iworld)
-			(Ok False)
-				= (Ok (), iworld)
-			(Error e)
-				= (Error e,iworld)
+				= (Ok (),iworld)		
+		| otherwise
+			= (Ok (), iworld)
 
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: Task ()

@@ -48,15 +48,17 @@ from Control.Applicative import class Alternative(<|>)
 import Data.GenEq
 import qualified Control.Monad
 
-derive JSONEncode TaskMeta, InstanceType, TIValue, TIReduct, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
-derive JSONDecode TaskMeta, InstanceType, TIValue, TIReduct, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
+derive JSONEncode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
+derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
 
 derive gDefault InstanceProgress, InstanceType, TaskId, ValueStatus, TaskListFilter
 
 gDefault{|TaskMeta|}
-	= {taskId= TaskId 0 0,instanceType=gDefault{|*|},build="",createdAt=gDefault{|*|},valuestatus=gDefault{|*|},attachedTo=[],instanceKey=Nothing
-	  ,firstEvent=Nothing,lastEvent=Nothing,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
-	  ,change = Nothing, initialized = False}
+	= {taskId= TaskId 0 0,instanceType=gDefault{|*|},build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
+		,valuestatus=gDefault{|*|},attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
+		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing
+		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
+		,change = Nothing, initialized = False}
 
 gDefault{|ExtendedTaskListFilter|}
 	= {includeSessions=True,includeDetached=True,includeStartup=True,includeTaskReduct=False}
@@ -70,57 +72,36 @@ instance < TaskMeta where
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 mergeTaskAttributes (explicit,implicit) = 'DM'.union explicit implicit
 
-//Unfiltered administration
-rawTaskIndex         = storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
-rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
+encodeTaskValue :: (TaskValue a) -> TaskValue DeferredJSON | iTask a
+encodeTaskValue (Value dec stable) = Value (DeferredJSON dec) stable
+encodeTaskValue NoValue = NoValue
 
-rawInstanceIO        = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
-
-rawInstanceReduct         = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceValue          = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
-rawInstanceShares         = mbStoreShare NS_TASK_INSTANCES True InDynamicFile
+decodeTaskValue :: (TaskValue DeferredJSON) -> TaskValue a | iTask a
+decodeTaskValue (Value enc stable) = maybe NoValue (\dec -> Value dec stable) (fromDeferredJSON enc)
+decodeTaskValue NoValue = NoValue
 
 allTaskLists :: SDSLens TaskId [TaskMeta] [TaskMeta]
 allTaskLists  = sdsTranslate "allTaskLists" param $ storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
 where
 	param (TaskId instanceNo taskNo) = "tasklist-"+++toString instanceNo +++ "-" +++toString taskNo
 
-allTaskValues :: SDSLens TaskId (Map TaskId DeferredJSON) (Map TaskId DeferredJSON)
+allTaskValues :: SDSLens TaskId (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
 allTaskValues = sdsTranslate "allTaskValues" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
 where
 	param (TaskId instanceNo taskNo) = "taskvalues-"+++toString instanceNo +++ "-" +++toString taskNo
 
-//Master instance index
-taskInstanceIndex :: SimpleSDSLens [TaskMeta]
-taskInstanceIndex = sdsFocus "instances" rawTaskIndex
+allTaskReducts :: SDSLens TaskId (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
+allTaskReducts = sdsTranslate "allTaskReducts" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+where
+	param (TaskId instanceNo taskNo) = "taskreducts-"+++toString instanceNo +++ "-" +++toString taskNo
 
 //Next instance no counter
 nextInstanceNo :: SimpleSDSLens Int
-nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
-
-taskInstanceIO :: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
-taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just r1) allInstanceIO
-where
-	read instanceNo m = Ok ('DM'.get instanceNo m)
-	write instanceNo m (Just io) = Ok (Just ('DM'.put instanceNo io m))
-	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
-	notify instanceNo _ _ 	= (==) instanceNo
-  r1 instanceNo ws = Ok ('DM'.get instanceNo ws)
-
-allInstanceIO :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
-allInstanceIO = sdsFocus "io" rawInstanceIO
-
-//Instance evaluation state
-taskInstanceReduct :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIReduct)
-taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") rawInstanceReduct
-
-//Last computed value for task instance
-taskInstanceValue :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
-taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
+nextInstanceNo = sdsFocus "increment" $ storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
 
 //Local shared data
 taskInstanceShares :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
-taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
+taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
@@ -141,10 +122,9 @@ createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeEr
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
     //Create the initial instance data in the store
 	# meta = {defaultValue & taskId= TaskId instanceNo 0, instanceType=SessionInstance,build=appVersion,createdAt=clock}
-    =            'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
+    = 'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
@@ -153,23 +133,17 @@ createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=SessionInstance
 		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock,taskAttributes=attributes}
-    =            'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
+    = 'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
 createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException InstanceNo, !*IWorld) | iTask a
 createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
     # (Ok instanceNo,iworld) = newInstanceNo iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=StartupInstance,build=appVersion,createdAt=clock,taskAttributes=attributes}
-    =            'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
-
-(`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
-(`b`) (Ok _, st)    f = f st
-(`b`) (Error e, st) _ = (Error e, st)
+	= 'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
@@ -178,32 +152,21 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
 	# meta = {defaultValue & taskId = TaskId instanceNo 0,instanceType=PersistentInstance mbListId,build=appVersion
 		,createdAt=clock,taskAttributes=attributes, instanceKey=Just instanceKey}
-    =            'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> ( Ok (TaskId instanceNo 0)
+	= 'SDS'.write meta (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
 					  (queueEvent instanceNo ResetEvent iworld)
 					  iworld)
-
-createReduct :: !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
-createReduct instanceNo task taskTime
-	= { TIReduct
-	  | task = task @ DeferredJSON
-	  , nextTaskNo = 1
-	  , nextTaskTime = 1
-	  , tasks = 'DM'.newMap
-	  }
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
 	# (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
 	| isError meta          = (liftError meta, iworld)
 	# meta                  ='SDS'.directResult (fromOk meta)
-	=            'SDS'.write (Just (createReduct instanceNo task taskTime)) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
-  `b` \iworld -> 'SDS'.write (Just (TIValue NoValue)) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
-  `b` \iworld -> let  in  'SDS'.write {TaskMeta|meta & build=appVersion} (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
-  `b` \iworld -> (Ok (), iworld)
+	= 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> let  in  'SDS'.write {TaskMeta|meta & build=appVersion} (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
@@ -220,6 +183,10 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
   where
 	toME (Ok ('SDS'.ModifyingDone _)) = Ok ()
 	toME (Error e) = (Error e)
+
+(`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
+(`b`) (Ok _, st)    f = f st
+(`b`) (Error e, st) _ = (Error e, st)
 
 taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
 taskListMetaData
@@ -289,25 +256,47 @@ where
 		    (includeStartup && instanceType =: (StartupInstance))
 		   )
 
-taskListValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
-taskListValueData = sdsLens "taskListValueData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskValues
+taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
+taskListDynamicValueData = sdsLens "taskListDynamicValueData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskValues
 where
 	param (listId,_,_,_) = listId
 
 	//FIXME: Filter values when reading and writing
 	//As it is now, it is a big memory leak because we can't erase values 
-	read (listId,selfId,tfilter,efilter) values
-		= Ok $ fmap decode values
-	write (listId,selfId,tfilter,efilter) values updates
-		= Ok $ Just $ 'DM'.union (fmap encode updates) values
-	
-	decode deferred = fromMaybe NoValue $ fromDeferredJSON deferred
-	encode value = DeferredJSON value
+	read (listId,selfId,tfilter,efilter) values = Ok values
+	write (listId,selfId,tfilter,efilter) values updates = Ok $ Just $ 'DM'.union updates values
 
 	inFilter tfilter efilter (index,(taskId,value)) = True
 
 	notify _ _ _ _ _ = False
 	
+taskListTypedValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+taskListTypedValueData = sdsLens "taskListTypedValueData" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
+where
+	read param values = Ok $ fmap decodeTaskValue values
+	write param updates = Ok $ Just $ encodeTaskValue <$> updates
+	notify _ _ _ _ = False
+
+taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
+taskListDynamicTaskData = sdsLens "taskListDynamicTaskData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskReducts
+where
+	param (listId,_,_,_) = listId
+
+	//FIXME: Filter values when reading and writing
+	//As it is now, it is a big memory leak because we can't erase tasks
+	read (listId,selfId,tfilter,efilter) values = Ok values
+	write (listId,selfId,tfilter,efilter) values updates = Ok $ Just $ 'DM'.union updates values
+
+	inFilter tfilter efilter (index,(taskId,value)) = True
+
+	notify _ _ _ _ _ = False
+
+taskListTypedTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
+taskListTypedTaskData = sdsLens "taskListTypedTaskData" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
+where
+	read param tasks = Ok $ fmap (\t -> t @? decodeTaskValue) tasks
+	write param updates = Ok $ Just $ (\t -> t @? encodeTaskValue) <$> updates
+	notify _ _ _ _ = False
 
 //Filtered views on the instance index
 taskInstance :: SDSLens InstanceNo TaskMeta TaskMeta
@@ -319,17 +308,6 @@ where
 	read no _ = Error (exception ("Could not find task instance "<+++ no))
 	write no data       = Ok (Just [data])
 	notify no _         = const ((==) no)
-
-taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
-taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just \p ws -> Ok ()) taskListMetaData
-where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},
-			{ExtendedTaskListFilter|defaultValue & includeSessions=True,includeDetached=True,includeStartup=True})
-
-	read no (_,[{TaskMeta|instanceType,build,createdAt}]) = Ok {InstanceConstants|type=instanceType,build=build,issuedAt=createdAt}
-	read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
-	write _ _ _                 = Ok Nothing
-	notify _ _                  = const (const False)
 
 taskInstanceProgress :: SDSLens InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListMetaData 
@@ -349,8 +327,7 @@ where
 taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListMetaData
 where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},
-			{ExtendedTaskListFilter|defaultValue & includeSessions=True,includeDetached=True,includeStartup=True})
+	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},defaultValue)
 
 	read no (_,[{TaskMeta|taskAttributes,managementAttributes}]) = Ok (taskAttributes,managementAttributes)
 	read no _ = Error (exception ("Could not find attributes for task instance "<+++ no))
@@ -358,10 +335,29 @@ where
 	write no (_,[meta]) (taskAttributes,managementAttributes) = Ok (Just [{TaskMeta|meta & taskAttributes = taskAttributes, managementAttributes = managementAttributes}])
 	notify no _ = const ((==) no)
 
+//Last computed value for task instance
+taskInstanceValue :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON)
+taskInstanceValue = sdsLens "taskInstanceValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
+where
+	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
+
+	read no values = maybe (Error $ exception ("Could not find value for task instance "<+++ no)) Ok ('DM'.get (TaskId no 0) values)
+	write no values value = Ok $ Just $ 'DM'.put (TaskId no 0) value values
+	notify _  _ _ _ = False
+
+taskInstanceTask :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
+taskInstanceTask = sdsLens "taskInstanceTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
+where
+	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
+
+	read no tasks = maybe (Error $ exception ("Could not find task for task instance "<+++ no)) Ok ('DM'.get (TaskId no 0) tasks)
+	write no tasks task = Ok $ Just $ 'DM'.put (TaskId no 0) task tasks
+	notify _  _ _ _ = False
+
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 parallelTaskList
 	= sdsLens "parallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing
-		(taskListMetaData >*| taskListValueData)
+		(taskListMetaData >*| taskListTypedValueData)
 where
 	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
@@ -407,7 +403,13 @@ where
 
 taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 taskInstanceParallelTaskListValues
-	= sdsTranslate "taskInstanceParallelTaskListValues" param taskListValueData
+	= sdsTranslate "taskInstanceParallelTaskListValues" param taskListTypedValueData
+where
+	param (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+
+taskInstanceParallelTaskListTasks :: SDSLens (TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
+taskInstanceParallelTaskListTasks
+	= sdsTranslate "taskInstanceParallelTaskListTasks" param taskListTypedTaskData
 where
 	param (listId,listfilter) = (listId,listId,listfilter,defaultValue)
 
@@ -436,20 +438,19 @@ where
 	notify (listId,taskId) _ = const ((==) taskId o snd)
 	reducer p ws = read p ws
 
-taskInstanceEmbeddedTask :: SDSLens TaskId (Task a) (Task a) | iTask a
-taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceReduct
+taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
+taskInstanceParallelTaskListTask
+	= sdsLens "taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify)
+		(Just reducer) taskInstanceParallelTaskListTasks
 where
-	param (TaskId instanceNo _) = instanceNo
-	read taskId (Just {TIReduct|tasks}) = case ('DM'.get taskId tasks) of
-		(Just dyn) = Ok (unwrapTask dyn)
-		_          = Error (exception ("Could not find embedded task " <+++ taskId))
-	read taskId Nothing = Error (exception ("Could not find task instance for " <+++ taskId))
-
-	write taskId (Just r=:{TIReduct|tasks}) w = Ok (Just (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks}))
-	write taskId Nothing w = Error (exception ("Could not find task instance for " <+++ taskId))
-
-	notify taskId _ = const ((==) taskId)
-	reducer p reduct = read p reduct
+	param (listId,taskId)
+		= (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=False})
+	read p=:(listId,taskId) tasks = case 'DM'.get taskId tasks of
+		(Just x) = (Ok x)
+		_        = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
+	write (_,taskId) tasks task = Ok (Just ('DM'.put taskId task tasks))
+	notify (listId,taskId) _ = const ((==) taskId o snd)
+	reducer p ws = read p ws
 
 //Evaluation state of instances
 localShare :: SDSLens TaskId a a | iTask a
@@ -466,6 +467,25 @@ where
 	notify taskId _ = const ((==) taskId)
 	reducer taskId shares = read taskId shares
 
+updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceConnect client instances iworld=:{IWorld|clock}
+	= updateInstanceIO (\tm -> {TaskMeta|tm & lastIO = Just clock, connectedTo = Just client}) instances iworld
+
+updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceLastIO instances iworld=:{IWorld|clock}
+	= updateInstanceIO (\tm -> {TaskMeta|tm & lastIO = Just clock}) instances iworld
+
+updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect instances iworld=:{IWorld|clock}
+	= updateInstanceIO (\tm -> {TaskMeta|tm & lastIO = Just clock, connectedTo = Nothing}) instances iworld
+
+updateInstanceIO update instances iworld=:{IWorld|clock}
+	= case modify (map update o snd) sds EmptyContext iworld of
+		(Ok (ModifyingDone _),iworld) = (Ok (), iworld)
+		(Error e,iworld) = (Error e,iworld)
+where
+	sds = sdsFocus (TaskId 0 0, TaskId 0 0, listFilter, defaultValue) taskListMetaData
+	listFilter = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId n 0 \\ n <- instances]}
 
 newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld = generateRandomString 32 iworld

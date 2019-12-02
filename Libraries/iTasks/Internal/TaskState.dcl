@@ -31,8 +31,8 @@ from System.FilePath import :: FilePath
 //FIXME: Extensions should not be imported in core
 from iTasks.Extensions.Document import :: Document, :: DocumentId
 
-derive JSONEncode TaskMeta, TIReduct
-derive JSONDecode TaskMeta, TIReduct
+derive JSONEncode TaskMeta
+derive JSONDecode TaskMeta
 
 derive gDefault TaskMeta, ExtendedTaskListFilter
 
@@ -57,11 +57,15 @@ derive gDefault TaskMeta, ExtendedTaskListFilter
     , build         :: !String              //Application build version when the instance was created
     , createdAt     :: !Timespec
     //Evaluation information
+	, nextTaskNo	:: !TaskNo            //* Local task number counter
+	, nextTaskTime	:: !TaskTime          //* Local task time (incremented at every evaluation)
 	, valuestatus   :: !ValueStatus
     , attachedTo    :: ![TaskId]
+	, connectedTo   :: !Maybe String 
 	, instanceKey   :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
 	, firstEvent    :: !Maybe Timespec    //* When was the first work done on this task
 	, lastEvent     :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
+	, lastIO        :: !Maybe Timespec
     //Identification and classification information
 	, taskAttributes        :: !TaskAttributes  //Cached attributes from the task UI
 	, managementAttributes  :: !TaskAttributes  //Arbitrary writable attributes for managing collections of task instances
@@ -96,74 +100,54 @@ derive gDefault TaskMeta, ExtendedTaskListFilter
 	, includeTaskReduct :: !Bool
 	}
 
-:: TIReduct =
-	{ task			:: !Task DeferredJSON               //Main task definition
-	, nextTaskNo	:: !TaskNo                          //Local task number counter
-	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
-    // TODO Remove from reduct!
-	, tasks			:: !Map TaskId Dynamic				//Task functions of embedded parallel tasks
-	}
-
-:: TIValue
-   = TIValue !(TaskValue DeferredJSON)
-   | TIException !Dynamic !String
-
-// Instance data which does not change after creation (except when a task is replaced)
-:: InstanceConstants =
-    { type          :: !InstanceType        //* The type of task instance: startup, session or persistent
-    , build         :: !String              //* Application build version when the instance was created
-    , issuedAt		:: !Timespec            //* When was the task created
-    }
-
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
 //Fresh identifier generation
 newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 
-//=== Task instance index: ===
+//=== Core task state  === //
 
 //This counter is used to ensure unique instance numbers
 nextInstanceNo :: SimpleSDSLens Int
 
-//Task state is accessible as shared data sources
+//All Task state is accessible as shared data sources
 //taskListData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId, [TaskMeta], Map TaskId (TaskValue a), Task a) | iTask a
 taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
-taskListValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
-//taskListTaskData  :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
-//Filtered views on the instance index
-taskInstance            :: SDSLens InstanceNo TaskMeta TaskMeta
-taskInstanceConstants   :: SDSLens InstanceNo InstanceConstants ()
-taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
+taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
+taskListTypedValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 
-//* fst are management attributes, snd are implicit task attributes 
-taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
+taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
+taskListTypedTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
-// === Evaluation state of instances: ===
-taskInstanceReduct            :: SDSLens InstanceNo (Maybe TIReduct) (Maybe TIReduct)
-taskInstanceValue             :: SDSLens InstanceNo (Maybe TIValue) (Maybe TIValue)
-taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
+//== Filtered views on the task state for different purposes ==//
 
-//taskInstanceParallelTaskLists :: SDSLens InstanceNo (Maybe (Map TaskId [TaskMeta])) (Maybe (Map TaskId [TaskMeta]))
-
-taskInstanceIO 			:: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
-allInstanceIO           :: SimpleSDSLens (Map InstanceNo (!String,Timespec))
-
-//Filtered views on evaluation state of instances:
-
-//Shared source
-localShare              			:: SDSLens TaskId a a | iTask a
-
-//Core parallel task list state structure
-taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
+//Interface used during evaluation of parallel combinator
+taskInstanceParallelTaskList       :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
 taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+taskInstanceParallelTaskListTasks  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
-//Private interface used during evaluation of parallel combinator
 taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) TaskMeta TaskMeta 
 taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue a) (TaskValue a) | iTask a
+taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
 
-taskInstanceEmbeddedTask            :: SDSLens TaskId (Task a) (Task a) | iTask a
+//Interface used during the evalation of toplevel tasks
+//Filtered views on the instance index
+taskInstance            :: SDSLens InstanceNo TaskMeta TaskMeta
+taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
+
+taskInstanceAttributes  :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
+taskInstanceValue       :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
+taskInstanceTask        :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
+
+// === Evaluation state of instances: === //FIXME: Isolate as separate concern to separate 
+taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
+
+//Interface used in task combinators
+
+//Shared source
+localShare :: SDSLens TaskId a a | iTask a
 
 //Public interface used by parallel tasks
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
@@ -203,7 +187,12 @@ createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAtt
 */
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 
-deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+deleteTaskInstance :: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+
+//Update the I/O information for task instances
+updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceLastIO :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 //FIXME: Documents should not be part of the core server
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)

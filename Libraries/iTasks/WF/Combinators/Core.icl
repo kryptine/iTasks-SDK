@@ -224,17 +224,18 @@ where
 				# (e,iworld) = (write taskList (sdsFocus (taskId, taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld)
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Write the local embedded tasks
-				# (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
+				# (e,iworld) = writeAll taskId embeddedTasks taskInstanceParallelTaskListTask iworld
 				| isError e = (ExceptionResult (fromError e),iworld)
 				//Evaluate the parallel
 				= eval (length embeddedTasks) [] event evalOpts iworld
 			(Error err,iworld)
 				= (ExceptionResult err, iworld)
 	where
-		writeAll [] sds iworld = (Ok WritingDone,iworld)
-		writeAll [(f,w):ws] sds iworld
-			= case (write w (sdsFocus f sds) EmptyContext iworld) of
-				(Ok WritingDone, iworld) = writeAll ws sds iworld
+		//TODO: Don't write one at a time, but use the aggregated SDS
+		writeAll listId [] sds iworld = (Ok WritingDone,iworld)
+		writeAll listId [(f,w):ws] sds iworld
+			= case (write w (sdsFocus (listId ,f) sds) EmptyContext iworld) of
+				(Ok WritingDone, iworld) = writeAll listId ws sds iworld
 				(Ok _, iworld) = (Error (exception "Asynchronous tasklist share???"), iworld)
 				err = err
 
@@ -308,11 +309,15 @@ initParallelTask evalOpts listId parType parTask iworld=:{options,clock,current=
 				, instanceType         = PersistentInstance (Just listId)
 				, build                = options.EngineOptions.appVersion
 				, createdAt            = clock
+				, nextTaskNo           = 0
+				, nextTaskTime         = 0
 				, valuestatus          = Unstable
 				, attachedTo           = []
+				, connectedTo          = Nothing
 				, instanceKey          = Nothing
 				, firstEvent           = Just clock
 				, lastEvent            = Just clock
+				, lastIO               = Nothing
 				, taskAttributes       = 'DM'.newMap
 				, managementAttributes = 'DM'.newMap
 				, unsyncedAttributes   = 'DS'.newSet
@@ -373,7 +378,7 @@ evalParallelTasks event evalOpts=:{TaskEvalOpts|taskId=listId} conts completed [
 					  | mbError =:(Error _)       = (liftError mbError,iworld)
 					  # taskId                    = state.TaskMeta.taskId
 					  //Store the task function
-					  # (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+					  # (mbError,iworld)          = (write (snd (fromJust mbTask)) (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld)
 					  | mbError =:(Error _)       = (liftError mbError,iworld)
 					  = evalParallelTasks ResetEvent evalOpts conts completed [state] values iworld //Continue
 					err = (liftError err, iworld)
@@ -426,7 +431,7 @@ where
 	evalEmbeddedParallelTask listId event evalOpts
 		{TaskMeta|taskId,createdAt,change,initialized} value iworld=:{current={taskTime}}
 		//Lookup task evaluation function and task evaluation state
-		# (mbTask,iworld) = read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
+		# (mbTask,iworld) = read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
 		//Evaluate or destroy branch
@@ -451,7 +456,7 @@ where
 				//Check if the value changed
 				# valueChanged = val =!= value
 				//Write the new reduct
-				# (mbError, iworld) = write task (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld
+				# (mbError, iworld) = write task (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
 				//Write meta data
                 # (mbError,iworld) = modify
@@ -472,19 +477,17 @@ where
 	//Retrieve result of detached parallel task
 	evalDetachedParallelTask :: !TaskId !Event !TaskEvalOpts !TaskMeta !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
 	evalDetachedParallelTask listId event evalOpts {TaskMeta|taskId=taskId=:(TaskId instanceNo _)} iworld
-		= case readRegister listId (sdsFocus instanceNo (removeMaybe Nothing taskInstanceValue)) iworld of
+		= case readRegister listId (sdsFocus instanceNo taskInstanceValue) iworld of
 			(Error e,iworld) = (Error e,iworld)
-			(Ok (ReadingDone (TIException dyn msg)),iworld) = (Ok (ExceptionResult (dyn,msg)),iworld)
-			(Ok (ReadingDone (TIValue encValue)),iworld)
-				//Decode value value
-				# mbValue = case encValue of
-					NoValue           = Just NoValue
-					Value json stable = (\dec -> Value dec stable) <$> fromDeferredJSON json
+			//(Ok (ReadingDone (TIException dyn msg)),iworld) = (Ok (ExceptionResult (dyn,msg)),iworld)
+			(Ok (ReadingDone value),iworld)
 				//TODO: use global tasktime to be able to compare event times between instances
 				# evalInfo = {TaskEvalInfo|lastEvent=0,removedTasks=[]}
-				# result = maybe (ExceptionResult (exception "Could not decode task value of detached task"))
-					(\val -> ValueResult val evalInfo NoChange nopTask) mbValue
+				# result = ValueResult (decode value) evalInfo NoChange nopTask
 				= (Ok result,iworld)
+	where
+		decode (Value enc stable) = maybe NoValue (\dec -> Value dec stable) (fromDeferredJSON enc)
+		decode NoValue = NoValue 
 
 destroyParallelTasks :: !TaskId !*IWorld -> *(TaskResult [(Int,TaskValue a)], *IWorld) | iTask a
 destroyParallelTasks listId=:(TaskId instanceNo _) iworld
@@ -521,7 +524,7 @@ where
 
 destroyEmbeddedParallelTask :: TaskId TaskId *IWorld -> *(MaybeError [TaskException] (TaskResult a), *IWorld) | iTask a
 destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId iworld=:{current={taskTime}}
-	# (errs,destroyResult,iworld) = case read (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld of
+	# (errs,destroyResult,iworld) = case read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld of
 		(Error e,iworld) = ([e], DestroyedResult,iworld)
 		(Ok (ReadingDone (Task eval)),iworld)
 			= case eval DestroyEvent {mkEvalOpts & noUI = True, taskId=taskId} iworld of
@@ -529,8 +532,8 @@ destroyEmbeddedParallelTask listId=:(TaskId instanceNo _) taskId iworld=:{curren
 				(res=:(ExceptionResult e),iworld) = ([e],DestroyedResult,iworld)
 				(res,iworld) = ([exception "destroyEmbeddedParallelTask: unexpected result"],DestroyedResult,iworld)
 	// 2. Remove the task evaluation function
-	# (errs,iworld) = case modify (fmap (\(r=:{TIReduct|tasks}) -> {TIReduct|r & tasks = 'DM'.del taskId tasks}))
-	                              (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld of
+	# (errs,iworld) = case modify (\tasks -> 'DM'.del taskId tasks)
+	                              (sdsFocus (listId,listId,defaultValue,defaultValue) taskListDynamicTaskData) EmptyContext iworld of
 		(Error e,iworld) = ([e:errs],iworld)
 		(Ok (ModifyingDone _),iworld) = (errs,iworld)
 	= (Ok destroyResult, iworld)
@@ -639,7 +642,7 @@ where
 				| mbError =:(Error _) = (liftError mbError,iworld)
 				//If the task is an embedded one, we also need to store the task function
 				| mbTask =:(Just _)
-					# (mbError,iworld) = (write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) EmptyContext iworld)
+					# (mbError,iworld) = (write (snd (fromJust mbTask)) (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld)
 					| mbError =:(Error _) = (liftError mbError,iworld)
 					= (Ok taskId, iworld)
 				= (Ok taskId, iworld)
@@ -721,33 +724,30 @@ attach instanceNo steal = Task evalinit
 where
 	evalinit DestroyEvent _ iworld = (DestroyedResult, iworld)
 	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld=:{current={attachmentChain}}
-		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
-		| mbConstants =: (Error _)  = (ExceptionResult (fromError mbConstants),iworld)
-		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
-		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		# (Ok (ReadingDone {InstanceConstants|build})) = mbConstants
-		# (Ok (ReadingDone progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
+		# (mbMeta,iworld) = read (sdsFocus instanceNo taskInstance) EmptyContext iworld
+		| mbMeta =: (Error _)  = (ExceptionResult (fromError mbMeta),iworld)
+		# (Ok (ReadingDone meta=:{TaskMeta|build,instanceKey,valuestatus,attachedTo})) = mbMeta
 		//Check if the task is already in use
 		| (not (attachedTo =: [])) && (not steal)
 			= eval (ASInUse (hd attachedTo)) build instanceKey event evalOpts  iworld
 		//Take over the instance. We generate a new key, so the other instance will no longer have access
 		# (newKey,iworld) = newInstanceKey iworld
-        # progress      = {InstanceProgress|progress & instanceKey = Just newKey, attachedTo = [taskId:attachmentChain]}
-		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
+        # meta = {TaskMeta|meta & instanceKey = Just newKey, attachedTo = [taskId:attachmentChain]}
+		# (_,iworld)	= write meta (sdsFocus instanceNo taskInstance) EmptyContext iworld
 		//Clear all input and output of that instance
 		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld 
 		# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld 
-		= eval (ASAttached (value =: Stable)) build (Just newKey) event evalOpts iworld
+		= eval (ASAttached (valuestatus =: Stable)) build (Just newKey) event evalOpts iworld
 
 	eval _ _ _ DestroyEvent evalOpts=:{TaskEvalOpts|taskId} iworld
 		# iworld     = clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
-		# (_,iworld) = modify release (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
+		# (_,iworld) = modify release (sdsFocus instanceNo taskInstance) EmptyContext iworld
         = (DestroyedResult, iworld)
 	where
-		release progress=:{InstanceProgress|attachedTo=[t:_]}
-			| t == taskId = {InstanceProgress|progress & attachedTo=[]} //Only release if the instance is still attached to this 'attach' task
-			= progress
-		release progress = progress
+		release meta=:{TaskMeta|attachedTo=[t:_]}
+			| t == taskId = {TaskMeta|meta & attachedTo=[]} //Only release if the instance is still attached to this 'attach' task
+			              = meta
+		release meta = meta
 
 	eval prevStatus build instanceKey event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld=:{options={appVersion},current={taskInstance}}
 		//Load instance
