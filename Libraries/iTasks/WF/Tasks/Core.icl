@@ -19,10 +19,10 @@ import StdString, StdBool, StdInt, StdMisc, StdFunc
 import qualified Data.Set as DS
 import qualified Data.Map as DM
 
-return :: !a -> (Task a) | iTask a
+return :: !a -> (Task a)
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
 
-throw :: !e -> Task a | iTask a & iTask, toString e
+throw :: !e -> Task a | TC, toString e
 throw e = mkInstantTask (\taskId iworld -> (Error (exception e), iworld))
 
 appWorld :: !(*World -> *World) -> Task ()
