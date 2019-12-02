@@ -28,10 +28,10 @@ throw e = mkInstantTask (\taskId iworld -> (Error (exception e), iworld))
 appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = accWorld $ tuple () o fun
 
-accWorld :: !(*World -> *(a, *World)) -> Task a | iTask a
+accWorld :: !(*World -> *(a, *World)) -> Task a
 accWorld fun = accWorldError (appFst Ok o fun) \_->""
 
-accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC, toString err
 accWorldError fun errf = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|world}
@@ -40,7 +40,7 @@ where
 			Error e = (Error (exception (errf e)), {IWorld|iworld & world = world})
 			Ok v    = (Ok v, {IWorld|iworld & world = world})
 
-accWorldOSError :: !(*World -> (MaybeOSError a, *World)) -> Task a | iTask a
+accWorldOSError :: !(*World -> (MaybeOSError a, *World)) -> Task a
 accWorldOSError fun = accWorldError fun OSException
 
 instance toString OSException
