@@ -10,7 +10,7 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.SDS.Definition import :: SimpleSDSLens, :: SDSLens, :: SDSSequence
 from iTasks.Util.DeferredJSON import :: DeferredJSON
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: TaskEvalOpts, :: Event
-from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: ValueStatus
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.WF.Combinators.Core import :: TaskListFilter, :: TaskListItem
@@ -90,6 +90,8 @@ derive gDefault TaskMeta, ExtendedTaskListFilter
     = RemoveTask                            //Mark for removal from the set on the next evaluation
     | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
 
+:: ValueStatus = Stable | Unstable | Exception !String
+
 //Internally we need more options to filter task list data
 :: ExtendedTaskListFilter =
 	//Extra filter on task type
@@ -99,6 +101,9 @@ derive gDefault TaskMeta, ExtendedTaskListFilter
 	//Extra horizontal filtering options
 	, includeTaskReduct :: !Bool
 	}
+
+//Predefined filters
+fullTaskList :: TaskListFilter
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
@@ -135,7 +140,6 @@ taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task a) (Task a)
 //Interface used during the evalation of toplevel tasks
 //Filtered views on the instance index
 taskInstance            :: SDSLens InstanceNo TaskMeta TaskMeta
-taskInstanceProgress    :: SDSLens InstanceNo InstanceProgress InstanceProgress
 
 taskInstanceAttributes  :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
 taskInstanceValue       :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
@@ -153,6 +157,9 @@ localShare :: SDSLens TaskId a a | iTask a
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 
+//Conversion to task lists
+toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a
+
 //=== Access functions: ===
 
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
@@ -164,7 +171,6 @@ createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError 
 /**
 * Create a stored task instance in the task store (lazily without evaluating it)
 * @param The task to store
-* @param Whether it is a top-level task
 * @param The task evaluation options
 * @param The instance number for the task
 * @param Management meta data
@@ -175,7 +181,7 @@ createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError 
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 
 /**
 * Replace a stored task instance in the task store.

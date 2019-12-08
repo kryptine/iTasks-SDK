@@ -21,7 +21,7 @@ import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Combinators.Common      import sdsFocus, >*|, mapReadWrite, mapReadWriteError
 from StdFunc import const, o
 
-derive gEq TaskMeta, InstanceType, TaskChange
+derive gEq TaskMeta, InstanceType, TaskChange, ValueStatus
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -60,14 +60,13 @@ where
 	# (curReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceTask) EmptyContext iworld
 	| isError curReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) curReduct) iworld
 	# curReduct=:(Task eval)    = directResult (fromOk curReduct)
-	//# curReduct=:{TIReduct|task=(Task eval),nextTaskNo=curNextTaskNo,nextTaskTime,tasks} = fromJust curReduct
 	// Determine the task type (startup,session,local) 
 	# (type,iworld)             = determineInstanceType instanceNo iworld
 	// Determine the progress of the instance
-	# (nextTaskTime,nextTaskNo,curProgress=:{InstanceProgress|value,attachedTo},iworld) = determineInstanceProgress instanceNo iworld
+	# (curProgress=:{TaskMeta|nextTaskTime,nextTaskNo,valuestatus,attachedTo},iworld) = determineInstanceProgress instanceNo iworld
 	//Check exception
-	| value =: (Exception _)
-		# (Exception description) = value
+	| valuestatus =: (Exception _)
+		# (Exception description) = valuestatus
 		= exitWithException instanceNo description iworld
 	//Evaluate instance
     # (currentSession,currentAttachment) = case (type,attachedTo) of
@@ -148,9 +147,8 @@ where
 
 	determineInstanceProgress instanceNo iworld
 		# (meta,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstance) EmptyContext iworld
-		| isError meta   = (1,1,{InstanceProgress|value=Unstable,instanceKey=Nothing,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing},iworld)
-		# meta=:{TaskMeta|nextTaskNo,nextTaskTime,valuestatus,attachedTo,instanceKey,firstEvent,lastEvent} = directResult (fromOk meta)
-		= (nextTaskNo,nextTaskTime,{InstanceProgress|value=valuestatus,attachedTo=attachedTo,instanceKey=instanceKey,firstEvent=firstEvent,lastEvent=lastEvent},iworld)
+		| isError meta       = ({defaultValue & nextTaskNo=1, nextTaskTime=1},iworld)
+		= (directResult (fromOk meta),iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}} = (nextTaskNo,iworld)
 

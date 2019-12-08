@@ -3,8 +3,9 @@ implementation module iTasks.SDS.Sources.System
 import iTasks.SDS.Definition
 import iTasks.SDS.Combinators.Core
 import iTasks.SDS.Combinators.Common
-import iTasks.Extensions.DateTime
+import iTasks.Extensions.DateTime //FIXME: Extensions should not be part of core
 import System.Time
+import Data.Func, Data.Either
 
 import iTasks.Engine
 import iTasks.Internal.SDS
@@ -72,14 +73,6 @@ where
 	param = (TaskId 0 0,self,defaultValue,efilter)
 	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
 
-toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a 
-toTaskListItem selfId {TaskMeta|taskId,instanceType,valuestatus,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
-	# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
-	= {TaskListItem|taskId = taskId, listId = listId, detached = True, self = taskId == selfId
-	  ,value = NoValue, progress = Just progress, attributes = mergeTaskAttributes (taskAttributes,managementAttributes)}
-where
-	progress = {InstanceProgress|value=valuestatus,attachedTo=attachedTo,instanceKey=instanceKey,firstEvent=firstEvent,lastEvent=lastEvent}
-
 taskInstanceFromMetaData :: TaskMeta -> TaskInstance
 taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,valuestatus,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
 	# session = (instanceType =: SessionInstance )
@@ -93,66 +86,61 @@ currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
 currentTaskInstanceAttributes :: SDSSequence () TaskAttributes TaskAttributes
-currentTaskInstanceAttributes
-	= sdsSequence "currentTaskInstanceAttributes"
-		id
-		(\_ no -> no)
-		(\_ _ -> Right snd)
-		(SDSWriteConst (\_ _ -> Ok Nothing))
-    (SDSWrite (\no r w -> (Ok (Just w))))
-		currentTaskInstanceNo
-		taskInstanceAttributesByNo
-
-allTaskInstances :: SDSLens () [TaskInstance] ()
-allTaskInstances
-    = (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
-       (sdsFocus param taskListMetaData))
+currentTaskInstanceAttributes= sdsSequence "currentTaskInstanceAttributes" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
 where
-	self = TaskId 0 0
-	param = (TaskId 0 0,self,defaultValue,defaultValue)
+	param1 _ = ()
+	param2 _ selfNo = (TaskId 0 0, TaskId selfNo 0, tfilter selfNo, defaultValue)
+	where
+		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-    readInstances (_,is) = Ok (map taskInstanceFromMetaData is)
+	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> mergeTaskAttributes (taskAttributes,managementAttributes)
+	write1 _ _ = Ok Nothing
+	write2 _ (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
 
-detachedTaskInstances :: SDSLens () [TaskInstance] ()
-detachedTaskInstances
-    =  (sdsProject (SDSLensRead readInstances) (SDSBlindWrite \_. Ok Nothing) Nothing
-       (sdsFocus param taskListMetaData))
+allTaskInstances :: SDSSequence () [TaskInstance] ()
+allTaskInstances= sdsSequence "allTaskInstances" param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentTaskInstanceNo taskListMetaData
 where
-	self = TaskId 0 0
-	param = (TaskId 0 0,self,defaultValue,efilter)
-	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
+	param1 _ = ()
+	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0,fullTaskList,defaultValue)
+	read _ selfNo = Right $ \(_,(_,meta)) -> map taskInstanceFromMetaData meta
+	write1 _ _ = Ok Nothing
+	write2 _ _ = Ok Nothing
 
-    readInstances (_,is) = Ok (map taskInstanceFromMetaData is)
-
-taskInstanceByNo :: SDSLens InstanceNo TaskInstance TaskAttributes
-taskInstanceByNo
-    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
-      (sdsTranslate "taskInstanceByNo" param taskListMetaData)
+detachedTaskInstances :: SDSSequence () [TaskInstance] ()
+detachedTaskInstances = sdsSequence "detachedTaskInstances" param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentTaskInstanceNo taskListMetaData
 where
-	self = TaskId 0 0
-	param no = (TaskId 0 0,self,tfilter no,defaultValue)
-	tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
+	param1 _ = ()
+	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0,fullTaskList,efilter)
+	where
+		efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
+	read _ selfNo = Right $ \(_,(_,meta)) -> map taskInstanceFromMetaData meta
 
-    readItem (_,[i]) = Ok (taskInstanceFromMetaData i)
-    readItem _      = Error (exception "Task instance not found")
+	write1 _ _ = Ok Nothing
+	write2 _ _ = Ok Nothing
 
-    writeItem (_,[meta]) new = Ok (Just [{TaskMeta|meta & managementAttributes = 'DM'.union new meta.TaskMeta.managementAttributes}])
-    writeItem _ _ = Error (exception "Task instance not found")
-
-taskInstanceAttributesByNo :: SDSLens InstanceNo TaskAttributes TaskAttributes
-taskInstanceAttributesByNo
-    = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem) Nothing
-      (sdsTranslate "taskInstanceAttributesByNo" param taskListMetaData)
+taskInstanceByNo :: SDSSequence InstanceNo TaskInstance TaskAttributes
+taskInstanceByNo = sdsSequence "taskInstanceByNo" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
 where
-	self = TaskId 0 0
-	param no = (TaskId 0 0,self,tfilter no,defaultValue)
-	tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
+	param1 _ = ()
+	param2 no selfNo = (TaskId 0 0, TaskId selfNo 0, tfilter no, defaultValue)
+	where
+		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-    readItem (_,[{TaskMeta|taskAttributes,managementAttributes}]) = Ok (mergeTaskAttributes (taskAttributes,managementAttributes))
-    readItem _ = Error (exception "Task instance not found")
+	read no selfNo = Right $ \(_,(_,[meta])) -> taskInstanceFromMetaData meta
+	write1 _ _ = Ok Nothing
+	write2 no (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
 
-    writeItem (_,[meta]) new = Ok (Just [{TaskMeta|meta & managementAttributes = 'DM'.union new meta.TaskMeta.managementAttributes}])
-    writeItem _ _ = Error (exception "Task instance not found")
+taskInstanceAttributesByNo :: SDSSequence InstanceNo TaskAttributes TaskAttributes
+taskInstanceAttributesByNo = sdsSequence "taskInstanceAttributesByNo" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
+where
+	param1 _ = ()
+	param2 no selfNo = (TaskId 0 0, TaskId selfNo 0, tfilter no, defaultValue)
+	where
+		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
+
+	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> mergeTaskAttributes (taskAttributes,managementAttributes)
+	write1 _ _ = Ok Nothing
+	write2 no (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
 
 taskInstancesByAttribute :: SDSLens (!String,!JSONNode) [TaskInstance] ()
 taskInstancesByAttribute

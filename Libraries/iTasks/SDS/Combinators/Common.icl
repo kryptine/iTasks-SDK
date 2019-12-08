@@ -211,16 +211,6 @@ where
         vs=:[v:_]   = (Ok v)
         _       = Error (exception "taskListItemValue: item not found")
 
-taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) InstanceProgress () | TC a
-taskListItemProgress tasklist = mapReadError read (toReadOnly (sdsTranslate "taskListItemProgress" listFilter tasklist))
-where
-    listFilter (Left index) = {onlyIndex=Just [index],onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=True}
-    listFilter (Right taskId) = {onlyIndex=Nothing,onlyTaskId=Just [taskId],notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=False,includeAttributes=False,includeProgress=True}
-
-    read (_,items) = case [p \\ {TaskListItem|progress=Just p} <- items] of
-        [p:_]   = Ok p
-        _       = Error (exception "taskListItemProgress: item not found")
-
 mapMaybeLens :: !String !(Shared sds (Map a b)) -> SDSLens a (Maybe b) b | < a & == a & TC a & TC b & RWShared sds
 mapMaybeLens name origShare = sdsLens name (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (Just reducer) origShare
 where

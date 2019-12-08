@@ -48,10 +48,10 @@ from Control.Applicative import class Alternative(<|>)
 import Data.GenEq
 import qualified Control.Monad
 
-derive JSONEncode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
-derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
+derive JSONEncode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter, ValueStatus
+derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter, ValueStatus
 
-derive gDefault InstanceProgress, InstanceType, TaskId, ValueStatus, TaskListFilter
+derive gDefault InstanceType, TaskId, ValueStatus, TaskListFilter
 
 gDefault{|TaskMeta|}
 	= {taskId= TaskId 0 0,instanceType=gDefault{|*|},build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
@@ -68,6 +68,11 @@ derive gText TaskChange, Set, ExtendedTaskListFilter
 
 instance < TaskMeta where
 	(<) {TaskMeta|taskId=t1} {TaskMeta|taskId=t2} = t1 < t2
+
+fullTaskList :: TaskListFilter
+fullTaskList =
+	{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlyAttribute=Nothing,onlySelf=False
+	,includeValue=True,includeAttributes=True,includeProgress=True}
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 mergeTaskAttributes (explicit,implicit) = 'DM'.union explicit implicit
@@ -145,8 +150,8 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
 
-createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance task evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
     # (instanceKey,iworld) = newInstanceKey iworld
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
@@ -275,7 +280,7 @@ taskListTypedValueData = sdsLens "taskListTypedValueData" id (SDSRead read) (SDS
 where
 	read param values = Ok $ fmap decodeTaskValue values
 	write param updates = Ok $ Just $ encodeTaskValue <$> updates
-	notify _ _ _ _ = False
+	notify _ _ _ _ = True
 
 taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
 taskListDynamicTaskData = sdsLens "taskListDynamicTaskData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskReducts
@@ -296,63 +301,48 @@ taskListTypedTaskData = sdsLens "taskListTypedTaskData" id (SDSRead read) (SDSWr
 where
 	read param tasks = Ok $ fmap (\t -> t @? decodeTaskValue) tasks
 	write param updates = Ok $ Just $ (\t -> t @? encodeTaskValue) <$> updates
-	notify _ _ _ _ = False
+	notify _ _ _ _ = True
 
 //Filtered views on the instance index
 taskInstance :: SDSLens InstanceNo TaskMeta TaskMeta
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListMetaData
 where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},
+	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},
 			{ExtendedTaskListFilter|defaultValue & includeSessions=True,includeDetached=True,includeStartup=True})
 	read no (_,[meta]) = Ok meta 
 	read no _ = Error (exception ("Could not find task instance "<+++ no))
 	write no data       = Ok (Just [data])
-	notify no _         = const ((==) no)
-
-taskInstanceProgress :: SDSLens InstanceNo InstanceProgress InstanceProgress
-taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListMetaData 
-where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},
-			{ExtendedTaskListFilter|defaultValue & includeSessions=True,includeDetached=True,includeStartup=True})
-
-	read no (_,[{TaskMeta|valuestatus,attachedTo,instanceKey,firstEvent,lastEvent}]) 
-		= Ok {InstanceProgress|value=valuestatus,attachedTo=attachedTo,instanceKey=instanceKey,firstEvent=firstEvent,lastEvent=lastEvent}
-	read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
-	write no (_,[meta]) {InstanceProgress|value,attachedTo,instanceKey,firstEvent,lastEvent}
-		= Ok (Just [{TaskMeta|meta & valuestatus = value, attachedTo = attachedTo,
-			instanceKey = instanceKey,firstEvent = firstEvent, lastEvent = lastEvent }])
-	write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
-	notify no _                 = const ((==) no)
+	notify no _ _ _     = True
 
 taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListMetaData
 where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},defaultValue)
+	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},defaultValue)
 
 	read no (_,[{TaskMeta|taskAttributes,managementAttributes}]) = Ok (taskAttributes,managementAttributes)
 	read no _ = Error (exception ("Could not find attributes for task instance "<+++ no))
 
 	write no (_,[meta]) (taskAttributes,managementAttributes) = Ok (Just [{TaskMeta|meta & taskAttributes = taskAttributes, managementAttributes = managementAttributes}])
-	notify no _ = const ((==) no)
+	notify no _ _ _ = True
 
 //Last computed value for task instance
 taskInstanceValue :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON)
 taskInstanceValue = sdsLens "taskInstanceValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
 where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
+	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
 
 	read no values = maybe (Error $ exception ("Could not find value for task instance "<+++ no)) Ok ('DM'.get (TaskId no 0) values)
 	write no values value = Ok $ Just $ 'DM'.put (TaskId no 0) value values
-	notify _  _ _ _ = False
+	notify _  _ _ _ = True
 
 taskInstanceTask :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
 taskInstanceTask = sdsLens "taskInstanceTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
 where
-	param no = (TaskId 0 0, TaskId 0 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
+	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
 
 	read no tasks = maybe (Error $ exception ("Could not find task for task instance "<+++ no)) Ok ('DM'.get (TaskId no 0) tasks)
 	write no tasks task = Ok $ Just $ 'DM'.put (TaskId no 0) task tasks
-	notify _  _ _ _ = False
+	notify _  _ _ _ = True
 
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 parallelTaskList
@@ -373,14 +363,7 @@ where
 	where
 		itemsMap = 'DM'.fromList [(taskId,meta) \\ meta=:{TaskMeta|taskId} <- items]
 
-	notify _ _ _ _ = False
-
-	toTaskListItem selfId {TaskMeta|taskId,instanceType,valuestatus,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
-		# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
-		= {TaskListItem|taskId = taskId, listId = listId, detached = True, self = taskId == selfId
-		  ,value = NoValue, progress = Just progress, attributes = mergeTaskAttributes (taskAttributes,managementAttributes)}
-	where
-		progress = {InstanceProgress|value=valuestatus,attachedTo=attachedTo,instanceKey=instanceKey,firstEvent=firstEvent,lastEvent=lastEvent}
+	notify _ _ _ _ = True
 
 topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 topLevelTaskList = sdsTranslate "topLevelTaskListWrapper" id
@@ -395,6 +378,20 @@ where
 	read _ _ = Right snd
 	write1 _ _ = Ok Nothing
 	write2 _ ws = Ok $ Just ws
+
+toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a
+toTaskListItem selfId {TaskMeta|taskId=taskId=:(TaskId instanceNo taskNo),instanceType,valuestatus
+	,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
+	# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
+	= {TaskListItem|taskId = taskId, listId = listId, detached = taskNo == 0, self = taskId == selfId
+	  ,value = NoValue, attributes = 'DM'.union (mergeTaskAttributes (taskAttributes,managementAttributes)) progressAttributes}
+where
+	progressAttributes = 'DM'.fromList
+		[("attachedTo",toJSON attachedTo)
+		,("instanceKey",toJSON instanceKey)
+		,("firstEvent",toJSON firstEvent)
+		,("lastEvent",toJSON lastEvent)
+		]
 
 taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
 taskInstanceParallelTaskList = sdsTranslate "taskInstanceParallelTaskList" param taskListMetaData

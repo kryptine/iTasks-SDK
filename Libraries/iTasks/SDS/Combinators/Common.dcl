@@ -3,7 +3,7 @@ definition module iTasks.SDS.Combinators.Common
 * This module provides common patterns for composing shared sources defined on top of the core set
 */
 import iTasks.SDS.Definition
-from iTasks.WF.Definition import :: TaskException, :: TaskValue, :: TaskId, :: TaskAttributes, :: InstanceProgress, class iTask
+from iTasks.WF.Definition import :: TaskException, :: TaskValue, :: TaskId, :: TaskAttributes, class iTask
 from iTasks.WF.Definition import generic gEditor, generic gEq, generic gText, generic JSONEncode, generic JSONDecode
 from iTasks.WF.Combinators.Core import :: TaskList, :: TaskListFilter, :: TaskListItem, :: SharedTaskList
 from iTasks.Internal.Generic.Visualization import :: TextFormat
@@ -138,12 +138,6 @@ taskListSelfManagement :: !(SharedTaskList a) -> SimpleSDSLens TaskAttributes | 
 * The paramater is either the index in the list or a specific task id
 */
 taskListItemValue :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) (TaskValue a) () | TC a
-/**
-* Get the progress of a specific task in the list
-* The paramater is either the index in the list or a specific task id
-* Note that there is only progress information for detached tasks
-*/
-taskListItemProgress :: !(SharedTaskList a) -> SDSLens (Either Int TaskId) InstanceProgress () | TC a
 
 /**
  * Convenience lens for lookups in Maps. Returns Nothing on a missing key.

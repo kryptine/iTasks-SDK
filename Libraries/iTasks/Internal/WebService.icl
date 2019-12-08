@@ -435,8 +435,8 @@ where
 	verifyInstances instances iworld = foldl verify ([],[],[],iworld) instances
 	where
 		verify (active,removed,revoked,iworld) (instanceNo,viewportKey)
-			= case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
-				(Ok (ReadingDone {InstanceProgress|instanceKey=Just key}),iworld)
+			= case 'SDS'.read (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld of
+				(Ok (ReadingDone {TaskMeta|instanceKey=Just key}),iworld)
 					= if (viewportKey == key)
 						([(instanceNo,viewportKey):active],removed,revoked,iworld)
 						(active,removed,[instanceNo:revoked],iworld)

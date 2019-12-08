@@ -5,6 +5,7 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor, Data.Func
 import iTasks.Internal.SDS
 import iTasks.Internal.Serialization
 import iTasks.Internal.Store
+from iTasks.Internal.TaskState import :: ValueStatus(..)
 from StdFunc import seq
 import qualified Data.Map as DM
 import Data.Map.GenJSON
@@ -55,7 +56,7 @@ where
 
 	notHidden {TaskInstance|attributes} = case 'DM'.get "hidden" attributes of (Just (JSONBool True)) = False ; _ = True
 
-	isActive {TaskInstance|value} = value === Unstable
+	isActive {TaskInstance|value} = value =: Unstable
 
 	mkRow {TaskInstance|instanceNo,attributes,listId} =
 		{WorklistRow

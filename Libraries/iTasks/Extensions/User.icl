@@ -8,8 +8,7 @@ import Data.Map.GenJSON
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.UI.Layout.Default
 
-from iTasks.WF.Definition import :: InstanceProgress(..)
-from iTasks.WF.Combinators.Core import :: TaskListItem(..) 
+from iTasks.WF.Definition import :: TaskListItem(..)
 import iTasks.Extensions.DateTime
 import System.Time
 
@@ -126,14 +125,14 @@ where
 derive class iTask		Credentials
 
 currentUser :: SimpleSDSLens User
-currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) Nothing currentTaskInstanceAttributes
+currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing currentTaskInstanceAttributes
 where
-	notify _ _ _ = const (const True)
+	notify _ _ _ _ = False
 
 taskInstanceUser :: SDSLens InstanceNo User User
-taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) Nothing taskInstanceAttributesByNo
+taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing taskInstanceAttributesByNo
 where
-	notify _ _ _ = const (const True)
+	notify _ _ _ _ = False
 
 userFromAttr :: a TaskAttributes -> MaybeError TaskException User
 userFromAttr _ attr = case 'DM'.get "auth-user" attr of
@@ -176,11 +175,11 @@ forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
         Nothing = True
 
 taskInstancesForUser :: SDSLens User [TaskInstance] ()
-taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotify notify) Nothing detachedTaskInstances
+taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing detachedTaskInstances
 where
 	read u instances = Ok (filter (forUser u) instances)
 	write _ () = Ok Nothing
-	notify _ _ _ = const (const False)
+	notify _ _ _ _ = False
 
 	forUser user {TaskInstance|attributes} = case 'DM'.get "user" attributes of
 	    Just (JSONString uid1) = case user of
@@ -238,14 +237,13 @@ where
         filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, notTaskId=Nothing, onlyIndex = Just [1],onlyAttribute=Nothing
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
 
-    toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
+    toView (_,[{TaskListItem|value,attributes}:_]) =
       { assignedTo    = mkAssignedTo attributes
-      , firstWorkedOn = fmap (timestampToGmDateTime o timespecToStamp) p.InstanceProgress.firstEvent
-      , lastWorkedOn  = fmap (timestampToGmDateTime o timespecToStamp) p.InstanceProgress.lastEvent
-      , taskStatus    = case p.InstanceProgress.value of
-                          Unstable      -> "In progres..."
-                          Stable        -> "Task done"
-                          (Exception _) -> "Something went wrong"
+      , firstWorkedOn = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "firstEvent" attributes))
+      , lastWorkedOn  = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "lastEvent" attributes))
+      , taskStatus    = case value of
+                          (Value _ True) -> "Task done"
+                          _ -> "In progres..."
       }
     toView (_,[{TaskListItem|attributes}:_]) =
       { assignedTo    = mkAssignedTo attributes

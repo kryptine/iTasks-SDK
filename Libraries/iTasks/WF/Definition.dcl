@@ -90,21 +90,7 @@ instance toInstanceNo TaskId
 	, self              :: !Bool
 	, value             :: !TaskValue a
 	, attributes        :: !TaskAttributes
-	, progress          :: !Maybe InstanceProgress //Only possible for detached tasks
 	}
-
-:: InstanceProgress =
-	{ value             :: !ValueStatus       //* Status of the task value
-	, attachedTo        :: ![TaskId]          //* Chain of tasks through which this instance was attached
-	, instanceKey       :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent        :: !Maybe Timespec    //* When was the first work done on this task
-	, lastEvent         :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
-	}
-
-:: ValueStatus
-    = Unstable
-    | Stable
-    | Exception !String
 
 :: TaskListFilter =
 	//Which rows to filter

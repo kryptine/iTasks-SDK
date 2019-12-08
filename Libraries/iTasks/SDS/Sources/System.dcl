@@ -4,7 +4,7 @@ definition module iTasks.SDS.Sources.System
 */
 
 import iTasks.SDS.Definition
-from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes, :: ValueStatus
+from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes
 from iTasks.WF.Combinators.Core import :: TaskList, :: SharedTaskList, :: TaskListFilter, :: TaskListItem 
 from iTasks.Extensions.DateTime import :: DateTime, :: Date, :: Time 
 from iTasks.Engine import :: EngineOptions
@@ -13,6 +13,8 @@ from System.Time import :: Timespec, :: Timestamp
 from System.FilePath import :: FilePath
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
+
+from iTasks.Internal.TaskState import :: ValueStatus //FIXME Don't import internal types
 
 //* Types to view the server's internal table of running task instances
 :: TaskInstance =
@@ -54,10 +56,10 @@ currentTopTask :: SDSLens () TaskId ()
 //Task instances
 currentTaskInstanceNo           :: SDSSource () InstanceNo ()
 currentTaskInstanceAttributes   :: SDSSequence () TaskAttributes TaskAttributes
-allTaskInstances                :: SDSLens () [TaskInstance] ()
-detachedTaskInstances	        :: SDSLens () [TaskInstance] () //Exclude sessions
-taskInstanceByNo                :: SDSLens InstanceNo TaskInstance TaskAttributes
-taskInstanceAttributesByNo      :: SDSLens InstanceNo TaskAttributes TaskAttributes
+allTaskInstances                :: SDSSequence () [TaskInstance] ()
+detachedTaskInstances           :: SDSSequence () [TaskInstance] () //Exclude sessions
+taskInstanceByNo                :: SDSSequence InstanceNo TaskInstance TaskAttributes
+taskInstanceAttributesByNo      :: SDSSequence InstanceNo TaskAttributes TaskAttributes
 taskInstancesByAttribute		:: SDSLens (!String,!JSONNode) [TaskInstance] () //Parameter is (key,value)
 
 // Application

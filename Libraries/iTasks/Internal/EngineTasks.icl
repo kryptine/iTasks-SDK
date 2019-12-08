@@ -41,10 +41,12 @@ where
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
 removeOutdatedSessions = everyTick \iworld=:{IWorld|options} ->
-	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, {ExtendedTaskListFilter|defaultValue &includeSessions=True}) taskListMetaData) EmptyContext iworld of
+	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, onlySessions) taskListMetaData) EmptyContext iworld of
 		(Ok (ReadingDone (_,index)), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
+	onlySessions = {ExtendedTaskListFilter|defaultValue &includeSessions=True,includeDetached=False,includeStartup=False}
+
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
 		(Ok (),iworld) = checkAll f xs iworld

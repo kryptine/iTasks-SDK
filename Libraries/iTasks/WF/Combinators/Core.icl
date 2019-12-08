@@ -332,12 +332,13 @@ where
 		# task            = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
 		= (Ok (taskId, Just (taskId,task)), iworld)
 	mkDetached evalDirect managementAttr iworld
+		//We need to know the instance number in advance, so we can pass the correctly focused task list share
+		//to the detached parallel task
 		# (mbInstanceNo,iworld) = newInstanceNo iworld
 		= case mbInstanceNo of
 			Ok instanceNo
-				# isTopLevel = listId == TaskId 0 0
-				# listShare = if isTopLevel topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0, listFilter)) parallelTaskList)
-				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo managementAttr listId evalDirect iworld
+				# listShare = sdsTranslate "setTaskAndList" (\listFilter -> (listId, TaskId instanceNo 0, listFilter)) parallelTaskList
+				# (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) evalOpts instanceNo managementAttr listId evalDirect iworld
 				= case mbTaskId of
 					Ok taskId = (Ok (taskId, Nothing), iworld)
 					err       = (liftError err, iworld)
@@ -637,8 +638,7 @@ where
 					//TODO: Make sure we don't lose the attributes!
 					= (Ok taskId, iworld)
 			  	//Update the task list
-				# taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlySelf=False,onlyAttribute=Nothing,includeValue=True,includeAttributes=True,includeProgress=True}
-				# (mbError,iworld)    =  modify (\(_,states) -> states ++ [state]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
+				# (mbError,iworld)    =  modify (\(_,states) -> states ++ [state]) (sdsFocus (listId,fullTaskList) taskInstanceParallelTaskList) EmptyContext iworld
 				| mbError =:(Error _) = (liftError mbError,iworld)
 				//If the task is an embedded one, we also need to store the task function
 				| mbTask =:(Just _)
@@ -749,16 +749,16 @@ where
 			              = meta
 		release meta = meta
 
-	eval prevStatus build instanceKey event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld=:{options={appVersion},current={taskInstance}}
+	eval prevStatus build instanceKey event evalOpts=:{TaskEvalOpts|taskId,lastEval} iworld=:{options={appVersion},current}
 		//Load instance
-		# (progress,iworld) = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
+		# (progress,iworld) = readRegister taskId (sdsFocus instanceNo taskInstance) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok (ReadingDone progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
+			(Ok (ReadingDone progress=:{TaskMeta|attachedTo=[attachedId:_],valuestatus}))
 			    | build <> appVersion    = ASIncompatible
-				| value =: (Exception _) = ASExcepted "unable to read progress"
+				| valuestatus =: (Exception _) = ASExcepted "unable to read progress"
 				| attachedId <> taskId   = ASInUse attachedId	
-				                         = ASAttached (value =: Stable)
+				                         = ASAttached (valuestatus =: Stable)
 			_                            = ASDeleted
 		//Determine UI change
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
