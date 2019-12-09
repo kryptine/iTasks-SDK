@@ -23,8 +23,6 @@ import iTasks.SDS.Definition
 import iTasks.WF.Definition
 import iTasks.WF.Derives
 
-derive gText ExtendedTaskListFilter
-derive JSONEncode ExtendedTaskListFilter
 derive gDefault TaskId, TaskListFilter
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels

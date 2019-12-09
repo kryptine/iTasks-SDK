@@ -89,7 +89,8 @@ instance toInstanceNo TaskId
 	, detached          :: !Bool
 	, self              :: !Bool
 	, value             :: !TaskValue a
-	, attributes        :: !TaskAttributes
+	, taskAttributes       :: !TaskAttributes
+	, managementAttributes :: !TaskAttributes
 	}
 
 :: TaskListFilter =
@@ -99,11 +100,14 @@ instance toInstanceNo TaskId
 	, notTaskId         :: !Maybe [TaskId]
 	, onlyAttribute 	:: !Maybe (!String,!JSONNode)
 	, onlySelf          :: !Bool
-	//What to include
-	, includeValue      :: !Bool
-	, includeAttributes :: !Bool
-	, includeProgress   :: !Bool
+	//What to be notified for
+	, includeValue                :: !Bool
+	, includeTaskAttributes       :: !Bool
+	, includeManagementAttributes :: !Bool
+	, includeProgress             :: !Bool
 	}
+
+fullTaskListFilter :: TaskListFilter
 
 //The iTask context restriction contains all generic functions that need to
 //be available for a type to be used in tasks

@@ -59,3 +59,8 @@ instance toInstanceNo TaskId where toInstanceNo (TaskId no _) = no
 
 derive gDefault TaskListFilter, TaskId
 
+fullTaskListFilter :: TaskListFilter
+fullTaskListFilter =
+	{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlyAttribute=Nothing,onlySelf=False
+	,includeValue=False,includeTaskAttributes=False,includeManagementAttributes=False,includeProgress=False}
+

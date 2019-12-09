@@ -31,10 +31,11 @@ from System.FilePath import :: FilePath
 //FIXME: Extensions should not be imported in core
 from iTasks.Extensions.Document import :: Document, :: DocumentId
 
-derive JSONEncode TaskMeta
-derive JSONDecode TaskMeta
+derive JSONEncode TaskMeta, ExtendedTaskListFilter
+derive JSONDecode TaskMeta, ExtendedTaskListFilter
 
 derive gDefault TaskMeta, ExtendedTaskListFilter
+derive gText ExtendedTaskListFilter
 
 //Persistent context of active tasks
 //Split up version of task instance information
@@ -100,10 +101,11 @@ derive gDefault TaskMeta, ExtendedTaskListFilter
 	, includeStartup    :: !Bool
 	//Extra horizontal filtering options
 	, includeTaskReduct :: !Bool
+	, includeTaskIO     :: !Bool
 	}
 
 //Predefined filters
-fullTaskList :: TaskListFilter
+fullExtendedTaskListFilter :: ExtendedTaskListFilter
 
 mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
@@ -133,15 +135,16 @@ taskInstanceParallelTaskList       :: SDSLens (TaskId,TaskListFilter) (TaskId,[T
 taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 taskInstanceParallelTaskListTasks  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
-taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId) TaskMeta TaskMeta 
+taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId,Bool) TaskMeta TaskMeta
 taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue a) (TaskValue a) | iTask a
 taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
 
 //Interface used during the evalation of toplevel tasks
 //Filtered views on the instance index
-taskInstance            :: SDSLens InstanceNo TaskMeta TaskMeta
+taskInstance            :: SDSLens (InstanceNo,Bool,Bool,Bool) TaskMeta TaskMeta
 
 taskInstanceAttributes  :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
+
 taskInstanceValue       :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
 taskInstanceTask        :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
 

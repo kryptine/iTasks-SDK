@@ -8,7 +8,7 @@ import Data.Map.GenJSON
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.UI.Layout.Default
 
-from iTasks.WF.Definition import :: TaskListItem(..)
+from iTasks.WF.Definition import :: TaskListItem(..), fullTaskListFilter
 import iTasks.Extensions.DateTime
 import System.Time
 
@@ -164,11 +164,11 @@ processesForCurrentUser = mapRead readPrj ((currentProcesses >*| currentUser))
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
-forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
+forWorker user {TaskListItem|managementAttributes} = case 'DM'.get "user" managementAttributes of
     Just (JSONString uid1) = case user of
         (AuthenticatedUser uid2 _ _)    = uid1 == uid2
         _                               = False
-    Nothing = case 'DM'.get "role" attributes of
+    Nothing = case 'DM'.get "role" managementAttributes of
         Just (JSONString role) = case user of
             (AuthenticatedUser _ roles _)   = isMember role roles
             _                               = False
@@ -234,19 +234,18 @@ where
 	processControl tlist
 		= viewSharedInformation [ViewAs toView] (sdsFocus filter tlist) @? const NoValue
     where
-        filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, notTaskId=Nothing, onlyIndex = Just [1],onlyAttribute=Nothing
-                 ,includeValue=False,includeAttributes=True,includeProgress=True}
+        filter = {TaskListFilter|fullTaskListFilter & onlyIndex =Just [1], includeProgress=True}
 
-    toView (_,[{TaskListItem|value,attributes}:_]) =
-      { assignedTo    = mkAssignedTo attributes
-      , firstWorkedOn = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "firstEvent" attributes))
-      , lastWorkedOn  = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "lastEvent" attributes))
+    toView (_,[{TaskListItem|value,taskAttributes,managementAttributes}:_]) =
+      { assignedTo    = mkAssignedTo managementAttributes
+      , firstWorkedOn = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "firstEvent" taskAttributes))
+      , lastWorkedOn  = fmap (timestampToGmDateTime o timespecToStamp) (maybe Nothing fromJSON ('DM'.get "lastEvent" taskAttributes))
       , taskStatus    = case value of
                           (Value _ True) -> "Task done"
                           _ -> "In progres..."
       }
-    toView (_,[{TaskListItem|attributes}:_]) =
-      { assignedTo    = mkAssignedTo attributes
+    toView (_,[{TaskListItem|managementAttributes}:_]) =
+      { assignedTo    = mkAssignedTo managementAttributes
       , firstWorkedOn = Nothing
       , lastWorkedOn  = Nothing
       , taskStatus    = "No progress"

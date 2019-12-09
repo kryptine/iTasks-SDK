@@ -23,8 +23,6 @@ from StdFunc import id, o, const
 
 import qualified Data.Map as DM
 
-derive gText ExtendedTaskListFilter
-derive JSONEncode ExtendedTaskListFilter
 derive gDefault TaskListFilter, TaskId
 
 NS_SYSTEM_DATA :== "SystemData"
@@ -101,7 +99,7 @@ allTaskInstances :: SDSSequence () [TaskInstance] ()
 allTaskInstances= sdsSequence "allTaskInstances" param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentTaskInstanceNo taskListMetaData
 where
 	param1 _ = ()
-	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0,fullTaskList,defaultValue)
+	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0, fullTaskListFilter,fullExtendedTaskListFilter)
 	read _ selfNo = Right $ \(_,(_,meta)) -> map taskInstanceFromMetaData meta
 	write1 _ _ = Ok Nothing
 	write2 _ _ = Ok Nothing
@@ -110,9 +108,10 @@ detachedTaskInstances :: SDSSequence () [TaskInstance] ()
 detachedTaskInstances = sdsSequence "detachedTaskInstances" param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentTaskInstanceNo taskListMetaData
 where
 	param1 _ = ()
-	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0,fullTaskList,efilter)
+	param2 _ selfNo = (TaskId 0 0,TaskId selfNo 0,tfilter,efilter)
 	where
-		efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
+		tfilter = {TaskListFilter|fullTaskListFilter & includeProgress = True, includeManagementAttributes = True}
+		efilter = {ExtendedTaskListFilter|fullExtendedTaskListFilter & includeSessions = False, includeDetached = True, includeStartup = False}
 	read _ selfNo = Right $ \(_,(_,meta)) -> map taskInstanceFromMetaData meta
 
 	write1 _ _ = Ok Nothing

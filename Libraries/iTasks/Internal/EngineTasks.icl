@@ -17,8 +17,8 @@ import Text
 
 from Data.Map import newMap, member, del
 
-derive gText TaskId, TaskListFilter, ExtendedTaskListFilter
-derive JSONEncode TaskId, TaskListFilter, ExtendedTaskListFilter
+derive gText TaskId, TaskListFilter
+derive JSONEncode TaskId, TaskListFilter
 derive gDefault TaskId, TaskListFilter
 
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
@@ -84,8 +84,8 @@ stopOnStable = everyTick \iworld->case read (sdsFocus selection taskListMetaData
 			= (Error (exception "Unexpeced SDS state"),iworld)
 		(Error e, iworld)  = (Error e, iworld)
 where
-	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|defaultValue & includeAttributes=True,includeProgress=True}
-		,{ExtendedTaskListFilter|defaultValue & includeStartup=True})
+	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
+		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
 
 	isStable {TaskMeta|valuestatus} = valuestatus =: Stable
 	isSystem {TaskMeta|taskAttributes} = member "system" taskAttributes

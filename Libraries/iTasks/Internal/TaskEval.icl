@@ -95,7 +95,7 @@ where
 	# (nextTaskNo,iworld) = getNextTaskNo iworld
 	# (mbErr,iworld) = if destroyed
 		(Ok (),iworld)	//Only update progress when something changed
-		(case (modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus instanceNo taskInstance) EmptyContext iworld) of
+		(case (modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus (instanceNo,False,True,False) taskInstance) EmptyContext iworld) of
 		  (Error e, iworld) = (Error e, iworld)
 		  (Ok _, iworld) = (Ok (), iworld) )
 	| mbErr=:(Error _)
@@ -140,13 +140,13 @@ where
 		= (Error description, iworld)
 
 	determineInstanceType instanceNo iworld
-		# (meta, iworld) = 'SDS'.read (sdsFocus instanceNo taskInstance) EmptyContext iworld
+		# (meta, iworld) = 'SDS'.read (sdsFocus (instanceNo,False,False,False) taskInstance) EmptyContext iworld
 		| isError meta = (SessionInstance,iworld)
 		# {TaskMeta|instanceType} = directResult (fromOk meta)
 		= (instanceType,iworld)
 
 	determineInstanceProgress instanceNo iworld
-		# (meta,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstance) EmptyContext iworld
+		# (meta,iworld)      = 'SDS'.read (sdsFocus (instanceNo,False,False,False) taskInstance) EmptyContext iworld
 		| isError meta       = ({defaultValue & nextTaskNo=1, nextTaskTime=1},iworld)
 		= (directResult (fromOk meta),iworld)
 
