@@ -155,7 +155,7 @@ editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedC
 	= interactRW sharedContainer
 		{onInit = \r -> Update (toView r, initSel r)
 		,onEdit = \_ -> Nothing
-		,onRefresh = \r v -> ((\(_, sel) -> (toView r,sel)) <$> v,Nothing)
+		,onRefresh = \r v ->  (Just (toView r, maybe [] snd v), Nothing)
 		} (withAttributes attributes editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
