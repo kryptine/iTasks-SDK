@@ -270,17 +270,30 @@ where
 		   )
 
 taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
-taskListDynamicValueData = sdsLens "taskListDynamicValueData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskValues
+taskListDynamicValueData = taskIdIndexedStore "taskListDynamicValueData" allTaskValues
+
+taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
+taskListDynamicTaskData = taskIdIndexedStore "taskListDynamicTaskData" allTaskReducts
+
+taskIdIndexedStore name sds = sdsLens name param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing sds
 where
 	param (listId,_,_,_) = listId
 
-	//FIXME: Filter values when reading and writing
-	//As it is now, it is a big memory leak because we can't erase values 
-	read (listId,selfId,tfilter,efilter) values = Ok values
-	write (listId,selfId,tfilter,efilter) values updates = Ok $ Just $ 'DM'.union updates values
+	read (listId,selfId,tfilter,efilter) values
+		= Ok $ 'DM'.fromList [value \\ value=:(taskId,_) <- 'DM'.toList values | inFilter tfilter taskId]
 
-	inFilter tfilter efilter (index,(taskId,value)) = True
+	write (listId,selfId,tfilter,efilter) values updates
+		# updates = 'DM'.filterWithKey (\k v -> inFilter tfilter k) updates //Only consider updates that match the filter
+		# selection = 'DM'.filterWithKey (\k v -> inFilter tfilter k) values //Find the orignal selection
+		# deletes = 'DM'.keys $ 'DM'.intersection selection updates //The elements that are in the selecion, but not in the updates should be deleted
+		= Ok $ Just $ 'DM'.union updates $ 'DM'.delList deletes values
 
+	//We only use the taskId to select
+	inFilter {TaskListFilter|onlyTaskId,notTaskId,onlyIndex,onlyAttribute} taskId
+		=  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
+		&& maybe True (\taskIds -> not (isMember taskId taskIds)) notTaskId
+
+	//We don't notify at all for these stores.
 	notify _ _ _ _ _ = False
 	
 taskListTypedValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
@@ -289,20 +302,6 @@ where
 	read param values = Ok $ fmap decodeTaskValue values
 	write param updates = Ok $ Just $ encodeTaskValue <$> updates
 	notify _ _ _ _ = True
-
-taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
-taskListDynamicTaskData = sdsLens "taskListDynamicTaskData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskReducts
-where
-	param (listId,_,_,_) = listId
-
-	//FIXME: Filter values when reading and writing
-	//As it is now, it is a big memory leak because we can't erase tasks
-	read (listId,selfId,tfilter,efilter) values = Ok values
-	write (listId,selfId,tfilter,efilter) values updates = Ok $ Just $ 'DM'.union updates values
-
-	inFilter tfilter efilter (index,(taskId,value)) = True
-
-	notify _ _ _ _ _ = False
 
 taskListTypedTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 taskListTypedTaskData = sdsLens "taskListTypedTaskData" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
