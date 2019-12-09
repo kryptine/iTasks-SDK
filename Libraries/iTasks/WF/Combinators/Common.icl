@@ -29,25 +29,25 @@ import iTasks.WF.Tasks.SDS
 instance Functor Task where
 	fmap f t = t @ f
 
-(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 (>>*) task steps = step task (const Nothing) steps
 
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>=) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
-(>>|) infixl 1 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
+(>>|) infixl 1 :: !(Task a) !(Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>|) l r = l >>* [OnAction ActionContinue (always r), OnValue (ifStable (\_->r))]
 
-(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
 
-(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>-) taska taskbf = step taska (const Nothing) [OnValue (ifStable taskbf)]
 
-(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
 
-(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | TC, JSONEncode{|*|} a & TC, JSONEncode{|*|} b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
 
 (@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b
