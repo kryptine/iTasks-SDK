@@ -96,7 +96,7 @@ where
 	clock = sdsFocus {start=zero,interval=poll} iworldTimespec
 
 tcplisten :: !Int !Bool !(sds () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w & RWShared sds
-tcplisten port removeClosed sds handlers = Task eval
+tcplisten port removeClosed sds handlers = Task evalinit
 where
 	evalinit DestroyEvent _ iworld = (DestroyedResult, iworld)
 	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld
