@@ -48,14 +48,14 @@ from Control.Applicative import class Alternative(<|>)
 import Data.GenEq
 import qualified Control.Monad
 
-derive JSONEncode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter, ValueStatus
-derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter, ValueStatus
+derive JSONEncode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
+derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, ExtendedTaskListFilter
 
-derive gDefault InstanceType, TaskId, ValueStatus, TaskListFilter
+derive gDefault InstanceType, TaskId, TaskListFilter
 
 gDefault{|TaskMeta|}
 	= {taskId= TaskId 0 0,instanceType=gDefault{|*|},build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
-		,valuestatus=Unstable,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
+		,status=Right False,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
 		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing
 		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
 		,change = Nothing, initialized = False}
@@ -71,9 +71,6 @@ instance < TaskMeta where
 fullExtendedTaskListFilter :: ExtendedTaskListFilter
 fullExtendedTaskListFilter =
 	 {includeSessions=True,includeDetached=True,includeStartup=True,includeTaskReduct=False,includeTaskIO=False}
-
-mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
-mergeTaskAttributes (explicit,implicit) = 'DM'.union explicit implicit
 
 encodeTaskValue :: (TaskValue a) -> TaskValue DeferredJSON | iTask a
 encodeTaskValue (Value dec stable) = Value (DeferredJSON dec) stable
@@ -153,7 +150,7 @@ createDetachedTaskInstance task evalOpts instanceNo attributes listId refreshImm
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
     # (instanceKey,iworld) = newInstanceKey iworld
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
-	# meta = {defaultValue & taskId = TaskId instanceNo 0, valuestatus = Unstable, instanceType=PersistentInstance mbListId,build=appVersion
+	# meta = {defaultValue & taskId = TaskId instanceNo 0, instanceType=PersistentInstance mbListId,build=appVersion
 		,createdAt=clock,managementAttributes=attributes, instanceKey=Just instanceKey}
 	= 'SDS'.write meta (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
@@ -390,7 +387,7 @@ where
 	write2 _ ws = Ok $ Just ws
 
 toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a
-toTaskListItem selfId {TaskMeta|taskId=taskId=:(TaskId instanceNo taskNo),instanceType,valuestatus
+toTaskListItem selfId {TaskMeta|taskId=taskId=:(TaskId instanceNo taskNo),instanceType
 	,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
 	# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
 	= {TaskListItem|taskId = taskId, listId = listId, detached = taskNo == 0, self = taskId == selfId

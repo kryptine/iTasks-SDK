@@ -300,7 +300,7 @@ initParallelTask evalOpts listId parType parTask iworld=:{options,clock,current=
 				, createdAt            = clock
 				, nextTaskNo           = 0
 				, nextTaskTime         = 0
-				, valuestatus          = Unstable
+				, status               = Right False
 				, attachedTo           = []
 				, connectedTo          = Nothing
 				, instanceKey          = Nothing
@@ -445,7 +445,7 @@ where
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
 				//Write meta data
                 # (mbError,iworld) = modify
-						(\meta -> {TaskMeta|meta & valuestatus = valueStatus val,
+						(\meta -> {TaskMeta|meta & status = valueStatus val,
 							taskAttributes = taskAttributeUpdate meta.TaskMeta.taskAttributes, initialized = True})
                         (sdsFocus (listId,taskId,valueChanged) taskInstanceParallelTaskListItem)
 						EmptyContext iworld
@@ -459,8 +459,8 @@ where
 	where
 		(TaskId instanceNo taskNo)   = taskId
 
-		valueStatus (Value _ True) = Stable
-		valueStatus _ = Unstable
+		valueStatus (Value _ True) = Right True
+		valueStatus _ = Right False
 	
 	//Retrieve result of detached parallel task
 	evalDetachedParallelTask :: !TaskId !Event !TaskEvalOpts !TaskMeta !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
@@ -703,7 +703,7 @@ where
 	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld=:{current={attachmentChain}}
 		# (mbMeta,iworld) = read (sdsFocus (instanceNo,False,False,False) taskInstance) EmptyContext iworld
 		| mbMeta =: (Error _)  = (ExceptionResult (fromError mbMeta),iworld)
-		# (Ok (ReadingDone meta=:{TaskMeta|build,instanceKey,valuestatus,attachedTo})) = mbMeta
+		# (Ok (ReadingDone meta=:{TaskMeta|build,instanceKey,status,attachedTo})) = mbMeta
 		//Check if the task is already in use
 		| (not (attachedTo =: [])) && (not steal)
 			= eval (ASInUse (hd attachedTo)) build instanceKey event evalOpts  iworld
@@ -714,7 +714,7 @@ where
 		//Clear all input and output of that instance
 		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld 
 		# (_,iworld)    = modify (\('DQ'.Queue a b) -> 'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo]) taskEvents EmptyContext iworld 
-		= eval (ASAttached (valuestatus =: Stable)) build (Just newKey) event evalOpts iworld
+		= eval (ASAttached (status =: (Right True))) build (Just newKey) event evalOpts iworld
 
 	eval _ _ _ DestroyEvent evalOpts=:{TaskEvalOpts|taskId} iworld
 		# iworld     = clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
@@ -733,11 +733,11 @@ where
 		# (progress,iworld) = readRegister taskId (sdsFocus focus taskListMetaData) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok (ReadingDone (_,[progress=:{TaskMeta|attachedTo=[attachedId:_],valuestatus}])))
+			(Ok (ReadingDone (_,[progress=:{TaskMeta|attachedTo=[attachedId:_],status}])))
 			    | build <> appVersion    = ASIncompatible
-				| valuestatus =: (Exception _) = ASExcepted "unable to read progress"
+				| status =: (Left _)     = ASExcepted "unable to read progress"
 				| attachedId <> taskId   = ASInUse attachedId	
-				                         = ASAttached (valuestatus =: Stable)
+				                         = ASAttached (status =: (Right True))
 			_                            = ASDeleted
 		//Determine UI change
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey

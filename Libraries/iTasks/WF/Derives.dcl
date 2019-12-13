@@ -7,7 +7,7 @@ import iTasks.WF.Definition
 
 from iTasks.WF.Combinators.Core import :: Action, :: TaskListItem, :: TaskListFilter, :: AttachmentStatus
 from iTasks.Internal.IWorld import :: ClockParameter
-from iTasks.SDS.Sources.System import :: TaskInstance
+from iTasks.SDS.Sources.System import :: TaskInstance, :: ValueStatus
 
 import Data.Either.GenJSON, Data.Error.GenJSON
 import Text.HTML.GenJSON
@@ -32,10 +32,10 @@ derive gText      {}
 //Common iTasks system types
 derive class iTask TaskId, TaskListFilter, AttachmentStatus
 
-derive JSONEncode		TaskValue, TaskListItem, TaskInstance, Action, Timespec, ClockParameter
-derive JSONDecode		TaskValue, TaskListItem, TaskInstance, Action, Timespec, ClockParameter
-derive gEq				TaskValue, TaskListItem, TaskInstance, Action, Timespec, ClockParameter
+derive JSONEncode		TaskValue, TaskListItem, TaskInstance, ValueStatus, Action, Timespec, ClockParameter
+derive JSONDecode		TaskValue, TaskListItem, TaskInstance, ValueStatus, Action, Timespec, ClockParameter
+derive gEq				TaskValue, TaskListItem, TaskInstance, ValueStatus, Action, Timespec, ClockParameter
 
-derive gText	        TaskValue, TaskListItem, TaskInstance, Action
-derive gEditor			TaskValue, TaskListItem, TaskInstance, Action, Timespec, ClockParameter
+derive gText	        TaskValue, TaskListItem, TaskInstance, ValueStatus, Action
+derive gEditor			TaskValue, TaskListItem, TaskInstance, ValueStatus, Action, Timespec, ClockParameter
 

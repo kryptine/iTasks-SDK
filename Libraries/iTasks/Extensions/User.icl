@@ -181,7 +181,7 @@ where
 	write _ () = Ok Nothing
 	notify _ _ _ _ = False
 
-	forUser user {TaskInstance|attributes} = case 'DM'.get "user" attributes of
+	forUser user {TaskInstance|taskAttributes,managementAttributes} = case 'DM'.get "user" attributes of
 	    Just (JSONString uid1) = case user of
 			(AuthenticatedUser uid2 _ _)    = uid1 == uid2
 			_                               = False
@@ -191,6 +191,8 @@ where
 				(AuthenticatedUser _ roles _)   = isMember role roles
 				_                               = False
 			Nothing = True
+	where
+		attributes = 'DM'.union managementAttributes taskAttributes
 
 taskInstancesForCurrentUser :: SDSSequence () [TaskInstance] ()
 taskInstancesForCurrentUser

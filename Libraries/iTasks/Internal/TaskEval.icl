@@ -21,7 +21,7 @@ import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Combinators.Common      import sdsFocus, >*|, mapReadWrite, mapReadWriteError
 from StdFunc import const, o
 
-derive gEq TaskMeta, InstanceType, TaskChange, ValueStatus
+derive gEq TaskMeta, InstanceType, TaskChange
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -63,11 +63,9 @@ where
 	// Determine the task type (startup,session,local) 
 	# (type,iworld)             = determineInstanceType instanceNo iworld
 	// Determine the progress of the instance
-	# (curProgress=:{TaskMeta|nextTaskTime,nextTaskNo,valuestatus,attachedTo},iworld) = determineInstanceProgress instanceNo iworld
+	# (curProgress=:{TaskMeta|nextTaskTime,nextTaskNo,status,attachedTo},iworld) = determineInstanceProgress instanceNo iworld
 	//Check exception
-	| valuestatus =: (Exception _)
-		# (Exception description) = valuestatus
-		= exitWithException instanceNo description iworld
+	| status =: (Left _) = let (Left message) = status in exitWithException instanceNo message iworld
 	//Evaluate instance
     # (currentSession,currentAttachment) = case (type,attachedTo) of
         (SessionInstance,_)                       = (Just instanceNo,[])
@@ -164,9 +162,9 @@ where
 					 , nextTaskTime = nextTaskTime + 1
 					 }
 		= case result of
-			(ExceptionResult (_,msg))             = {TaskMeta|meta & valuestatus = Exception msg}
-			(ValueResult (Value _ stable) _  _ _) = {TaskMeta|meta & valuestatus = if stable Stable Unstable}
-			_                                     = {TaskMeta|meta & valuestatus = Unstable }
+			(ExceptionResult (_,msg))             = {TaskMeta|meta & status = Left msg}
+			(ValueResult (Value _ stable) _  _ _) = {TaskMeta|meta & status = Right stable}
+			_                                     = {TaskMeta|meta & status = Right False}
 
 	getAttributeChanges :: !UIChange -> [UIAttributeChange]
 	getAttributeChanges (ChangeUI changes _) = changes

@@ -14,21 +14,22 @@ from System.FilePath import :: FilePath
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 
-from iTasks.Internal.TaskState import :: ValueStatus //FIXME Don't import internal types
-
 //* Types to view the server's internal table of running task instances
 :: TaskInstance =
-	{ instanceNo	    :: !InstanceNo			//* Unique global identification
-    , instanceKey       :: !Maybe InstanceKey   //* Random string that a client needs to provide to access the task instance
-    , session           :: !Bool                //* Is this a session
-	, listId            :: !TaskId              //* Reference to parent tasklist
-    , build             :: !String              //* Application build version when the instance was created
-    , issuedAt			:: !Timespec           //* When was the task created
-	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
-	, value             :: !ValueStatus         //* Status of the task value
-	, firstEvent		:: !Maybe Timespec     //*When was the first work done on this task
-	, lastEvent		    :: !Maybe Timespec     //* When was the last event on this task	
+	{ instanceNo	       :: !InstanceNo        //* Unique global identification
+    , instanceKey          :: !Maybe InstanceKey //* Random string that a client needs to provide to access the task instance
+	, value                :: !ValueStatus       //* Status of the task value
+    , session              :: !Bool              //* Is this a session
+	, listId               :: !TaskId            //* Reference to parent tasklist
+    , build                :: !String            //* Application build version when the instance was created
+    , issuedAt			   :: !Timespec          //* When was the task created
+	, taskAttributes       :: !TaskAttributes    //* Computed task meta-data
+	, managementAttributes :: !TaskAttributes    //* Arbitrary meta-data
+	, firstEvent		   :: !Maybe Timespec    //* When was the first work done on this task
+	, lastEvent		       :: !Maybe Timespec    //* When was the last event on this task	
 	}
+
+:: ValueStatus = Stable | Unstable | Exception !String
 
 // Date & time (in task server's local timezone)
 currentDateTime 		:: SDSParallel () DateTime ()

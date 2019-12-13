@@ -107,6 +107,7 @@ instance toInstanceNo TaskId
 	, includeProgress             :: !Bool
 	}
 
+
 fullTaskListFilter :: TaskListFilter
 
 //The iTask context restriction contains all generic functions that need to

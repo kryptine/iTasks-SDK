@@ -12,6 +12,11 @@ import C2.Apps.ShipAdventure.Types
 import Data.Map.GenJSON
 import Data.Functor
 
+derive gEditor Set
+derive gText Set
+derive JSONEncode Set
+derive JSONDecode Set
+
 dOffRegisterEntity  :: [User -> Task Entity]
 dOffRegisterEntity = []
 
@@ -55,12 +60,6 @@ damagePrediction
   enableSection _ = Nothing
   resetSections = set 'DS'.newSet disabledSections >>| damagePrediction
   isDisabled c3d disSects = 'DS'.member c3d disSects
-
-derive gEditor Set
-derive gDefault Set
-derive gText Set
-derive JSONEncode Set
-derive JSONDecode Set
 
 showCommandAims :: Task ()
 showCommandAims = Hint "Current Command Aims" @>> viewSharedInformation  [] commandAims @! ()

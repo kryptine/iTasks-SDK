@@ -17,7 +17,7 @@ import iTasks.Internal.SDS
 from iTasks.UI.Layout import :: LUI, :: LUIMoves, :: LUIMoveID, :: LUIEffectStage, :: LUINo
 
 from iTasks.Util.DeferredJSON import :: DeferredJSON(..)
-from iTasks.Internal.TaskState import :: TaskMeta(..) , :: InstanceType(..), :: TaskChange(..), :: ValueStatus(..)
+from iTasks.Internal.TaskState import :: TaskMeta(..) , :: InstanceType(..), :: TaskChange(..)
 
 import iTasks.Internal.TaskEval
 from iTasks.SDS.Combinators.Common import toDynamic

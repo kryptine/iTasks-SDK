@@ -2,8 +2,8 @@ module iTasks.Internal.TaskStore.UnitTests
 import iTasks.Util.Testing
 
 import iTasks.Internal.IWorld
-import iTasks.Internal.TaskStore
-import Data.Error, Data.Func
+import iTasks.Internal.TaskState
+import Data.Error, Data.Func, Data.Either
 
 testCreateTaskInstance = assertWorld "Create task instance" isOk sut
 where

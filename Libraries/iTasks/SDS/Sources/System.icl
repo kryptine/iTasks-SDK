@@ -72,13 +72,19 @@ where
 	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
 
 taskInstanceFromMetaData :: TaskMeta -> TaskInstance
-taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,valuestatus,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
-	# session = (instanceType =: SessionInstance )
-	# listId = case instanceType of
+taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,status
+	,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
+    = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
+      ,taskAttributes = taskAttributes, managementAttributes = managementAttributes, value = value
+	  ,issuedAt = createdAt, firstEvent = firstEvent, lastEvent = lastEvent}
+where
+	session = (instanceType =: SessionInstance )
+	listId = case instanceType of
 		(PersistentInstance (Just listId)) = listId
 		_ = (TaskId 0 0)
-    = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = mergeTaskAttributes (taskAttributes,managementAttributes), value = valuestatus, issuedAt = createdAt, firstEvent = firstEvent, lastEvent = lastEvent}
+	value = case status of
+		(Left msg) = Exception msg
+		(Right stable) = if stable Stable Unstable
 
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
@@ -91,7 +97,7 @@ where
 	where
 		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> mergeTaskAttributes (taskAttributes,managementAttributes)
+	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> 'DM'.union managementAttributes taskAttributes
 	write1 _ _ = Ok Nothing
 	write2 _ (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
 
@@ -137,7 +143,7 @@ where
 	where
 		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
 
-	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> mergeTaskAttributes (taskAttributes,managementAttributes)
+	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> 'DM'.union managementAttributes taskAttributes
 	write1 _ _ = Ok Nothing
 	write2 no (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
 

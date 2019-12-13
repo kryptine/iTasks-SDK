@@ -55,12 +55,12 @@ derive gText ExtendedTaskListFilter
     //Static information
 	{ taskId        :: !TaskId	            //Unique global identification
 	, instanceType  :: !InstanceType        //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
-    , build         :: !String              //Application build version when the instance was created
+    , build         :: !String              //* Application build version when the instance was created
     , createdAt     :: !Timespec
     //Evaluation information
-	, nextTaskNo	:: !TaskNo            //* Local task number counter
-	, nextTaskTime	:: !TaskTime          //* Local task time (incremented at every evaluation)
-	, valuestatus   :: !ValueStatus
+	, status        :: !Either String Bool  //* Exception message, or stability
+	, nextTaskNo	:: !TaskNo              //* Local task number counter
+	, nextTaskTime	:: !TaskTime            //* Local task time (incremented at every evaluation)
     , attachedTo    :: ![TaskId]
 	, connectedTo   :: !Maybe String 
 	, instanceKey   :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
@@ -91,7 +91,6 @@ derive gText ExtendedTaskListFilter
     = RemoveTask                            //Mark for removal from the set on the next evaluation
     | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
 
-:: ValueStatus = Stable | Unstable | Exception !String
 
 //Internally we need more options to filter task list data
 :: ExtendedTaskListFilter =
@@ -106,8 +105,6 @@ derive gText ExtendedTaskListFilter
 
 //Predefined filters
 fullExtendedTaskListFilter :: ExtendedTaskListFilter
-
-mergeTaskAttributes :: !(!TaskAttributes,!TaskAttributes) -> TaskAttributes
 
 //Fresh identifier generation
 newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
@@ -148,17 +145,14 @@ taskInstanceAttributes  :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (T
 taskInstanceValue       :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
 taskInstanceTask        :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
 
-// === Evaluation state of instances: === //FIXME: Isolate as separate concern to separate 
-taskInstanceShares            :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
-
-//Interface used in task combinators
-
-//Shared source
-localShare :: SDSLens TaskId a a | iTask a
+//Locally shared data
+taskInstanceShares      :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
 
 //Public interface used by parallel tasks
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
+
+localShare :: SDSLens TaskId a a | iTask a
 
 //Conversion to task lists
 toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a

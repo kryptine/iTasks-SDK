@@ -21,3 +21,4 @@ where
 	n      = 100
 
 derive gPrint TaskOutputMessage, UIChange, UIChildChange, UIAttributeChange, UI, UIType, Map, JSONNode
+derive gEq TaskOutputMessage

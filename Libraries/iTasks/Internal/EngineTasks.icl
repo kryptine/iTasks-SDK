@@ -87,7 +87,7 @@ where
 	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
 		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
 
-	isStable {TaskMeta|valuestatus} = valuestatus =: Stable
+	isStable {TaskMeta|status} = fromRight False status 
 	isSystem {TaskMeta|taskAttributes} = member "system" taskAttributes
 
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v

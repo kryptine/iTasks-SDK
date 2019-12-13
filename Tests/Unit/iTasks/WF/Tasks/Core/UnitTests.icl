@@ -6,6 +6,7 @@ import Text.GenPrint
 
 derive gPrint TaskOutputMessage
 derive gPrint UIChange, UIChildChange, UIAttributeChange, UI, UIType, Map, JSONNode
+derive gEq TaskOutputMessage
 
 minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where

@@ -5,7 +5,6 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor, Data.Func
 import iTasks.Internal.SDS
 import iTasks.Internal.Serialization
 import iTasks.Internal.Store
-from iTasks.Internal.TaskState import :: ValueStatus(..)
 from StdFunc import seq
 import qualified Data.Map as DM
 import Data.Map.GenJSON
@@ -54,11 +53,11 @@ where
 	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
 	notSelf ownPid _ = False
 
-	notHidden {TaskInstance|attributes} = case 'DM'.get "hidden" attributes of (Just (JSONBool True)) = False ; _ = True
+	notHidden {TaskInstance|managementAttributes} = case 'DM'.get "hidden" managementAttributes of (Just (JSONBool True)) = False ; _ = True
 
 	isActive {TaskInstance|value} = value =: Unstable
 
-	mkRow {TaskInstance|instanceNo,attributes,listId} =
+	mkRow {TaskInstance|instanceNo,taskAttributes,managementAttributes,listId} =
 		{WorklistRow
 		|taskNr		= Just (toString instanceNo)
 		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title" attributes)
@@ -69,6 +68,8 @@ where
 		,createdFor = fmap (toString o toUserConstraint) ('DM'.get "createdFor" attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
+	where
+		attributes = 'DM'.union managementAttributes taskAttributes
 
 	//Fix Overloading
 	toUserConstraint :: JSONNode -> UserConstraint

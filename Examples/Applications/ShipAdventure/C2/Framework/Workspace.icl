@@ -17,8 +17,8 @@ addOnceToWorkspace identity task workspace
 			_       = return ()
 
 find identity [] = Nothing
-find identity [p=:{TaskListItem|taskId,attributes}:ps]
-        | maybe False ((==) (JSONString identity)) ('DM'.get "name" attributes)  = Just taskId
+find identity [p=:{TaskListItem|taskId,taskAttributes}:ps]
+        | maybe False ((==) (JSONString identity)) ('DM'.get "name" taskAttributes)  = Just taskId
                                                                                = find identity ps
 
 removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]
@@ -29,9 +29,9 @@ removeFromWorkspace identity workspace
     >>- \items -> case find identity items of
             Nothing         =   return ()
             where names = map getName items
-                  getName {TaskListItem|taskId,attributes} | isJust mbname = let (Just (JSONString name)) = mbname in name
+                  getName {TaskListItem|taskId,taskAttributes} | isJust mbname = let (Just (JSONString name)) = mbname in name
                                                            | otherwise     = "noname"
-                  where mbname = 'DM'.get "name" attributes
+                  where mbname = 'DM'.get "name" taskAttributes
                   appstr [] = ""
                   appstr [e:es] = e +++ " " +++ appstr es
             (Just taskId)   =   removeTask taskId workspace @! ()
