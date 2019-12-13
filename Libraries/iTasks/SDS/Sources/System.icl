@@ -72,19 +72,15 @@ where
 	efilter = {ExtendedTaskListFilter|defaultValue & includeSessions = False, includeDetached = True, includeStartup = False}
 
 taskInstanceFromMetaData :: TaskMeta -> TaskInstance
-taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,status
+taskInstanceFromMetaData {TaskMeta|taskId=taskId=:(TaskId instanceNo _),instanceType,build,createdAt,detachedFrom,status
 	,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
       ,taskAttributes = taskAttributes, managementAttributes = managementAttributes, value = value
 	  ,issuedAt = createdAt, firstEvent = firstEvent, lastEvent = lastEvent}
 where
 	session = (instanceType =: SessionInstance )
-	listId = case instanceType of
-		(PersistentInstance (Just listId)) = listId
-		_ = (TaskId 0 0)
-	value = case status of
-		(Left msg) = Exception msg
-		(Right stable) = if stable Stable Unstable
+	listId = fromMaybe (TaskId 0 0) detachedFrom
+	value = either Exception (\stable -> if stable Stable Unstable) status
 
 currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))

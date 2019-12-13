@@ -53,27 +53,29 @@ derive gText ExtendedTaskListFilter
 
 :: TaskMeta =
     //Static information
-	{ taskId        :: !TaskId	            //Unique global identification
-	, instanceType  :: !InstanceType        //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
-    , build         :: !String              //* Application build version when the instance was created
-    , createdAt     :: !Timespec
-    //Evaluation information
-	, status        :: !Either String Bool  //* Exception message, or stability
-	, nextTaskNo	:: !TaskNo              //* Local task number counter
-	, nextTaskTime	:: !TaskTime            //* Local task time (incremented at every evaluation)
-    , attachedTo    :: ![TaskId]
-	, connectedTo   :: !Maybe String 
-	, instanceKey   :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent    :: !Maybe Timespec    //* When was the first work done on this task
-	, lastEvent     :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
-	, lastIO        :: !Maybe Timespec
+	{ taskId                :: !TaskId              //Unique global identification
+	, instanceType          :: !InstanceType        //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
+    , build                 :: !String              //* Application build version when the instance was created
+    , createdAt             :: !Timespec
+	, detachedFrom          :: !Maybe TaskId        //* Which parallel task created the entry (or none when added globally)
+    //Progress information
+	, status                :: !Either String Bool  //* Exception message, or stability
+	, nextTaskNo	        :: !TaskNo              //* Local task number counter
+	, nextTaskTime	        :: !TaskTime            //* Local task time (incremented at every evaluation)
+    , attachedTo            :: ![TaskId]
+	, instanceKey           :: !Maybe InstanceKey   //* Random token that a client gets to have (temporary) access to the task instance
+	, taskAttributes        :: !TaskAttributes      //* Attributes computed by the UI
+    //IO information
+	, connectedTo           :: !Maybe String        //* Client machine to which this task is connected
+	, firstEvent            :: !Maybe Timespec      //* When was the first work done on this task
+	, lastEvent             :: !Maybe Timespec      //* When was the latest event on this task (excluding Refresh events)
+	, lastIO                :: !Maybe Timespec      //* Last network event or ping
     //Identification and classification information
-	, taskAttributes        :: !TaskAttributes  //Cached attributes from the task UI
-	, managementAttributes  :: !TaskAttributes  //Arbitrary writable attributes for managing collections of task instances
-	, unsyncedAttributes    :: !Set String      //When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
-	// Control information 
-	, change               :: !Maybe TaskChange //Changes like removing or replacing a parallel task are only done when the
-	, initialized          :: !Bool //TODO: Get rid of in this record
+	, managementAttributes  :: !TaskAttributes      //* Arbitrary writable attributes for managing collections of task instances
+	// Control information (used only internally)
+	, change                :: !Maybe TaskChange    //* Changes like removing or replacing a parallel task are only done when the
+	, initialized           :: !Bool
+	, unsyncedAttributes    :: !Set String          //* When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
 	}
 
 /**
@@ -85,12 +87,11 @@ derive gText ExtendedTaskListFilter
 :: InstanceType
 	= StartupInstance
 	| SessionInstance
-	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
+	| PersistentInstance
 
 :: TaskChange
     = RemoveTask                            //Mark for removal from the set on the next evaluation
     | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
-
 
 //Internally we need more options to filter task list data
 :: ExtendedTaskListFilter =
@@ -138,10 +139,7 @@ taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task a) (Task a)
 
 //Interface used during the evalation of toplevel tasks
 //Filtered views on the instance index
-taskInstance            :: SDSLens (InstanceNo,Bool,Bool,Bool) TaskMeta TaskMeta
-
-taskInstanceAttributes  :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
-
+taskInstance            :: SDSLens (InstanceNo,Bool,Bool) TaskMeta TaskMeta
 taskInstanceValue       :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON) 
 taskInstanceTask        :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
 
@@ -175,10 +173,10 @@ createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError 
 * @param If the instance needs to be evaluated immediately, the attachment is temporarily set to the issuer
 * @param The IWorld state
 *
-* @return The task id of the stored instance
+* @return The task-list record of the stored instance
 * @return The IWorld state
 */
-createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskMeta, !*IWorld) | iTask a
 
 /**
 * Replace a stored task instance in the task store.

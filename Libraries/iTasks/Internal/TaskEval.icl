@@ -93,7 +93,7 @@ where
 	# (nextTaskNo,iworld) = getNextTaskNo iworld
 	# (mbErr,iworld) = if destroyed
 		(Ok (),iworld)	//Only update progress when something changed
-		(case (modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus (instanceNo,False,True,False) taskInstance) EmptyContext iworld) of
+		(case (modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus (instanceNo,False,True) taskInstance) EmptyContext iworld) of
 		  (Error e, iworld) = (Error e, iworld)
 		  (Ok _, iworld) = (Ok (), iworld) )
 	| mbErr=:(Error _)
@@ -116,15 +116,8 @@ where
 			| destroyed = (Ok value,iworld)
 			| otherwise = case compactUIChange change of
 				//Only queue UI changes if something interesting is changed
-				NoChange
-					= (Ok value,iworld)
-				change
-					# (mbErr,iworld) = modify
-						(\(managementAttributes,taskAttributes)-> (managementAttributes, foldr applyUIAttributeChange taskAttributes (getAttributeChanges change)))
-						(sdsFocus instanceNo taskInstanceAttributes) EmptyContext iworld
-					| mbErr=:(Error _)
-						= exitWithException instanceNo "failed to update attributes" iworld
-						= (Ok value, queueUIChange instanceNo change iworld)
+				NoChange = (Ok value,iworld)
+				change = (Ok value, queueUIChange instanceNo change iworld)
 		ExceptionResult (e,description)
 			# iworld = if (type =: StartupInstance)
 				(printStdErr description {iworld & shutdown=Just 1})
@@ -138,13 +131,13 @@ where
 		= (Error description, iworld)
 
 	determineInstanceType instanceNo iworld
-		# (meta, iworld) = 'SDS'.read (sdsFocus (instanceNo,False,False,False) taskInstance) EmptyContext iworld
+		# (meta, iworld) = 'SDS'.read (sdsFocus (instanceNo,False,False) taskInstance) EmptyContext iworld
 		| isError meta = (SessionInstance,iworld)
 		# {TaskMeta|instanceType} = directResult (fromOk meta)
 		= (instanceType,iworld)
 
 	determineInstanceProgress instanceNo iworld
-		# (meta,iworld)      = 'SDS'.read (sdsFocus (instanceNo,False,False,False) taskInstance) EmptyContext iworld
+		# (meta,iworld)      = 'SDS'.read (sdsFocus (instanceNo,False,False) taskInstance) EmptyContext iworld
 		| isError meta       = ({defaultValue & nextTaskNo=1, nextTaskTime=1},iworld)
 		= (directResult (fromOk meta),iworld)
 
@@ -154,21 +147,26 @@ where
 		# attachedTo = case meta.TaskMeta.attachedTo of //Release temporary attachment after first evaluation
 			(Just (_,[]))   = Nothing
 			attachment      = attachment
-		# meta = {TaskMeta
-                     | meta
-					 & firstEvent = Just (fromMaybe now meta.TaskMeta.firstEvent)
-					 , lastEvent = Just now
-					 , nextTaskNo = nextTaskNo
-					 , nextTaskTime = nextTaskTime + 1
-					 }
-		= case result of
-			(ExceptionResult (_,msg))             = {TaskMeta|meta & status = Left msg}
-			(ValueResult (Value _ stable) _  _ _) = {TaskMeta|meta & status = Right stable}
-			_                                     = {TaskMeta|meta & status = Right False}
-
-	getAttributeChanges :: !UIChange -> [UIAttributeChange]
-	getAttributeChanges (ChangeUI changes _) = changes
-	getAttributeChanges (ReplaceUI (UI _ attrs _)) = [SetAttribute attr val \\ (attr,val) <- 'DM'.toList attrs]
+		# status = case result of
+			(ExceptionResult (_,msg))             = Left msg
+			(ValueResult (Value _ stable) _  _ _) = Right stable
+			_                                     = Right False
+		# taskAttributes = case result of
+			(ValueResult _ _ change _) = foldr applyUIAttributeChange meta.TaskMeta.taskAttributes $ getAttributeChanges change
+			_                          = meta.TaskMeta.taskAttributes
+		= {TaskMeta| meta
+			& status = status
+			, firstEvent = Just (fromMaybe now meta.TaskMeta.firstEvent)
+			, lastEvent = Just now
+			, nextTaskNo = nextTaskNo
+			, nextTaskTime = nextTaskTime + 1
+			, taskAttributes = taskAttributes
+			}
+	where
+		getAttributeChanges :: !UIChange -> [UIAttributeChange]
+		getAttributeChanges NoChange = []
+		getAttributeChanges (ChangeUI changes _) = changes
+		getAttributeChanges (ReplaceUI (UI _ attrs _)) = [SetAttribute attr val \\ (attr,val) <- 'DM'.toList attrs]
 
 	mbResetUIState instanceNo ResetEvent iworld
 		# (_,iworld) = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) EmptyContext iworld

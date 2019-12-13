@@ -54,8 +54,8 @@ derive JSONDecode TaskMeta, InstanceType, TaskChange, TaskResult, TaskEvalInfo, 
 derive gDefault InstanceType, TaskId, TaskListFilter
 
 gDefault{|TaskMeta|}
-	= {taskId= TaskId 0 0,instanceType=gDefault{|*|},build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
-		,status=Right False,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
+	= {taskId= TaskId 0 0,instanceType=PersistentInstance,build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
+		,detachedFrom=Nothing,status=Right False,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
 		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing
 		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
 		,change = Nothing, initialized = False}
@@ -122,7 +122,8 @@ createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeEr
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
     //Create the initial instance data in the store
 	# meta = {defaultValue & taskId= TaskId instanceNo 0, instanceType=SessionInstance,build=appVersion,createdAt=clock}
-    = 'SDS'.write meta (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
+    = 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
@@ -133,7 +134,8 @@ createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayou
     # (instanceKey,iworld)  = newInstanceKey iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=SessionInstance
 		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock,taskAttributes=attributes}
-    = 'SDS'.write meta (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
+    = 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
@@ -141,31 +143,31 @@ createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError 
 createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
     # (Ok instanceNo,iworld) = newInstanceNo iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=StartupInstance,build=appVersion,createdAt=clock,taskAttributes=attributes}
-	= 'SDS'.write meta (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok instanceNo, queueEvent instanceNo ResetEvent iworld)
 
-createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
+createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskMeta, !*IWorld) | iTask a
 createDetachedTaskInstance task evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
     # (instanceKey,iworld) = newInstanceKey iworld
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
-	# meta = {defaultValue & taskId = TaskId instanceNo 0, instanceType=PersistentInstance mbListId,build=appVersion
+	# meta = {defaultValue & taskId = TaskId instanceNo 0, instanceType=PersistentInstance,build=appVersion
 		,createdAt=clock,managementAttributes=attributes, instanceKey=Just instanceKey}
-	= 'SDS'.write meta (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
-	`b` \iworld -> ( Ok (TaskId instanceNo 0)
-				 , if refreshImmediate
-					  (queueEvent instanceNo ResetEvent iworld)
-					  iworld)
+	`b` \iworld -> ( Ok meta, if refreshImmediate (queueEvent instanceNo ResetEvent iworld) iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
-	# (meta, iworld)        = 'SDS'.read (sdsFocus (instanceNo,False,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	# (meta, iworld)        = 'SDS'.read (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	| isError meta          = (liftError meta, iworld)
 	# meta                  ='SDS'.directResult (fromOk meta)
-	= 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
-	`b` \iworld -> let  in  'SDS'.write {TaskMeta|meta & build=appVersion} (sdsFocus (instanceNo,True,True,True) taskInstance) 'SDS'.EmptyContext iworld
+	= 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
+	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
+	`b` \iworld -> let  in  'SDS'.write {TaskMeta|meta & build=appVersion} (sdsFocus (instanceNo,True,True) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
@@ -261,9 +263,9 @@ where
 		&& maybe True (\(mk,mv) ->
 			(maybe False ((==) mv) ('DM'.get mk taskAttributes)
 			|| maybe False ((==) mv) ('DM'.get mk managementAttributes))) onlyAttribute
-        && ((includeSessions && instanceType =: (SessionInstance)) ||
-		    (includeDetached && instanceType =: (PersistentInstance _)) ||
-		    (includeStartup && instanceType =: (StartupInstance))
+        && ((includeSessions && instanceType =: SessionInstance) ||
+		    (includeDetached && instanceType =: PersistentInstance) ||
+		    (includeStartup && instanceType =: StartupInstance)
 		   )
 
 taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
@@ -309,28 +311,17 @@ where
 
 //Filtered views on the instance index
 
-taskInstance :: SDSLens (InstanceNo,Bool,Bool,Bool) TaskMeta TaskMeta
+taskInstance :: SDSLens (InstanceNo,Bool,Bool) TaskMeta TaskMeta
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListMetaData
 where
-	param (no,includeTaskIO,includeProgress,includeTaskAttributes)
-		# tfilter = {TaskListFilter|fullTaskListFilter & onlyTaskId = Just [TaskId no 0],includeProgress=includeProgress,includeTaskAttributes=includeTaskAttributes}
+	param (no,includeTaskIO,includeProgress)
+		# tfilter = {TaskListFilter|fullTaskListFilter & onlyTaskId = Just [TaskId no 0],includeProgress=includeProgress,includeTaskAttributes=includeProgress}
 		# efilter = {ExtendedTaskListFilter|fullExtendedTaskListFilter & includeTaskIO=includeTaskIO}
 		= (TaskId 0 0, TaskId no 0, tfilter,efilter)
-	read (no,_,_,_) (_,[meta]) = Ok meta
-	read (no,_,_,_) _ = Error (exception ("Could not find task instance "<+++ no))
-	write _ data       = Ok (Just [data])
-	notify _ _ _ _     = True
-
-taskInstanceAttributes :: SDSLens InstanceNo (TaskAttributes,TaskAttributes) (TaskAttributes,TaskAttributes)
-taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListMetaData
-where
-	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]},defaultValue)
-
-	read no (_,[{TaskMeta|taskAttributes,managementAttributes}]) = Ok (taskAttributes,managementAttributes)
-	read no _ = Error (exception ("Could not find attributes for task instance "<+++ no))
-
-	write no (_,[meta]) (taskAttributes,managementAttributes) = Ok (Just [{TaskMeta|meta & taskAttributes = taskAttributes, managementAttributes = managementAttributes}])
-	notify no _ _ _ = True
+	read (no,_,_) (_,[meta]) = Ok meta
+	read (no,_,_) _ = Error (exception ("Could not find task instance "<+++ no))
+	write _ data = Ok (Just [data])
+	notify _ _ _ _ = True
 
 //Last computed value for task instance
 taskInstanceValue :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON)
@@ -387,9 +378,9 @@ where
 	write2 _ ws = Ok $ Just ws
 
 toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a
-toTaskListItem selfId {TaskMeta|taskId=taskId=:(TaskId instanceNo taskNo),instanceType
+toTaskListItem selfId {TaskMeta|taskId=taskId=:(TaskId instanceNo taskNo),detachedFrom
 	,attachedTo,instanceKey,firstEvent,lastEvent,taskAttributes,managementAttributes}
-	# listId = case instanceType of (PersistentInstance (Just listId)) = listId ; _ = (TaskId 0 0)
+	# listId = fromMaybe (TaskId 0 0) detachedFrom
 	= {TaskListItem|taskId = taskId, listId = listId, detached = taskNo == 0, self = taskId == selfId
 	  ,value = NoValue, taskAttributes = 'DM'.union taskAttributes progressAttributes, managementAttributes = managementAttributes}
 where
