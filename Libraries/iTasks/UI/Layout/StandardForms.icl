@@ -80,6 +80,7 @@ where
 		wrapEditor = sequenceLayouts
 			[wrapUI UIContainer
 			,copySubUIAttributes SelectAll [0] []
+			,delUIAttributes (SelectKeys ["initUI","taskId","editorId"]) //Don't duplicate the UI initialization code
 			,layoutSubUIs hasTitle (setUIType UIPanel)
 			,layoutSubUIs hasPrompt (sequenceLayouts [createPrompt,fillPrompt])
 			]
