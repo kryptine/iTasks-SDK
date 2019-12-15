@@ -356,10 +356,11 @@ where
 	write (_,selfId,listfilter) ((listId,items),_) ws
 		= Just <$> 'Control.Monad'.sequence
 			[maybe (Error $ exception $ "Could not find task id "<+++ taskId <+++ "in list " <+++ listId)
-				(\m -> Ok {TaskMeta|m & managementAttributes = managementAttributes}) ('DM'.get taskId itemsMap)
+				(\m -> Ok {TaskMeta|m & managementAttributes = managementAttributes, unsyncedAttributes = keys managementAttributes}) ('DM'.get taskId itemsMap)
 			\\ (taskId,managementAttributes) <- ws]
 	where
 		itemsMap = 'DM'.fromList [(taskId,meta) \\ meta=:{TaskMeta|taskId} <- items]
+		keys attr = 'DS'.fromList $ 'DM'.keys attr
 
 	notify _ _ _ _ = True
 
@@ -367,7 +368,7 @@ topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,
 topLevelTaskList = sdsTranslate "topLevelTaskListWrapper" id
 	//This wrapping is rather pointless, but the rest of the system expects toLevelTaskList to be a lens instead of a sequence
 	(
-	sdsSequence "topLevelTaskList" //First read the currecnt instance to determine who is accessing the list
+	sdsSequence "topLevelTaskList" //First read the current instance to determine who is accessing the list
 		param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentInstanceShare parallelTaskList
 	)
 where
