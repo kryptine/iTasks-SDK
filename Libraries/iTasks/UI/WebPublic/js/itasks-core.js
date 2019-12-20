@@ -231,7 +231,7 @@ itasks.Component = {
 		me.beforeChildRemove(idx,child);
 
 		if(me.initialized && child.domEl) {
-			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
+			me.containerEl.removeChild(child.domEl);
 		}
 		me.children.splice(idx,1);	
 		me.afterChildRemove(idx);
@@ -280,13 +280,12 @@ itasks.Component = {
 		var me = this;
 	
 		me.attributes[name] = value;
-		me.onAttributeChange(name,value);
+		me._onAttributeChange(name,value);
 	},
-	onAttributeChange: function(name,value) {
+	_onAttributeChange: function(name,value) {
 		var me = this;
-
 		if(name == 'class') {
-			me.domEl.className = '';
+			me.domEl.className = me.cssPrefix + me.cssCls;
 			if(Array.isArray(value)) {
 				value.forEach(function(cls) {
 					me.domEl.classList.add(cls);
@@ -294,8 +293,11 @@ itasks.Component = {
 			} else {
 				me.domEl.classList.add(value);
 			}
+		} else {
+			me.onAttributeChange(name,value);
 		}
 	},
+	onAttributeChange: function(name,value) {},
 	onUIChange: function(change) {
 		var me = this;
 		me.world=me.world.then (function(){
