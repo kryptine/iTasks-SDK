@@ -154,29 +154,28 @@ viewNotifications = viewSharedInformation [ViewAs (join ", ")] currentNotificati
 tasksToDo :: SDSLens () [(TaskId, WorklistRow)] ()
 tasksToDo = taskForCurrentUser isToDo
   where
-  isToDo {TaskListItem|attributes} = fmap (\(JSONInt x) -> x == toInt Immediate) ('DM'.get "priority" attributes) == Just True
+  isToDo {TaskListItem|managementAttributes} = fmap (\(JSONInt x) -> x == toInt Immediate) ('DM'.get "priority" managementAttributes) == Just True
 
 incomingTasks :: SDSLens () [(TaskId, WorklistRow)] ()
 incomingTasks = taskForCurrentUser isIncoming
   where
-  isIncoming {TaskListItem|attributes} = fmap (\(JSONInt x) -> x /= toInt Immediate) ('DM'.get "priority" attributes) == Just True
+  isIncoming {TaskListItem|managementAttributes} = fmap (\(JSONInt x) -> x /= toInt Immediate) ('DM'.get "priority" managementAttributes) == Just True
 
 taskForCurrentUser f = toReadOnly (mapRead (\(procs, ownPid) -> [(p.TaskListItem.taskId, mkRow p) \\ p <- procs | show ownPid p && isActive p && f p]) (processesForCurrentUser |*| currentTopTask))
 
-show ownPid {TaskListItem|taskId,progress=Just _} = taskId /= ownPid
-show ownPid _ = False
+show ownPid {TaskListItem|taskId} = taskId /= ownPid
 
-isActive {TaskListItem|progress=Just {InstanceProgress|value}} = value === Unstable
+isActive {TaskListItem|value} = value =: (Value _ False)
 
-mkRow {TaskListItem|taskId,attributes} =
+mkRow {TaskListItem|taskId,managementAttributes} =
   { WorklistRow
   | taskNr     = Just (toString taskId)
-  , title      = fmap toString ('DM'.get "title"          attributes)
-  , priority   = fmap toString ('DM'.get "priority"       attributes)
-  , createdBy  = fmap toString ('DM'.get "createdBy"      attributes)
-  , date       = fmap toString ('DM'.get "createdAt"      attributes)
-  , deadline   = fmap toString ('DM'.get "completeBefore" attributes)
-  , createdFor = fmap toString ('DM'.get "createdFor"     attributes)
+  , title      = fmap toString ('DM'.get "title"          managementAttributes)
+  , priority   = fmap toString ('DM'.get "priority"       managementAttributes)
+  , createdBy  = fmap toString ('DM'.get "createdBy"      managementAttributes)
+  , date       = fmap toString ('DM'.get "createdAt"      managementAttributes)
+  , deadline   = fmap toString ('DM'.get "completeBefore" managementAttributes)
+  , createdFor = fmap toString ('DM'.get "createdFor"     managementAttributes)
   , parentTask = Nothing
   }
 

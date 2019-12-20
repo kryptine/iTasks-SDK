@@ -17,6 +17,10 @@ import Text
 
 from Data.Map import newMap, member, del
 
+derive gText TaskId, TaskListFilter
+derive JSONEncode TaskId, TaskListFilter
+derive gDefault TaskId, TaskListFilter
+
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
 where
@@ -36,45 +40,29 @@ where
 	
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
-removeOutdatedSessions = everyTick \iworld=:{IWorld|options}->
-	case read (sdsFocus {InstanceFilter|defaultValue & includeSessions=True} filteredInstanceIndex) EmptyContext iworld of
-		(Ok (ReadingDone index), iworld) = checkAll (removeIfOutdated options) index iworld
+removeOutdatedSessions = everyTick \iworld=:{IWorld|options} ->
+	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, onlySessions) taskListMetaData) EmptyContext iworld of
+		(Ok (ReadingDone (_,index)), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
+	onlySessions = {ExtendedTaskListFilter|defaultValue &includeSessions=True,includeDetached=False,includeStartup=False}
+
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated options ((TaskId instanceNo _),_,_,_) iworld=:{options={appVersion},clock=tNow}
-		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
-			//If there is I/O information, we check that age first
-			(Ok (ReadingDone (Just (client,tInstance))),iworld) //No IO for too long, clean up
-				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
-			//If there is no I/O information, get meta-data and check builtId and creation date
-			(Ok (ReadingDone Nothing),iworld)
-				= case read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld of
-					(Ok (ReadingDone {InstanceConstants|build,issuedAt=tInstance}),iworld)
-						| build <> appVersion = (Ok True,iworld)
-						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
-						= (Ok False,iworld)
-					(Error e,iworld)
-						= (Error e,iworld)
-			(Error e,iworld)
-				= (Error e,iworld)
-		= case remove of
-			(Ok True)
+    removeIfOutdated options {TaskMeta|taskId=TaskId instanceNo _,connectedTo,lastIO,build,createdAt} iworld=:{options={appVersion},clock=tNow}
+		| if (lastIO =:(Just _))
+			(tNow - fromJust lastIO > options.EngineOptions.sessionTime)
+			((build <> appVersion) || ((tNow - createdAt) > options.EngineOptions.sessionTime))
 				# (e,iworld) = deleteTaskInstance instanceNo iworld
 				| e=:(Error _) = (e,iworld)
-				# (e,iworld) = write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld
-				| e=:(Error _) = (liftError e,iworld)
 				# (e,iworld) = modify (\output -> del instanceNo output) taskOutput EmptyContext iworld
 				| e=:(Error _) = (liftError e,iworld)
-				= (Ok (),iworld)
-			(Ok False)
-				= (Ok (), iworld)
-			(Error e)
-				= (Error e,iworld)
+				= (Ok (),iworld)		
+		| otherwise
+			= (Ok (), iworld)
 
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: Task ()
@@ -86,8 +74,8 @@ flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworl
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all non-system tasks are stable
 stopOnStable :: Task ()
-stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True, includeStartup=True, includeAttributes=True} filteredInstanceIndex) EmptyContext iworld of
-		(Ok (ReadingDone index), iworld)
+stopOnStable = everyTick \iworld->case read (sdsFocus selection taskListMetaData) EmptyContext iworld of
+		(Ok (ReadingDone (_,index)), iworld)
 			# iworld = if (isNothing iworld.shutdown && all isStable (filter (not o isSystem) index))
 				{IWorld | iworld & shutdown=Just 0}
 				iworld
@@ -96,11 +84,11 @@ stopOnStable = everyTick \iworld->case read (sdsFocus {InstanceFilter|defaultVal
 			= (Error (exception "Unexpeced SDS state"),iworld)
 		(Error e, iworld)  = (Error e, iworld)
 where
-	isStable (_, _, Nothing, _) = False
-	isStable (_, _, Just {InstanceProgress|value}, attributes) = value =: Stable
+	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
+		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
 
-	isSystem (_, _, Just {InstanceProgress|value}, attributes) = member "system" (maybe newMap mergeTaskAttributes attributes)
-	isSystem _ = False
+	isStable {TaskMeta|status} = fromRight False status 
+	isSystem {TaskMeta|taskAttributes} = member "system" taskAttributes
 
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
 printStdErr v iw=:{world}

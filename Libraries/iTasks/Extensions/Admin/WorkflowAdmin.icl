@@ -53,11 +53,11 @@ where
 	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
 	notSelf ownPid _ = False
 
-	notHidden {TaskInstance|attributes} = case 'DM'.get "hidden" attributes of (Just (JSONBool True)) = False ; _ = True
+	notHidden {TaskInstance|managementAttributes} = case 'DM'.get "hidden" managementAttributes of (Just (JSONBool True)) = False ; _ = True
 
-	isActive {TaskInstance|value} = value === Unstable
+	isActive {TaskInstance|value} = value =: Unstable
 
-	mkRow {TaskInstance|instanceNo,attributes,listId} =
+	mkRow {TaskInstance|instanceNo,taskAttributes,managementAttributes,listId} =
 		{WorklistRow
 		|taskNr		= Just (toString instanceNo)
 		,title      = fmap (\(JSONString x) -> x) ('DM'.get "title" attributes)
@@ -68,6 +68,8 @@ where
 		,createdFor = fmap (toString o toUserConstraint) ('DM'.get "createdFor" attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
+	where
+		attributes = 'DM'.union managementAttributes taskAttributes
 
 	//Fix Overloading
 	toUserConstraint :: JSONNode -> UserConstraint
@@ -200,8 +202,8 @@ where
 		= get currentUser @ userRoles
 		>>- \roles ->
 			forever
-			(	enterChoiceWithSharedAs [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
-				>>* (continuations roles taskList)
+			(   enterChoiceWithSharedAs [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
+			  >>* continuations roles taskList
 			)
 
 	worklist roles = if (isMember "admin" roles) allWork  myWork
@@ -330,7 +332,7 @@ where
     //the 'catalogId' that is stored in the incompatible task instance's properties
     findReplacement taskId
         =  get ((sdsFocus taskId (taskListEntryMeta topLevelTasks)) |*| workflows)
-        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
+        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.managementAttributes)
     where
         lookup [wf=:{Workflow|path}:wfs] (JSONString cid) = if (path == cid) (Just wf) (lookup wfs (JSONString cid))
         lookup [] _ = Nothing
@@ -343,8 +345,8 @@ appendOnce identity task slist
 		(appendTask Embedded (removeWhenStable (task <<@ ("name", JSONString name) <<@ ("order", JSONInt (maxOrder items + 1)))) slist @! ())
 where
     name = toString identity
-	maxOrder items = foldr max 0 [maybe 0 (\(JSONInt i) -> i) ('DM'.get "order" attributes) \\ {TaskListItem|attributes} <- items]
-	hasName name {TaskListItem|attributes} = maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)
+	maxOrder items = foldr max 0 [maybe 0 (\(JSONInt i) -> i) ('DM'.get "order" taskAttributes) \\ {TaskListItem|taskAttributes} <- items]
+	hasName name {TaskListItem|taskAttributes} = maybe False ((==) (JSONString name)) ('DM'.get "name" taskAttributes)
 
     checkItems name [] = False
     checkItems name [i:is] = hasName name i || checkItems name is

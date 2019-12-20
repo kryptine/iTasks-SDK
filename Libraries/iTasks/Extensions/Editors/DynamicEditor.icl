@@ -35,12 +35,12 @@ where
 		# (uiForOldP, _, _) = fromOk uiForOldP
 		# (uiForNewP, vst) = (dynamicCompoundEditor $ editor p).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst
 		| isError uiForNewP = (liftError uiForNewP, vst)
-		# (uiForNewP, st, childSts) = fromOk uiForNewP
+		# (uiForNewP, newSt, newChildSts) = fromOk uiForNewP
 		| uiForOldP === uiForNewP =
 			appFst
 				(fmap $ appSnd3 \st -> (p, st))
 				((dynamicCompoundEditor $ editor p).CompoundEditor.onRefresh dp new mbSt childSts vst)
-		| otherwise = (Ok (ReplaceUI uiForNewP, (p, st), childSts), vst)
+		| otherwise = (Ok (ReplaceUI uiForNewP, (p, newSt), newChildSts), vst)
 
 	valueFromState (p, st) childSts
 		= (\val -> (p, val)) <$> (dynamicCompoundEditor $ editor p).CompoundEditor.valueFromState st childSts

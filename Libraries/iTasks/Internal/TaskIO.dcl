@@ -7,7 +7,7 @@ from iTasks.Internal.IWorld import :: IWorld
 from iTasks.UI.Definition import :: UIChange
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: TaskEvalOpts, :: Event
 from iTasks.SDS.Definition import :: SimpleSDSLens, :: SDSLens, :: SDSSequence
-from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress, :: InstanceConstants
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey
 from Data.GenEq import generic gEq
 from Data.Error import :: MaybeError
 from Data.Map import :: Map

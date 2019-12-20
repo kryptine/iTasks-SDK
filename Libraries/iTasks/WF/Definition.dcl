@@ -89,51 +89,26 @@ instance toInstanceNo TaskId
 	, detached          :: !Bool
 	, self              :: !Bool
 	, value             :: !TaskValue a
-	, attributes        :: !TaskAttributes
-	, progress          :: !Maybe InstanceProgress //Only possible for detached tasks
+	, taskAttributes       :: !TaskAttributes
+	, managementAttributes :: !TaskAttributes
 	}
-
-:: InstanceProgress =
-	{ value             :: !ValueStatus       //* Status of the task value
-	, attachedTo        :: ![TaskId]          //* Chain of tasks through which this instance was attached
-	, instanceKey       :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent        :: !Maybe Timespec    //* When was the first work done on this task
-	, lastEvent         :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
-	}
-
-:: ValueStatus
-    = Unstable
-    | Stable
-    | Exception !String
 
 :: TaskListFilter =
-    //Which rows to filter
-    { onlyIndex         :: !Maybe [Int]
-    , onlyTaskId        :: !Maybe [TaskId]
-    , onlySelf          :: !Bool
-    //What to include
-    , includeValue      :: !Bool
-    , includeAttributes :: !Bool
-    , includeProgress   :: !Bool
-    }
+	//Which rows to filter
+	{ onlyIndex         :: !Maybe [Int]
+	, onlyTaskId        :: !Maybe [TaskId]
+	, notTaskId         :: !Maybe [TaskId]
+	, onlyAttribute 	:: !Maybe (!String,!JSONNode)
+	, onlySelf          :: !Bool
+	//What to be notified for
+	, includeValue                :: !Bool
+	, includeTaskAttributes       :: !Bool
+	, includeManagementAttributes :: !Bool
+	, includeProgress             :: !Bool
+	}
 
-// Instance data which does not change after creation (except when a task is replaced)
-:: InstanceConstants =
-    { type          :: !InstanceType        //* The type of task instance: startup, session or persistent
-    , build         :: !String              //* Application build version when the instance was created
-    , issuedAt		:: !Timespec            //* When was the task created
-    }
 
-/**
-* There are three types of task instances:
-* Startup instances: temporary tasks that are started when a task server starts up, typically driven by a clock or external I/O.
-* Session instances: temporary tasks that represent and facilitate interactive sessions between a user and the server.
-* Persistent instances: persistent long-running tasks that may be shared between users and exist between sessions.
-*/
-:: InstanceType
-	= StartupInstance
-	| SessionInstance
-	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
+fullTaskListFilter :: TaskListFilter
 
 //The iTask context restriction contains all generic functions that need to
 //be available for a type to be used in tasks

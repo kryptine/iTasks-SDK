@@ -25,10 +25,10 @@ derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity,
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
 
-derive JSONEncode		TaskValue, InstanceConstants, InstanceType, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
-derive JSONDecode		TaskValue, InstanceConstants, InstanceType, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
-derive gEq				TaskValue, InstanceConstants, InstanceProgress, InstanceType, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
-derive gText	        TaskValue, InstanceConstants, InstanceType, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
-derive gEditor			TaskValue, InstanceConstants, InstanceType, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
+derive JSONEncode		TaskValue, TaskInstance, TaskListItem, ValueStatus, Action, Timespec, ClockParameter
+derive JSONDecode		TaskValue, TaskInstance, TaskListItem, ValueStatus, Action, Timespec, ClockParameter
+derive gEq				TaskValue, TaskInstance, TaskListItem, ValueStatus, Action, Timespec, ClockParameter
+derive gText	        TaskValue, TaskInstance, TaskListItem, ValueStatus, Action
+derive gEditor			TaskValue, TaskInstance, TaskListItem, ValueStatus, Action, Timespec, ClockParameter
 
 derive class iTask TaskId, TaskListFilter, AttachmentStatus

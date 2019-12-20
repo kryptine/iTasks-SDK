@@ -23,6 +23,7 @@ import iTasks.SDS.Definition
 import iTasks.WF.Definition
 import iTasks.WF.Derives
 
+derive gDefault TaskId, TaskListFilter
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
 //have been temporarily removed.
@@ -54,9 +55,9 @@ where
 
 	queueAll :: !*IWorld -> *IWorld
 	queueAll iworld
-		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
+		# (mbIndex,iworld) = read (sdsFocus defaultValue taskListMetaData) EmptyContext iworld //FIXME? Is the default filter what we want here?
 		= case mbIndex of
-			Ok (ReadingDone index)    = foldl (\w (TaskId instanceNo _,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadingDone (_,index)) = foldl (\w {TaskMeta|taskId=(TaskId instanceNo _)}-> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(Int,ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)

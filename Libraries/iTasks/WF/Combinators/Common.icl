@@ -2,22 +2,10 @@ implementation module iTasks.WF.Combinators.Common
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON, Data.Func
-import iTasks.Internal.Util
-from StdFunc			import id, const, o
-from iTasks.SDS.Sources.Core import randomInt
-from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
-import iTasks.SDS.Combinators.Common
-from iTasks.Internal.TaskState		import :: DeferredJSON
-from iTasks.Internal.TaskEval         import :: TaskTime
-import qualified Data.Map as DM
-from iTasks.Extensions.DateTime import waitForTimer
-from iTasks.UI.Definition import :: UIType(UILoader)
-
 import StdEnv
 import Data.Functor
 import Data.Func
+import qualified Data.Map as DM
 
 import iTasks.Engine
 import iTasks.Internal.SDS
@@ -285,7 +273,7 @@ where
 					Just choiceIdx =
 						get (taskListIds taskList) >>- \taskIds ->
 						upd
-							(\item -> 'DM'.put "visible" (JSONBool True) item.TaskListItem.attributes)
+							(\item -> 'DM'.put "visible" (JSONBool True) item.TaskListItem.managementAttributes)
 							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
 						@! ()
 			unsetForPrevChoice =
@@ -295,7 +283,7 @@ where
 					Just choiceIdx =
 						get (taskListIds taskList) >>- \taskIds ->
 						upd
-							(\item -> 'DM'.put "visible" (JSONBool False) item.TaskListItem.attributes)
+							(\item -> 'DM'.put "visible" (JSONBool False) item.TaskListItem.managementAttributes)
 							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
 						@! ()
 

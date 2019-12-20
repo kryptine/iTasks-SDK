@@ -199,7 +199,7 @@ where
 
     taskPid = mapRead find (sdsFocus ("name",JSONString identity) taskInstancesByAttribute)
     where
-        find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,attributes} <- instances | hasName identity attributes] of
+        find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,taskAttributes} <- instances | hasName identity taskAttributes] of
             [(i,v):_]   = Just (TaskId i 0,v)
             _           = Nothing
 

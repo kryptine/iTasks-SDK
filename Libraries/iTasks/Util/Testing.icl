@@ -10,7 +10,8 @@ import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, ::IWorld{options}
-from iTasks.Internal.TaskStore import createSessionTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
+from iTasks.Internal.TaskState import createSessionTaskInstance
+from iTasks.Internal.TaskIO import taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath

@@ -608,7 +608,9 @@ getTaskIdByAttribute key value = get attrb
 where
 	attrb = mapRead find (sdsFocus (key,value) taskInstancesByAttribute)
 
-	find instances = case [instanceNo \\ {TaskInstance|instanceNo,attributes} <- instances | hasValue key value attributes] of
+	find instances 
+		= case [instanceNo \\ {TaskInstance|instanceNo,taskAttributes,managementAttributes}
+			<- instances | hasValue key value ('DM'.union managementAttributes taskAttributes)] of
 		[i:_]   = Just i
 		_	= Nothing
 
