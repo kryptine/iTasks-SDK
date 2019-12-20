@@ -413,7 +413,7 @@ where
 			= case result of
 				(Ok res) = (Ok res,iworld)
 				(Error e) = (Error (exception (ExceptionList e)), iworld)
-		//Lookup task evaluation function and task evaluation state
+		//Lookup task evaluation function, and task evaluation state
 		# (mbTask,iworld) = read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
@@ -430,8 +430,12 @@ where
 					ReplaceUI (UI _ attributes _) = const attributes
 					ChangeUI changes _ = \a -> foldl (flip applyUIAttributeChange) a changes
 					_ = id
-				//Add unsynced changes to management attributes
-				# change = addManagementAttributeChanges meta change
+				//Add unsynced changes to management attributes. We need to re-read the tasklist item because they may have
+				//been modified by the other branches
+				# (mbManagementMeta,iworld) = read (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem) EmptyContext iworld
+				| mbManagementMeta=:(Error _) = (Error (fromError mbManagementMeta),iworld)
+				# change = addManagementAttributeChanges (directResult $ fromOk mbManagementMeta) change
+				//Construct task result
 				# result = ValueResult val evalInfo change task
 				//Check if the value changed
 				# valueChanged = val =!= value
@@ -441,7 +445,7 @@ where
 				//Write meta data
                 # (mbError,iworld) = modify
 						(\meta -> {TaskMeta|meta & status = valueStatus val,
-							taskAttributes = taskAttributeUpdate meta.TaskMeta.taskAttributes, initialized = True})
+							taskAttributes = taskAttributeUpdate meta.TaskMeta.taskAttributes, unsyncedAttributes = 'DS'.newSet, initialized = True})
                         (sdsFocus (listId,taskId,valueChanged) taskInstanceParallelTaskListItem)
 						EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError),iworld)
@@ -463,14 +467,12 @@ where
 cleanupParallelTaskList :: !TaskId !*IWorld -> *(MaybeError TaskException (), *IWorld)
 cleanupParallelTaskList listId iworld
 	//Remove all entries that are marked as removed from the list, they have been cleaned up by now
-	# (res,iworld) = modify (\(_,l) -> [clearAttributeSync x \\ x <- l | not (isRemoved x)])
+	# (res,iworld) = modify (filter (not o isRemoved) o snd)
 		(sdsFocus (listId,fullTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
 	= (const () <$> res, iworld)
 where
 	isRemoved {TaskMeta|change=Just RemoveTask} = True
 	isRemoved _ = False
-
-	clearAttributeSync meta = {TaskMeta| meta & unsyncedAttributes = 'DS'.newSet}
 
 destroyParallelTasks :: !TaskId !*IWorld -> *(TaskResult [(Int,TaskValue a)], *IWorld) | iTask a
 destroyParallelTasks listId=:(TaskId instanceNo _) iworld
