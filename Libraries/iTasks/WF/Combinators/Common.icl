@@ -5,6 +5,7 @@ implementation module iTasks.WF.Combinators.Common
 import StdEnv
 import Data.Functor
 import Data.Func
+import Data.Map.GenJSON
 import qualified Data.Map as DM
 
 import iTasks.Engine
@@ -237,20 +238,17 @@ whileUnchangedWith eq share task
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
-import Data.Map.GenJSON
-
 workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
 workOnChosenTask choiceOption options =
-	withShared Nothing \previousChoiceIdx ->
 	updateChoiceAs [choiceOption fst] [(label,n) \\ (label,_) <- options & n <- [1..]] snd 1 >&> \choiceIdx ->
 		( parallel
-			[(Embedded, managementTask choiceIdx previousChoiceIdx): [(Embedded, \_ -> task) \\ (_, task) <- options]]
+			[(Embedded, managementTask choiceIdx): [(Embedded, \_ -> task) \\ (_, task) <- options]]
 			[]
 			<<@ ApplyLayout
 				( layoutSubUIs
 					( SelectAND
 						(SelectByDepth 1)
-						(SelectNOT $ SelectByAttribute "visible" $ \val -> val =: (JSONBool True))
+						(SelectByAttribute "visible" $ \val -> val =: (JSONBool True))
 					)
 					(addCSSClass "itasks-hidden")
 				)
@@ -262,33 +260,13 @@ workOnChosenTask choiceOption options =
 			Value (values, Just choiceIdx) _ -> snd $ values !! choiceIdx
 			_                                -> NoValue
 where
-	managementTask choiceIdx previousChoiceIdx taskList =
-		(whileUnchanged choiceIdx (\choice -> updateVisibleAttr choice @? const noValue)) @? const NoValue
+	managementTask choiceIdx taskList = whileUnchanged choiceIdx updateVisible
 	where
-		updateVisibleAttr choiceIdx = setForChoice -&&- unsetForPrevChoice -&&- set choiceIdx previousChoiceIdx
-		where
-			setForChoice =
-				case choiceIdx of
-					Nothing = return ()
-					Just choiceIdx =
-						get (taskListIds taskList) >>- \taskIds ->
-						upd
-							(\item -> 'DM'.put "visible" (JSONBool True) item.TaskListItem.managementAttributes)
-							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
-						@! ()
-			unsetForPrevChoice =
-				get previousChoiceIdx >>- \prevChoiceIdx ->
-				case prevChoiceIdx of
-					Nothing = return ()
-					Just choiceIdx =
-						get (taskListIds taskList) >>- \taskIds ->
-						upd
-							(\item -> 'DM'.put "visible" (JSONBool False) item.TaskListItem.managementAttributes)
-							(sdsFocus (taskIds !! choiceIdx) (taskListEntryMeta taskList))
-						@! ()
-
-	noValue :: TaskValue ()
-	noValue = NoValue
+		updateVisible choice = upd (setVisible choice) (sdsFocus fullTaskListFilter taskList) @? const NoValue
+		setVisible choice (_,items) =
+			[(taskId,'DM'.put "visible" (JSONBool (Just idx == choice)) managementAttributes)
+			 \\ {TaskListItem|taskId,managementAttributes} <- items & idx <- [0..]
+			]
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions
