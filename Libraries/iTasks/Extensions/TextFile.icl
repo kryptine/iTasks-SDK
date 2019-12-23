@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.TextFile
 
-import StdBool, StdList, StdFile, StdArray, System.FilePath, Text, System.File, Data.Error, StdString
+import StdBool, StdList, StdFile, StdArray, StdString, System.FilePath, Text, System.File, Data.Error, Data.Func 
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState
 import iTasks.Extensions.Document
 
@@ -38,14 +38,15 @@ fileTaskRead taskId filename f iworld=:{IWorld|current={taskTime},world}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= (Ok res, {IWorld|iworld & world = world})
-	
-readAll file
-	# (chunk,file) = freads file CHUNK_SIZE
-	| size chunk < CHUNK_SIZE
-		= (chunk,file)
-	| otherwise
-		# (rest,file) = readAll file
-		= (chunk +++ rest,file)
+
+readAll :: !*File -> (!String, !*File)
+readAll file = readAll` [] file
+where
+	readAll` :: ![String] !*File -> (!String, !*File)
+	readAll` acc file
+		# (chunk,file) = freads file CHUNK_SIZE
+		| size chunk < CHUNK_SIZE = (concat $ reverse [chunk: acc], file)
+		| otherwise               = readAll` [chunk: acc] file
 
 writeAll content file
 	= fwrites content file
