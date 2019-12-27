@@ -121,6 +121,7 @@ where
 					= case newResult of
 						ValueResult value _ change _
 							| destroyed = (Ok value,iworld)
+							| isNothing currentSession = (Ok value, iworld)
 							| otherwise = case compactUIChange change of
 								//Only queue UI changes if something interesting is changed
 								NoChange = (Ok value,iworld)
