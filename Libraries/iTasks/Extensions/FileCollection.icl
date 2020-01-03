@@ -7,7 +7,7 @@ implementation module iTasks.Extensions.FileCollection
 import iTasks
 import iTasks.Internal.Util
 
-import StdFile
+import StdFile, StdArray
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Map.GenJSON
@@ -20,12 +20,12 @@ EXCLUDE_FILE :== "exclude.txt"
 
 //Writes a map of key/value pairs to a directory with one file per key/value
 //It will ignore all files in the directory that don't match the filter
-fileCollection :: FileFilter Bool -> SDSSource FilePath FileCollection FileCollection
-fileCollection isFileInCollection deleteRemovedFiles = worldShare (read isFileInCollection) (write isFileInCollection) notify
+fileCollection :: FileFilter Bool Bool -> SDSSource FilePath FileCollection FileCollection
+fileCollection isFileInCollection readOnly deleteRemovedFiles = worldShare (read isFileInCollection) (write readOnly isFileInCollection) notify
 where
 	read isFileInCollection dir world = case readDirectory dir world of
 		(Error (2,msg),world) = (Ok 'DM'.newMap,world) //Directory does not exist yet
-		(Error (errNo,msg),world) = (Error msg,world)
+		(Error (errNo,msg),world) = (Error (toString errNo +++ msg),world)
 		(Ok files,world) = case (if deleteRemovedFiles (Ok [],world) (readExcludeList dir world)) of 
 			(Error e, world) = (Error e,world)
 			(Ok excludes,world) = case readFiles isFileInCollection excludes dir files world of
@@ -33,16 +33,21 @@ where
 				(Ok collection,world) = (Ok ('DM'.fromList collection), world)
 	
 	readFiles isFileInCollection excludes dir [] world = (Ok [],world)
-	readFiles isFileIncollection excludes dir [f:fs] world
+	readFiles isFileInCollection excludes dir [f:fs] world
 		| f == "." || f == ".." || (not deleteRemovedFiles && isMember f excludes) = readFiles isFileInCollection excludes dir fs world 
 		| otherwise = case getFileInfo (dir </> f) world of
 			(Error (_,msg),world) = (Error msg,world)
 			(Ok {FileInfo|directory},world) 
+				# decision = isFileInCollection f
 				//Skip files that don't match the filter
-				| not (isFileInCollection f directory)
+				| decision =: ExcludeFile
 					= readFiles isFileInCollection excludes dir fs world 
+				//Add referenced files
+				| decision =: ReferenceFile = case readFiles isFileInCollection excludes dir fs world of
+						(Error e,world) = (Error e,world)
+						(Ok collection,world) = (Ok [(f,FileReference):collection], world)
 				//Read a subcollection
-				| directory = case read (\x -> isFileInCollection (f </> x)) (dir </> f) world of 
+				| decision =: IncludeFile && directory = case read (\x -> (isFileInCollection (f </> x))) (dir </> f) world of 
 					(Error e,world) = (Error e,world)
 					(Ok fcollection,world) = case readFiles isFileInCollection excludes dir fs world of
 						(Error e,world) = (Error e,world)
@@ -59,22 +64,25 @@ where
 		(Error CannotOpen,world) = (Ok [EXCLUDE_FILE],world)
 		(Error e,world)          = (Error (toString e),world)
 
-	write isFileInCollection dir collection world = case readDirectory dir world of 
+	write True isFileInCollection dir collection world 
+		= (Ok (),world)
+	write readOnly isFileInCollection dir collection world = case readDirectory dir world of 
 		//We need to know the current content of the directory to be able to delete removed entries
 		(Ok curfiles,world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
 			(Error e,world) = (Error e,world)
-			(Ok newfiles,world) = cleanupRemovedFiles curfiles newfiles dir world
+			(Ok newfiles,world) = cleanupRemovedFiles curfiles newfiles isFileInCollection dir world
 		//The direcrory does not exist yet, create it first and then write the collection
 		(Error (2,_),world) = case ensureDirectory dir world of
 			(Error e,world) = (Error e,world)
 			(Ok (),world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
 				(Error e,world) = (Error e,world)
-				(Ok newfiles,world) = cleanupRemovedFiles [] newfiles dir world
-		(Error (_,msg),world) = (Error msg,world)
+				(Ok newfiles,world) = cleanupRemovedFiles [] newfiles isFileInCollection dir world
+		(Error (ecode,msg),world) = (Error (toString ecode +++ msg),world)
 		
 	writeFiles [] isFileInCollection dir world = (Ok [],world)
 	writeFiles [(name,FileContent content):fs] isFileInCollection dir world
-		| not (isFileInCollection name False) = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
+		# decision = isFileInCollection name
+		| decision =: ExcludeFile = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
 		| otherwise = case writeFile (dir </> name) content world of
 			(Error e,world) = (Error (toString e),world)	
 			(Ok (),world) = case writeFiles fs isFileInCollection dir world of
@@ -82,33 +90,45 @@ where
 				(Ok curfiles,world) = (Ok [name:curfiles],world)
 
 	writeFiles [(name,FileCollection collection):fs] isFileInCollection dir world 
-		| not (isFileInCollection name True) = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
+		# decision = isFileInCollection name
+		| decision =: ExcludeFile = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
 		| otherwise = case ensureDirectory (dir </> name) world of
 			(Error e,world) = (Error e,world)
-			(Ok (),world) = case write (\x -> isFileInCollection (name </> x)) (dir </> name) collection world  of
+			(Ok (),world) = case write False (\x -> isFileInCollection (name </> x)) (dir </> name) collection world  of
 				(Error e,world) = (Error e,world)
 				(Ok (),world) = case writeFiles fs isFileInCollection dir world of
 					(Error e,world) = (Error e,world)
 					(Ok curfiles,world) = (Ok [name:curfiles],world)
-			
+
+	writeFiles [(name,FileReference):fs] isFileInCollection dir world 
+		 = case writeFiles fs isFileInCollection dir world of //Don't write referenced files
+			(Error e,world) = (Error e,world)
+			(Ok curfiles,world) = (Ok [name:curfiles],world)
+
 	ensureDirectory path world = case getFileInfo path world of
 		(Ok {FileInfo|directory},world) 
 			| directory = (Ok (),world)
 			| otherwise = (Error ("Can't create directory " +++ path), world)
 		(Error _, world)
-			= case createDirectory path world of	
-				(Ok (),world) = (Ok (),world)
-				(Error (_,msg),world) = (Error msg,world)
+			//First ensure the parent exists and is a directory
+			= case ensureDirectory (takeDirectory path) world of
+				(Ok (),world) = case createDirectory path world of	
+					(Ok (),world) = (Ok (),world)
+					(Error (_,msg),world) = (Error msg,world)
+				(Error e,world) = (Error e,world)
 
 	//Check if files that existed before, are not in the newly written set.
 	//If they match the filter they 'belong' to the collection and should be removed.
 	//Otherwise they will be included on the next read of the collection
-	cleanupRemovedFiles filesInDirectory filesInCollection dir world
+	cleanupRemovedFiles filesInDirectory filesInCollection isFileInCollection dir world
 		| deleteRemovedFiles = deleteFiles filesToRemove dir world
 		| otherwise          = excludeFiles filesToRemove dir world
 	where
-		filesToRemove = [f \\ f <- filesInDirectory | f <> "." && f <> ".." && f <> EXCLUDE_FILE && not (isMember f filesInCollection)]
-
+		filesToRemove = [f \\ f <- filesInDirectory | f <> "." && f <> ".." &&
+			f <> EXCLUDE_FILE && not (isMember f filesInCollection) &&
+			(isFileInCollection f) =: IncludeFile
+			]
+			
 		excludeFiles files dir world = case writeFile (dir </> EXCLUDE_FILE) (join OS_NEWLINE files) world of
 			(Error e, world) = (Error (toString e),world)
 			(Ok (),world)    = (Ok (),world)
@@ -120,6 +140,49 @@ where
 
 	notify writeParameter _ registeredParameter
 		= startsWith writeParameter registeredParameter || startsWith registeredParameter writeParameter
+
+ignoreHiddenFiles :: FileFilter
+ignoreHiddenFiles = matchRules [("**/.*",ExcludeFile)] IncludeFile 
+
+matchRules :: [(String,FileFilterDecision)] FileFilterDecision -> FileFilter
+matchRules rules default = matchRules` rules
+where
+	matchRules` [] path = default
+	matchRules` [(pattern,decision):rs] path = if (match pattern 0 path 0) decision (matchRules` rs path)
+
+	//Because there is no 'proper' glob-like file matching library in Clean platform,
+	//this simple and somewhat limited matcher will have to do 
+	match :: !String !Int !String !Int -> Bool
+	match pattern ppos input ipos
+		//All input has been read, if the pattern has been fully processed, or we were processing the last '*' we have a match
+		| ipos >= size input = ppos == size pattern || (ppos == size pattern - 1 && pattern.[ppos] == '*')
+		//The pattern has been fully, matched but there is input left
+		| ppos >= size pattern = False
+		//Special case: pattern ends with '/**' accept anything after the '/'
+		| ppos + 3 == size pattern
+			&& pattern.[ppos] == '/' && pattern.[ppos + 1] == '*' && pattern.[ppos + 2] == '*'
+			&& input.[ipos] == '/' = True
+		//Special case '**/' match any number of directories	
+		| ppos + 2 < size pattern && pattern.[ppos] == '*' && pattern.[ppos + 1] == '*' && pattern.[ppos + 2] == '/'
+			//Don't match any more characters
+			= match pattern (ppos + 3) input ipos
+			//.. or we try to match starting after the next slash
+			|| maybe False (\ipos -> match pattern ppos input ipos) (nextDir input ipos)
+		//Special case: '*' match any number of characters (but not '/')
+		| pattern.[ppos] == '*'
+			//Don't match any more characters
+			= match pattern (ppos + 1) input ipos
+			//.. or we can read an extra character and try to match
+			|| (input.[ipos] <> '/' && match pattern ppos input (ipos + 1))
+		//Match the expected character
+		| input.[ipos] == pattern.[ppos] = match pattern (ppos + 1) input (ipos + 1)
+		| otherwise = False //The pattern does not match
+	where
+		nextDir input ipos
+			| ipos >= size input = Nothing
+			| input.[ipos] == '/' = Just (ipos + 1)
+			| otherwise = nextDir input (ipos + 1)
+
 
 getStringContent :: String FileCollection -> Maybe String
 getStringContent key collection = case 'DM'.get key collection of
@@ -141,6 +204,4 @@ where
 	toPath (name,FileContent _) = [name]
 	toPath (name,FileCollection collection) = [name:[name </> path \\ path <- toPaths collection]]
 
-ignoreHiddenFiles :: FileFilter
-ignoreHiddenFiles = \path isDir -> not (startsWith "." $ dropDirectory path)
 
