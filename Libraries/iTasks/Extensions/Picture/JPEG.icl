@@ -21,5 +21,7 @@ derive JSONEncode JPEGPicture
 derive JSONDecode JPEGPicture
 derive gEq JPEGPicture
 
-gEditor{|JPEGPicture|} = comapEditorValue (\(JPEGPicture val) -> ImgTag [SrcAttr val, AltAttr "no photo", StyleAttr ("max-width: 200px; max-height: 200px;")])
-                                 		htmlView
+gEditor{|JPEGPicture|}
+	= comapEditorValue (\(JPEGPicture val) -> ImgTag 
+		[SrcAttr ("data:image/jpg;base64,"+++val), AltAttr "no photo", StyleAttr ("max-width: 200px; max-height: 200px;")])
+		htmlView
