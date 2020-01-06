@@ -14,6 +14,9 @@ from Data.Set import instance Foldable Set
 from Data.Tuple import appSnd
 from Data.Map import instance Functor (Map k)
 from Data.Foldable import maximum
+from Control.Monad import class Monad(..), >>=
+from Control.Applicative import class Applicative(..), class pure(pure)
+from Data.Maybe import instance Monad Maybe
 
 import Text.GenJSON
 
@@ -556,15 +559,18 @@ nodeSelected_ ruleNo (SelectByDepth n) p _ moves = length p == n
 nodeSelected_ ruleNo (SelectDescendents) [_:_] _ moves = True
 nodeSelected_ ruleNo (SelectDescendents) _ _ moves = False
 nodeSelected_ ruleNo (SelectByType t) _ lui moves = fromMaybe False
-	(fmap (\n -> nodeType_ ruleNo n === t) (selectNode_ ruleNo True fst (lui,moves)))
+	$   selectNode_ ruleNo True fst (lui,moves)
+	>>= \node -> return $ nodeType_ ruleNo node === t
 nodeSelected_ ruleNo (SelectByHasAttribute k) _ lui moves = fromMaybe False
-	(fmap (\n -> isJust ('DM'.get k (nodeAttributes_ ruleNo n))) (selectNode_ ruleNo True fst (lui,moves)))
-
+	$   selectNode_ ruleNo True fst (lui,moves)
+	>>= \node -> 'DM'.get k (nodeAttributes_ ruleNo node)
+	>>= \_ -> return True
 nodeSelected_ ruleNo (SelectByAttribute k p) _ lui moves = fromMaybe False
-	(fmap (\n -> maybe False p ('DM'.get k (nodeAttributes_ ruleNo n)))	(selectNode_ ruleNo True fst (lui,moves)))
-
-nodeSelected_ ruleNo (SelectByClass c) _ lui moves = fromMaybe False
-	(fmap (\n -> maybe False (hasClass c) ('DM'.get "class" (nodeAttributes_ ruleNo n))) (selectNode_ ruleNo True fst (lui,moves)))
+	$   selectNode_ ruleNo True fst (lui,moves)
+	>>= \node -> 'DM'.get k (nodeAttributes_ ruleNo node)
+	>>= \value -> return (p value)
+nodeSelected_ ruleNo (SelectByClass c) path lui moves
+	 = nodeSelected_ ruleNo (SelectByAttribute "class" (hasClass c)) path lui moves
 where
 	hasClass name (JSONArray items) = isMember name [item \\ JSONString item <- items]
 	hasClass _ _ = False

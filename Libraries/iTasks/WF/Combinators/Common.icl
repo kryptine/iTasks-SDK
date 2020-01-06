@@ -5,6 +5,8 @@ implementation module iTasks.WF.Combinators.Common
 import StdEnv
 import Data.Functor
 import Data.Func
+import Data.Map.GenJSON
+import qualified Data.Map as DM
 
 import iTasks.Engine
 import iTasks.Internal.SDS
@@ -235,6 +237,36 @@ whileUnchangedWith eq share task
 
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
+
+workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
+workOnChosenTask choiceOption options =
+	updateChoiceAs [choiceOption fst] [(label,n) \\ (label,_) <- options & n <- [1..]] snd 1 >&> \choiceIdx ->
+		( parallel
+			[(Embedded, managementTask choiceIdx): [(Embedded, \_ -> task) \\ (_, task) <- options]]
+			[]
+			<<@ ApplyLayout
+				( layoutSubUIs
+					( SelectAND
+						(SelectByDepth 1)
+						(SelectByAttribute "visible" $ \val -> val =: (JSONBool False))
+					)
+					(addCSSClass "itasks-hidden")
+				)
+		)
+	-&&-
+		(watch choiceIdx <<@ ApplyLayout hideUI)
+	@? \taskValue ->
+		case taskValue of
+			Value (values, Just choiceIdx) _ -> snd $ values !! choiceIdx
+			_                                -> NoValue
+where
+	managementTask choiceIdx taskList = whileUnchanged choiceIdx updateVisible
+	where
+		updateVisible choice = upd (setVisible choice) (sdsFocus fullTaskListFilter taskList) @? const NoValue
+		setVisible choice (_,items) =
+			[(taskId,'DM'.put "visible" (JSONBool (Just idx == choice)) managementAttributes)
+			 \\ {TaskListItem|taskId,managementAttributes} <- items & idx <- [0..]
+			]
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions

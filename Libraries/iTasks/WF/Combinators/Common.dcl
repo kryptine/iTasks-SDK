@@ -4,6 +4,7 @@ definition module iTasks.WF.Combinators.Common
 */
 import iTasks.SDS.Definition
 import iTasks.WF.Combinators.Core
+from iTasks.WF.Tasks.Interaction import :: ChoiceOption
 
 from StdBool					import not
 from Data.Map				    import :: Map
@@ -320,6 +321,10 @@ whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTa
 * Do a default task when there is a Nothing value
 */
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
+
+/**
+ */
+workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
 
 /**
 * Append a task to the set of top level tasks
