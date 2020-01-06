@@ -6,4 +6,4 @@ definition module iTasks.Extensions.FileDialog
 */
 import iTasks
 
-editFilePath :: String Action (Maybe FilePath) -> Task (Maybe FilePath)
+editFilePath :: String Action !(Maybe FilePath) -> Task (Maybe FilePath)
