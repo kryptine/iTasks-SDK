@@ -10,7 +10,7 @@ from Data.Map import unions
 
 derive class iTask FileInfo, Tm
 
-editFilePath :: String Action (Maybe FilePath) -> Task (Maybe FilePath)
+editFilePath :: String Action !(Maybe FilePath) -> Task (Maybe FilePath)
 editFilePath title action initialPath 
 	=   (determineInitialDir initialPath
 	>>- \(initDir,initFile) ->
@@ -35,33 +35,33 @@ where
 			 accWorldError (getFileInfo fullPath) snd 
 		@ \{FileInfo|directory} -> if directory (fullPath,Nothing) (takeDirectory fullPath,Just (dropDirectory fullPath))
 
-	navigateUp :: (Shared (FilePath,Maybe String)) -> Task (FilePath, Maybe String)
+	navigateUp :: (Shared sds (FilePath,Maybe String)) -> Task (FilePath, Maybe String) | RWShared sds
 	navigateUp sSelection
-   		= editSharedChoiceWithShared () [ChooseFromDropdown fst] (ancestorDirectories sSelection) (selection sSelection)
+   		= editSharedChoiceWithShared [ChooseFromDropdown fst] (ancestorDirectories sSelection) (selection sSelection)
 
-	chooseFromCurrentDirectory :: (Shared (FilePath,Maybe String))-> Task (FilePath, Maybe String)
+	chooseFromCurrentDirectory :: (Shared sds (FilePath,Maybe String))-> Task (FilePath, Maybe String) | RWShared sds
 	chooseFromCurrentDirectory sSelection
-		= editSharedChoiceWithShared () [ChooseFromList view] (filesInCurDir sSelection) (selection sSelection)
+		= editSharedChoiceWithShared [ChooseFromList view] (filesInCurDir sSelection) (selection sSelection)
 	where
 		view (path,Nothing) = "[DIR] " +++ dropDirectory path
 		view (path,Just filename) = "[FILE] " +++ filename
 
-	selection sds = mapReadWrite (Just, const) sds
+	selection sds = mapReadWrite (Just, const) Nothing sds
  
-	editFilename :: (Shared (FilePath, Maybe String))  -> Task (FilePath,Maybe String)
-	editFilename sSelection = updateSharedInformation () [UpdateAs snd (\(d,_) f -> (d,f))] sSelection
+	editFilename :: (Shared sds (FilePath, Maybe String))  -> Task (FilePath,Maybe String) | RWShared sds
+	editFilename sSelection = updateSharedInformation [UpdateSharedAs snd (\(d,_) f -> (d,f)) \_->id] sSelection
 
-	fileListLayout = setUIAttributes (unions [sizeAttr FlexSize (ExactSize 200),minWidthAttr (ExactBound 400)])
+	fileListLayout = setUIAttributes (unions [sizeAttr FlexSize (ExactSize 200)/*, minWidthAttr (ExactBound 400)*/])
 	navigateUpLayout = layoutSubUIs SelectChildren (setUIAttributes (widthAttr FlexSize))
 
-ancestorDirectories :: (SDS () (FilePath,Maybe String) (FilePath,Maybe String)) 
-	-> SDS () [(FilePath,Maybe String)] (FilePath,Maybe String)
+ancestorDirectories :: (Shared sds (FilePath,Maybe String))
+	-> SDSLens () [(FilePath,Maybe String)] (FilePath,Maybe String) | RWShared sds
 ancestorDirectories	sds = mapRead (ancestors o fst) sds
 where
 	ancestors "" = [("/",Nothing)]
 	ancestors path = [(path,Nothing):ancestors (takeDirectory path)]
 
-filesInCurDir :: (SDS () (FilePath,Maybe String) (FilePath,Maybe String)) -> SDS () [(FilePath,Maybe String)] ()
+filesInCurDir :: (Shared sds (FilePath,Maybe String)) -> SDSSequence () [(FilePath,Maybe String)] () | RWShared sds
 filesInCurDir selection 
 	= sdsSequence "filesIn" id (\() (p,_) -> p) (\() _ = Right snd)
 		(SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) selection directoryListingWithDir
@@ -69,7 +69,7 @@ filesInCurDir selection
 //Files are listed as (<current dir>,Just <file name>)
 //Directories are listed as (<child dir>, Nothing)
 
-directoryListingWithDir :: SDS FilePath [(FilePath,Maybe String)] () 
+directoryListingWithDir :: SDSLens FilePath [(FilePath,Maybe String)] ()
 directoryListingWithDir = mapRead (map combine) directoryListingWithInfo
 where
 	combine (parentDir,filename,{FileInfo|directory})
@@ -78,7 +78,7 @@ where
 
 //UTIL
 //Entries are: (Dir, Filename, Fileinfo)
-directoryListingWithInfo :: SDS FilePath [(FilePath,String,FileInfo)] ()
+directoryListingWithInfo :: SDSSource FilePath [(FilePath,String,FileInfo)] ()
 directoryListingWithInfo = createReadOnlySDSError read
 where
 	read path iworld = case readDirectory path iworld of

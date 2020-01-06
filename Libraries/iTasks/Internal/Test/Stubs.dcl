@@ -4,10 +4,8 @@ from iTasks.Internal.IWorld import :: IWorld
 from iTasks.UI.Editor import :: VSt
 
 //TEST STUBS
-toStubIWorld :: *World -> *IWorld
+toStubIWorld :: !*World -> *IWorld
 
-fromStubIWorld :: *IWorld -> *World
+fromStubIWorld :: !*IWorld -> *World
 
-toStubVSt :: *IWorld -> *VSt
-
-fromStubVSt :: *VSt -> *IWorld
+toStubVSt :: *VSt
