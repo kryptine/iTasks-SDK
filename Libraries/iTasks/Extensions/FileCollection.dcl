@@ -7,12 +7,24 @@ import iTasks
 from Data.Map import :: Map
 from System.FilePath import :: FilePath
 
-//Determine if a path is part of the colleciton based on the relative path and whether it is a directory 
-:: FileFilter :== FilePath Bool -> Bool
+/**
+* Determine if a path is part of the collection based on the relative path
+* The path is tested against est the path against a list of 'glob'-like rules.
+* Return the decision for the first rule that matches. 
+* If none of the rules match, the default decision is to exclude the path
+*/
+:: FileFilter :== [(FileFilterRule,FileFilterDecision)]
+:: FileFilterRule :== String
+
+:: FileFilterDecision
+	= IncludeFile   //The file is part of the managed collection
+	| ExcludeFile   //The file is not part of the collection, do not touch it
+	| ReferenceFile //The file is part of the collection, but don't read or write its content
 
 :: FileCollection :== Map String FileCollectionItem
 :: FileCollectionItem
 	= FileContent String 
+	| FileReference
 	| FileCollection FileCollection
 
 derive class iTask FileCollectionItem
@@ -22,10 +34,14 @@ derive class iTask FileCollectionItem
 * It will ignore all files in the directory that don't match the filter
 
 * @param The filter that specifies which files and directories are part of the collection
+# @param Readonly flag: When this is true, the files are only read, never written
 * @param Delete flag: When this is true, files on disk that are not in the collection, but match the filter are deleted during a write.
                       If it is false, entries on that are removed are only marked in a file called 'exclude.txt' but not deleted.
 */
-fileCollection :: FileFilter Bool -> SDSSource FilePath FileCollection FileCollection
+fileCollection :: FileFilter Bool Bool -> SDSSource FilePath FileCollection FileCollection
+
+//Filter to ignore all hidden files (e.g. starting with a '.')
+ignoreHiddenFiles :: FileFilter
 
 //Access utilities:
 getStringContent:: String FileCollection -> Maybe String
@@ -35,6 +51,3 @@ getIntContent :: String FileCollection -> Maybe Int
 setIntContent :: String Int FileCollection -> FileCollection
 
 toPaths :: FileCollection -> [FilePath]
-
-//Filter to ignore all hidden files (e.g. starting with a '.')
-ignoreHiddenFiles :: FileFilter
