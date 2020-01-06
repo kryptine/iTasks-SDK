@@ -55,7 +55,8 @@ where
 
 	queueAll :: !*IWorld -> *IWorld
 	queueAll iworld
-		# (mbIndex,iworld) = read (sdsFocus defaultValue taskListMetaData) EmptyContext iworld //FIXME? Is the default filter what we want here?
+		# param = (TaskId 0 0, TaskId 0 0, fullTaskListFilter, fullExtendedTaskListFilter)
+		# (mbIndex,iworld) = read (sdsFocus param taskListMetaData) EmptyContext iworld
 		= case mbIndex of
 			Ok (ReadingDone (_,index)) = foldl (\w {TaskMeta|taskId=(TaskId instanceNo _)}-> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
