@@ -1,7 +1,8 @@
 implementation module iTasks.Extensions.TextFile
 
-import StdBool, StdList, StdFile, StdArray, System.FilePath, Text, System.File, Data.Error, StdString, Data.Func
-import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskStore
+import StdBool, StdList, StdFile, StdArray, StdString, System.FilePath, Text, System.File, Data.Error, Data.Func 
+import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState
+import iTasks.Extensions.Document
 
 CHUNK_SIZE :== 1048576 // 1M
 

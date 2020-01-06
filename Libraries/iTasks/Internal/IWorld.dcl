@@ -1,20 +1,21 @@
 definition module iTasks.Internal.IWorld
 
-from System.FilePath		import :: FilePath
-from Data.Map				import :: Map
-from Data.Maybe				import :: Maybe
-from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
-from Data.Set               import :: Set
-from Data.Queue             import :: Queue
-from Data.Either            import :: Either
-from StdFile			                import class FileSystem, class FileEnv
-from System.Time				        import :: Timestamp, :: Timespec
-from Text.GenJSON				            import :: JSONNode
-from iTasks.Engine                      import :: EngineOptions
-from iTasks.UI.Definition				import :: UI, :: UIType
-from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks.Internal.Task             import :: ConnectionTask
-from iTasks.Internal.TaskEval         import :: TaskTime
+from System.FilePath           import :: FilePath
+from Data.Map                  import :: Map
+from Data.Maybe                import :: Maybe
+from Data.Error                import :: MaybeError(..), :: MaybeErrorString(..)
+from Data.Set                  import :: Set
+from Data.Queue                import :: Queue
+from Data.Either               import :: Either
+from StdFile                   import class FileSystem, class FileEnv
+from System.Time               import :: Timestamp, :: Timespec
+from Text.GenJSON              import :: JSONNode
+from iTasks.Engine             import :: EngineOptions
+from iTasks.UI.Definition      import :: UI, :: UIType
+from iTasks.Internal.TaskState import :: TaskMeta
+from iTasks.Internal.Task      import :: ConnectionTask
+from iTasks.Internal.TaskEval  import :: TaskTime
+from iTasks.Util.DeferredJSON  import :: DeferredJSON
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem

@@ -1,7 +1,7 @@
 definition module iTasks.Util.Testing
 import iTasks
 import iTasks.Util.Trace
-from iTasks.Internal.TaskStore import :: TaskOutputMessage(..)
+from iTasks.Internal.TaskIO import :: TaskOutputMessage(..)
 from Testing.TestEvents import :: EndEventType
 from Text.GenPrint import generic gPrint, :: PrintState, class PrintOutput
 

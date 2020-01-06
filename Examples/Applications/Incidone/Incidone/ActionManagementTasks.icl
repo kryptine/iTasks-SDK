@@ -54,33 +54,33 @@ actionStatusByNo :: SDSLens InstanceNo ActionStatus ActionStatus
 actionStatusByNo = sdsProject (SDSLensRead read) (SDSLensWrite write) Nothing taskInstanceByNo
 where
     read item = Ok (thd3 (toActionStatus item))
-    write {TaskInstance|attributes} status = Ok (Just (fromActionStatus status attributes))
+    write {TaskInstance|managementAttributes} status = Ok (Just (fromActionStatus status managementAttributes))
 
 numActionsByContact :: SDSLens ContactNo Int ()
 numActionsByContact = mapRead length actionStatusesByContact
 
 toActionStatuses :: [TaskInstance] -> [(InstanceNo,InstanceNo,ActionStatus)]
-toActionStatuses items = (map toActionStatus items)
+toActionStatuses items = map toActionStatus items
 
 toActionStatusesTL :: [TaskListItem a] -> [(InstanceNo,InstanceNo,ActionStatus)]
-toActionStatusesTL items = [toActionStatusTL i \\ i=:{TaskListItem|progress=Just _} <- items]
+toActionStatusesTL items = map toActionStatusTL items
 
 toActionStatus :: TaskInstance -> (InstanceNo,InstanceNo,ActionStatus)
-toActionStatus {TaskInstance|instanceNo=tNo,listId=(TaskId lNo _),attributes}
-    # title		    = maybe "-" (\(JSONString s) -> s) ('DM'.get "title" attributes)
-    # description   = fmap (\(JSONString s) -> s) ('DM'.get "description" attributes)
-    # progress  = fromMaybe ActionActive (maybe Nothing fromJSON ('DM'.get "action-progress" attributes))
-    # incidents = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-incidents" attributes))
-    # contacts  = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-contacts" attributes))
+toActionStatus {TaskInstance|instanceNo=tNo,listId=(TaskId lNo _),managementAttributes}
+    # title		    = maybe "-" (\(JSONString s) -> s) ('DM'.get "title" managementAttributes)
+    # description   = fmap (\(JSONString s) -> s) ('DM'.get "description" managementAttributes)
+    # progress  = fromMaybe ActionActive (maybe Nothing fromJSON ('DM'.get "action-progress" managementAttributes))
+    # incidents = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-incidents" managementAttributes))
+    # contacts  = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-contacts" managementAttributes))
     = (tNo,lNo,{ActionStatus|title=title,description=description,progress=progress,incidents=incidents,contacts=contacts})
 
 toActionStatusTL :: (TaskListItem a) -> (InstanceNo,InstanceNo,ActionStatus)
-toActionStatusTL {TaskListItem|taskId=(TaskId tNo _),listId=(TaskId lNo _),attributes}
-    # title		    = maybe "-" (\(JSONString s) -> s) ('DM'.get "title" attributes)
-    # description   = fmap (\(JSONString s) -> s) ('DM'.get "description" attributes)
-    # progress  = fromMaybe ActionActive (maybe Nothing fromJSON ('DM'.get "action-progress" attributes))
-    # incidents = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-incidents" attributes))
-    # contacts  = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-contacts" attributes))
+toActionStatusTL {TaskListItem|taskId=(TaskId tNo _),listId=(TaskId lNo _),managementAttributes}
+    # title		    = maybe "-" (\(JSONString s) -> s) ('DM'.get "title" managementAttributes)
+    # description   = fmap (\(JSONString s) -> s) ('DM'.get "description" managementAttributes)
+    # progress  = fromMaybe ActionActive (maybe Nothing fromJSON ('DM'.get "action-progress" managementAttributes))
+    # incidents = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-incidents" managementAttributes))
+    # contacts  = fromMaybe [] (maybe Nothing fromJSON ('DM'.get "action-contacts" managementAttributes))
     = (tNo,lNo,{ActionStatus|title=title,description=description,progress=progress,incidents=incidents,contacts=contacts})
 
 fromActionStatus :: ActionStatus TaskAttributes -> TaskAttributes
@@ -99,14 +99,13 @@ toSelfActionStatus (_,items) = case [i \\ i=:{TaskListItem|taskId,self} <- items
 
 fromSelfActionStatus :: ActionStatus (TaskList a) -> MaybeError TaskException (Maybe [(TaskId,TaskAttributes)])
 fromSelfActionStatus status (_,items) = case [i \\ i=:{TaskListItem|taskId,self} <- items | self] of
-    [{TaskListItem|taskId,attributes}:_] = Ok (Just [(taskId,fromActionStatus status attributes)])
-    _                                    = Error (exception "Task id not found in self management share")
+    [{TaskListItem|taskId,managementAttributes}:_] = Ok (Just [(taskId,fromActionStatus status managementAttributes)])
+    _                                              = Error (exception "Task id not found in self management share")
 
 selfActionStatus :: (SharedTaskList a) -> SimpleSDSLens ActionStatus | iTask a
 selfActionStatus list = sdsFocus taskListFilter (mapReadWriteError (toSelfActionStatus,fromSelfActionStatus) Nothing list)
 where
-    taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
-                     ,includeValue=False,includeAttributes=True,includeProgress=False}
+    taskListFilter = {TaskListFilter|fullTaskListFilter & includeManagementAttributes=True}
 
 actionItemStatistics :: [ActionStatus] -> ActionStatistics
 actionItemStatistics items = foldr count {numPlanned=0,numActive=0,numCompleted=0,numFailed=0,numCanceled=0} items
@@ -349,14 +348,14 @@ listItemTask (title,plan) status
     @!  ()
 where
     items initActions initContacts initIncidents
-        = [(Detached (initAttributes identity (initStatus meta)) True, configureDelayed configer task)
+        = [(Detached True 'DM'.newMap, configureDelayed (initAttributes identity (initStatus meta)) configer task )
           \\ item=:{CatalogAction|identity,meta,tasks=ActionTasks configer task} <- initActions]
     where
-        configureDelayed configer task list
+        configureDelayed attr configer task list
             =   configer initContacts initIncidents
             >>= \(config,status) ->
                 set status (selfActionStatus list)
-            >>| task config (selfActionStatus list)
+            >>| task config (selfActionStatus list) <<@ attr
         initStatus {ItemMeta|title,description}
             = {ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents}
 
@@ -592,7 +591,7 @@ where
     //Look in action the catalog for an entry that has the identity
     findReplacement taskId
         =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |*| actionCatalog)
-        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "actionitem-identity" taskListEntry.TaskListItem.attributes)
+        @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "actionitem-identity" taskListEntry.TaskListItem.managementAttributes)
     where
         lookup [] match = Nothing
         lookup [{CatalogAction|identity,tasks}:cfs] match = if ((JSONString identity) == match) (Just tasks) (lookup cfs match)
@@ -746,7 +745,7 @@ where
 addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
-    >>| appendTask (Detached attributes True) (\l -> (task (selfActionStatus l) @? const NoValue)) list
+    >>| appendTask (Detached True attributes) (\l -> (task (selfActionStatus l)) @? const NoValue) list
 where
     attributes = initAttributes identity initStatus
 
@@ -755,7 +754,7 @@ addSubActionItem :: [ContactNo] [IncidentNo] CatalogAction (SharedTaskList a) ->
 addSubActionItem initContacts initIncidents item=:{CatalogAction|identity,tasks=ActionTasks configer task} list
     =  (configer initContacts initIncidents
     >>? \(config,initStatus) ->
-        appendTask (Detached (initAttributes identity initStatus) True) (\list -> task config (selfActionStatus list) @? const NoValue) list
+        appendTask (Detached True (initAttributes identity initStatus)) (\list -> (task config (selfActionStatus list)) @? const NoValue) list
     ) <<@ InWindow
 
 addTopActionItem :: [ContactNo] [IncidentNo] -> Task (Maybe TaskId)

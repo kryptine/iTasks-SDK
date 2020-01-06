@@ -57,10 +57,5 @@ processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 */
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 
-//Update the I/O information for task instances
-updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-
 //Shares providing access to the evaluation information (constants from an evaluation point of view)
 currentInstanceShare :: SDSSource () InstanceNo ()

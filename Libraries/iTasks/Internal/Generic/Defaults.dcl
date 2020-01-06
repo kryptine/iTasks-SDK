@@ -2,7 +2,7 @@ definition module iTasks.Internal.Generic.Defaults
 
 import Data.GenDefault
 
-derive gDefault Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp, Timespec
+derive gDefault Maybe, Either, MaybeError, Map, Set, JSONNode, HtmlTag, Timestamp, Timespec
 
 from Text.GenJSON import :: JSONNode
 from Text.HTML import :: HtmlTag
@@ -10,6 +10,7 @@ from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
 from Data.Map import :: Map
+from Data.Set import :: Set
 from System.Time import :: Timestamp, :: Timespec
 
 // Wrapper functions for updating

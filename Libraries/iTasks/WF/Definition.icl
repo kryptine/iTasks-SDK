@@ -16,6 +16,7 @@ import Text, Text.GenJSON
 
 import StdEnv
 
+
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)
 
@@ -55,4 +56,11 @@ where
 class toInstanceNo t :: t -> InstanceNo
 instance toInstanceNo InstanceNo where toInstanceNo no = no
 instance toInstanceNo TaskId where toInstanceNo (TaskId no _) = no
+
+derive gDefault TaskListFilter, TaskId
+
+fullTaskListFilter :: TaskListFilter
+fullTaskListFilter =
+	{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,notTaskId=Nothing,onlyAttribute=Nothing,onlySelf=False
+	,includeValue=False,includeTaskAttributes=False,includeManagementAttributes=False,includeProgress=False}
 

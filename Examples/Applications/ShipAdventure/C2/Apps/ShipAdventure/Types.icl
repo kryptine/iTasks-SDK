@@ -25,7 +25,6 @@ derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEner
 derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Capability, CapabilityExpr
 
 derive gEditor Set
-derive gDefault Set
 derive gText Set
 derive JSONEncode Set
 derive JSONDecode Set

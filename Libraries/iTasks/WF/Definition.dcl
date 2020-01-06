@@ -81,30 +81,34 @@ class toInstanceNo t :: t -> InstanceNo
 instance toInstanceNo InstanceNo
 instance toInstanceNo TaskId
 
-// Instance data which does not change after creation (except when a task is replaced)
-:: InstanceConstants =
-    { type          :: !InstanceType        //* The type of task instance: startup, session or persistent
-    , build         :: !String              //* Application build version when the instance was created
-    , issuedAt		:: !Timespec            //* When was the task created
-    }
+:: TaskList a :== (!TaskId,![TaskListItem a])
 
-:: InstanceType
-	= StartupInstance
-	| SessionInstance
-	| PersistentInstance !(Maybe TaskId) //* If the task is a sub-task a detached part of another instance
-
-:: InstanceProgress =
-	{ value             :: !ValueStatus       //* Status of the task value
-    , attachedTo        :: ![TaskId]          //* Chain of tasks through which this instance was attached
-	, instanceKey       :: !Maybe InstanceKey //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent		:: !Maybe Timespec    //* When was the first work done on this task
-	, lastEvent		    :: !Maybe Timespec    //* When was the latest event on this task (excluding Refresh events)
+:: TaskListItem a =
+	{ taskId            :: !TaskId
+	, listId            :: !TaskId
+	, detached          :: !Bool
+	, self              :: !Bool
+	, value             :: !TaskValue a
+	, taskAttributes       :: !TaskAttributes
+	, managementAttributes :: !TaskAttributes
 	}
 
-:: ValueStatus
-    = Unstable
-    | Stable
-    | Exception !String
+:: TaskListFilter =
+	//Which rows to filter
+	{ onlyIndex         :: !Maybe [Int]
+	, onlyTaskId        :: !Maybe [TaskId]
+	, notTaskId         :: !Maybe [TaskId]
+	, onlyAttribute 	:: !Maybe (!String,!JSONNode)
+	, onlySelf          :: !Bool
+	//What to be notified for
+	, includeValue                :: !Bool
+	, includeTaskAttributes       :: !Bool
+	, includeManagementAttributes :: !Bool
+	, includeProgress             :: !Bool
+	}
+
+
+fullTaskListFilter :: TaskListFilter
 
 //The iTask context restriction contains all generic functions that need to
 //be available for a type to be used in tasks

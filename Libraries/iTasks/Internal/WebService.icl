@@ -12,11 +12,15 @@ import qualified iTasks.Internal.SDS as SDS
 import System.Time, Text, Text.GenJSON, Internet.HTTP, Data.Error
 import System.File, System.FilePath, System.Directory
 import iTasks.Engine
-import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
+import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskIO
 import iTasks.UI.Definition, iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.Internal.IWorld
 import iTasks.SDS.Combinators.Common
+import iTasks.WF.Derives
+
 import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
 import Text.HTML
+
+import iTasks.Extensions.Document
 
 from iTasks.Internal.HttpUtil import http_addRequestData, http_parseArguments
 
@@ -430,15 +434,22 @@ where
 			(Just x,q) 		= [x:toList q]
 
 	verifyInstances :: [(InstanceNo,String)] *IWorld -> (![(InstanceNo,String)],![InstanceNo],![InstanceNo],!*IWorld)
-	verifyInstances instances iworld = foldl verify ([],[],[],iworld) instances
+	verifyInstances instances iworld
+		# tfilter = {TaskListFilter|fullTaskListFilter & onlyTaskId = Just [TaskId no 0 \\ (no,_) <- instances]}
+		# focus = (TaskId 0 0, TaskId 0 0,tfilter,fullExtendedTaskListFilter)
+		= case 'SDS'.read (sdsFocus focus taskListMetaData) 'SDS'.EmptyContext iworld of
+			(Ok (ReadingDone (_,metas)), iworld)
+				# metas = 'DM'.fromList [(no,m) \\ m=:{TaskMeta|taskId=TaskId no _} <- metas]
+				# (active,removed,revoked) = foldr (verify metas) ([],[],[]) instances
+				= (active,removed,revoked,iworld)
+			(_,iworld) = ([],map fst instances,[],iworld)
 	where
-		verify (active,removed,revoked,iworld) (instanceNo,viewportKey)
-			= case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
-				(Ok (ReadingDone {InstanceProgress|instanceKey=Just key}),iworld)
-					= if (viewportKey == key)
-						([(instanceNo,viewportKey):active],removed,revoked,iworld)
-						(active,removed,[instanceNo:revoked],iworld)
-				(_,iworld) = (active,[instanceNo:removed],revoked,iworld)
+		verify metas (instanceNo,viewportKey) (active,removed,revoked) = case 'DM'.get instanceNo metas of
+			(Just {TaskMeta|instanceKey=Just key})
+				= if (viewportKey == key) ([(instanceNo,key):active],removed,revoked)
+					(active,removed,[instanceNo:revoked])
+			_
+				= (active,[instanceNo:removed],revoked)
 
 	eventsResponse messages
 		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]

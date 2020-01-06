@@ -2,7 +2,6 @@ implementation module iTasks.WF.Combinators.Common
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-
 import StdEnv
 import Data.Functor
 import Data.Func
@@ -239,9 +238,9 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions
-	>>- \eo->appendTask (Detached attr evalDirect) (\_->mtune eo task @! ()) topLevelTasks
+	>>- \eo->appendTask (Detached evalDirect attr) (\_->mtune eo task @! ()) topLevelTasks
 where
-	mtune eo = if eo.autoLayout (tune (ApplyLayout defaultSessionLayout)) id
+	mtune eo task = if eo.autoLayout (task <<@ ApplyLayout defaultSessionLayout) task
 
 compute :: !String a -> Task a | iTask a
 compute s a = Hint s @>> enterInformation [EnterUsing id ed] >>~ \_->return a

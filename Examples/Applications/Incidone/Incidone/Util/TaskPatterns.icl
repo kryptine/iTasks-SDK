@@ -199,13 +199,13 @@ where
 
     taskPid = mapRead find (sdsFocus ("name",JSONString identity) taskInstancesByAttribute)
     where
-        find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,attributes} <- instances | hasName identity attributes] of
+        find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,taskAttributes} <- instances | hasName identity taskAttributes] of
             [(i,v):_]   = Just (TaskId i 0,v)
             _           = Nothing
 
         hasName name attributes = maybe False ((==) (JSONString name)) ('DM'.get "name" attributes)
 
-    startTask _ = appendTask (Detached ('DM'.singleton "name" (JSONString identity)) True) (removeWhenStable (task @! ())) topLevelTasks @! ()
+    startTask _ = appendTask (Detached True 'DM'.newMap) (removeWhenStable ((task <<@ ("name",JSONString identity)) @! ())) topLevelTasks @! ()
     stopTask (Just (taskId,_)) = removeTask taskId topLevelTasks @! ()
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\_ -> get (taskListSelfId l) >>- \id -> removeTask id l @? const NoValue))]

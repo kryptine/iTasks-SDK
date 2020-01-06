@@ -13,14 +13,17 @@ import Text
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
+import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
-import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskIO
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
 import iTasks.WF.Definition
 import iTasks.WF.Derives
 
+derive gDefault TaskId, TaskListFilter
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
 //have been temporarily removed.
@@ -52,9 +55,10 @@ where
 
 	queueAll :: !*IWorld -> *IWorld
 	queueAll iworld
-		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
+		# param = (TaskId 0 0, TaskId 0 0, fullTaskListFilter, fullExtendedTaskListFilter)
+		# (mbIndex,iworld) = read (sdsFocus param taskListMetaData) EmptyContext iworld
 		= case mbIndex of
-			Ok (ReadingDone index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadingDone (_,index)) = foldl (\w {TaskMeta|taskId=(TaskId instanceNo _)}-> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(Int,ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)

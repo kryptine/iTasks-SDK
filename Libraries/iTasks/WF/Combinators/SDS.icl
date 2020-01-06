@@ -9,7 +9,6 @@ import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
-import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
