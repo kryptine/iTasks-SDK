@@ -263,6 +263,7 @@ where
 	modWrite Nothing Nothing = Nothing
 	modWrite Nothing (Just wa) = Nothing //FIXME: We can't pass along the write without a 'b' value
 	modWrite (Just b) (Just wa) = fromf b wa
+	modWrite (Just b) Nothing = Nothing
 
 	valueFromState mbB st = mbB
 
