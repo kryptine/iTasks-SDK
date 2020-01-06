@@ -7,8 +7,15 @@ import iTasks
 from Data.Map import :: Map
 from System.FilePath import :: FilePath
 
-//Determine if a path is part of the collection based on the relative path
-:: FileFilter :== FilePath -> FileFilterDecision
+/**
+* Determine if a path is part of the collection based on the relative path
+* The path is tested against est the path against a list of 'glob'-like rules.
+* Return the decision for the first rule that matches. 
+* If none of the rules match, the default decision is to exclude the path
+*/
+:: FileFilter :== [(FileFilterRule,FileFilterDecision)]
+:: FileFilterRule :== String
+
 :: FileFilterDecision
 	= IncludeFile   //The file is part of the managed collection
 	| ExcludeFile   //The file is not part of the collection, do not touch it
@@ -32,12 +39,6 @@ derive class iTask FileCollectionItem
                       If it is false, entries on that are removed are only marked in a file called 'exclude.txt' but not deleted.
 */
 fileCollection :: FileFilter Bool Bool -> SDSSource FilePath FileCollection FileCollection
-
-/**
-* Test the path against a list of 'glob' rules. Return the decision for the first rule that matches. 
-* If none of the rules match, the default decision is returned.
-*/
-matchRules :: [(String,FileFilterDecision)] FileFilterDecision -> FileFilter
 
 //Filter to ignore all hidden files (e.g. starting with a '.')
 ignoreHiddenFiles :: FileFilter

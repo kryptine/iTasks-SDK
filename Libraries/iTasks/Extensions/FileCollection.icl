@@ -21,7 +21,7 @@ EXCLUDE_FILE :== "exclude.txt"
 //Writes a map of key/value pairs to a directory with one file per key/value
 //It will ignore all files in the directory that don't match the filter
 fileCollection :: FileFilter Bool Bool -> SDSSource FilePath FileCollection FileCollection
-fileCollection isFileInCollection readOnly deleteRemovedFiles = worldShare (read isFileInCollection) (write readOnly isFileInCollection) notify
+fileCollection rules readOnly deleteRemovedFiles = worldShare (read (matchRules rules)) (write readOnly (matchRules rules)) notify
 where
 	read isFileInCollection dir world = case readDirectory dir world of
 		(Error (2,msg),world) = (Ok 'DM'.newMap,world) //Directory does not exist yet
@@ -38,7 +38,20 @@ where
 		| otherwise = case getFileInfo (dir </> f) world of
 			(Error (_,msg),world) = (Error msg,world)
 			(Ok {FileInfo|directory},world) 
-				# decision = isFileInCollection f
+				# decision = isFileInCollection f False
+				# intermediate = isFileInCollection f True
+				//Read a subcollection
+				| directory && (decision =: IncludeFile || intermediate =: IncludeFile)
+					= case read (\p i -> (isFileInCollection (f </> p) i)) (dir </> f) world of 
+					(Error e,world) = (Error e,world)
+					(Ok fcollection,world) = case readFiles isFileInCollection excludes dir fs world of
+						(Error e,world) = (Error e,world)
+						(Ok collection,world)
+							//Only include the directory if it was explicitly included or it has matching files in it
+							| (decision =: IncludeFile) || (not $ 'DM'.null fcollection)
+								= (Ok [(f,FileCollection fcollection):collection], world)
+							| otherwise
+								= (Ok collection, world)
 				//Skip files that don't match the filter
 				| decision =: ExcludeFile
 					= readFiles isFileInCollection excludes dir fs world 
@@ -46,12 +59,6 @@ where
 				| decision =: ReferenceFile = case readFiles isFileInCollection excludes dir fs world of
 						(Error e,world) = (Error e,world)
 						(Ok collection,world) = (Ok [(f,FileReference):collection], world)
-				//Read a subcollection
-				| decision =: IncludeFile && directory = case read (\x -> (isFileInCollection (f </> x))) (dir </> f) world of 
-					(Error e,world) = (Error e,world)
-					(Ok fcollection,world) = case readFiles isFileInCollection excludes dir fs world of
-						(Error e,world) = (Error e,world)
-						(Ok collection,world) = (Ok [(f,FileCollection fcollection):collection], world)
 				//Read the file content
 				| otherwise = case readFile (dir </> f) world of
                     (Error e,world) = (Error (toString e),world)
@@ -71,7 +78,7 @@ where
 		(Ok curfiles,world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
 			(Error e,world) = (Error e,world)
 			(Ok newfiles,world) = cleanupRemovedFiles curfiles newfiles isFileInCollection dir world
-		//The direcrory does not exist yet, create it first and then write the collection
+		//The directory does not exist yet, create it first and then write the collection
 		(Error (2,_),world) = case ensureDirectory dir world of
 			(Error e,world) = (Error e,world)
 			(Ok (),world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
@@ -81,7 +88,7 @@ where
 		
 	writeFiles [] isFileInCollection dir world = (Ok [],world)
 	writeFiles [(name,FileContent content):fs] isFileInCollection dir world
-		# decision = isFileInCollection name
+		# decision = isFileInCollection name False
 		| decision =: ExcludeFile = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
 		| otherwise = case writeFile (dir </> name) content world of
 			(Error e,world) = (Error (toString e),world)	
@@ -90,11 +97,14 @@ where
 				(Ok curfiles,world) = (Ok [name:curfiles],world)
 
 	writeFiles [(name,FileCollection collection):fs] isFileInCollection dir world 
-		# decision = isFileInCollection name
-		| decision =: ExcludeFile = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
+		# decision = isFileInCollection name False
+		# intermediate = isFileInCollection name True
+		//Don't write directories that don't match the filter
+		| decision =: ExcludeFile && intermediate =: ExcludeFile
+			= writeFiles fs isFileInCollection dir world 
 		| otherwise = case ensureDirectory (dir </> name) world of
 			(Error e,world) = (Error e,world)
-			(Ok (),world) = case write False (\x -> isFileInCollection (name </> x)) (dir </> name) collection world  of
+			(Ok (),world) = case write False (\p i -> isFileInCollection (name </> p) i) (dir </> name) collection world  of
 				(Error e,world) = (Error e,world)
 				(Ok (),world) = case writeFiles fs isFileInCollection dir world of
 					(Error e,world) = (Error e,world)
@@ -124,9 +134,11 @@ where
 		| deleteRemovedFiles = deleteFiles filesToRemove dir world
 		| otherwise          = excludeFiles filesToRemove dir world
 	where
-		filesToRemove = [f \\ f <- filesInDirectory | f <> "." && f <> ".." &&
-			f <> EXCLUDE_FILE && not (isMember f filesInCollection) &&
-			(isFileInCollection f) =: IncludeFile
+		filesToRemove
+			= [name \\ name <- filesInDirectory
+			  | name <> "." && name <> ".." && name <> EXCLUDE_FILE
+			   && not (isMember name filesInCollection) //The file is not (longer) in the collection
+			   && not ((isFileInCollection name True) =: ExcludeFile) //The file or directory is explicilty part of the collection
 			]
 			
 		excludeFiles files dir world = case writeFile (dir </> EXCLUDE_FILE) (join OS_NEWLINE files) world of
@@ -142,21 +154,24 @@ where
 		= startsWith writeParameter registeredParameter || startsWith registeredParameter writeParameter
 
 ignoreHiddenFiles :: FileFilter
-ignoreHiddenFiles = matchRules [("**/.*",ExcludeFile)] IncludeFile 
+ignoreHiddenFiles = [("**/.*",ExcludeFile),("**",IncludeFile)]
 
-matchRules :: [(String,FileFilterDecision)] FileFilterDecision -> FileFilter
-matchRules rules default = matchRules` rules
+matchRules :: [(String,FileFilterDecision)] String Bool -> FileFilterDecision
+matchRules [] path intermediate = ExcludeFile
+matchRules [(pattern,decision):rs] path intermediate
+	| match pattern 0 path 0 intermediate = if intermediate IncludeFile decision
+	| otherwise = matchRules rs path intermediate
 where
-	matchRules` [] path = default
-	matchRules` [(pattern,decision):rs] path = if (match pattern 0 path 0) decision (matchRules` rs path)
-
 	//Because there is no 'proper' glob-like file matching library in Clean platform,
 	//this simple and somewhat limited matcher will have to do 
-	match :: !String !Int !String !Int -> Bool
-	match pattern ppos input ipos
-		//All input has been read, if the pattern has been fully processed, or we were processing the last '*' we have a match
-		| ipos >= size input = ppos == size pattern || (ppos == size pattern - 1 && pattern.[ppos] == '*')
-		//The pattern has been fully, matched but there is input left
+	match :: !String !Int !String !Int !Bool -> Bool
+	match pattern ppos input ipos intermediate
+		//All input has been read. We have a match when:
+		| ipos >= size input 
+			= ppos == size pattern // - the pattern has been fully processed
+			|| intermediate // - we accept intermediate paths
+			|| (ppos == size pattern - 1 && pattern.[ppos] == '*') //- we were processing the last '*' we have a match
+		//The pattern has been fully matched but there is input left
 		| ppos >= size pattern = False
 		//Special case: pattern ends with '/**' accept anything after the '/'
 		| ppos + 3 == size pattern
@@ -165,17 +180,17 @@ where
 		//Special case '**/' match any number of directories	
 		| ppos + 2 < size pattern && pattern.[ppos] == '*' && pattern.[ppos + 1] == '*' && pattern.[ppos + 2] == '/'
 			//Don't match any more characters
-			= match pattern (ppos + 3) input ipos
+			= match pattern (ppos + 3) input ipos intermediate
 			//.. or we try to match starting after the next slash
-			|| maybe False (\ipos -> match pattern ppos input ipos) (nextDir input ipos)
+			|| maybe False (\ipos -> match pattern ppos input ipos intermediate) (nextDir input ipos)
 		//Special case: '*' match any number of characters (but not '/')
 		| pattern.[ppos] == '*'
 			//Don't match any more characters
-			= match pattern (ppos + 1) input ipos
+			= match pattern (ppos + 1) input ipos intermediate
 			//.. or we can read an extra character and try to match
-			|| (input.[ipos] <> '/' && match pattern ppos input (ipos + 1))
+			|| (input.[ipos] <> '/' && match pattern ppos input (ipos + 1) intermediate)
 		//Match the expected character
-		| input.[ipos] == pattern.[ppos] = match pattern (ppos + 1) input (ipos + 1)
+		| input.[ipos] == pattern.[ppos] = match pattern (ppos + 1) input (ipos + 1) intermediate
 		| otherwise = False //The pattern does not match
 	where
 		nextDir input ipos
@@ -201,6 +216,7 @@ setIntContent key value collection = 'DM'.put key (FileContent (toString value))
 toPaths :: FileCollection -> [FilePath]
 toPaths collection = flatten (map toPath ('DM'.toList collection)) 
 where
+	toPath (name,FileReference) = [name]
 	toPath (name,FileContent _) = [name]
 	toPath (name,FileCollection collection) = [name:[name </> path \\ path <- toPaths collection]]
 

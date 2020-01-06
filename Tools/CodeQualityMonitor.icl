@@ -59,21 +59,21 @@ where
 
 runInteractiveTests :: Task ()
 runInteractiveTests
-	= (     (Title "Select test") @>> editSelectionWithShared [SelectMultiple False, SelectInTree fileCollectionToTree selectTest] tests (const []) @? tvHd
+	= (     (Title "Select test") @>> widthAttr FlexSize @>> editSelectionWithShared [SelectMultiple False, SelectInTree fileCollectionToTree selectTest] tests (const []) @? tvHd
 		>&> withSelection (viewInformation [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide True @! ()
 where
-	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl") False)
+	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection [("**/*.icl",ReferenceFile)] True False)
 
 	fileCollectionToTree collection = itemsToTree [] collection
 	where
 		itemsToTree prefix subCollection = map (itemToTree prefix) ('DM'.toList subCollection)
 
-		itemToTree prefix (name,FileContent _)
-			= {ChoiceNode|id = determineItemId (fileName [name:prefix]) collection, label = name
-              , expanded = False, icon = Nothing, children = []}
 		itemToTree prefix (name,FileCollection subCollection)
 			= {ChoiceNode|id = determineItemId (fileName [name:prefix]) collection, label = name
               , expanded = False, icon = Nothing, children = itemsToTree [name:prefix] subCollection}
+		itemToTree prefix (name,_)
+			= {ChoiceNode|id = determineItemId (fileName [name:prefix]) collection, label = name
+              , expanded = False, icon = Nothing, children = []}
 
 	fileName path = join {OS_PATH_SEPARATOR} (reverse path)
 
@@ -88,7 +88,7 @@ where
 runUnitTests :: Task ()
 runUnitTests = withShared 'DM'.newMap
 	\results ->
-	 ((    (((Title "Tests") @>> editSelectionWithShared
+	 ((    (((Title "Tests") @>> widthAttr FlexSize @>> editSelectionWithShared
 				[SelectMultiple False, SelectInTree toModuleSelectTree selectByIndex]
 				(sdsFocus UNIT_TESTS_PATH moduleList) (const []) @? tvHd)
 			)
@@ -148,7 +148,7 @@ where
 
 exploreCode :: Task ()
 exploreCode 
-	= ((    (((Title "Modules") @>> editSelectionWithShared 
+	= ((    (((Title "Modules") @>> widthAttr FlexSize @>> editSelectionWithShared 
 				[SelectMultiple False, SelectInTree toModuleSelectTree selectByIndex]
 				(sdsFocus LIBRARY_PATH moduleList) (const []) @? tvHd)
 			 	-|| viewQualityMetrics
