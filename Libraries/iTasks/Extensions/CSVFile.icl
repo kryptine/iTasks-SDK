@@ -1,6 +1,7 @@
 implementation module iTasks.Extensions.CSVFile
 
 import StdBool, StdList, System.FilePath, Text, Text.CSV, System.File, Data.Error 
+import iTasks, iTasks.Extensions.TextFile
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskStore
 
 importCSVFile :: !FilePath -> Task [[String]]
@@ -27,17 +28,35 @@ where
 		# (filename,iworld) = documentLocation documentId iworld
 		= fileTaskRead taskId filename (readCSVFileWith delimitChar quoteChar escapeChar) iworld
 
-
 createCSVFile :: !String ![[String]] -> Task Document
-createCSVFile filename content = mkInstantTask eval
+createCSVFile filename content =
+	withTemporaryDirectory
+		(\dir -> let tmpFilePath = dir </> filename in exportCSVFile filename content >-| importDocument tmpFilePath)
+
+createCSVFileWith :: !Char !Char !Char !String ![[String]] -> Task Document
+createCSVFileWith delimitChar quoteChar escapeChar filename content =
+	withTemporaryDirectory
+		( \dir ->
+			let tmpFilePath = dir </> filename in
+			exportCSVFileWith delimitChar quoteChar escapeChar filename content >-| importDocument tmpFilePath
+		)
+
+createUtf8CSVFileWith :: !Char !Char !Char !String ![[String]] -> Task Document
+createUtf8CSVFileWith delimitChar quoteChar escapeChar filename content =
+	withTemporaryDirectory
+		( \dir ->
+			let tmpFilePath = dir </> filename in
+			exportCSVFileWith delimitChar quoteChar escapeChar filename content >-|
+			importTextFile tmpFilePath                                          >>- \fileContent ->
+			mkInstantTask (createDoc fileContent)
+		)
 where
-	eval taskId iworld=:{current={taskTime}}
-        # csv = join "\n" (map (join ",") content)
-		# (mbDoc,iworld)	= createDocument filename "text/csv" csv iworld
+	createDoc fileContent _ iworld
+		# (mbDoc, iworld) = createDocument filename "text/csv" ("\xEF\xBB\xBF" +++ fileContent) iworld
 		= case mbDoc of
-			Ok doc	= (Ok doc, iworld)
-			Error e	= (Error (dynamic e,toString e),iworld)
-			
+			Ok doc  -> (Ok doc,                        iworld)
+			Error e -> (Error (dynamic e, toString e), iworld)
+
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
 where

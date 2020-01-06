@@ -38,6 +38,35 @@ importCSVDocumentWith	:: !Char !Char !Char !Document -> Task [[String]]
 * @return The exported content as a document
 */
 createCSVFile		:: !String ![[String]] -> Task Document
+
+/**
+ * Export a list of rows of fields to a comma separated vector (CSV) document.
+ *
+ * @param Separator: The field separator
+ * @param Quote character: The string quote character
+ * @param Escape character: The escape character
+ * @param File name: A name of the created CSV file
+ * @param Cells: The content to export as a list of rows of lists of fields
+ *
+ * @return The exported content as a document
+ */
+createCSVFileWith :: !Char !Char !Char !String ![[String]] -> Task Document
+
+/**
+ * Export a list of rows of fields to a comma separated vector (CSV) document encoded in UTF-8.
+ * The file starts with a UTF-8 byte order mask.
+ * This is to make sure the Excel correctly detect the encoding when importing the file.
+ *
+ * @param Separator: The field separator
+ * @param Quote character: The string quote character
+ * @param Escape character: The escape character
+ * @param File name: A name of the created CSV file
+ * @param Cells: The content to export as a list of rows of lists of fields
+ *
+ * @return The exported content as a document
+ */
+createUtf8CSVFileWith :: !Char !Char !Char !String ![[String]] -> Task Document
+
 /**
 * Export a list of rows of fields to a comma separated vector (CSV) file on the server's filesystem.
 *

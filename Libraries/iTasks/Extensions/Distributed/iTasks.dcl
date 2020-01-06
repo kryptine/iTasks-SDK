@@ -10,6 +10,7 @@ from StdFunc import const, o
 from TCPIP import :: Timeout
 import System.OS
 
+import iTasks.WF.Tasks.Core
 from iTasks.WF.Definition import class iTask
 from iTasks.Internal.Task import :: Task, generic gEq, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
 from Data.Maybe import :: Maybe
@@ -17,7 +18,6 @@ from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization import :: TextFormat(..)
 import qualified iTasks.Extensions.User as U
-from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes, :: Password, :: Username, workAs, :: Credentials{..}, users
 from iTasks.UI.Definition import :: Title(..), :: Hint(..)
@@ -45,7 +45,6 @@ from iTasks.Extensions.Distributed.Authentication import domainAuthServer, users
 import Text
 import iTasks.Extensions.Distributed.InteractionTasks
 from StdList import ++
-import iTasks.WF.Combinators.Overloaded
 
 from Internet.HTTP import :: HTTPResponse{..}, :: HTTPMethod(..)
 from Text.URI import :: URI{..}, parseURI

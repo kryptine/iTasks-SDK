@@ -2,51 +2,52 @@ implementation module iTasks.WF.Combinators.Common
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON, Data.Func
-import iTasks.Internal.Util
-from StdFunc			import id, const, o
-from iTasks.SDS.Sources.Core import randomInt
-from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
-import iTasks.SDS.Combinators.Common
-from iTasks.Internal.TaskState		import :: DeferredJSON, :: AsyncAction
-from iTasks.Internal.TaskEval         import :: TaskTime
-import qualified Data.Map as DM
-from iTasks.Extensions.DateTime import waitForTimer
-from iTasks.UI.Definition import :: UIType(UILoader)
 
-import iTasks.Internal.SDS
+import StdEnv
+import Data.Functor
+import Data.Func
+
 import iTasks.Engine
-import iTasks.WF.Derives
-import iTasks.WF.Tasks.Core
-import iTasks.WF.Tasks.SDS
-import iTasks.WF.Tasks.Interaction
-import iTasks.WF.Combinators.SDS
-import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Overloaded
+import iTasks.Internal.SDS
+import iTasks.Internal.Serialization
+import iTasks.SDS.Combinators.Common
+import iTasks.SDS.Sources.Core
+import iTasks.SDS.Sources.System
 import iTasks.UI.Definition
-import iTasks.UI.Tune
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
-import iTasks.SDS.Sources.System
+import iTasks.UI.Tune
+import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.SDS
+import iTasks.WF.Derives
+import iTasks.WF.Tasks.Core
+import iTasks.WF.Tasks.Interaction
+import iTasks.WF.Tasks.SDS
 
-(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
+instance Functor Task where
+	fmap f t = t @ f
+
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 (>>*) task steps = step task (const Nothing) steps
 
-tbind :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
+(>>=) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
-(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>|) infixl 1 :: !(Task a) !(Task b) -> Task b | TC, JSONEncode{|*|} a
+(>>|) l r = l >>* [OnAction ActionContinue (always r), OnValue (ifStable (\_->r))]
+
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
 
-(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>-) taska taskbf = step taska (const Nothing) [OnValue (ifStable taskbf)]
 
-(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 (>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
 
-(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | TC, JSONEncode{|*|} a & TC, JSONEncode{|*|} b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
 
 (@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b

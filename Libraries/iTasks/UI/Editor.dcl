@@ -17,7 +17,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.GenEq import generic gEq
 from StdOverloaded import class toString
-from Control.GenBimap import generic bimap, :: Bimap
+from Control.GenBimap import generic bimap
 
 /**
 * Definition of an editor.

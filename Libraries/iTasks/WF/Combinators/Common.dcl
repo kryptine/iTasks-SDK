@@ -9,6 +9,8 @@ from StdBool					import not
 from Data.Map				    import :: Map
 from Data.Either				import :: Either
 
+instance Functor Task
+
 /**
 * Infix shorthand for step combinator
 *
@@ -16,7 +18,7 @@ from Data.Either				import :: Either
 * @param The possible continuations
 * @return The continuation's result
 */
-(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 
 //Standard monadic operations:
 
@@ -29,7 +31,19 @@ from Data.Either				import :: Either
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) 			-> Task b		| TC, JSONEncode{|*|} a
+
+/**
+* Combines two tasks sequentially. The first task is executed first.
+* The user may continue to the second task, which is executed with the result of the first task as parameter.
+* If the first task becomes stable, the second task is started automatically.
+*
+* @param First: The first task to be executed
+* @param Second: The second task
+* @return The combined task
+*/
+(>>|) infixl 1 :: !(Task a) !(Task b) 			-> Task b		| TC, JSONEncode{|*|} a
+
 /**
 * Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
 * the first task.
@@ -38,7 +52,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially but continues only when the first task has a stable value.
 *
@@ -46,7 +60,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially but continues only when the first task has a stable value.
 *
@@ -64,7 +78,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
 *
@@ -73,7 +87,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 *
 * @return The combined task
 */
-(>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a| TC, JSONEncode{|*|} a & TC, JSONEncode{|*|} b
 /**
 * Infix shorthand for transform combinator
 *

@@ -17,7 +17,10 @@ from iTasks.UI.Editor import :: EditMode
 *				@default ()
 * @return A task that will return the value defined by the parameter
 */
-treturn :: !a -> Task a | iTask a
+return :: !a -> Task a
+
+//Backwards compatibility
+treturn :== return
 
 /**
 * Exception throwing. This will throw an exception of arbitrary type e which has to be caught
@@ -26,7 +29,7 @@ treturn :: !a -> Task a | iTask a
 * @param Value: The exception value
 * @return The combined task
 */
-throw :: !e -> Task a | iTask a & iTask, toString e
+throw :: !e -> Task a | TC, toString e
 
 /**
 * Evaluate a "World" function that does not yield any result once.
@@ -42,7 +45,7 @@ appWorld :: !(*World -> *World)			-> Task ()
 * @param World function: The function to evaluate
 * @return A task that evaluates the function and yield a
 */
-accWorld :: !(*World -> *(a,*World))	-> Task a | iTask a
+accWorld :: !(*World -> *(a,*World))	-> Task a
 
 /**
 * Evaluate a "World" function that also returns a MaybeError value.
@@ -52,7 +55,7 @@ accWorld :: !(*World -> *(a,*World))	-> Task a | iTask a
 *
 * @return A  task that evaluates the function
 */
-accWorldError   :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError   :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC, toString err
 
 /**
 * Evaluate a "World" function that also returns a MaybeOSError value.
@@ -62,7 +65,7 @@ accWorldError   :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a |
 *
 * @return A task that evaluates the function
 */
-accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a | iTask a
+accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a
 
 :: OSException			= OSException !OSError
 instance toString OSException

@@ -44,7 +44,7 @@ wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> Con
 /**
 * Create a task that finishes instantly
 */
-mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a
 
 /**
  * Apply a function on the task continuation of the task result
@@ -60,4 +60,4 @@ wrapTaskContinuation tf val :== case val of
  */
 unTask (Task t) :== t
 
-nopTask :: Task a
+nopTask :: Task a | iTask a
