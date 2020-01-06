@@ -70,7 +70,7 @@ instance < TaskMeta where
 
 fullExtendedTaskListFilter :: ExtendedTaskListFilter
 fullExtendedTaskListFilter =
-	 {includeSessions=True,includeDetached=True,includeStartup=True,includeTaskReduct=False,includeTaskIO=False}
+	{includeSessions=True,includeDetached=True,includeStartup=True,includeTaskReduct=False,includeTaskIO=False}
 
 encodeTaskValue :: (TaskValue a) -> TaskValue DeferredJSON | iTask a
 encodeTaskValue (Value dec stable) = Value (DeferredJSON dec) stable
@@ -120,9 +120,9 @@ newInstanceKey iworld = generateRandomString 32 iworld
 
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
-    //Create the initial instance data in the store
+	//Create the initial instance data in the store
 	# meta = {defaultValue & taskId= TaskId instanceNo 0, instanceType=SessionInstance,build=appVersion,createdAt=clock}
-    = 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
@@ -130,18 +130,18 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
 createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
-    # (Ok instanceNo,iworld) = newInstanceNo iworld
-    # (instanceKey,iworld)  = newInstanceKey iworld
+	# (Ok instanceNo,iworld) = newInstanceNo iworld
+	# (instanceKey,iworld)  = newInstanceKey iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=SessionInstance
 		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock,taskAttributes=attributes}
-    = 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
+	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
 createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException InstanceNo, !*IWorld) | iTask a
 createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-    # (Ok instanceNo,iworld) = newInstanceNo iworld
+	# (Ok instanceNo,iworld) = newInstanceNo iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=StartupInstance,build=appVersion,createdAt=clock,taskAttributes=attributes}
 	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
@@ -151,7 +151,7 @@ createStartupTaskInstance task attributes iworld=:{options={appVersion,autoLayou
 createDetachedTaskInstance :: !(Task a) !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskMeta, !*IWorld) | iTask a
 createDetachedTaskInstance task evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
-    # (instanceKey,iworld) = newInstanceKey iworld
+	# (instanceKey,iworld) = newInstanceKey iworld
 	# mbListId             = if (listId == TaskId 0 0) Nothing (Just listId)
 	# meta = {defaultValue & taskId = TaskId instanceNo 0, instanceType=PersistentInstance,build=appVersion
 		,createdAt=clock,managementAttributes=attributes, instanceKey=Just instanceKey}
@@ -182,7 +182,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	//Queue a final destroy event
 	# iworld = queueEvent instanceNo DestroyEvent iworld
 	= (Ok (),iworld)
-  where
+where
 	toME (Ok ('SDS'.ModifyingDone _)) = Ok ()
 	toME (Error e) = (Error e)
 
@@ -263,7 +263,7 @@ where
 		&& maybe True (\(mk,mv) ->
 			(maybe False ((==) mv) ('DM'.get mk taskAttributes)
 			|| maybe False ((==) mv) ('DM'.get mk managementAttributes))) onlyAttribute
-        && ((includeSessions && instanceType =: SessionInstance) ||
+		&& ((includeSessions && instanceType =: SessionInstance) ||
 		    (includeDetached && instanceType =: PersistentInstance) ||
 		    (includeStartup && instanceType =: StartupInstance)
 		   )
@@ -294,7 +294,7 @@ where
 
 	//We don't notify at all for these stores.
 	notify _ _ _ _ _ = False
-	
+
 taskListTypedValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 taskListTypedValueData = sdsLens "taskListTypedValueData" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
 where
@@ -491,10 +491,10 @@ documentContent = sdsTranslate "documentContent" (\docId -> docId +++ "-content"
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
-	# (documentId, iworld)	= newDocumentId iworld
-	# document				= {Document|documentId = documentId, contentUrl = "/download/"+++documentId, name = name, mime = mime, size = size content}
+	# (documentId, iworld)  = newDocumentId iworld
+	# document              = {Document|documentId = documentId, contentUrl = "/download/"+++documentId, name = name, mime = mime, size = size content}
 	# (_,iworld)            = 'SDS'.write content (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld
-	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) 'SDS'.EmptyContext iworld
+	# (_,iworld)            = 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) 'SDS'.EmptyContext iworld
 	= (Ok document,iworld)
 
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
