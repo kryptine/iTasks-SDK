@@ -183,6 +183,9 @@ where
 			= match pattern (ppos + 3) input ipos intermediate
 			//.. or we try to match starting after the next slash
 			|| maybe False (\ipos -> match pattern ppos input ipos intermediate) (nextDir input ipos)
+		//Special case: pattern ends with '**' accept everything
+		| ppos + 2 == size pattern && pattern.[ppos] == '*' && pattern.[ppos + 1] == '*'
+			= True
 		//Special case: '*' match any number of characters (but not '/')
 		| pattern.[ppos] == '*'
 			//Don't match any more characters
