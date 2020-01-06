@@ -19,7 +19,7 @@ instance Functor Task
 * @param The possible continuations
 * @return The continuation's result
 */
-(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | TC, JSONEncode{|*|} a
 
 //Standard monadic operations:
 
@@ -32,7 +32,7 @@ instance Functor Task
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) 			-> Task b		| TC, JSONEncode{|*|} a
 
 /**
 * Combines two tasks sequentially. The first task is executed first.
@@ -43,7 +43,7 @@ instance Functor Task
 * @param Second: The second task
 * @return The combined task
 */
-(>>|) infixl 1 :: !(Task a) !(Task b) 			-> Task b		| iTask a & iTask b
+(>>|) infixl 1 :: !(Task a) !(Task b) 			-> Task b		| TC, JSONEncode{|*|} a
 
 /**
 * Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
@@ -53,7 +53,7 @@ instance Functor Task
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially but continues only when the first task has a stable value.
 *
@@ -61,7 +61,7 @@ instance Functor Task
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially but continues only when the first task has a stable value.
 *
@@ -79,7 +79,7 @@ instance Functor Task
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
 * Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
 *
@@ -88,7 +88,7 @@ instance Functor Task
 *
 * @return The combined task
 */
-(>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a| TC, JSONEncode{|*|} a & TC, JSONEncode{|*|} b
 /**
 * Infix shorthand for transform combinator
 *

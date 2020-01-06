@@ -45,32 +45,32 @@ derive gText ExtendedTaskListFilter
 /*
 :: TaskState =
 	{ task        :: Task a             // (Task a): The task, rewrites after each event
-	, meta        :: TaskMeta           // Constant data, and management 
+	, meta        :: TaskMeta           // Constant data, and management
 	, value       :: Value              // Last value
 	, localshares :: Map TaskId Dynamic // Locally shared data (directly manipulated by subtasks)
 	}
 */
 
 :: TaskMeta =
-    //Static information
+	//Static information
 	{ taskId                :: !TaskId              //Unique global identification
 	, instanceType          :: !InstanceType        //There are 3 types of tasks: startup tasks, sessions, and persistent tasks
-    , build                 :: !String              //* Application build version when the instance was created
-    , createdAt             :: !Timespec
+	, build                 :: !String              //* Application build version when the instance was created
+	, createdAt             :: !Timespec
 	, detachedFrom          :: !Maybe TaskId        //* Which parallel task created the entry (or none when added globally)
-    //Progress information
+	//Progress information
 	, status                :: !Either String Bool  //* Exception message, or stability
-	, nextTaskNo	        :: !TaskNo              //* Local task number counter
-	, nextTaskTime	        :: !TaskTime            //* Local task time (incremented at every evaluation)
-    , attachedTo            :: ![TaskId]
+	, nextTaskNo            :: !TaskNo              //* Local task number counter
+	, nextTaskTime          :: !TaskTime            //* Local task time (incremented at every evaluation)
+	, attachedTo            :: ![TaskId]
 	, instanceKey           :: !Maybe InstanceKey   //* Random token that a client gets to have (temporary) access to the task instance
 	, taskAttributes        :: !TaskAttributes      //* Attributes computed by the UI
-    //IO information
+	//IO information
 	, connectedTo           :: !Maybe String        //* Client machine to which this task is connected
 	, firstEvent            :: !Maybe Timespec      //* When was the first work done on this task
 	, lastEvent             :: !Maybe Timespec      //* When was the latest event on this task (excluding Refresh events)
 	, lastIO                :: !Maybe Timespec      //* Last network event or ping
-    //Identification and classification information
+	//Identification and classification information
 	, managementAttributes  :: !TaskAttributes      //* Arbitrary writable attributes for managing collections of task instances
 	// Control information (used only internally)
 	, change                :: !Maybe TaskChange    //* Changes like removing or replacing a parallel task are only done when the
@@ -90,8 +90,8 @@ derive gText ExtendedTaskListFilter
 	| PersistentInstance
 
 :: TaskChange
-    = RemoveTask                            //Mark for removal from the set on the next evaluation
-    | ReplaceTask !Dynamic                  //Replace the task on the next evaluation
+	= RemoveTask           //* Mark for removal from the set on the next evaluation
+	| ReplaceTask !Dynamic //* Replace the task on the next evaluation
 
 //Internally we need more options to filter task list data
 :: ExtendedTaskListFilter =
@@ -201,4 +201,3 @@ createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError 
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-

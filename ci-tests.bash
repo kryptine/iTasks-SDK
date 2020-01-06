@@ -21,6 +21,17 @@ fi
 	./CreateBasicAPIExamples.exe > BasicAPIExamples.icl
 )
 
+#Try to compile all modules
+errors="$(
+	cd Examples
+	find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
+		|  sed 's/definition module //g' \
+		|  xargs cpm project BasicAPIExamples.prj compile \
+		|& grep -Po '(?<=Error \[).*(?=\.icl.*)' \
+		| uniq)"
+echo "$errors" >&2
+[ -z "$errors" ]
+
 #Try to compile everything
 find . -name "*.prj.default" | while read f; do
 		cp "$f" "$(dirname $f)/$(basename -s .prj.default $f)".prj
@@ -34,4 +45,3 @@ find . -name "*.prj" -not -name "IncidoneCCC.prj" -not -name "examples.prj" -not
 
 #Run the unit tests
 find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 -I@ cleantest -f human --junit @-junit.xml -r @
-

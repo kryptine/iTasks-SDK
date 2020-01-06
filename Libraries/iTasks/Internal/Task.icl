@@ -115,7 +115,7 @@ where
 		= (toDyn <$> mbl, out, env)
 	onDestroy` l env = abort ("onDestroy does not match with type l=" +++ toString (typeCodeOfDynamic l))
 
-mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (MaybeError TaskException a,*IWorld)) -> Task a
 mkInstantTask iworldfun = Task eval
 where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
