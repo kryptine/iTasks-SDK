@@ -22,15 +22,17 @@ fi
 )
 
 #Try to compile all modules
-errors="$(
-	cd Examples
-	find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
-		|  sed 's/definition module //g' \
-		|  xargs cpm project BasicAPIExamples.prj compile \
-		|& grep -Po '(?<=Error \[).*(?=\.icl.*)' \
-		| uniq)"
-echo "$errors" >&2
-[ -z "$errors" ]
+if [ $(uname) = "Linux" ]; then
+	errors="$(
+		cd Examples
+		find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
+			|  sed 's/definition module //g' \
+			|  xargs cpm project BasicAPIExamples.prj compile \
+			|& grep -Po '(?<=Error \[).*(?=\.icl.*)' \
+			| uniq)"
+	echo "$errors" >&2
+	[ -z "$errors" ]
+fi
 
 #Try to compile everything
 find . -name "*.prj.default" | while read f; do
