@@ -14,7 +14,7 @@ from Data.GenEq import generic gEq
 *
 * @result the empty editor
 */
-emptyEditor :: Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditor :: Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 
 /**
 * Editor that does nothing and gives a default value in enter mode.
@@ -22,11 +22,11 @@ emptyEditor :: Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
 * @param default value used when editor is generated in edit mode
 * @result the empty editor
 */
-emptyEditorWithDefaultInEnterMode :: !a -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithDefaultInEnterMode :: !a -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
-emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !a -> Editor a a
+emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !a -> Editor a w
 
 /**
 * Editor that does nothing and gives an error in enter mode.
@@ -34,12 +34,12 @@ emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] 
 * @param the error messsage used when the editor is used in enter mode
 * @result the empty editor
 */
-emptyEditorWithErrorInEnterMode :: !String -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithErrorInEnterMode :: !String -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and JSONDecode{|*|} which cannot be used by overloading within generic functions
 emptyEditorWithErrorInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !String
-                                 -> Editor a a
+                                 -> Editor a w
 
 /**
  * Indicates if and how a UI child can be updated to another one.

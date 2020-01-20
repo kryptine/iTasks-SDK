@@ -7,7 +7,7 @@ import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTas
 import Data.Tuple, Data.Error, Text, Text.GenJSON, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
-emptyEditor :: Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditor :: Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditor = leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
@@ -16,10 +16,10 @@ where
 	onRefresh _ val _ vst      = (Ok (NoChange, Just val, Nothing),vst)   // just use new value
 	valueFromState mbVal       = mbVal
 
-emptyEditorWithDefaultInEnterMode :: !a -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithDefaultInEnterMode :: !a -> Editor a w| JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditorWithDefaultInEnterMode defaultValue = emptyEditorWithDefaultInEnterMode_ JSONEncode{|*|} JSONDecode{|*|} defaultValue
 
-emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !a -> Editor a a
+emptyEditorWithDefaultInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !a -> Editor a w
 emptyEditorWithDefaultInEnterMode_ jsonEncode jsonDecode defaultValue = leafEditorToEditor_
 	jsonEncode jsonDecode
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -30,11 +30,11 @@ where
 	onRefresh _ val _ vst    = (Ok (NoChange, val, Nothing),vst)   // just use new value
 	valueFromState val       = Just val
 
-emptyEditorWithErrorInEnterMode :: !String -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+emptyEditorWithErrorInEnterMode :: !String -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditorWithErrorInEnterMode error = emptyEditorWithErrorInEnterMode_ JSONEncode{|*|} JSONDecode{|*|} error
 
 emptyEditorWithErrorInEnterMode_ :: !(Bool a -> [JSONNode]) !(Bool [JSONNode] -> (Maybe a, [JSONNode])) !String
-                                 -> Editor a a
+                                 -> Editor a w
 emptyEditorWithErrorInEnterMode_ jsonEncode jsonDecode error = leafEditorToEditor_ jsonEncode jsonDecode
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where

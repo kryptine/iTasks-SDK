@@ -74,8 +74,10 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = bijectEditorWrite fromUsername toUsername $ bijectEditorValue fromUsername toUsername
-	(selectByMode textView usernameField usernameField)
+gEditor{|Username|}
+	= bijectEditorWrite (maybe "" fromUsername) (Just o toUsername)
+	$ bijectEditorValue fromUsername toUsername
+	$ selectByMode textView usernameField usernameField
 where
 	fromUsername (Username u) = u
 	toUsername u = Username u
@@ -104,8 +106,10 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = bijectEditorWrite fromPassword toPassword $ bijectEditorValue fromPassword toPassword
-	(selectByMode passwordView passwordEdit passwordEdit)
+gEditor{|Password|}
+	= bijectEditorWrite (maybe "" fromPassword) (Just o toPassword)
+	$ bijectEditorValue fromPassword toPassword
+	$ selectByMode passwordView passwordEdit passwordEdit
 where
 	fromPassword (Password p) = p
 	toPassword s = Password s

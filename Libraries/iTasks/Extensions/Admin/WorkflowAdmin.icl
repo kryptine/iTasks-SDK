@@ -270,7 +270,7 @@ where
 
 viewWorkflowDetails :: !(sds () (Maybe Workflow) ()) -> Task Workflow | RWShared sds
 viewWorkflowDetails sel
-	= Title "Task description" @>> viewSharedInformation [ViewUsing view textView] sel
+	= Title "Task description" @>> viewSharedInformation [ViewUsing view (ignoreEditorWrites textView)] sel
 	@? onlyJust
 where
 	view = maybe "" (\wf -> wf.Workflow.description)

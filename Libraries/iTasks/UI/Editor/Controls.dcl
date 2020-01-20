@@ -34,17 +34,17 @@ passwordField :: Editor String String
 * Textfield that only allows you to enter integer numbers
 * Supported attributes:
 */
-integerField  :: Editor Int Int
+integerField  :: Editor Int (Maybe Int)
 /**
 * Textfield that only allows you to enter decimal (or integer) numbers
 * Supported attributes:
 */
-decimalField  :: Editor Real Real
+decimalField  :: Editor Real (Maybe Real)
 /**
 * Form field that allows you to upload files
 * Supported attributes:
 */
-documentField :: Editor (!String,!String,!String,!String,!Int) (!String,!String,!String,!String,!Int)
+documentField :: Editor (!String,!String,!String,!String,!Int) (Maybe (!String,!String,!String,!String,!Int))
 /**
 * Simple checkbox
 * Supported attributes:
@@ -130,7 +130,7 @@ tabBar        :: Editor ([ChoiceText], [Int]) [Int]
 withConstantChoices :: !choices !(Editor (!choices, ![Int]) [Int]) -> Editor [Int] [Int]
 
 fieldComponent
-	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a a
+	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a (Maybe a)
 	| JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a
 
 //Convenient types for describing the values of grids and trees

@@ -5,4 +5,4 @@ import iTasks, iTasks.UI.Editor
 */
 pikadayField :: Editor String String
 
-pikadayDateField :: Editor Date Date
+pikadayDateField :: Editor Date (Maybe Date)

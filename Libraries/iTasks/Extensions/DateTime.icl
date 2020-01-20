@@ -17,10 +17,10 @@ import iTasks.UI.Editor.Modifiers
 
 import iTasks.Internal.SDS
 
-import StdBool, StdArray, StdEnum, StdList, StdString
+import StdBool, StdArray, StdEnum, StdList, StdString, StdFunctions
 
 import Text, Text.GenJSON, Text.GenPrint, System.Time
-import Data.Maybe, Data.Error, Data.Func 
+import Data.Maybe, Data.Error, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
 from iTasks.Extensions.Form.Pikaday import pikadayDateField
@@ -107,10 +107,13 @@ JSONDecode{|Time|} _ c = (Nothing, c)
 
 gText{|Time|} _ val = [maybe "" toString val]
 
-gEditor{|Time|} = selectByMode 
-		(bijectEditorWrite toString fromString $ bijectEditorValue toString fromString textView)
-		(injectEditorWrite toString parseTime $ injectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
-		(injectEditorWrite toString parseTime $ injectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
+gEditor{|Time|} = selectByMode view edit edit
+where
+	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
+	edit
+		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseTime s)
+		$ injectEditorValue toString parseTime
+		$ withDynamicHintAttributes "time (hh:mm:ss)" $ withEditModeAttr textField
 
 derive gDefault		Time
 derive gEq			Time
@@ -178,10 +181,13 @@ gText{|DateTime|} AsHeader _ = [""]
 gText{|DateTime|} _ (Just ({DateTime|year,mon,day,hour,min,sec}))
 	= [toSingleLineText {Date|year=year,mon=mon,day=day} +++" "+++ toSingleLineText {Time|hour=hour,min=min,sec=sec}]
 
-gEditor{|DateTime|} = selectByMode
-		(bijectEditorWrite toString fromString $ bijectEditorValue toString fromString textView)
-		(injectEditorWrite toString parseDateTime $ injectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
-		(injectEditorWrite toString parseDateTime $ injectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
+gEditor{|DateTime|} = selectByMode view edit edit
+where
+	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
+	edit
+		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseDateTime s)
+		$ injectEditorValue toString parseDateTime
+		$ withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" $ withEditModeAttr textField
 
 derive gDefault			DateTime
 derive gEq				DateTime

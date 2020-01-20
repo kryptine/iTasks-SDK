@@ -12,13 +12,19 @@ import iTasks.UI.Editor.Modifiers
 disableOnView e = selectByMode (e <<@ enabledAttr False) e e
 
 textField :: Editor String String
-textField = fieldComponent UITextField (Just "") isValidString
+textField
+	= bijectEditorWrite Just (fromMaybe "")
+	$ fieldComponent UITextField (Just "") isValidString
 
 textArea :: Editor String String
-textArea = fieldComponent UITextArea (Just "") isValidString
+textArea
+	= bijectEditorWrite Just (fromMaybe "")
+	$ fieldComponent UITextArea (Just "") isValidString
 
 passwordField :: Editor String String
-passwordField = fieldComponent UIPasswordField (Just "") isValidString
+passwordField
+	= bijectEditorWrite Just (fromMaybe "")
+	$ fieldComponent UIPasswordField (Just "") isValidString
 
 isValidString :: !UIAttributes !String -> Bool
 isValidString attrs str
@@ -31,23 +37,32 @@ where
 
 	lStr = size str
 
-integerField :: Editor Int Int
-integerField = fieldComponent UIIntegerField Nothing (\_ _ -> True)
+integerField :: Editor Int (Maybe Int)
+integerField = fieldComponent UIIntegerField Nothing valid
+where
+	valid :: UIAttributes Int -> Bool
+	valid _ _ = True
 
-decimalField :: Editor Real Real
+decimalField :: Editor Real (Maybe Real)
 decimalField = fieldComponent UIDecimalField Nothing (\_ _ -> True)
 
-documentField :: Editor (!String,!String,!String,!String,!Int) (!String,!String,!String,!String,!Int)
+documentField :: Editor (!String,!String,!String,!String,!Int) (Maybe (!String,!String,!String,!String,!Int))
 documentField = fieldComponent UIDocumentField Nothing (\_ _ -> True)
 
 checkBox :: Editor Bool Bool
-checkBox = fieldComponent UICheckbox (Just False) (\_ _ -> True)
+checkBox
+	= bijectEditorWrite Just (fromMaybe False)
+	$ fieldComponent UICheckbox (Just False) (\_ _ -> True)
 
 slider :: Editor Int Int
-slider = fieldComponent UISlider Nothing (\_ _ -> True)
+slider
+	= bijectEditorWrite Just (fromMaybe 0)
+	$ fieldComponent UISlider Nothing (\_ _ -> True)
 
 button :: Editor Bool Bool
-button = fieldComponent UIButton Nothing (\_ _ -> True)
+button
+	= bijectEditorWrite Just (fromMaybe False)
+	$ fieldComponent UIButton Nothing (\_ _ -> True)
 
 label :: Editor String String
 label = viewComponent textAttr UILabel
@@ -125,7 +140,7 @@ where
 
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent
-	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a a
+	:: !UIType !(Maybe a) !(UIAttributes a -> Bool) -> Editor a (Maybe a)
 	| JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a
 fieldComponent type mbEditModeInitValue isValid = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)
 where 
@@ -143,7 +158,8 @@ where
 		                        ]
 		= (Ok (uia type attr, (mbVal, attr)), vst)
 
-	onEdit _ (_, mbVal) (_, attrs) vst = (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), unique mbVal`), vst)
+	onEdit _ (_, mbVal) (_, attrs) vst
+		= (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), unique (Just mbVal`)), vst)
 	where
 		(mbVal`, valJSON) = case mbVal of
 			Just val | isValid attrs val = (Just val, toJSON val)
@@ -155,7 +171,7 @@ where
 
 	valueFromState (mbVal, _) = mbVal
 
-	editorWithJSONEncode :: !((a -> JSONNode) -> Editor a a) -> Editor a a | JSONEncode{|*|} a
+	editorWithJSONEncode :: !((a -> JSONNode) -> Editor a (Maybe a)) -> Editor a (Maybe a) | JSONEncode{|*|} a
 	editorWithJSONEncode genFunc = genFunc toJSON
 
 //Components which cannot be edited 

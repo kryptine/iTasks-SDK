@@ -6,7 +6,8 @@ import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskState
 import StdBool, StdString, StdFile, StdArray, StdInt
 
-import Text.GenJSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error, Data.Func
+import Text.GenJSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError
+import Data.Error, Data.Func, Data.Functor
 import qualified Data.Map as DM
 from StdFunc import const
 
@@ -24,7 +25,7 @@ where
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = bijectEditorWrite toView fromView $ bijectEditorValue toView fromView documentField
+	editDocument = bijectEditorWrite (fmap toView) (fmap fromView) $ bijectEditorValue toView fromView documentField
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}

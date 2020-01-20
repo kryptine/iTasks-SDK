@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Form.Pikaday
 
 import StdEnv
-import iTasks, Data.Func
+import iTasks, Data.Func, Data.Functor
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
 import iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Controls
 import iTasks.Extensions.DateTime
@@ -103,8 +103,12 @@ where
 	unique Nothing = Nothing
 	unique (Just x) = Just x
 
-pikadayDateField :: Editor Date Date
-pikadayDateField = selectByMode
-	(bijectEditorWrite toString fromString $ bijectEditorValue toString fromString textView)
-	(injectEditorWrite toString parseDate $ injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
-	(injectEditorWrite toString parseDate $ injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+pikadayDateField :: Editor Date (Maybe Date)
+pikadayDateField = selectByMode view edit edit
+where
+	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
+	edit
+		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseDate s)
+		$ injectEditorValue toString parseDate
+			(withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField))
+

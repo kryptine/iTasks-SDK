@@ -80,7 +80,7 @@ comapEditorValue :: !(b -> a) !(Editor a w) -> Editor b w | JSONEncode{|*|}, JSO
 /**
 * Select part of a larger datastructure and map writes back
 */
-lensEditor :: !(b -> a) !(b wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+lensEditor :: !(b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
 
 
 

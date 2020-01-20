@@ -15,7 +15,7 @@ import Text.Language
 import System.Time
 import Data.GenEq, Data.Func, Control.GenBimap, Data.Functor, Data.Tuple
 
-generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a a
+generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a (Maybe a)
 derive bimap Editor, MaybeError
 
 gEditor{|UNIT|} = emptyEditorWithDefaultInEnterMode_ (\_ _ -> [JSONNull]) (\_ [JSONNull: json] -> (Just UNIT, json)) UNIT
@@ -150,7 +150,7 @@ where
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ce=:{Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
 	//Newtypes or ADTs just use the child editor
 	| gtd_num_conses < 2
-		= bijectEditorWrite (\(OBJECT i)->i) (\i->OBJECT i) $ bijectEditorValue (\(OBJECT i)->i) (\i->OBJECT i) ce
+		= bijectEditorWrite (fmap (\(OBJECT i)->i)) (fmap (\i->OBJECT i)) $ bijectEditorValue (\(OBJECT i)->i) (\i->OBJECT i) ce
 	= withEditModeAttr $ compoundEditorToEditor
 		{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
@@ -537,26 +537,39 @@ where
 	(ChangeUI _ ll) = fromPairChange s half l
 	(ChangeUI _ rl) = fromPairChange (s + half) (n - half) r
 
-gEditor{|Int|}    = selectByMode 
-						(bijectEditorWrite toString toInt $ bijectEditorValue toString toInt textView)
-						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField))
-						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField))
-gEditor{|Real|}   = selectByMode
-						(bijectEditorWrite toString toReal $ bijectEditorValue toString toReal textView)
-						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
-						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
-gEditor{|Char|}   = bijectEditorWrite toString (\c -> c.[0]) $ bijectEditorValue toString (\c -> c.[0]) (selectByMode
-							textView
-							(withDynamicHintAttributes "single character" (withEditModeAttr textField <<@ boundedlengthAttr 1 1))
-							(withDynamicHintAttributes "single character" (withEditModeAttr textField <<@ boundedlengthAttr 1 1)))
-						
-gEditor{|String|} = selectByMode
-						textView
-						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField <<@ minlengthAttr 1))
-						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField <<@ minlengthAttr 1))
-gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
+gEditor{|Int|} = selectByMode view edit edit
+where
+	view = ignoreEditorWrites $ bijectEditorValue toString toInt textView
+	edit = withDynamicHintAttributes "whole number" $ withEditModeAttr integerField
 
-gEditor{|[]|} ex _ tjx _ = listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
+gEditor{|Real|} = selectByMode view edit edit
+where
+	view = ignoreEditorWrites $ bijectEditorValue toString toReal textView
+	edit = withDynamicHintAttributes "decimal number" $ withEditModeAttr decimalField
+
+gEditor{|Char|} = bijectEditorValue toString (\c -> c.[0]) $ selectByMode view edit edit
+where
+	view = ignoreEditorWrites textView
+	edit
+		= bijectEditorWrite (maybe "" toString ) (\c -> if (size c == 1) (Just c.[0]) Nothing)
+		$ withDynamicHintAttributes "single character"
+		$ withEditModeAttr textField <<@ boundedlengthAttr 1 1
+						
+gEditor{|String|} = selectByMode view edit edit
+where
+	view = ignoreEditorWrites textView
+	edit
+		= bijectEditorWrite (fromMaybe "") Just
+		$ withDynamicHintAttributes "single line of text"
+		$ withEditModeAttr textField <<@ minlengthAttr 1
+
+gEditor{|Bool|}
+	= bijectEditorWrite (fromMaybe False) Just
+	$ selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
+
+gEditor{|[]|} ex _ tjx _
+	= bijectEditorWrite (const []) (\l -> Just [x \\ Just x <- l])
+	$ listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
 
 gEditor{|()|} = emptyEditorWithDefaultInEnterMode ()
 gEditor{|(->)|} _ _ tjx fjx _ _ tjy fjy =
@@ -564,6 +577,6 @@ gEditor{|(->)|} _ _ tjx fjx _ _ tjy fjy =
 	                                  (JSONDecode{|* -> * -> *|} fjx fjy)
 	                                  "A function cannot be entered."
 gEditor{|Dynamic|} = emptyEditorWithErrorInEnterMode "A dynamic value cannot be entered."
-gEditor{|HtmlTag|} = htmlView
+gEditor{|HtmlTag|} = ignoreEditorWrites htmlView
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
