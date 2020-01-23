@@ -58,6 +58,10 @@ gText{|[]|} fx mode Nothing                 = [""]
 gText{|Maybe|} fx mode (Just val)			= fromMaybe ["-"] (fmap (\v -> fx mode (Just v)) val)
 gText{|Maybe|} fx mode Nothing              = fx AsHeader Nothing
 
+gText{|{}|} fx mode (Just val)      = [concat (["{":  flatten ('DL'.intersperse [", "] [fx mode (Just x) \\ x <-: val])] ++ ["}"])]
+gText{|{}|} fx mode Nothing         = [""]
+gText{|{!}|} fx mode (Just val)     = [concat (["{!":  flatten ('DL'.intersperse [", "] [fx mode (Just x) \\ x <-: val])] ++ ["}"])]
+gText{|{!}|} fx mode Nothing        = [""]
 gText{|Dynamic|} _ _				= []
 gText{|(->)|} _ _ _ _				= []
 gText{|JSONNode|} _ val			    = [maybe "" toString val]
