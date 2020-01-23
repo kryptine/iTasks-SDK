@@ -81,17 +81,29 @@ decodeTaskValue (Value enc stable) = maybe NoValue (\dec -> Value dec stable) (f
 decodeTaskValue NoValue = NoValue
 
 allTaskLists :: SDSLens TaskId [TaskMeta] [TaskMeta]
-allTaskLists  = sdsTranslate "allTaskLists" param $ storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
+allTaskLists =
+	mapReadWrite
+		(fromMaybe [], \metas _ -> Just $ if (isEmpty metas) Nothing (Just metas))
+		Nothing
+		(sdsTranslate "allTaskLists" param $ mbStoreShare NS_TASK_INSTANCES False InJSONFile)
 where
 	param (TaskId instanceNo taskNo) = "tasklist-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskValues :: SDSLens TaskId (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
-allTaskValues = sdsTranslate "allTaskValues" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+allTaskValues =
+	mapReadWrite
+		(fromMaybe 'DM'.newMap, \values _ -> Just $ if ('DM'.null values) Nothing (Just values))
+		Nothing
+	(sdsTranslate "allTaskValues" param $ mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 where
 	param (TaskId instanceNo taskNo) = "taskvalues-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskReducts :: SDSLens TaskId (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
-allTaskReducts = sdsTranslate "allTaskReducts" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+allTaskReducts =
+	mapReadWrite
+		(fromMaybe 'DM'.newMap, \reducts _ -> Just $ if ('DM'.null reducts) Nothing (Just reducts))
+		Nothing
+	(sdsTranslate "allTaskReducts" param $ mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 where
 	param (TaskId instanceNo taskNo) = "taskreducts-"+++toString instanceNo +++ "-" +++toString taskNo
 
