@@ -598,19 +598,24 @@ where
 			// we have to use the first element to update the type,
 			// the `b` and `c` type variable is required to be equal for all list elements
 			args=:[fst: _] =
-				case (funcs, fst) of
-					((f, g) :: (a -> b, [b] -> c), _ :: a) = dynamic (g $ fromDynList (dynamic f) args)
-					_                                      = abort "corrupt dynamic editor value"
+				case funcs of
+					((f, g) :: (a -> b, [b] -> c)) =
+						case fromDynList (dynamic f) args of
+							Just res = dynamic g res
+							Nothing =
+								case (funcs, fst) of
+									((f, g) :: (a -> b, [b] -> c), _ :: a) = dynamic (g $ fromJust $ fromDynList (dynamic f) args)
+									_                                      = abort "corrupt dynamic editor value"
+					_                              = abort "corrupt dynamic editor value"
 
-	fromDynList :: !Dynamic ![Dynamic] -> [b] | TC b
+	fromDynList :: !Dynamic ![Dynamic] -> Maybe [b] | TC b
 	fromDynList mapFunc dyns = fromDynList` dyns []
 	where
-		fromDynList` []           acc = reverse acc
+		fromDynList` []           acc = Just $ reverse acc
 		fromDynList` [dyn : dyns] acc =
 			case (mapFunc, dyn) of
 				(mapFunc :: a -> b^, a :: a) = fromDynList` dyns [mapFunc a: acc]
-				_                            = abort "corrupt dynamic editor value"
-		fromDynList` _            _   = abort "corrupt dynamic editor value"
+				_                            = Nothing
 
 :: E = E.a: E (Editor (DynamicEditorValue a)) & TC a
 :: ConsType = Function | List | CustomEditor
