@@ -157,7 +157,8 @@ where
 			_                          = meta.TaskMeta.taskAttributes
 		= {TaskMeta| meta
 			& status = status
-			, firstEvent = Just (fromMaybe now meta.TaskMeta.firstEvent)
+			// The equivalent expression `Just (fromMaybe now meta.TaskMeta.firstEvent)` causes a memory leak!
+			, firstEvent = maybe (Just now) Just meta.TaskMeta.firstEvent
 			, lastEvent = Just now
 			, nextTaskNo = nextTaskNo
 			, nextTaskTime = nextTaskTime + 1

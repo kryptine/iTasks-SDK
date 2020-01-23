@@ -198,22 +198,32 @@ where
 	read (listId,selfId,tfilter,efilter) rows
 		= Ok (listId, map snd $ filter (inFilter tfilter efilter) $ enumerate rows)
 
+	write ::
+		!(!TaskId, !TaskId, !TaskListFilter, !ExtendedTaskListFilter) ![TaskMeta] ![TaskMeta]
+		-> MaybeError TaskException (Maybe [TaskMeta])
 	write (listId,selfId,tfilter,efilter) rows updates
-		= Ok $ Just $ update (inFilter tfilter efilter) (enumerate $ sort rows) (sort updates)
+		= Ok $ Just $ update (inFilter tfilter efilter) (enumerate $ sort rows) (sort updates) []
 	where
-		update pred [(i,o):os] [n:ns]
+		update :: !((Int, TaskMeta) -> Bool) ![(Int, TaskMeta)] ![TaskMeta] ![TaskMeta] -> [TaskMeta]
+		update pred [(i,o):os] [n:ns] acc
 			| o.TaskMeta.taskId == n.TaskMeta.taskId //Potential update
-				| pred (i,o) = [n:update pred os ns] //Only update the item if it matches the filter
-				| otherwise  = [o:update pred os ns]
+				| pred (i,o) = update pred os ns [n: acc] //Only update the item if it matches the filter
+				| otherwise  = update pred os ns [o: acc]
 			| o.TaskMeta.taskId < n.TaskMeta.taskId //The taskId of the old item is not in the written set
-				| pred (i,o) = update pred os [n:ns] //The old item was in the filter, so it was removed
-				| otherwise  = [o:update pred os [n:ns]] //The old item was not in the filter, so it is ok that is not in the written list
+				| pred (i,o) = update pred os [n:ns] acc //The old item was in the filter, so it was removed
+				| otherwise  = update pred os [n:ns] [o: acc] //The old item was not in the filter, so it is ok that is not in the written list
 			| otherwise
-				| pred (-1,n) = [n:update pred [(i,o):os] ns] //New items don't have an index yet
-				| otherwise  = update pred [(i,o):os] ns
-
-		update pred [] ns = [n \\ n <- ns | pred (-1,n)] //All new elements are only added if they are within the filter
-		update pred os [] = [o \\ (i,o) <- os | not (pred (i,o))] //Only keep old elements if they were outside the filter
+				| pred (-1,n) = update pred [(i,o):os] ns [n: acc] //New items don't have an index yet
+				| otherwise  = update pred [(i,o):os] ns acc
+		//All new elements are only added if they are within the filter
+		update pred [] [n: ns] acc
+			| pred (-1, n) = update pred [] ns [n: acc]
+			| otherwise    = update pred [] ns acc
+		//Only keep old elements if they were outside the filter
+		update pred [(i, o): os] [] acc
+			| not $ pred (i, o) = update pred os [] [o: acc]
+			| otherwise         = update pred os [] acc
+		update _ [] [] acc = reverse acc
 
 	notify (plistId,pselfId,ptfilter,pefilter) rows updates ts (qlistId,qselfId,qtfilter,qefilter)
 		| plistId <> qlistId = False //Not the same list
