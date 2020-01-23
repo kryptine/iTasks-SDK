@@ -296,6 +296,9 @@ taskListDynamicValueData = taskIdIndexedStore "taskListDynamicValueData" allTask
 taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
 taskListDynamicTaskData = taskIdIndexedStore "taskListDynamicTaskData" allTaskReducts
 
+taskIdIndexedStore ::
+	!String !(sds TaskId (Map TaskId a) (Map TaskId a))
+	-> SDSLens (TaskId, v10, TaskListFilter, v8) (Map TaskId a) (Map TaskId a) | RWShared sds & TC, JSONEncode{|*|} a
 taskIdIndexedStore name sds = sdsLens name param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing sds
 where
 	param (listId,_,_,_) = listId
@@ -304,9 +307,9 @@ where
 		= Ok $ 'DM'.fromList [value \\ value=:(taskId,_) <- 'DM'.toList values | inFilter tfilter taskId]
 
 	write (listId,selfId,tfilter,efilter) values updates
-		# updates = 'DM'.filterWithKey (\k v -> inFilter tfilter k) updates //Only consider updates that match the filter
-		# selection = 'DM'.filterWithKey (\k v -> inFilter tfilter k) values //Find the orignal selection
-		# deletes = 'DM'.keys $ 'DM'.intersection selection updates //The elements that are in the selecion, but not in the updates should be deleted
+		# updates = 'DM'.filterWithKey (\k _ -> inFilter tfilter k) updates //Only consider updates that match the filter
+		# selection = 'DM'.filterWithKey (\k _ -> inFilter tfilter k) values //Find the orignal selection
+		# deletes = 'DM'.keys $ 'DM'.difference selection updates //The elements that are in the selecion, but not in the updates should be deleted
 		= Ok $ Just $ 'DM'.union updates $ 'DM'.delList deletes values
 
 	//We only use the taskId to select
