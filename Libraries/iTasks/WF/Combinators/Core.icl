@@ -484,13 +484,20 @@ destroyParallelTasks listId=:(TaskId instanceNo _) iworld
 			// Destroy all child tasks (`result` is always `DestroyedResult` but passed to solve overloading
 			# (result,exceptions,iworld) = foldl (destroyParallelTask listId) (DestroyedResult, [], iworld) taskStates
 
-			// Remove the (shared) tasklist
+			// Remove the (shared) tasklist/value/reduct
 			# (exceptions,iworld) = case write [] (sdsFocus (listId,listId,fullTaskListFilter,fullExtendedTaskListFilter) taskListMetaData) EmptyContext iworld of
 				(Ok (WritingDone ),iworld) = (exceptions,iworld)
 				(Error e,iworld) = ([e:exceptions],iworld)
-			| exceptions =: []
-				= (destroyResult result, iworld)
-			= (ExceptionResult (exception (ExceptionList exceptions)), iworld)
+			| not $ exceptions =: [] = (ExceptionResult (exception (ExceptionList exceptions)), iworld)
+			# (exceptions,iworld) = case write 'DM'.newMap (sdsFocus (listId,listId,fullTaskListFilter,fullExtendedTaskListFilter) taskListDynamicValueData) EmptyContext iworld of
+				(Ok (WritingDone ),iworld) = (exceptions,iworld)
+				(Error e,iworld) = ([e:exceptions],iworld)
+			| not $ exceptions =: [] = (ExceptionResult (exception (ExceptionList exceptions)), iworld)
+			# (exceptions,iworld) = case write 'DM'.newMap (sdsFocus (listId,listId,fullTaskListFilter,fullExtendedTaskListFilter) taskListDynamicTaskData) EmptyContext iworld of
+				(Ok (WritingDone ),iworld) = (exceptions,iworld)
+				(Error e,iworld) = ([e:exceptions],iworld)
+			| not $ exceptions =: [] = (ExceptionResult (exception (ExceptionList exceptions)), iworld)
+			= (destroyResult result, iworld)
 where
 	destroyParallelTask listId=:(TaskId listInstance _) (_,exceptions,iworld) {TaskMeta|taskId=taskId=:(TaskId taskInstance _)}
 		= case (if detached destroyDetachedParallelTask destroyEmbeddedParallelTask) listId taskId iworld of
