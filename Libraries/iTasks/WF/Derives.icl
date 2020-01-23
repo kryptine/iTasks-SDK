@@ -17,9 +17,6 @@ import StdArray
 gEq{|(->)|} _ _ fa fb		= False // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
-gEditor{|{}|} _ _ tjx fjx = emptyEditorWithDefaultInEnterMode_ (JSONEncode{|* -> *|} tjx) (JSONDecode{|* -> *|} fjx) {}
-gText{|{}|} _ _ _ = []
-
 derive gEditor    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan, SVGLength, SVGICCColor
 derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan, SVGLength, SVGICCColor
 derive gEditor    HtmlAttr

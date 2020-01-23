@@ -551,4 +551,15 @@ gEditor{|(->)|} _ _ tjx fjx _ _ tjy fjy =
 gEditor{|Dynamic|} = emptyEditorWithErrorInEnterMode "A dynamic value cannot be entered."
 gEditor{|HtmlTag|} = htmlView
 
+gEditor{|{}|} gtx jex jdx edx =
+	bijectEditorValue
+	(\x->[x\\x<-:x])
+	(\x->{x\\x<-x})
+	(gEditor{|*->*|} gtx jex jdx edx)
+gEditor{|{!}|} gtx jex jdx edx =
+	bijectEditorValue
+	(\x->[x\\x<-:x])
+	(\x->{x\\x<-x})
+	(gEditor{|*->*|} gtx jex jdx edx)
+
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
