@@ -474,7 +474,7 @@ where
 	reducer p ws = read p ws
 
 //Evaluation state of instances
-localShare :: SDSLens TaskId a a | iTask a
+localShare :: SDSLens TaskId a (Maybe a) | iTask a
 localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) (removeMaybe (Just 'DM'.newMap) taskInstanceShares)
 where
 	param (TaskId instanceNo _) = instanceNo
@@ -484,7 +484,10 @@ where
 			Nothing = Error (exception ("Failed to decode json of local share " <+++ taskId))
 		Nothing
 			= Error (exception ("Could not find local share " <+++ taskId))
-	write taskId shares w = Ok (Just ('DM'.put taskId (DeferredJSON w) shares))
+
+	write taskId shares Nothing  = Ok $ Just $ 'DM'.del taskId shares
+	write taskId shares (Just w) = Ok $ Just $ 'DM'.put taskId (DeferredJSON w) shares
+
 	notify taskId _ = const ((==) taskId)
 	reducer taskId shares = read taskId shares
 

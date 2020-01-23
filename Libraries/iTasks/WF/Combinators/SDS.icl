@@ -3,7 +3,7 @@ implementation module iTasks.WF.Combinators.SDS
 import iTasks.WF.Derives
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
-from iTasks.SDS.Combinators.Common import sdsFocus
+from iTasks.SDS.Combinators.Common import sdsFocus, mapWrite
 
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -13,7 +13,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
 
-from Data.Func import mapSt
+from Data.Func import mapSt, $
 
 import StdTuple, StdArray, StdList, StdString
 import Text, Text.GenJSON
@@ -29,13 +29,23 @@ where
 
 	evalinit event evalOpts=:{TaskEvalOpts|taskId} iworld
 		# (taskIda, iworld) = getNextTaskId iworld
-		# (e, iworld)       = write initial (sdsFocus taskId localShare) EmptyContext iworld
+		# (e, iworld)       = write (Just initial) (sdsFocus taskId localShare) EmptyContext iworld
 		| isError e
 			= (ExceptionResult (fromError e),iworld)
-		= eval taskIda (stask (sdsFocus taskId localShare)) event evalOpts iworld
+		= eval
+			taskIda
+			(stask $ mapWrite (\w _ -> Just $ Just w) Nothing $ sdsFocus taskId localShare)
+			event
+			evalOpts
+			iworld
 
 	//Running
 	eval innerTaskId (Task inner) DestroyEvent opts iworld
+		// free memory of share
+		# (e, iworld) =
+			write (nothingWithSameTypeAs initial) (sdsFocus opts.TaskEvalOpts.taskId localShare) EmptyContext iworld
+		| isError e
+			= (ExceptionResult (fromError e),iworld)
 		= case inner DestroyEvent {TaskEvalOpts|opts&taskId=innerTaskId} iworld of
 			(ValueResult _ _ _ _, iworld)
 				= (ExceptionResult (exception "Failed to destroy withShared child"), iworld)
@@ -47,6 +57,9 @@ where
 				# info = {TaskEvalInfo|info & lastEvent = max lastEval info.TaskEvalInfo.lastEvent}
 				= (ValueResult val info rep (Task (eval innerTaskId newinner)), iworld)
 			e = e
+
+	nothingWithSameTypeAs :: a -> Maybe a
+	nothingWithSameTypeAs _ = Nothing
 
 withTaskId :: (Task a) -> Task (a, TaskId)
 withTaskId (Task task) = Task eval

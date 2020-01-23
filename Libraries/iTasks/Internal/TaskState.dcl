@@ -150,7 +150,7 @@ taskInstanceShares      :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) 
 parallelTaskList :: SDSLens (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(TaskId,TaskAttributes)] | iTask a
 
-localShare :: SDSLens TaskId a a | iTask a
+localShare :: SDSLens TaskId a (Maybe a) | iTask a
 
 //Conversion to task lists
 toTaskListItem :: !TaskId !TaskMeta -> TaskListItem a
