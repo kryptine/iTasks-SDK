@@ -91,7 +91,7 @@ where
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(idx,ChangeChild change)]
 				//Update the state
 				# childSts = updateAt idx childSt childSts
-				= (Ok (change, (viewMode, optional), childSts,Nothing), vst)
+				= (Ok (change, (viewMode, optional), childSts, Just (valueFromState` childSts)), vst)
 			(Error e,vst) = (Error e, vst)
 				
 	onEdit _ val viewModeAndOpt childSts vst = (Ok (NoChange, viewModeAndOpt, childSts, Nothing),vst)
@@ -207,7 +207,7 @@ where
 				# change = ChangeUI [] (removals ++ inserts)
 				//Create a new state for the constructor selection
 				# consChooseSt = LeafState {touched=True,state=JSONInt consIdx}
-				= (Ok (change, viewMode, [consChooseSt, childSt], Nothing), vst)
+				= (Ok (change, viewMode, [consChooseSt, childSt], Just Nothing), vst)
 			Error e = (Error e, vst)
 
 	//Other events targeted directly at the ADT 
@@ -218,17 +218,17 @@ where
 				JSONInt prevConsIdx = ChangeUI [] (repeatn (gcd_arities !! prevConsIdx) (1,RemoveChild))
 				_                   = NoChange
 			# consChooseSt = LeafState {touched = True, state = JSONNull}
-			= (Ok (change, viewMode, [consChooseSt], Nothing), vst)
+			= (Ok (change, viewMode, [consChooseSt], Just Nothing), vst)
 		| otherwise
 			= (Error ("Unknown constructor select event: '" +++ toString e +++ "'"),vst)
 
 	//Update is targeted somewhere inside this value
 	onEdit dp (tp,e) viewMode [consChooseSt, childSt] vst = case exOnEdit dp (tp,e) childSt vst of
-		(Ok (change, childSt, _),vst)
+		(Ok (change, childSt, mbw),vst)
 			# change = case change of
 				(ChangeUI attrChanges itemChanges) = ChangeUI attrChanges [(i + 1,c) \\ (i,c) <- itemChanges]
 				_                                  = NoChange
-			= (Ok (change, viewMode, [consChooseSt, childSt], Nothing),vst)
+			= (Ok (change, viewMode, [consChooseSt, childSt], fmap (fmap (\i -> (OBJECT i))) mbw),vst)
 		(Error e,vst) = (Error e, vst)
 
 	onRefresh dp (OBJECT new) viewMode [consChooseSt, childSt] vst=:{VSt|taskId,selectedConsIndex=curSelectedConsIndex}
@@ -275,26 +275,26 @@ where
 	//Special case to create a LEFT, after a constructor switch
 	onEdit dp ([-1],e)    (_, viewMode) [childSt] vst = (Ok (NoChange, (False, viewMode), [childSt], Nothing),vst)
 	onEdit dp ([-1:ds],e) (_, viewMode) [childSt] vst =
-		attachInfoToChildResult False viewMode $ ex.Editor.onEdit dp (ds,e) childSt vst
+		attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.onEdit dp (ds,e) childSt vst
 
 	//Special cases to create a RIGHT, after a constructor switch
 	onEdit dp ([-2],e)    (_, viewMode) [childSt] vst = (Ok (NoChange, (True, viewMode), [childSt], Nothing),vst)
 	onEdit dp ([-2:ds],e) (_, viewMode) [childSt] vst =
-		attachInfoToChildResult True viewMode $ ey.Editor.onEdit dp (ds,e) childSt vst
+		attachInfoToChildResult True viewMode $ fmapChildResult RIGHT $ ey.Editor.onEdit dp (ds,e) childSt vst
 
 	//Just pass the edit event through 
-	onEdit dp (tp,e) (True , viewMode) [childSt] vst =
-		attachInfoToChildResult True viewMode $ ey.Editor.onEdit dp (tp,e) childSt vst
 	onEdit dp (tp,e) (False, viewMode) [childSt] vst =
-		attachInfoToChildResult False viewMode $ ex.Editor.onEdit dp (tp,e) childSt vst
+		attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.onEdit dp (tp,e) childSt vst
+	onEdit dp (tp,e) (True , viewMode) [childSt] vst =
+		attachInfoToChildResult True viewMode $ fmapChildResult RIGHT $ ey.Editor.onEdit dp (tp,e) childSt vst
 
 	onEdit _ _ _ _ vst = (Error "Corrupt edit state in generic EITHER editor", vst)
 
 	//Same choice is for previous value is made
 	onRefresh dp (LEFT new) (False, viewMode) [childSt] vst =
-		attachInfoToChildResult False viewMode $ ex.Editor.onRefresh dp new childSt vst
+		attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.onRefresh dp new childSt vst
 	onRefresh dp (RIGHT new) (True, viewMode) [childSt] vst =
-		attachInfoToChildResult True  viewMode $ ey.Editor.onRefresh dp new childSt vst
+		attachInfoToChildResult True viewMode $ fmapChildResult RIGHT $ ey.Editor.onRefresh dp new childSt vst
 
 	//A different constructor is selected -> generate a new UI
 	//We use a negative selConsIndex to encode that the constructor was changed
@@ -316,10 +316,13 @@ where
 	attachInfoToGenUIChildResult isRight viewMode (res, vst) =
 		((\(ui, childSt) -> (ui, (isRight, viewMode), [childSt])) <$> res, vst)
 
-    attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState, !Maybe w1), !*VSt)
-	                        -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState], !Maybe w2), !*VSt)
+    attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState, !Maybe w), !*VSt)
+	                        -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState], !Maybe w), !*VSt)
 	attachInfoToChildResult isRight viewMode (res, vst) =
-		((\(ui, childSt, _) -> (ui, (isRight, viewMode), [childSt], Nothing)) <$> res, vst)
+		((\(ui, childSt, mbw) -> (ui, (isRight, viewMode), [childSt], mbw)) <$> res, vst)
+
+    fmapChildResult :: (a -> b) !(!MaybeErrorString (!ui, !EditState, !Maybe (Maybe a)), !*VSt) -> *(!MaybeErrorString (ui, EditState, Maybe (Maybe b)), !*VSt)
+	fmapChildResult f (res,vst) = ((\(ui, st, mbw) -> (ui, st, fmap (fmap f) mbw)) <$> res,vst)
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
 	= compoundEditorToEditor {CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState}
@@ -330,7 +333,7 @@ where
 			= (Ok (ui, (), childSts), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
-	onEdit dp ([d:ds],e) _ childSts vst
+	onEdit dp ([d:ds],e) cst childSts vst
 		| d >= gcd_arity
 			= (Error "Edit aimed at non-existent constructor field",vst)
 		//Update the targeted field in the constructor
@@ -339,7 +342,8 @@ where
 				//Extend the change
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(d,ChangeChild change)]
 				//Update the state
-				= (Ok (change, (), updateAt d st childSts, Nothing),vst)
+				# childSts = updateAt d st childSts
+				= (Ok (change, (), childSts, Just $ valueFromState cst childSts),vst)
 			(Error e,vst) = (Error e,vst)
 
 	onRefresh dp (CONS new) _ childSts vst
