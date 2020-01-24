@@ -459,11 +459,14 @@ where
 	notify (listId,taskId) _ _ _ = True
 	reducer p ws = read p ws
 
-taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
-taskInstanceParallelTaskListTask
-	= sdsLens "taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify)
-		(Just reducer) taskInstanceParallelTaskListTasks
+taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task DeferredJSON) (Task DeferredJSON)
+taskInstanceParallelTaskListTask =
+	sdsLens
+		"taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer)
+		(sdsTranslate "taskInstanceParallelTaskListTasksDynamic" paramTasks taskListDynamicTaskData)
 where
+	paramTasks (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+
 	param (listId,taskId)
 		= (listId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId]})
 	read p=:(listId,taskId) tasks = case 'DM'.get taskId tasks of

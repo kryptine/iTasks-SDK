@@ -135,7 +135,7 @@ taskInstanceParallelTaskListTasks  :: SDSLens (TaskId,TaskListFilter) (Map TaskI
 
 taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId,Bool) TaskMeta TaskMeta
 taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue a) (TaskValue a) | iTask a
-taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
+taskInstanceParallelTaskListTask    :: SDSLens (TaskId,TaskId) (Task DeferredJSON) (Task DeferredJSON)
 
 //Interface used during the evalation of toplevel tasks
 //Filtered views on the instance index
@@ -201,3 +201,6 @@ createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError 
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+
+encodeTaskValue :: (TaskValue a) -> TaskValue DeferredJSON | iTask a
+decodeTaskValue :: (TaskValue DeferredJSON) -> TaskValue a | iTask a
