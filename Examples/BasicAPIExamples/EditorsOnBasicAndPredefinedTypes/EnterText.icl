@@ -12,5 +12,5 @@ main = enterText @! ()
 
 enterText :: Task String
 enterText
-	=   Hint "Enter text:" @>> enterInformation [EnterUsing id textArea]
-	>>= \result -> Hint "You entered:" @>> viewInformation [ViewUsing id textArea] result
+	=   Hint "Enter text:" @>> enterInformation [EnterUsing id (bijectEditorWrite fromJust Just textArea)]
+	>>= \result -> Hint "You entered:" @>> viewInformation [ViewUsing id (ignoreEditorWrites textArea)] result

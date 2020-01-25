@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Currency
 import iTasks
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
-import Text, Data.Maybe, Data.Func
+import Text, Data.Maybe, Data.Func, Data.Functor
 import qualified Data.Map as DM
 
 //* Money (ISO4217 currency codes are used)
@@ -14,7 +14,7 @@ where
 
 	eurView = ignoreEditorWrites $ comapEditorValue toString textView
 	eurField
-		= bijectEditorWrite fromEUR toEUR
+		= bijectEditorWrite (fmap fromEUR) (fmap toEUR)
 		$ bijectEditorValue fromEUR toEUR 
 		$ withDynamicHintAttributes "amount in EUR" decimalField
 
@@ -55,7 +55,7 @@ where
 
 	usdView = ignoreEditorWrites $ comapEditorValue toString textView
 	usdField
-		= bijectEditorWrite fromUSD toUSD
+		= bijectEditorWrite (fmap fromUSD) (fmap toUSD)
 		$ bijectEditorValue fromUSD toUSD
 		$ withDynamicHintAttributes "amount in USD" decimalField
 

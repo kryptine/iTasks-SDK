@@ -18,7 +18,7 @@ derive gText AnalogClock
 gEditor{|AnalogClock|} = analogClockEditor
 
 //SVG Based analog clock editlet
-analogClockEditor :: Editor AnalogClock AnalogClock
+analogClockEditor :: Editor AnalogClock (Maybe AnalogClock)
 analogClockEditor = leafEditorToEditor
 	{LeafEditor
 	|genUI          = withClientSideInit initUI genUI

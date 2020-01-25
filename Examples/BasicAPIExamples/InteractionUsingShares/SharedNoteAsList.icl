@@ -23,5 +23,5 @@ where
 		>>=		\result -> Hint "Result:" @>> viewInformation [] result
 		>>=		return
 
-	noteEditor = UpdateSharedUsing id (const id) (const o Just) textArea
+	noteEditor = UpdateSharedUsing id (const id) (const o Just) (ignoreEditorWrites textArea)
 	listEditor = UpdateSharedAs (split "\n") (\_ l -> join "\n" l) (const o Just)
