@@ -13,7 +13,7 @@ import qualified iTasks.Internal.SDS as SDS
 import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Util
 
-import Data.Error, Data.Maybe, Data.Func, Data.Either, Data.Tuple
+import Data.Error, Data.Maybe, Data.Func, Data.Functor, Data.Either, Data.Tuple
 import Text.GenJSON
 import StdString, StdBool, StdInt, StdMisc, StdFunc
 import qualified Data.Set as DS
@@ -51,26 +51,27 @@ interactRW :: (Editor r w) !(sds () (Maybe r) w) -> Task r | iTask r & TC r & TC
 interactRW editor sds = Task
 	(readRegisterCompletely sds NoValue
 		(\event -> mkUIIfReset event (asyncSDSLoaderUI Read))
-		(evalInteractInit sds editor writeCompletely)
+		(evalInteractInit sds editor (maybe (Just Enter) (Just o Update)) writeCompletely)
 	)
 interactR :: (Editor r w) (sds () (Maybe r) w) -> Task r | iTask r & TC r & TC w & Registrable sds
 interactR editor sds = Task
 	(readRegisterCompletely sds NoValue
 		(\event-> mkUIIfReset event (asyncSDSLoaderUI Read))
-		(evalInteractInit sds editor dontWrite)
+		(evalInteractInit sds editor (fmap View) dontWrite)
 	)
 where
 	dontWrite _ _ _ continue event opts iworld = continue event opts iworld
 
 //This initializes the editor state and continues with the actual interact task
-evalInteractInit sds editor writefun mbr event evalOpts=:{TaskEvalOpts|taskId} iworld
-	= evalInteract mbr Nothing sds editor writefun ResetEvent evalOpts iworld
+evalInteractInit sds editor modefun writefun mbr event evalOpts=:{TaskEvalOpts|taskId} iworld
+	= evalInteract mbr Nothing sds editor modefun writefun ResetEvent evalOpts iworld
 
 evalInteract ::
 	(Maybe r)
 	(Maybe EditState)
 	(sds () (Maybe r) w)
 	(Editor r w)
+	((Maybe r) -> Maybe (EditMode r))
 	(
 		w
 		(sds () (Maybe r) w)
@@ -85,11 +86,11 @@ evalInteract ::
 	*IWorld
 	-> *(TaskResult r,*IWorld)
 	| iTask r & TC r & TC w & Registrable sds
-evalInteract _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
+evalInteract _ _ _ _ _ _ DestroyEvent {TaskEvalOpts|taskId} iworld
 	= (DestroyedResult, 'SDS'.clearTaskSDSRegistrations ('DS'.singleton taskId) iworld)
-evalInteract mbr Nothing sds editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld
+evalInteract mbr Nothing sds editor modefun writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld
 	= (ExceptionResult (exception "corrupt editor state"), iworld)
-evalInteract mbr (Just st) sds editor writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld | eTaskId == taskId
+evalInteract mbr (Just st) sds editor modefun writefun event=:(EditEvent eTaskId name edit) evalOpts=:{taskId,lastEval} iworld | eTaskId == taskId
 	# (res, iworld) = withVSt taskId (editor.Editor.onEdit [] (s2dp name,edit) st) iworld
 	= case res of
 		Ok (change, st, mbw) = case mbw of
@@ -102,7 +103,7 @@ evalInteract mbr (Just st) sds editor writefun event=:(EditEvent eTaskId name ed
 						(maybe NoValue (\r -> Value r False) mbr)
 						(mkTaskEvalInfo lastEval)
 						change
-						(Task (evalInteract mbr (Just st) sds editor writefun))
+						(Task (evalInteract mbr (Just st) sds editor modefun writefun))
 					, iworld))
 				event evalOpts iworld
 			//There is no update function
@@ -111,26 +112,35 @@ evalInteract mbr (Just st) sds editor writefun event=:(EditEvent eTaskId name ed
 					(maybe NoValue (\r -> Value r False) mbr)
 					(mkTaskEvalInfo lastEval)
 					change
-					(Task (evalInteract mbr (Just st) sds editor writefun))
+					(Task (evalInteract mbr (Just st) sds editor modefun writefun))
 				, iworld)
 
 		Error e = (ExceptionResult (exception e), iworld)
-evalInteract mbr mst sds editor writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
-	= case withVSt taskId (editor.Editor.genUI 'DM'.newMap [] (maybe Enter (\r -> Update r) mbr)) iworld of
-		(Error e, iworld) = (ExceptionResult (exception e), iworld)
-		(Ok (UI type attr items, st), iworld)
-			# change = ReplaceUI (UI type (addClassAttr "interact" attr) items)
+evalInteract mbr mst sds editor modefun writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
+	= case modefun mbr of
+		Just mode
+			= case withVSt taskId (editor.Editor.genUI 'DM'.newMap [] (mapEditMode id mode)) iworld of //We use (mapEditMode id) to force uniqueness
+				(Error e, iworld) = (ExceptionResult (exception e), iworld)
+				(Ok (UI type attr items, st), iworld)
+					# change = ReplaceUI (UI type (addClassAttr "interact" attr) items)
+					= (ValueResult
+						(maybe NoValue (\r -> Value r False) mbr)
+						(mkTaskEvalInfo lastEval)
+						change
+						(Task (evalInteract mbr (Just st) sds editor modefun writefun))
+					, iworld)
+		Nothing
 			= (ValueResult
-				(maybe NoValue (\r -> Value r False) mbr)
+				NoValue
 				(mkTaskEvalInfo lastEval)
-				change
-				(Task (evalInteract mbr (Just st) sds editor writefun))
+				(ReplaceUI (UI UIEmpty (addClassAttr "interact" 'DM'.newMap) []))
+				(Task (evalInteract Nothing mst sds editor modefun writefun))
 			, iworld)
 
-evalInteract mbr Nothing sds editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
+evalInteract mbr Nothing sds editor modefun writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
 	= (ExceptionResult (exception "corrupt editor state"), iworld)
 
-evalInteract mbr (Just st) sds editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld | 'DS'.member taskId taskIds
+evalInteract mbr (Just st) sds editor modefun writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld | 'DS'.member taskId taskIds
 	= readRegisterCompletely sds (maybe NoValue (\r -> Value r False) mbr) (\e->mkUIIfReset e (asyncSDSLoaderUI Read))
 		(\mbr event evalOpts iworld
 			# mbChange = case mbr of
@@ -140,23 +150,23 @@ evalInteract mbr (Just st) sds editor writefun event=:(RefreshEvent taskIds _) e
 				(Ok (change, st, mbw), iworld)
 					= case mbw of
 						Just w = writefun w sds NoValue
-							(evalInteract mbr (Just st) sds editor writefun)
+							(evalInteract mbr (Just st) sds editor modefun writefun)
 							event evalOpts iworld
 						Nothing
 							= (ValueResult
 								(maybe NoValue (\r -> Value r False) mbr)
 								(mkTaskEvalInfo lastEval)
 								change
-								(Task (evalInteract mbr (Just st) sds editor writefun))
+								(Task (evalInteract mbr (Just st) sds editor modefun writefun))
 							, iworld)
 				(Error e, iworld) = (ExceptionResult (exception e), iworld)
 		)
 		event evalOpts iworld
-evalInteract mbr mst sds editor writefun event {lastEval} iworld
+evalInteract mbr mst sds editor modefun writefun event {lastEval} iworld
 	//An event for a sibling?
 	= (ValueResult
 		(maybe NoValue (\r->Value r False) mbr)
 		(mkTaskEvalInfo lastEval)
 		NoChange
-		(Task (evalInteract mbr mst sds editor writefun))
+		(Task (evalInteract mbr mst sds editor modefun writefun))
 	, iworld)

@@ -71,8 +71,9 @@ accWorldOSError :: !(*World -> (MaybeOSError a, *World))             -> Task a
 instance toString OSException
 
 /**
- * Core interaction task. All other interaction tasks are derived from this
- * one. `interactR` is almost identical but does not update the given sds.
+ * Core interaction task. All other interaction tasks are derived from these ones.
+ * `interactRW` is used for entering and updating data
+ * `interactR` is almost identical but does not update the given sds and is used for viewing.
  */
 interactRW :: (Editor r w) !(sds () (Maybe r) w) -> Task r | iTask r & TC r & TC w & RWShared sds
 
