@@ -25,7 +25,7 @@ where
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = bijectEditorWrite (fmap toView) (fmap fromView) $ bijectEditorValue toView fromView documentField
+	editDocument = mapEditorWrite (fmap fromView) $ bijectEditorValue toView fromView documentField
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}

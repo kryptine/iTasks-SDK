@@ -111,7 +111,7 @@ gEditor{|Time|} = selectByMode view edit edit
 where
 	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
 	edit
-		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseTime s)
+		= mapEditorWriteError (\s -> Just <$> parseTime s)
 		$ injectEditorValue toString parseTime
 		$ withDynamicHintAttributes "time (hh:mm:ss)" $ withEditModeAttr textField
 
@@ -185,7 +185,7 @@ gEditor{|DateTime|} = selectByMode view edit edit
 where
 	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
 	edit
-		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseDateTime s)
+		= mapEditorWriteError (\s -> Just <$> parseDateTime s)
 		$ injectEditorValue toString parseDateTime
 		$ withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" $ withEditModeAttr textField
 

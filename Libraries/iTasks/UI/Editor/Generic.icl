@@ -150,7 +150,7 @@ where
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ce=:{Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
 	//Newtypes or ADTs just use the child editor
 	| gtd_num_conses < 2
-		= bijectEditorWrite (fmap (\(OBJECT i)->i)) (fmap (\i->OBJECT i)) $ bijectEditorValue (\(OBJECT i)->i) (\i->OBJECT i) ce
+		= mapEditorWrite (fmap (\i->OBJECT i)) $ bijectEditorValue (\(OBJECT i)->i) (\i->OBJECT i) ce
 	= withEditModeAttr $ compoundEditorToEditor
 		{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
@@ -555,7 +555,7 @@ gEditor{|Char|} = bijectEditorValue toString (\c -> c.[0]) $ selectByMode view e
 where
 	view = ignoreEditorWrites textView
 	edit
-		= bijectEditorWrite (maybe "" toString ) (\c -> if (size c == 1) (Just c.[0]) Nothing)
+		= mapEditorWrite (\c -> if (size c == 1) (Just c.[0]) Nothing)
 		$ withDynamicHintAttributes "single character"
 		$ withEditModeAttr textField <<@ boundedlengthAttr 1 1
 						
@@ -563,16 +563,16 @@ gEditor{|String|} = selectByMode view edit edit
 where
 	view = ignoreEditorWrites textView
 	edit
-		= bijectEditorWrite (fromMaybe "") Just
+		= mapEditorWrite Just
 		$ withDynamicHintAttributes "single line of text"
 		$ withEditModeAttr textField <<@ minlengthAttr 1
 
 gEditor{|Bool|}
-	= bijectEditorWrite (fromMaybe False) Just
+	= mapEditorWrite Just
 	$ selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
 gEditor{|[]|} ex _ tjx _
-	= bijectEditorWrite (const []) (\l -> Just [x \\ Just x <- l])
+	= mapEditorWrite (\l -> Just [x \\ Just x <- l])
 	$ listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
 
 gEditor{|()|} = emptyEditorWithDefaultInEnterMode ()

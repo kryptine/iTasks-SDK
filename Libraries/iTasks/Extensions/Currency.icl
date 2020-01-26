@@ -14,7 +14,7 @@ where
 
 	eurView = ignoreEditorWrites $ comapEditorValue toString textView
 	eurField
-		= bijectEditorWrite (fmap fromEUR) (fmap toEUR)
+		= mapEditorWrite (fmap toEUR)
 		$ bijectEditorValue fromEUR toEUR 
 		$ withDynamicHintAttributes "amount in EUR" decimalField
 
@@ -55,7 +55,7 @@ where
 
 	usdView = ignoreEditorWrites $ comapEditorValue toString textView
 	usdField
-		= bijectEditorWrite (fmap fromUSD) (fmap toUSD)
+		= mapEditorWrite (fmap toUSD)
 		$ bijectEditorValue fromUSD toUSD
 		$ withDynamicHintAttributes "amount in USD" decimalField
 

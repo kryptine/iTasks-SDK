@@ -108,7 +108,7 @@ pikadayDateField = selectByMode view edit edit
 where
 	view = ignoreEditorWrites $ bijectEditorValue toString fromString textView
 	edit
-		= injectEditorWrite (maybe "" toString) (\s -> Just <$> parseDate s)
+		= mapEditorWriteError (\s -> Just <$> parseDate s)
 		$ injectEditorValue toString parseDate
 			(withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField))
 

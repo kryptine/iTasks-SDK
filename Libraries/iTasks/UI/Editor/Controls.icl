@@ -13,17 +13,17 @@ disableOnView e = selectByMode (e <<@ enabledAttr False) e e
 
 textField :: Editor String String
 textField
-	= bijectEditorWrite Just (fromMaybe "")
+	= mapEditorWrite (fromMaybe "")
 	$ fieldComponent UITextField (Just "") isValidString
 
 textArea :: Editor String String
 textArea
-	= bijectEditorWrite Just (fromMaybe "")
+	= mapEditorWrite (fromMaybe "")
 	$ fieldComponent UITextArea (Just "") isValidString
 
 passwordField :: Editor String String
 passwordField
-	= bijectEditorWrite Just (fromMaybe "")
+	= mapEditorWrite (fromMaybe "")
 	$ fieldComponent UIPasswordField (Just "") isValidString
 
 isValidString :: !UIAttributes !String -> Bool
@@ -51,17 +51,17 @@ documentField = fieldComponent UIDocumentField Nothing (\_ _ -> True)
 
 checkBox :: Editor Bool Bool
 checkBox
-	= bijectEditorWrite Just (fromMaybe False)
+	= mapEditorWrite (fromMaybe False)
 	$ fieldComponent UICheckbox (Just False) (\_ _ -> True)
 
 slider :: Editor Int Int
 slider
-	= bijectEditorWrite Just (fromMaybe 0)
+	= mapEditorWrite (fromMaybe 0)
 	$ fieldComponent UISlider Nothing (\_ _ -> True)
 
 button :: Editor Bool Bool
 button
-	= bijectEditorWrite Just (fromMaybe False)
+	= mapEditorWrite (fromMaybe False)
 	$ fieldComponent UIButton Nothing (\_ _ -> True)
 
 label :: Editor String String

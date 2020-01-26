@@ -58,14 +58,12 @@ ignoreEditorReads :: !(Editor rb wa) -> Editor ra wa
 * Map the value of an editor to another (isomorphic) domain
 */
 bijectEditorValue :: !(a -> b) !(b -> a) !(Editor b w) -> Editor a w
-bijectEditorWrite :: !(w -> wb) !(wb -> w) !(Editor a wb) -> Editor a w
 
 /**
 * Map the value of an editor to another domain which is 'bigger' than the original domain
 * so conversion back to the original is not always possible
 */
 injectEditorValue :: !(a -> b) !(b -> MaybeErrorString a) !(Editor b w) -> Editor a w
-injectEditorWrite :: !(w -> wb) !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
 
 /**
 * Map the value of an editor to another domain which is 'smaller' than the original domain
@@ -76,6 +74,12 @@ surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b w) -> E
 * Map the value of an editor to another domain, without mapping changes in the editor back
 */
 comapEditorValue :: !(b -> a) !(Editor a w) -> Editor b w | JSONEncode{|*|}, JSONDecode{|*|} b
+
+/**
+* Map editor writes to a different domain
+*/
+mapEditorWrite :: !(wb -> w) !(Editor a wb) -> Editor a w
+mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
 
 /**
 * Select part of a larger datastructure and map writes back

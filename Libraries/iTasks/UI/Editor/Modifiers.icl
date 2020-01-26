@@ -151,22 +151,6 @@ where
 		Just val = Just $ fromf val
 		_        = Nothing
 
-bijectEditorWrite :: !(w -> wb) !(wb -> w) !(Editor a wb) -> Editor a w
-bijectEditorWrite tof fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh}
-	= {Editor| editor & onEdit=onEdit,onRefresh=onRefresh}
-where
-	onEdit dp e st vst = case editorOnEdit dp e st vst of
-		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
-		(Error e,vst) = (Error e,vst)
-
-	onRefresh dp new st vst = case editorOnRefresh dp new st vst of
-		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
-		(Error e,vst) = (Error e,vst)
-
-	fmap :: (a -> b) (Maybe a) -> *Maybe b //Stupid inlining of fmap because of need for unique w
-	fmap fromf Nothing = Nothing
-	fmap fromf (Just w) = Just (fromf w)
-
 injectEditorValue :: !(a -> b) !(b -> MaybeErrorString a) !(Editor b w) -> Editor a w
 injectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -191,19 +175,6 @@ where
 					,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
 				= (Ok (mergeUIChanges change attrChange, st, mbw), vst)
 		_ = (Ok (change, st, mbw), vst)
-
-injectEditorWrite :: !(w -> wb) !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
-injectEditorWrite tof fromf editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
-	= {Editor|editor & onEdit=onEdit,onRefresh=onRefresh}
-where
-	onEdit dp e st vst      = mbMapFromF $ editorOnEdit dp e st vst
-	onRefresh dp new st vst = mbMapFromF $ editorOnRefresh dp new st vst
-
-    mbMapFromF (Error e, vst) = (Error e, vst)
-	mbMapFromF (Ok (change, st, Nothing), vst)  = (Ok (change, st, Nothing), vst) 
-	mbMapFromF (Ok (change, st, Just w), vst)  = case fromf w of
-		(Error e) = (Error e,vst)
-		(Ok w) = (Ok (change, st, Just w), vst) 
 
 surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b w) -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 surjectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
@@ -242,6 +213,35 @@ where
 	onRefresh dp newB _ st vst = appFst (fmap (\(ui, st, mbw) -> (ui, Just newB, st, mbw))) $
 	                             editorOnRefresh dp (tof newB) st vst
 	valueFromState mbB _       = mbB
+
+mapEditorWrite :: !(wb -> w) !(Editor a wb) -> Editor a w
+mapEditorWrite fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh}
+	= {Editor| editor & onEdit=onEdit,onRefresh=onRefresh}
+where
+	onEdit dp e st vst = case editorOnEdit dp e st vst of
+		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
+		(Error e,vst) = (Error e,vst)
+
+	onRefresh dp new st vst = case editorOnRefresh dp new st vst of
+		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
+		(Error e,vst) = (Error e,vst)
+
+	fmap :: (a -> b) (Maybe a) -> *Maybe b //Stupid inlining of fmap because of need for unique w
+	fmap fromf Nothing = Nothing
+	fmap fromf (Just w) = Just (fromf w)
+
+mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
+mapEditorWriteError fromf editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
+	= {Editor|editor & onEdit=onEdit,onRefresh=onRefresh}
+where
+	onEdit dp e st vst      = mbMapFromF $ editorOnEdit dp e st vst
+	onRefresh dp new st vst = mbMapFromF $ editorOnRefresh dp new st vst
+
+    mbMapFromF (Error e, vst) = (Error e, vst)
+	mbMapFromF (Ok (change, st, Nothing), vst)  = (Ok (change, st, Nothing), vst) 
+	mbMapFromF (Ok (change, st, Just w), vst)  = case fromf w of
+		(Error e) = (Error e,vst)
+		(Ok w) = (Ok (change, st, Just w), vst) 
 
 lensEditor :: !(b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
 lensEditor tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}

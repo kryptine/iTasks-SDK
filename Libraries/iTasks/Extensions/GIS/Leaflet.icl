@@ -688,7 +688,7 @@ where
 
 	valueFromState m = Just m
 
-gEditor{|LeafletMap|} = bijectEditorWrite fromJust Just leafletEditor
+gEditor{|LeafletMap|} = mapEditorWrite Just leafletEditor
 
 gDefault{|LeafletMap|}
 	= {LeafletMap|perspective=defaultValue, tilesUrls = [openStreetMapTiles], objects = [Marker homeMarker], icons = []}
