@@ -29,15 +29,15 @@ derive JSONDecode AceOptions
 derive JSONEncode EditEvent
 derive JSONDecode EditEvent
 
-aceTextArea :: Editor String
-aceTextArea = surjectEditorValue toAce fromAce aceEditor
+aceTextArea :: Editor String String
+aceTextArea = mapEditorWrite (\s -> s.AceState.value) $ surjectEditorValue toAce fromAce aceEditor
 where
 	aceState = {AceState|value="",cursor=(0,0),selection=Nothing,disabled=False}
 	toAce s Nothing = (defaultValue, {AceState|aceState & value=s})
 	toAce s (Just (opts,state)) = (opts, {AceState|state & value=s})
 	fromAce (_,{AceState|value}) _ = value
 
-aceEditor :: Editor (!AceOptions,!AceState)
+aceEditor :: Editor (!AceOptions,!AceState) AceState
 aceEditor = leafEditorToEditor
     { LeafEditor
     | genUI          = withClientSideInit initUI genUI
@@ -185,14 +185,14 @@ where
 			)) world
 
 	onEdit dp ([], EditValue text) (o, s) vst
-		= (Ok (NoChange, (o,{AceState|s & value = text})), vst)
+		= (Ok (NoChange, (o,{AceState|s & value = text}),Just s), vst)
 	onEdit dp ([], EditCursor row col) (o, s) vst
-		= (Ok (NoChange, (o,{AceState|s & cursor = (row,col)})),vst)
+		= (Ok (NoChange, (o,{AceState|s & cursor = (row,col)}),Just s),vst)
 	onEdit dp ([], EditSelection Nothing) (o, s) vst
-		= (Ok (NoChange, (o,{AceState|s & selection = Nothing})), vst)
+		= (Ok (NoChange, (o,{AceState|s & selection = Nothing}),Just s), vst)
 	onEdit dp ([], EditSelection (Just ((srow,scol),(erow,ecol)))) (o,s) vst
 		# selection = {AceRange|start=(srow,scol),end=(erow,ecol)}
-		= (Ok (NoChange, (o,{AceState|s & selection = Just selection})), vst)
+		= (Ok (NoChange, (o,{AceState|s & selection = Just selection}),Just s), vst)
 	onEdit _ (_, _) _ vst = (Error $ "Invalid event for Ace editor", vst)
 
 	onRefresh dp r=:(_,rs) (_,vs) vst
@@ -208,7 +208,7 @@ where
 		// Build change event
 		# changes = flatten [lineChange,cursorChange,selectionChange,disabledChange]
 		# change = if (isEmpty changes) NoChange (ChangeUI changes [])
-		= (Ok (change, r),vst)
+		= (Ok (change, r, Nothing),vst)
 
 	encodeRange {AceRange|start=(srow,scol),end=(erow,ecol)}
 		= JSONObject [("start",JSONObject [("row",JSONInt srow),("column",JSONInt scol)])

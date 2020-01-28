@@ -313,16 +313,16 @@ taskEditor = DynamicEditor
 		]
 	]
 where
-	intEditor :: Editor Int
+	intEditor :: Editor Int (Maybe Int)
 	intEditor = gEditor{|*|}
 
-	boolEditor :: Editor Bool
+	boolEditor :: Editor Bool (Maybe Bool)
 	boolEditor = gEditor{|*|}
 
-	stringEditor :: Editor String
+	stringEditor :: Editor String (Maybe String)
 	stringEditor = gEditor{|*|}
 
-	dateEditor :: Editor Date
+	dateEditor :: Editor Date (Maybe Date)
 	dateEditor = gEditor{|*|}
 
 	basicClasses      = [ "typedtasks-base" ]

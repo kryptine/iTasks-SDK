@@ -82,28 +82,20 @@ filterTestsByName :: String [UnitTest] -> [UnitTest]
 filterTestsByName pattern tests = filter (\{UnitTest|name} -> indexOf pattern name >= 0) tests
 
 //UTILITY TASKS
-testEditor :: (Editor a w) (EditMode a) -> Task a | iTask a
+testEditor :: (Editor a (Maybe a)) (EditMode a) -> Task a | iTask a
 testEditor editor mode
-	=   (interactR unitShare {onInit = const mode, onEdit = \v -> Nothing, onRefresh = \_ v -> (v,Nothing)} (ignoreEditorWrites editor) @ snd
-	>&> \s -> Title "Editor value" @>> viewSharedInformation [ViewAs (toString o toJSON)] s @? tvFromMaybe
-	)  <<@ ArrangeHorizontal
-
-testEditorWithShare :: (Editor a w) a Bool -> Task a | iTask a
-testEditorWithShare editor model viewMode = (withShared model
-	\smodel ->
-		(Hint "Edit the shared source" @>> updateSharedInformation [] smodel)
-		||-
-		( Title "Editor under test" @>>
-			interactR
-				smodel
-				{ onInit    = \r   -> if viewMode View Update $ r
-				, onEdit    = \v   -> Just (\_ -> v)
-				, onRefresh = \r _ -> (Just r,Nothing)
-				}
-			(ignoreEditorWrites editor)
-			@ snd
-		)
-	) <<@ ArrangeHorizontal
+	= withShared value \sds ->
+		((case mode of 
+					(View _) = interactR editor sds
+					_ = interactRW editor sds)
+		>&> 
+			\s -> Title "Editor value" @>> viewSharedInformation [ViewAs (toString o toJSON)] s @? tvFromMaybe
+		) <<@ ArrangeHorizontal
+where
+	value = case mode of
+		Enter = Nothing
+		Update x = Just x
+		View x = Just x
 
 testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
 testCommonInteractions typeName

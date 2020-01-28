@@ -2,7 +2,7 @@ implementation module C2.Framework.ContactPosition
 import iTasks
 import iTasks.Extensions.GIS.Leaflet
 import qualified Data.Map as DM
-import Data.Functor, Text
+import Data.Functor, Data.Func, Text
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
 import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
@@ -18,7 +18,7 @@ import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = bijectEditorValue printPosition parsePosition textField
+gEditor{|ContactPosition|} = mapEditorWrite (Just o parsePosition) $ bijectEditorValue printPosition parsePosition textField
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
 derive gDefault ContactPosition

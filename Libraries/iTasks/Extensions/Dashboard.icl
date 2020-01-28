@@ -13,12 +13,12 @@ derive gText ControlLight
 gEditor{|ControlLight|} = controlLightEditlet
 
 //SVG Based fake control light
-controlLightEditlet :: Editor ControlLight
+controlLightEditlet :: Editor ControlLight (Maybe ControlLight)
 controlLightEditlet = leafEditorToEditor
 	{LeafEditor
       |genUI  = withClientSideInit initUI genUI
-      ,onEdit = \_ (_,()) m vst -> (Ok (NoChange,m),vst)
-      ,onRefresh = \_ val st vst -> (Ok (if (valueFromState st === Just val) NoChange (ChangeUI [SetAttribute "value" (JSONString (color val))] []),st),vst)
+      ,onEdit = \_ (_,()) m vst -> (Ok (NoChange,m,Nothing),vst)
+      ,onRefresh = \_ val st vst -> (Ok (if (valueFromState st === Just val) NoChange (ChangeUI [SetAttribute "value" (JSONString (color val))] []),st,Nothing),vst)
 	  ,valueFromState = valueFromState
       }
 where

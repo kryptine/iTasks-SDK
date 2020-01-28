@@ -100,7 +100,7 @@ where
 	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
 
 	viewTest results (name,_)
-		= ((Title "Code" @>> viewSharedInformation [ViewUsing (join "\n") aceTextArea] (sdsFocus (UNIT_TESTS_PATH,name) moduleImplementation))
+		= ((Title "Code" @>> viewSharedInformation [ViewUsing (join "\n") (mapEditorWrite Just aceTextArea)] (sdsFocus (UNIT_TESTS_PATH,name) moduleImplementation))
 		-&&-
 		  (((Title "Results" @>> viewSharedInformation [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get name) results)) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
@@ -210,7 +210,7 @@ where
 			[UpdateSharedUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
 						 (const o Just)
-                         aceTextArea] state
+                         (mapEditorWrite Just aceTextArea)] state
 
 	buildExecutable :: FilePath (Shared sds InspectState) -> Task () | RWShared sds
 	buildExecutable temporaryDirectory state = 

@@ -6,12 +6,12 @@ import qualified Data.Map as Map
 import Text, Text.GenPrint
 import iTasks, iTasks.UI.Editor.Common
 
-dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) | TC a
+dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
 dynamicEditor dynEditor = compoundEditorToEditor $ dynamicCompoundEditor dynEditor
 
 parametrisedDynamicEditor ::
-	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
-parametrisedDynamicEditor editor =
+	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) (Maybe (!p, !DynamicEditorValue a)) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
+parametrisedDynamicEditor editor = 
 	compoundEditorToEditor
 		{CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
@@ -26,7 +26,7 @@ where
 
 	onEdit dp event (p, mbSt) childSts vst
 		= appFst
-			(fmap $ appSnd3 \st -> (p, st))
+			(fmap \(change,st,cst,mbw) -> (change,(p,st),cst,fmap (fmap (\w -> (p,w))) mbw))
 			((dynamicCompoundEditor $ editor p).CompoundEditor.onEdit dp event mbSt childSts vst)
 
 	onRefresh dp (p, new) st=:(p`, mbSt) childSts vst
@@ -38,17 +38,16 @@ where
 		# (uiForNewP, newSt, newChildSts) = fromOk uiForNewP
 		| uiForOldP === uiForNewP =
 			appFst
-				(fmap $ appSnd3 \st -> (p, st))
+				(fmap \(change,st,cst,mbw) -> (change,(p,st),cst,fmap (fmap (\w -> (p,w))) mbw))
 				((dynamicCompoundEditor $ editor p).CompoundEditor.onRefresh dp new mbSt childSts vst)
-		| otherwise = (Ok (ReplaceUI uiForNewP, (p, newSt), newChildSts), vst)
+		| otherwise = (Ok (ReplaceUI uiForNewP, (p, newSt), newChildSts,Nothing), vst)
 
 	valueFromState (p, st) childSts
 		= (\val -> (p, val)) <$> (dynamicCompoundEditor $ editor p).CompoundEditor.valueFromState st childSts
 
 // Bool part of result indicates whether the type is correct, i.e. the child types are matching
-dynamicCompoundEditor
-	:: !(DynamicEditor a) -> CompoundEditor (Maybe (!DynamicConsId, !ConsType, !Bool)) (DynamicEditorValue a) | TC a
-dynamicCompoundEditor dynEditor=:(DynamicEditor elements)
+dynamicCompoundEditor :: !(DynamicEditor a) -> CompoundEditor (Maybe (!DynamicConsId, !ConsType, !Bool)) (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
+dynamicCompoundEditor dynEditor=:(DynamicEditor elements) 
 	| not $ isEmpty duplicateIds
 		= abort $ concat ["duplicate cons IDs in dynamic editor: ", printToString duplicateIds, "\n"]
 	= {CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
@@ -159,7 +158,7 @@ where
 		!(Maybe (!DynamicConsId, !ConsType, !Bool))
 		![EditState]
 		!*VSt
-		-> *(!MaybeErrorString (!UIChange, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState]) , !*VSt)
+		-> *(!MaybeErrorString (!UIChange, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState], Maybe (Maybe (DynamicEditorValue a))) , !*VSt)
 	// new builder is selected: create a UI for the new builder
 	onEdit dp ([], JSONArray [JSONInt builderIdx]) st [_: childrenSts] vst
 		| builderIdx < 0 || builderIdx >= length matchingConses
@@ -186,7 +185,7 @@ where
 				# change             = ChangeUI attrChange childChange
 				# state              = Just (cons.consId, type, True)
 				# childStates        = [builderChooseState: childSts]
-				= (Ok (change, state, childStates), vst)
+				= (Ok (change, state, childStates, Nothing), vst)
 			Error e = (Error e, vst)
 
 	// other events targeted directly at this cons
@@ -198,9 +197,10 @@ where
 					if (typeWasInvalid st) removeErrorIconChange []
 				++
 					[(0, ChangeChild $ ChangeUI [] $ removeNChildren $ length childSts)]
-			= (Ok (ChangeUI attrChange childChange, Nothing, [nullState]), vst)
+			= (Ok (ChangeUI attrChange childChange, Nothing, [nullState], Nothing), vst)
 		| otherwise
 			= (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
+
 
 	// update is targeted somewhere inside this value
 	onEdit dp ([argIdx: tp], e) (Just (cid, type, typeWasCorrect)) childSts vst
@@ -212,16 +212,19 @@ where
 					= (Error "Edit event for dynamic editor has invalid path", vst)
 				# (E editor) = children !! argIdx
 				= editor.Editor.onEdit (dp ++ [argIdx]) (tp, e) (childSts !! (argIdx + 1)) vst
+/* //FIXME
 			ListCons lbuilder
 				= (listBuilderEditor lbuilder).Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
+
 			CustomEditorCons editor
 				= editor.Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
+*/
 		= case res of
-			Ok (change, childSt)
+			Ok (change, childSt, _)
 				# childChange = [(0, ChangeChild $ ChangeUI [] [(argIdx + if hideCons 0 1, ChangeChild change)])]
 				# change      = ChangeUI mbErrorIconAttrChange $ childChange ++ mbErrorIconChange
 				// replace state for this child
-				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`), vst)
+				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`, Nothing), vst)
 			where
 				(mbErrorIconChange, mbErrorIconAttrChange) = mbErrorIconUpd
 				mbErrorIconUpd
@@ -276,12 +279,13 @@ where
 		!(Maybe (!DynamicConsId, !ConsType, !Bool))
 		![EditState]
 		!*VSt
-		-> *(!MaybeErrorString (!UIChange, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState]), !*VSt)
+		-> *(!MaybeErrorString (!UIChange, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState], Maybe (Maybe (DynamicEditorValue a))), !*VSt)
 	// TODO: how to get UI attributes?
 	// TODO: fine-grained replacement
     onRefresh dp new st childSts vst
-		| isNotChanged (valueFromState st childSts) new = (Ok (NoChange, st, childSts), vst)
-		= appFst (fmap $ appFst3 ReplaceUI) $ genUI 'Map'.newMap dp (Update new) vst
+		| isNotChanged (valueFromState st childSts) new = (Ok (NoChange, st, childSts, Nothing), vst)
+		# (res,vst) = genUI 'Map'.newMap dp (Update new) vst
+		= (fmap (\(ui,st,csts) -> (ReplaceUI ui, st, csts, Nothing)) res, vst)
 	where
 		isNotChanged (Just (DynamicEditorValue consId val)) (DynamicEditorValue consId` val`) =
 			consId == consId` && val === val`
@@ -328,7 +332,7 @@ where
 			ListCons         _ = List
 			CustomEditorCons _ = CustomEditor
 		viewMode = mode =: View _
- 
+
 	hideCons = case matchingConses of
 		[(onlyChoice, _)] | not onlyChoice.showIfOnlyChoice = True
 		_                                                   = False
@@ -365,16 +369,16 @@ where
 
 		// custom editors do not allow for quantified variables, so no type update is required
 		matchc e = case (dynamic e, dynamic dynEd) of
-			(_ :: Editor a, _ :: DynamicEditor a) = Just $ CustomEditorCons e
+			(_ :: Editor a (Maybe a), _ :: DynamicEditor a) = Just $ CustomEditorCons e
 			_                                     = Nothing
 
 		matchl f = case (f, dynamic dynEd) of
 			(f :: (a -> b, [b] -> c), _ :: DynamicEditor c) = Just $ ListCons (dynamic f)
 			_                                               = Nothing
 
-	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)]
-	listBuilderEditor ((mapF, _) :: (a -> b, [b] -> c)) =
-		listEditor (Just $ const Nothing) True True Nothing childrenEd`
+	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)] [(DynamicConsId, DEVal)]
+	listBuilderEditor ((mapF, _) :: (a -> b, [b] -> c))
+		= mapEditorWrite resultList $ listEditor (Just $ const Nothing) True True Nothing childrenEd`
 	where
 		childrenEd  = childrenEditorList mapF
 		childrenEd` =
@@ -383,8 +387,10 @@ where
 				(\(DynamicEditorValue cid val) -> (cid, val))
 				childrenEd
 
+		resultList l = [(cid,val) \\ Just (DynamicEditorValue cid val) <- l]
+
 		// first argument only used for type
-		childrenEditorList :: (a -> b) -> Editor (DynamicEditorValue a) | TC a
+		childrenEditorList :: (a -> b) -> Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
 		childrenEditorList _ = dynamicEditor (DynamicEditor elements)
 	listBuilderEditor _ = abort "dynamic editors: invalid list builder value"
 
@@ -424,7 +430,7 @@ where
 	childrenEditors (f :: a -> b) = [E $ dynamicEditorFstArg f : childrenEditors (dynamic (f undef))]
 	where
 		// first argument only used for type
-		dynamicEditorFstArg :: (a -> b) -> Editor (DynamicEditorValue a) | TC a
+		dynamicEditorFstArg :: (a -> b) -> Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
 		dynamicEditorFstArg _ = dynamicEditor $ DynamicEditor elements
 	childrenEditors _         = []
 
@@ -457,6 +463,7 @@ where
 		argOf (TypeScheme _ type)         = argOf type
 	// only function conses can have not matching child types
 	childTypesAreMatching _ _ = Ok ()
+
 
 valueCorrespondingTo :: !(DynamicEditor a) !(DynamicEditorValue a) -> a | TC a
 valueCorrespondingTo  dynEditor dynEditorValue = case valueCorrespondingToDyn dynEditor dynEditorValue of
@@ -493,10 +500,10 @@ where
 	where
 		(cons, _) = consWithId cid $ consesOf elements
 
-	stringCorrespondingToGen :: (Editor a) !JSONNode -> String | gText{|*|}, JSONDecode{|*|}  a
+	stringCorrespondingToGen :: (Editor a (Maybe a)) !JSONNode -> String | gText{|*|}, JSONDecode{|*|}  a
 	stringCorrespondingToGen editor json = toSingleLineText $ fromJSON` editor json
 	where
-		fromJSON` :: (Editor a) !JSONNode -> a | JSONDecode{|*|} a
+		fromJSON` :: (Editor a (Maybe a)) !JSONNode -> a | JSONDecode{|*|} a
 		fromJSON` _ json = fromMaybe (abort "corrupt dynamic editor value") $ fromJSON json
 
 :: DynamicCons =
@@ -511,7 +518,7 @@ where
 
 :: DynamicConsBuilder
 	=      FunctionCons     !Dynamic
-	| E.a: CustomEditorCons !(Editor a) & JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|}, TC a
+	| E.a: CustomEditorCons !(Editor a (Maybe a)) & JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|}, TC a
 	|      ListCons         !Dynamic    //* must contain a value of type (a -> b, [b] -> c)
 
 functionCons :: !DynamicConsId !String !a -> DynamicCons | TC a
@@ -543,7 +550,7 @@ listConsDyn consId label func =
 	}
 
 customEditorCons ::
-	!DynamicConsId !String !(Editor a) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
+	!DynamicConsId !String !(Editor a (Maybe a)) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
 customEditorCons consId label editor =
 	{ consId           = consId
 	, label            = label
@@ -582,10 +589,10 @@ where
 		(f :: a -> b, x :: a) = valueCorrespondingToFunc (dynamic (f x)) xs
 		_                     = abort "corrupt dynamic editor value"
 
-	valueCorrespondingToGen :: (Editor a) !JSONNode -> Dynamic | JSONDecode{|*|}, TC a
+	valueCorrespondingToGen :: (Editor a (Maybe a)) !JSONNode -> Dynamic | JSONDecode{|*|}, TC a
 	valueCorrespondingToGen editor json = dynamic (fromJSON` editor json)
 	where
-		fromJSON` :: (Editor a) !JSONNode -> a | JSONDecode{|*|} a
+		fromJSON` :: (Editor a (Maybe a)) !JSONNode -> a | JSONDecode{|*|} a
 		fromJSON` _ json = fromMaybe (abort "corrupt dynamic editor value") $ fromJSON json
 
 	valueCorrespondingToList :: !Dynamic ![(DynamicConsId, DEVal)] -> Dynamic
@@ -612,7 +619,7 @@ where
 				_                            = abort "corrupt dynamic editor value"
 		fromDynList` _            _   = abort "corrupt dynamic editor value"
 
-:: E = E.a: E (Editor (DynamicEditorValue a)) & TC a
+:: E = E.a: E (Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a))) & TC a
 :: ConsType = Function | List | CustomEditor
 consWithId :: !DynamicConsId ![(DynamicCons, Maybe String)] -> (!DynamicCons, !Int)
 consWithId cid conses = case filter (\(({consId}, _), _) -> consId == cid) $ zip2 conses [0..] of

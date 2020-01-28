@@ -61,16 +61,7 @@ filterTestsByName :: String [UnitTest] -> [UnitTest]
 * @param The editor to test
 * @param Edit mode to test (View,Enter,Update)
 */
-testEditor :: (Editor a w) (EditMode a) -> Task a | iTask a
-
-/**
-* Test a specific editor using a shared state.
-*
-* @param The editor to test
-* @param The model value that the editor edits
-* @param Use view mode for editor (otherwise update mode)
-*/
-testEditorWithShare :: (Editor a w) a Bool -> Task a | iTask a
+testEditor :: (Editor a (Maybe a)) (EditMode a) -> Task a | iTask a
 
 /**
 * A generic test rig for testing the different editor variants for a type
@@ -78,7 +69,6 @@ testEditorWithShare :: (Editor a w) a Bool -> Task a | iTask a
 * @param The name of the type to test (e.g. "Int" or "MyADT")
 */
 testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
-
 
 /**
 * Test if all tests have passed

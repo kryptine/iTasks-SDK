@@ -127,7 +127,7 @@ giveInstructions =
                       (\_ -> mkTable ["Status"] ["Everything in order"])
                    )
                 )
-    = viewSharedInformation [ViewUsing view grid] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
+    = viewSharedInformation [ViewUsing view (ignoreEditorWrites grid)] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
     where
     mkFireView ((((graph, statusMap), inventoryMap), exitLocks), hopLocks)
       #! (_,_,eCost,nrExt, (extLoc, distExt, _))                       = smartShipPathToClosestObject FireExtinguisher inventoryMap actorLoc alarmLoc statusMap exitLocks hopLocks graph

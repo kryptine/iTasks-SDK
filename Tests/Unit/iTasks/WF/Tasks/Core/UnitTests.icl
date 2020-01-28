@@ -10,9 +10,8 @@ derive gEq TaskOutputMessage
 
 minimalInteractUI = skip (testTaskOutput "Initial UI of minimal interaction task" task events exp checkEqual)
 where
-	task :: Task ((),String)
-	task = interactR unitShare handlers gEditor{|*|}
-	handlers = {onInit = \() -> Update "Hello world", onEdit = \_ -> Nothing, onRefresh = \_ v -> (v,Nothing)}
+	task :: Task String
+	task = withShared (Just "Hello world") \sds -> interactRW gEditor{|*|} sds 
 
 	events = [Left ResetEvent]
 	exp = [TOUIChange (ReplaceUI expMinimalEditorUI)]

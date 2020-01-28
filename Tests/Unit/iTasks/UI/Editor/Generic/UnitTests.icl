@@ -60,7 +60,7 @@ genRequiredIntUI = assertEqualWorld "Generate UI for Editor of type Int"
 	    , LeafState {touched=False,state=JSONNull}))
 	(genUIWrapper [] Enter intEditor)
 where
-	intEditor :: Editor Int
+	intEditor :: Editor Int (Maybe Int)
 	intEditor = gEditor{|*|}
 
 genOptionalIntUI = assertEqualWorld "Generate UI for Editor of type Maybe Int"
@@ -79,7 +79,7 @@ genOptionalIntUI = assertEqualWorld "Generate UI for Editor of type Maybe Int"
 	    , LeafState {touched=False,state=JSONNull}))
 	(genUIWrapper [] Enter intEditor)
 where
-	intEditor :: Editor (Maybe Int)
+	intEditor :: Editor (Maybe Int) (Maybe (Maybe Int))
 	intEditor = gEditor{|*|}
 
 realEditorTests = []
@@ -152,15 +152,15 @@ genRequiredTwoFieldRecordUI = assertEqualWorld "Generate UI for Editor of type T
 	)
 	(genUIWrapper [] Enter editor)
 where
-	editor :: Editor TwoFieldRecord
+	editor :: Editor TwoFieldRecord (Maybe TwoFieldRecord)
 	editor = gEditor{|*|}
 
 
 editRequiredTwoFieldRecord = assertEqualWorld "Edit UI for Editor of type TwoFieldRecord"
-	(Ok (postChange,postState))
+	(Ok (postChange,postState,Nothing))
 	(onEditWrapper [] edit preState editor)
 where
-	editor :: Editor TwoFieldRecord
+	editor :: Editor TwoFieldRecord (Maybe TwoFieldRecord)
 	editor = gEditor{|*|}
 
 	edit = ([0],JSONString "x")

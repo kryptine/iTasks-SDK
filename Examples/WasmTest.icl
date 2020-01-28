@@ -12,7 +12,7 @@ where
 		[UpdateUsing id (flip const) editor]
 		() <<@ Title "WebAssembly test program"
 
-editor :: Editor ()
+editor :: Editor () (Maybe ())
 editor = leafEditorToEditor
 	{ LeafEditor
     | genUI          = withClientSideInit initUI genUI
@@ -22,8 +22,8 @@ editor = leafEditorToEditor
     }
 where
 	genUI attributes datapath mode vst = (Ok (uia UITextView (valueAttr (JSONString "Check the browser console.")), ()), vst)
-	onEdit datapath (_,()) st vst = (Ok (NoChange,st), vst)
-	onRefresh datapath st _ vst = (Ok (NoChange,st), vst)
+	onEdit datapath (_,()) st vst = (Ok (NoChange,st,Nothing), vst)
+	onRefresh datapath st _ vst = (Ok (NoChange,st,Nothing), vst)
 	valueFromState s = Just s
 
 	initUI me world

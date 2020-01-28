@@ -227,7 +227,7 @@ svgFontDefAttrs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,f
 
 
 //	transform the functions of an SVGEditor into an Editor via a LeafEditor:
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s (Maybe s) | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
 fromSVGEditor svglet = leafEditorToEditor
     { LeafEditor
     | genUI          = withClientSideInit (initClientSideUI svglet) initServerSideUI
@@ -270,11 +270,11 @@ where
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
- 	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gText{|*|} s
+ 	//serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s, Maybe (Maybe s)), !*VSt) | gText{|*|} s
   	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
   	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} False vst
   	  = trace_n` ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
-  	    (Ok (attributesToUIChange set_attrs,mask),vst)
+  	    (Ok (attributesToUIChange set_attrs,mask,Just (valueFromState mask)),vst)
   	serverHandleEditFromClient svglet _ (_,ClientHasNewTextMetrics new_font_metrics new_texts_metrics) mask=:{ServerSVGState | model=old,fonts,texts} vst 
       #! font_spans           = 'Data.Map'.union                      new_font_metrics  fonts
       #! text_spans           = 'Data.Map'.unionWith 'Data.Map'.union new_texts_metrics texts
@@ -286,21 +286,21 @@ where
                  join "," (map short ('Data.Map'.toAscList ('Data.Map'.unions (map snd ('Data.Map'.toAscList new_texts_metrics))))) +++ 
                  "]"
                 )
-        (Ok (attributesToUIChange set_attrs,mask),vst)
+        (Ok (attributesToUIChange set_attrs,mask,Just (valueFromState mask)),vst)
     serverHandleEditFromClient svglet _ (_,ClientNeedsSVG) mask=:{ServerSVGState | model=old,fonts,texts} vst
 	  #! (attrs,mask,vst) = serverHandleModel svglet mask False vst
 	  = trace_n` ("serverHandleEditFromClient ClientNeedsSVG")
-	    (Ok (attributesToUIChange attrs,mask),vst)
+	    (Ok (attributesToUIChange attrs,mask,Just (valueFromState mask)),vst)
 
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
-	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s), !*VSt) | gEq{|*|} s
+	//serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s, Maybe (Maybe s)), !*VSt) | gEq{|*|} s
 	serverHandleEditFromContext svglet _ new mask=:{ServerSVGState | model=old,fonts,texts} vst
   	| gEq{|*|} old new
-  		= (Ok (NoChange,mask),vst)
+  		= (Ok (NoChange,mask,Nothing),vst)
   	#! (set_attrs,mask`,vst`) = serverHandleModel svglet {ServerSVGState | mask & model=new} True vst
   	= trace_n` ("serverHandleEditFromContext")
-  	  (Ok (attributesToUIChange set_attrs,mask`),vst`)
+  	  (Ok (attributesToUIChange set_attrs,mask`,Nothing),vst`)
 	
 //	valueFromState, using a LeafEditor always succeeds
 	valueFromState :: !(ServerSVGState s) -> *Maybe s

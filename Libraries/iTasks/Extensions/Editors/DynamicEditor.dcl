@@ -20,7 +20,7 @@ from iTasks       import class iTask, class tune, generic gEditor, generic gText
  * @param The dynamic editor definition.
  * @result The iTasks editor.
  */
-dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) | TC a
+dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
 
 /**
  * This provides the iTasks editor corresponding to a dynamic editor definition parametrised by an additional value.
@@ -30,7 +30,7 @@ dynamicEditor :: !(DynamicEditor a) -> Editor (DynamicEditorValue a) | TC a
  * @result The iTasks editor additionally working on the parameter.
  */
 parametrisedDynamicEditor ::
-	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
+	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) (Maybe (!p, !DynamicEditorValue a)) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
 
 /**
  * Represents a dynamic editor value, which represents an actual value.
@@ -124,7 +124,7 @@ listConsDyn :: !DynamicConsId !String !Dynamic -> DynamicCons
  *     `dynamicCons` is the dynamic constructor with identity `id` and `label` corresponding to the iTasks `editor`.
  */
 customEditorCons ::
-	!DynamicConsId !String !(Editor a) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
+	!DynamicConsId !String !(Editor a (Maybe a)) -> DynamicCons | TC, JSONEncode{|*|}, JSONDecode{|*|}, gText{|*|} a
 
 instance tune DynamicConsOption DynamicCons
 

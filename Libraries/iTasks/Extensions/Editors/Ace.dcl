@@ -11,7 +11,7 @@ import Data.Maybe
 /**
  * A drop-in replacement for textArea using Ace.
  */
-aceTextArea :: Editor String
+aceTextArea :: Editor String String
 
 /**
  * An Ace editor with more fine-grained control
@@ -40,4 +40,4 @@ derive gDefault AceOptions
 derive JSONEncode AceOptions
 derive JSONDecode AceOptions
 
-aceEditor :: Editor (!AceOptions,!AceState)
+aceEditor :: Editor (!AceOptions,!AceState) AceState

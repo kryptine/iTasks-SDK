@@ -13,4 +13,4 @@ from   iTasks.UI.Editor import :: Editor
 	, updModel    :: m v -> m                    // When the view is updated (using the interactive image), update the model
 	}
 
-fromSVGEditor :: !(SVGEditor s v) -> Editor s | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
+fromSVGEditor :: !(SVGEditor s v) -> Editor s (Maybe s) | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s

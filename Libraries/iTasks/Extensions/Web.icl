@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.Web
 
 import iTasks
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
-import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
+import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either, Data.Func
 import System.Time, System.FilePath
 
 from iTasks.Internal.HttpUtil import http_addRequestData, http_parseArguments
@@ -17,8 +17,8 @@ import qualified Data.List as DL
 
 gText{|URL|}	_ val	= [maybe "" toString val]
 
-gEditor{|URL|} = selectByMode
-		(comapEditorValue (\(URL s) -> ATag [HrefAttr s] [Text s]) htmlView)
+gEditor{|URL|} = mapEditorWrite (Just o URL) $ selectByMode
+		(ignoreEditorWrites $ comapEditorValue (\(URL s) -> ATag [HrefAttr s] [Text s]) htmlView)
 		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
 		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
 

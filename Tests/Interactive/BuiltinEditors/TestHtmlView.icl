@@ -1,7 +1,7 @@
 module TestHtmlView
-import iTasks, iTasks.Util.Testing
+import iTasks, iTasks.Util.Testing, Text.HTML
 
 test :: Task HtmlTag
-test = testEditor htmlView (H2Tag [] [Text "Hello World"]) Update
+test = testEditor (ignoreEditorWrites htmlView) (View (H2Tag [] [Text "Hello World"]))
 
 Start world = doTasks test world
