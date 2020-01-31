@@ -52,10 +52,10 @@ processEvents max iworld
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue DeferredJSON),!*IWorld)
 evalTaskInstance instanceNo event iworld
 	# iworld            = mbResetUIState instanceNo event iworld
-	# (res,iworld)      = evalTaskInstance` instanceNo event (event =: DestroyEvent) iworld
+	# (res,iworld)      = evalTaskInstance` instanceNo event iworld
 	= (res,iworld)
 where
-	evalTaskInstance` instanceNo event destroy iworld=:{clock,current}
+	evalTaskInstance` instanceNo event iworld=:{current}
 	// Read the task reduct. If it does not exist, the task has been deleted.
 	# (curReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceTask) EmptyContext iworld
 	| isError curReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) curReduct) iworld
@@ -82,32 +82,23 @@ where
 			, nextTaskNo = nextTaskNo
 		}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & lastEval=nextTaskTime, taskId=taskId} iworld
+	//the 'nextTaskNo' is possibly incremented during evaluation and we need to store it
+	# (newResult,iworld=:{current=current=:{TaskEvalState|nextTaskNo}})
+		= eval event {mkEvalOpts & lastEval=nextTaskTime, taskId=taskId} iworld
 	# newTask = case newResult of
 		(ValueResult _ _ _ newTask) = newTask
 		_                           = Task eval
+	# newValue = case newResult of
+		ValueResult val _ _ _   = val
+		ExceptionResult (e,str) = NoValue
+		DestroyedResult         = NoValue
 	# destroyed = newResult =: DestroyedResult
 	//Reset necessary 'current' values in iworld
 	# iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
-	// Write the updated progress
-	# (nextTaskNo,iworld) = getNextTaskNo iworld
+	//Write the updated state, or cleanup
 	# (mbErr,iworld) = if destroyed
-		(Ok (),iworld)	//Only update progress when something changed
-		(case (modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus (instanceNo,False,True) taskInstance) EmptyContext iworld) of
-		  (Error e, iworld) = (Error e, iworld)
-		  (Ok _, iworld) = (Ok (), iworld) )
-	| mbErr=:(Error _)
-		# (Error (_,description)) = mbErr
-		= exitWithException instanceNo description iworld
-	//Store or remove reduct
-	# (nextTaskNo,iworld) = getNextTaskNo iworld
-	# (_,iworld)          = write newTask (sdsFocus instanceNo taskInstanceTask) EmptyContext iworld
-	//Store or delete value
-	# newValue = case newResult of
-		ValueResult val _ _ _   = val //Just (TIValue val)
-		ExceptionResult (e,str) = NoValue //Just (TIException e str)
-		DestroyedResult         = NoValue //Nothing
-	# (mbErr,iworld) = write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld
+		(cleanupTaskState instanceNo iworld)
+		(updateTaskState instanceNo newResult newTask newValue nextTaskNo nextTaskTime iworld)
 	| mbErr=:(Error _)
 		# (Error (_,description)) = mbErr
 		= exitWithException instanceNo description iworld
@@ -127,6 +118,27 @@ where
 		DestroyedResult
 			= (Ok NoValue, iworld)
 
+	updateTaskState instanceNo newResult newTask newValue nextTaskNo nextTaskTime iworld=:{clock}
+		//Store progress
+		# (mbErr,iworld) = modify (updateProgress clock newResult nextTaskNo nextTaskTime) (sdsFocus (instanceNo,False,True) taskInstance) EmptyContext iworld
+		| mbErr =: (Error _) = (liftError mbErr, iworld)
+		//Store reduct
+		# (mbErr,iworld) = write newTask (sdsFocus instanceNo taskInstanceTask) EmptyContext iworld
+		| mbErr =: (Error _) = (liftError mbErr, iworld)
+		//Store value
+		# (mbErr,iworld) = write newValue (sdsFocus instanceNo taskInstanceValue) EmptyContext iworld
+		| mbErr =: (Error _) = (liftError mbErr, iworld)
+		= (Ok (),iworld)
+
+	cleanupTaskState instanceNo iworld
+		//Remove local shares
+		# (mbErr,iworld) = write Nothing (sdsFocus instanceNo taskInstanceShares) EmptyContext iworld
+		| mbErr =: (Error _) = (liftError mbErr, iworld)
+		//Remove residual queued output
+		# (mbErr,iworld) = modify (\output -> 'DM'.del instanceNo output) taskOutput EmptyContext iworld
+		| mbErr =: (Error _) = (liftError mbErr, iworld)
+		= (Ok (),iworld)
+
 	exitWithException instanceNo description iworld
 		# iworld = queueException instanceNo description iworld
 		= (Error description, iworld)
@@ -141,8 +153,6 @@ where
 		# (meta,iworld)      = 'SDS'.read (sdsFocus (instanceNo,False,False) taskInstance) EmptyContext iworld
 		| isError meta       = ({defaultValue & nextTaskNo=1, nextTaskTime=1},iworld)
 		= (directResult (fromOk meta),iworld)
-
-	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}} = (nextTaskNo,iworld)
 
 	updateProgress now result nextTaskNo nextTaskTime meta
 		# attachedTo = case meta.TaskMeta.attachedTo of //Release temporary attachment after first evaluation
