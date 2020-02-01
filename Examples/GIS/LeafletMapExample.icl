@@ -17,7 +17,7 @@ manipulateMap :: (Shared sds (LeafletMap,LeafletSimpleState)) -> Task () | RWSha
 manipulateMap m = updateSharedInformation [UpdateSharedUsing id (flip const) (const o Just) (customLeafletEditor eventHandlers defaultValue)] m
 	<<@ ApplyLayout (setUIAttributes (sizeAttr FlexSize FlexSize)) @! ()
 where
-	eventHandlers = {simpleStateEventHandlers & onHtmlEvent = onHtmlEvent}
+	eventHandlers = simpleStateEventHandlers ++ [OnHtmlEvent onHtmlEvent]
 
 	onHtmlEvent "closewindows" (l,s) = ({LeafletMap|l & objects = [o \\ o <- l.LeafletMap.objects | not (o =: (Window _))]},s)
 	onHtmlEvent _ (l,s) = (l,s)
