@@ -124,11 +124,13 @@ leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 :: LeafletWindowPos = { x :: !Int, y :: !Int }
 
 //Event handlers allow the customization of the map editor behaviour
-:: LeafletEventHandlers s =
-	{ onMapClick    :: LeafletLatLng (LeafletMap,s) -> (LeafletMap,s)
-	, onMarkerClick :: LeafletObjectID (LeafletMap,s) -> (LeafletMap,s)
-	, onHtmlEvent   :: String (LeafletMap,s) -> (LeafletMap,s)
-	}
+:: LeafletEventHandlers s :== [LeafletEventHandler s]
+
+:: LeafletEventHandler s
+	= OnMapClick    (LeafletLatLng (LeafletMap,s) -> (LeafletMap,s))
+	| OnMapDblClick (LeafletLatLng (LeafletMap,s) -> (LeafletMap,s))
+	| OnMarkerClick (LeafletObjectID (LeafletMap,s) -> (LeafletMap,s))
+	| OnHtmlEvent   (String (LeafletMap,s) -> (LeafletMap,s))
 
 //A minimal state for tracking a set of selected markers
 //and the last place that the map was clicked
