@@ -56,11 +56,7 @@ where
 		| if (lastIO =:(Just _))
 				(tNow - fromJust lastIO > options.EngineOptions.sessionTime)
 				((build <> appVersion) || (tNow - createdAt > options.EngineOptions.sessionTime))
-			# (e,iworld) = deleteTaskInstance instanceNo iworld
-			| e=:(Error _) = (e,iworld)
-			# (e,iworld) = modify (\output -> del instanceNo output) taskOutput EmptyContext iworld
-			| e=:(Error _) = (liftError e,iworld)
-			= (Ok (),iworld)
+			= deleteTaskInstance instanceNo iworld
 		| otherwise
 			= (Ok (), iworld)
 

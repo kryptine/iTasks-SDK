@@ -81,17 +81,29 @@ decodeTaskValue (Value enc stable) = maybe NoValue (\dec -> Value dec stable) (f
 decodeTaskValue NoValue = NoValue
 
 allTaskLists :: SDSLens TaskId [TaskMeta] [TaskMeta]
-allTaskLists  = sdsTranslate "allTaskLists" param $ storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
+allTaskLists =
+	mapReadWrite
+		(fromMaybe [], \metas _ -> Just $ if (isEmpty metas) Nothing (Just metas))
+		Nothing
+		(sdsTranslate "allTaskLists" param $ mbStoreShare NS_TASK_INSTANCES False InJSONFile)
 where
 	param (TaskId instanceNo taskNo) = "tasklist-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskValues :: SDSLens TaskId (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
-allTaskValues = sdsTranslate "allTaskValues" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+allTaskValues =
+	mapReadWrite
+		(fromMaybe 'DM'.newMap, \values _ -> Just $ if ('DM'.null values) Nothing (Just values))
+		Nothing
+	(sdsTranslate "allTaskValues" param $ mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 where
 	param (TaskId instanceNo taskNo) = "taskvalues-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskReducts :: SDSLens TaskId (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
-allTaskReducts = sdsTranslate "allTaskReducts" param $ storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+allTaskReducts =
+	mapReadWrite
+		(fromMaybe 'DM'.newMap, \reducts _ -> Just $ if ('DM'.null reducts) Nothing (Just reducts))
+		Nothing
+	(sdsTranslate "allTaskReducts" param $ mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 where
 	param (TaskId instanceNo taskNo) = "taskreducts-"+++toString instanceNo +++ "-" +++toString taskNo
 
@@ -198,22 +210,32 @@ where
 	read (listId,selfId,tfilter,efilter) rows
 		= Ok (listId, map snd $ filter (inFilter tfilter efilter) $ enumerate rows)
 
+	write ::
+		!(!TaskId, !TaskId, !TaskListFilter, !ExtendedTaskListFilter) ![TaskMeta] ![TaskMeta]
+		-> MaybeError TaskException (Maybe [TaskMeta])
 	write (listId,selfId,tfilter,efilter) rows updates
-		= Ok $ Just $ update (inFilter tfilter efilter) (enumerate $ sort rows) (sort updates)
+		= Ok $ Just $ update (inFilter tfilter efilter) (enumerate $ sort rows) (sort updates) []
 	where
-		update pred [(i,o):os] [n:ns]
+		update :: !((Int, TaskMeta) -> Bool) ![(Int, TaskMeta)] ![TaskMeta] ![TaskMeta] -> [TaskMeta]
+		update pred [(i,o):os] [n:ns] acc
 			| o.TaskMeta.taskId == n.TaskMeta.taskId //Potential update
-				| pred (i,o) = [n:update pred os ns] //Only update the item if it matches the filter
-				| otherwise  = [o:update pred os ns]
+				| pred (i,o) = update pred os ns [n: acc] //Only update the item if it matches the filter
+				| otherwise  = update pred os ns [o: acc]
 			| o.TaskMeta.taskId < n.TaskMeta.taskId //The taskId of the old item is not in the written set
-				| pred (i,o) = update pred os [n:ns] //The old item was in the filter, so it was removed
-				| otherwise  = [o:update pred os [n:ns]] //The old item was not in the filter, so it is ok that is not in the written list
+				| pred (i,o) = update pred os [n:ns] acc //The old item was in the filter, so it was removed
+				| otherwise  = update pred os [n:ns] [o: acc] //The old item was not in the filter, so it is ok that is not in the written list
 			| otherwise
-				| pred (-1,n) = [n:update pred [(i,o):os] ns] //New items don't have an index yet
-				| otherwise  = update pred [(i,o):os] ns
-
-		update pred [] ns = [n \\ n <- ns | pred (-1,n)] //All new elements are only added if they are within the filter
-		update pred os [] = [o \\ (i,o) <- os | not (pred (i,o))] //Only keep old elements if they were outside the filter
+				| pred (-1,n) = update pred [(i,o):os] ns [n: acc] //New items don't have an index yet
+				| otherwise  = update pred [(i,o):os] ns acc
+		//All new elements are only added if they are within the filter
+		update pred [] [n: ns] acc
+			| pred (-1, n) = update pred [] ns [n: acc]
+			| otherwise    = update pred [] ns acc
+		//Only keep old elements if they were outside the filter
+		update pred [(i, o): os] [] acc
+			| not $ pred (i, o) = update pred os [] [o: acc]
+			| otherwise         = update pred os [] acc
+		update _ [] [] acc = reverse acc
 
 	notify (plistId,pselfId,ptfilter,pefilter) rows updates ts (qlistId,qselfId,qtfilter,qefilter)
 		| plistId <> qlistId = False //Not the same list
@@ -274,6 +296,9 @@ taskListDynamicValueData = taskIdIndexedStore "taskListDynamicValueData" allTask
 taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
 taskListDynamicTaskData = taskIdIndexedStore "taskListDynamicTaskData" allTaskReducts
 
+taskIdIndexedStore ::
+	!String !(sds TaskId (Map TaskId a) (Map TaskId a))
+	-> SDSLens (TaskId, v10, TaskListFilter, v8) (Map TaskId a) (Map TaskId a) | RWShared sds & TC, JSONEncode{|*|} a
 taskIdIndexedStore name sds = sdsLens name param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing sds
 where
 	param (listId,_,_,_) = listId
@@ -282,9 +307,9 @@ where
 		= Ok $ 'DM'.fromList [value \\ value=:(taskId,_) <- 'DM'.toList values | inFilter tfilter taskId]
 
 	write (listId,selfId,tfilter,efilter) values updates
-		# updates = 'DM'.filterWithKey (\k v -> inFilter tfilter k) updates //Only consider updates that match the filter
-		# selection = 'DM'.filterWithKey (\k v -> inFilter tfilter k) values //Find the orignal selection
-		# deletes = 'DM'.keys $ 'DM'.intersection selection updates //The elements that are in the selecion, but not in the updates should be deleted
+		# updates = 'DM'.filterWithKey (\k _ -> inFilter tfilter k) updates //Only consider updates that match the filter
+		# selection = 'DM'.filterWithKey (\k _ -> inFilter tfilter k) values //Find the orignal selection
+		# deletes = 'DM'.keys $ 'DM'.difference selection updates //The elements that are in the selecion, but not in the updates should be deleted
 		= Ok $ Just $ 'DM'.union updates $ 'DM'.delList deletes values
 
 	//We only use the taskId to select
@@ -434,11 +459,14 @@ where
 	notify (listId,taskId) _ _ _ = True
 	reducer p ws = read p ws
 
-taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task a) (Task a) | iTask a
-taskInstanceParallelTaskListTask
-	= sdsLens "taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify)
-		(Just reducer) taskInstanceParallelTaskListTasks
+taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task DeferredJSON) (Task DeferredJSON)
+taskInstanceParallelTaskListTask =
+	sdsLens
+		"taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer)
+		(sdsTranslate "taskInstanceParallelTaskListTasksDynamic" paramTasks taskListDynamicTaskData)
 where
+	paramTasks (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+
 	param (listId,taskId)
 		= (listId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId]})
 	read p=:(listId,taskId) tasks = case 'DM'.get taskId tasks of
@@ -449,7 +477,7 @@ where
 	reducer p ws = read p ws
 
 //Evaluation state of instances
-localShare :: SDSLens TaskId a a | iTask a
+localShare :: SDSLens TaskId a (Maybe a) | iTask a
 localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) (removeMaybe (Just 'DM'.newMap) taskInstanceShares)
 where
 	param (TaskId instanceNo _) = instanceNo
@@ -459,7 +487,10 @@ where
 			Nothing = Error (exception ("Failed to decode json of local share " <+++ taskId))
 		Nothing
 			= Error (exception ("Could not find local share " <+++ taskId))
-	write taskId shares w = Ok (Just ('DM'.put taskId (DeferredJSON w) shares))
+
+	write taskId shares Nothing  = Ok $ Just $ 'DM'.del taskId shares
+	write taskId shares (Just w) = Ok $ Just $ 'DM'.put taskId (DeferredJSON w) shares
+
 	notify taskId _ = const ((==) taskId)
 	reducer taskId shares = read taskId shares
 
