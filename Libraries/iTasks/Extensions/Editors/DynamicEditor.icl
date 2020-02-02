@@ -586,7 +586,8 @@ where
 	valueCorrespondingToGen editor json = dynamic (fromJSON` editor json)
 	where
 		fromJSON` :: (Editor a) !JSONNode -> a | JSONDecode{|*|} a
-		fromJSON` _ json = fromMaybe (abort "corrupt dynamic editor value") $ fromJSON json
+		fromJSON` _ json =
+			fromMaybe (abort $ corruptValueErrorString ["undecodable JSON ", toString json]) $ fromJSON json
 
 	valueCorrespondingToList :: !Dynamic ![(DynamicConsId, DEVal)] -> Dynamic
 	valueCorrespondingToList funcs args =
@@ -594,7 +595,7 @@ where
 			[] =
 				case funcs of
 					((_, g) :: (a -> b, [b] -> c)) = dynamic g []
-					_ = abort "corrupt dynamic editor valueU"
+					_ = abort "corrupt dynamic editor value"
 			// we have to use the first element to update the type,
 			// the `b` and `c` type variable is required to be equal for all list elements
 			args=:[fst: _] =
@@ -634,6 +635,9 @@ where
 	consesOf :: !DynamicEditorElement -> [(DynamicCons, Maybe String)]
 	consesOf (DynamicCons cons)              = [(cons, Nothing)]
 	consesOf (DynamicConsGroup label conses) = (\cons -> (cons, Just label)) <$> conses
+
+corruptValueErrorString :: ![String] -> String
+corruptValueErrorString errorStrs = concat $ flatten [["Corrupt dynamic editor value: "], errorStrs, [".\n"]]
 
 derive class iTask DynamicEditorValue, DEVal
 derive JSONEncode ConsType
