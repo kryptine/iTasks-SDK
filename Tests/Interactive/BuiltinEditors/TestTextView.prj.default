@@ -2,8 +2,8 @@ Version: 1.5
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestTextView
-	ByteCode:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestTextView.bc
+	Exec:	{Project}*TestTextView
+	ByteCode:	{Project}*TestTextView.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -48,13 +48,12 @@ Global
 		KeepByteCodeSymbols:	True
 		PrelinkByteCode:	True
 	Paths
-		Path:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
-		Path:	{Application}*etc
+		Path:	{Project}
 	Precompile:	
 	Postlink:	
 MainModule
 	Name:	TestTextView
-	Dir:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
+	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False
