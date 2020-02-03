@@ -24,7 +24,7 @@ fileCollection :: FileFilter Bool Bool -> SDSSource FilePath FileCollection File
 fileCollection rules readOnly deleteRemovedFiles = worldShare (read (matchRules rules)) (write readOnly (matchRules rules)) notify
 where
 	read isFileInCollection dir world = case readDirectory dir world of
-		(Error (2,msg),world) = (Ok 'DM'.newMap,world) //Directory does not exist yet
+		(Error (IF_WINDOWS 3 2,msg),world) = (Ok 'DM'.newMap,world) //Directory does not exist yet
 		(Error (errNo,msg),world) = (Error (toString errNo +++ msg),world)
 		(Ok files,world) = case (if deleteRemovedFiles (Ok [],world) (readExcludeList dir world)) of 
 			(Error e, world) = (Error e,world)
@@ -42,7 +42,7 @@ where
 				# intermediate = isFileInCollection f True
 				//Read a subcollection
 				| directory && (decision =: IncludeFile || intermediate =: IncludeFile)
-					= case read (\p i -> (isFileInCollection (f </> p) i)) (dir </> f) world of 
+					= case read (\p i -> (isFileInCollection (f +++ "/" +++ p) i)) (dir </> f) world of
 					(Error e,world) = (Error e,world)
 					(Ok fcollection,world) = case readFiles isFileInCollection excludes dir fs world of
 						(Error e,world) = (Error e,world)
@@ -79,7 +79,7 @@ where
 			(Error e,world) = (Error e,world)
 			(Ok newfiles,world) = cleanupRemovedFiles curfiles newfiles isFileInCollection dir world
 		//The directory does not exist yet, create it first and then write the collection
-		(Error (2,_),world) = case ensureDirectory dir world of
+		(Error (IF_WINDOWS 3 2,_),world) = case ensureDirectory dir world of
 			(Error e,world) = (Error e,world)
 			(Ok (),world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
 				(Error e,world) = (Error e,world)
@@ -104,7 +104,7 @@ where
 			= writeFiles fs isFileInCollection dir world 
 		| otherwise = case ensureDirectory (dir </> name) world of
 			(Error e,world) = (Error e,world)
-			(Ok (),world) = case write False (\p i -> isFileInCollection (name </> p) i) (dir </> name) collection world  of
+			(Ok (),world) = case write False (\p i -> isFileInCollection (name +++ "/" +++ p) i) (dir </> name) collection world  of
 				(Error e,world) = (Error e,world)
 				(Ok (),world) = case writeFiles fs isFileInCollection dir world of
 					(Error e,world) = (Error e,world)

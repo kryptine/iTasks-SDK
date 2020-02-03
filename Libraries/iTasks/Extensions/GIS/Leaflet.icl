@@ -51,6 +51,7 @@ leafletObjectIdOf (Window w)    = w.windowId
     | LDUpdateObject    !LeafletObjectID !LeafletObjectUpdate
 	//Events 
 	| LDMapClick        !LeafletLatLng
+	| LDMapDblClick     !LeafletLatLng
     | LDMarkerClick     !LeafletObjectID
 	| LDHtmlEvent       !String
 
@@ -70,10 +71,10 @@ openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 leafletEditor :: Editor LeafletMap LeafletMap
-leafletEditor = leafEditorToEditor leafletEditor`
+leafletEditor = leafEditorToEditor (leafletEditor` (const id))
 
-leafletEditor` :: LeafEditor [LeafletEdit] LeafletMap LeafletMap LeafletMap
-leafletEditor` =
+leafletEditor` :: !(JSVal *JSWorld -> *JSWorld) -> LeafEditor [LeafletEdit] LeafletMap LeafletMap LeafletMap
+leafletEditor` postInitUI =
 	{ LeafEditor
     | genUI          = withClientSideInit initUI genUI
     , onEdit         = onEdit
@@ -186,13 +187,16 @@ where
             True
 				= world
 			False
-				# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) me world
+				# (cb,world)       = jsWrapFun (onMapDragEnd me) me world
 				# world            = (mapObj .# "addEventListener" .$! ("dragend",cb)) world
-				# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) me world
+				# (cb,world)       = jsWrapFun (onMapZoomEnd me) me world
 				# world            = (mapObj .# "addEventListener" .$! ("zoomend",cb)) world
-				# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) me world
+				# (cb,world)       = jsWrapFun (onMapClick False me) me world
 				# world            = (mapObj .# "addEventListener" .$! ("click",cb)) world
+				# (cb,world)       = jsWrapFun (onMapClick True me) me world
+				# world            = (mapObj .# "addEventListener" .$! ("dblclick",cb)) world
 				= world
+		# world = postInitUI mapObj world
 		= world
 
 	onResize me world
@@ -225,13 +229,13 @@ where
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
-	onMapClick me args world
+	onMapClick double me args world
 		# (taskId,world)    = me .# "attributes.taskId" .? world
 		# (editorId,world)  = me .# "attributes.editorId" .? world
         # (mapObj,world)    = args.[0] .# "target" .? world
         # (clickPos,world)  = args.[0] .# "latlng" .? world
 		# (position,world)  = toLatLng clickPos world
-		# edit              = toJSON [LDMapClick position]
+		# edit              = toJSON [if double LDMapDblClick LDMapClick position]
 		# world             = (me .# "doEditEvent" .$! (taskId,editorId,edit)) world
 		= world
 
@@ -625,7 +629,9 @@ where
 			= forall` (i + 1) len (f i el world)
 
 	//Process the edits received from the client
-	onEdit dp ([], diffs) m vst = (Ok (NoChange, foldl app m diffs,Nothing), vst)
+	onEdit dp ([], diffs) m vst 
+		# m = foldl app m diffs
+		= (Ok (NoChange, m, valueFromState m), vst)
 	where
 		app m (LDSetZoom zoom)          = {LeafletMap|m & perspective = {m.perspective & zoom = zoom}}
 		app m (LDSetCenter center)      = {LeafletMap|m & perspective = {LeafletPerspective| m.perspective & center = center}}
@@ -703,10 +709,9 @@ gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng
 
 simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
 simpleStateEventHandlers = 
-	{ onMapClick = \position (l,s) -> (addCursorMarker position l,{LeafletSimpleState|s & cursor = Just position})
-	, onMarkerClick = \markerId (l,s) -> (l,{LeafletSimpleState|s & selection = toggle markerId s.LeafletSimpleState.selection})
-	, onHtmlEvent = \msg (l,s) -> (l,s)
-	}
+	[ OnMapClick \position (l,s) -> (addCursorMarker position l,{LeafletSimpleState|s & cursor = Just position})
+	, OnMarkerClick \markerId (l,s) -> (l,{LeafletSimpleState|s & selection = toggle markerId s.LeafletSimpleState.selection})
+	]
 where
 	addCursorMarker position l=:{LeafletMap|objects,icons} = {l & objects = addCursorObject objects, icons=addCursorIcon icons}
 	where
@@ -742,36 +747,41 @@ customLeafletEditor` handlers initial =
     , valueFromState = valueFromState
     }
 where
-	genUI attributes datapath mode vst = case leafletEditor`.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
+	baseEditor = leafletEditor` case [h \\ OnMapDblClick h <- handlers] of
+		[_:_] -> \me -> me .# "doubleClickZoom" .# "disable" .$! ()
+		[]    -> const id
+
+	genUI attributes datapath mode vst = case baseEditor.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
 		(Error e, vst) = (Error e, vst)
 		(Ok (ui,mapState),vst) = (Ok (ui,(mapState, initial)),vst)
 
-	onEdit datapath edit (mapState,customState) vst = case leafletEditor`.LeafEditor.onEdit datapath edit mapState vst of
+	onEdit datapath edit (mapState,customState) vst = case baseEditor.LeafEditor.onEdit datapath edit mapState vst of
 		(Error e, vst) = (Error e, vst)
 		(Ok (mapChange,mapState,_), vst) 
 			//Apply event handlers
 			# (newMapState,customState) = updateCustomState handlers datapath edit (mapState,customState)
 			//Determine the change to the map
-		 	= case leafletEditor`.LeafEditor.onRefresh datapath newMapState mapState vst of
+			= case baseEditor.LeafEditor.onRefresh datapath newMapState mapState vst of
 				(Error e, vst) = (Error e, vst)
 				(Ok (mapRefreshChange,mapState,_),vst)	
 					= (Ok (mergeUIChanges mapChange mapRefreshChange, (mapState,customState),Nothing),vst)
 		
 	onRefresh datapath (newMapState,newCustomState) (curMapState,curCustomState) vst
-		 = case leafletEditor`.LeafEditor.onRefresh datapath newMapState curMapState vst of
+		 = case baseEditor.LeafEditor.onRefresh datapath newMapState curMapState vst of
 			(Error e, vst) = (Error e, vst)
 			(Ok (mapChange,mapState,_),vst) = (Ok (mapChange,(mapState,newCustomState),Nothing),vst)	
 
 	valueFromState s = Just s
 
-	updateCustomState {onMapClick,onMarkerClick,onHtmlEvent} datapath (target,edits) state
+	updateCustomState handlers datapath (target,edits) state
 		| target <> datapath = state
-		| otherwise = foldl update state edits
+		| otherwise = foldl (\s e -> foldl (update e) s handlers) state edits
 	where
-		update state (LDMapClick position) = onMapClick position state
-		update state (LDMarkerClick markerId) = onMarkerClick markerId state
-		update state (LDHtmlEvent event) = onHtmlEvent event state
-		update state _ = state
+		update (LDMapClick position)    state (OnMapClick f)    = f position state
+		update (LDMapDblClick position) state (OnMapDblClick f) = f position state
+		update (LDMarkerClick markerId) state (OnMarkerClick f) = f markerId state
+		update (LDHtmlEvent event)      state (OnHtmlEvent f)   = f event state
+		update _                        state _                 = state
 
 instance == LeafletObjectID where (==) (LeafletObjectID x) (LeafletObjectID y) = x == y
 instance == LeafletIconID where (==) (LeafletIconID x) (LeafletIconID y) = x == y

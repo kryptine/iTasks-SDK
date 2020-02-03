@@ -23,7 +23,7 @@ derive gEditor
 	RECORD of {grd_arity} with ex _ _ _,
 	FIELD of {gfd_name} with ex _ _ _
 
-derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
+derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic, {}, {!}
 derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
 
 derive bimap Editor
