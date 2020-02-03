@@ -27,7 +27,7 @@ Global
 			Time:	False
 			Stack:	False
 			Dynamics:	True
-			GenericFusion:	True
+			GenericFusion:	False
 			DescExL:	True
 		Output
 			Output:	ShowConstructors

@@ -2,8 +2,8 @@ Version: 1.5
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestCheckGroupMulti
-	ByteCode:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestCheckGroupMulti.bc
+	Exec:	{Project}*TestCheckGroupMulti
+	ByteCode:	{Project}*TestCheckGroupMulti.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -48,13 +48,12 @@ Global
 		KeepByteCodeSymbols:	True
 		PrelinkByteCode:	True
 	Paths
-		Path:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
-		Path:	{Application}*etc
+		Path:	{Project}
 	Precompile:	
 	Postlink:	
 MainModule
 	Name:	TestCheckGroupMulti
-	Dir:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
+	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False

@@ -2,8 +2,8 @@ Version: 1.5
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestCheckbox
-	ByteCode:	{Application}/Development/iTasks-SDK/Tests/Interactive/BuiltinEditors/TestCheckbox.bc
+	Exec:	{Project}*TestCheckbox
+	ByteCode:	{Project}*TestCheckbox.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -48,13 +48,12 @@ Global
 		KeepByteCodeSymbols:	True
 		PrelinkByteCode:	True
 	Paths
-		Path:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
-		Path:	{Application}*etc
+		Path:	{Project}
 	Precompile:	
 	Postlink:	
 MainModule
 	Name:	TestCheckbox
-	Dir:	{Application}*Development*iTasks-SDK*Tests*Interactive*BuiltinEditors
+	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False
