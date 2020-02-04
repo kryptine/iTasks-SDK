@@ -584,11 +584,13 @@ gEditor{|Dynamic|} = emptyEditorWithErrorInEnterMode "A dynamic value cannot be 
 gEditor{|HtmlTag|} = ignoreEditorWrites htmlView
 
 gEditor{|{}|} gtx jex jdx edx =
+	mapEditorWrite (fmap (\x->{x\\x<-x})) $
 	bijectEditorValue
 	(\x->[x\\x<-:x])
 	(\x->{x\\x<-x})
 	(gEditor{|*->*|} gtx jex jdx edx)
 gEditor{|{!}|} gtx jex jdx edx =
+	mapEditorWrite (fmap (\x->{x\\x<-x})) $
 	bijectEditorValue
 	(\x->[x\\x<-:x])
 	(\x->{x\\x<-x})
