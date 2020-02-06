@@ -10,6 +10,8 @@ import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
 import iTasks.Internal.IWorld
+import iTasks.Internal.TaskEval
+import iTasks.Internal.Util
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
@@ -233,11 +235,27 @@ waitForDateTime datetime
 	= Title "Wait for date and time" @>> Hint ("Wait until " +++ toString datetime) @>> viewSharedInformation [] currentDateTime
 	>>* [OnValue (ifValue (\now -> datetime < now) return)]
 
-waitForTimer :: !Int -> Task DateTime
-waitForTimer interval =
+waitForDateTimeWithoutFeedback :: !DateTime -> Task DateTime
+waitForDateTimeWithoutFeedback datetime =
+	localDateTimeToTimestamp datetime >>- \timestamp ->
+	let
+		timespec = timestampToSpec timestamp
+		param = {start=timespec,interval={tv_sec=1,tv_nsec=0}}
+	in
+	Task (eval param) >>*
+	[OnValue (ifValue ((<=) timespec) \_ -> get currentDateTime)]
+where
+	eval _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	eval param event {taskId,lastEval} iworld
+		# (Ok (ReadingDone now),iworld) = readRegister taskId (sdsFocus param iworldTimespec) iworld
+		= (ValueResult (Value now False) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task (eval param)), iworld)
+
+waitForTimer :: !Bool !Int -> Task DateTime
+waitForTimer updateUI interval =
     get currentTimestamp                                  >>- \(Timestamp now) ->
-    timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
-    waitForDateTime endTime
+    timestampToLocalDateTime (Timestamp (now + interval)) >>-
+    if updateUI waitForDateTime waitForDateTimeWithoutFeedback
 
 dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 dateTimeStampedShare sds

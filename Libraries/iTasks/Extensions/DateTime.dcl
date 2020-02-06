@@ -143,12 +143,13 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 * Task completes after specified amount of time has passed
 * since the creation of the task.
 *
+* @param Whether to show a UI with the current date and time
 * @param The time to wait (in seconds before the task should complete
 *
 * @return The time the timer went off
 * 
 */
-waitForTimer	:: !Int -> Task DateTime
+waitForTimer :: !Bool !Int -> Task DateTime
 
 
 /**

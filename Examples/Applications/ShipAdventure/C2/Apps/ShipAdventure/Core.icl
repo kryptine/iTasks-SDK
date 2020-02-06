@@ -344,7 +344,7 @@ simulateHandlingWithObject startLoc object objectLoc alarmLoc status user
   >>|                   autoMove startLoc objectLoc shipShortestPath user myStatusMap myUserActorMap
   >>= \objectReached -> if objectReached (pickupObject objectLoc object user myUserActorMap inventoryInSectionShare
   >>|                                    autoMove objectLoc alarmLoc shipShortestPath user myStatusMap myUserActorMap
-  >>= \targetReached -> if targetReached (waitForTimer 1
+  >>= \targetReached -> if targetReached (waitForTimer False 1
   >>|                                    useObject alarmLoc object user myUserActorMap inventoryInSectionShare
   >>= \used          -> if used          (setAlarm user (alarmLoc, NormalStatus) myStatusMap @! True)
                                          (return False))

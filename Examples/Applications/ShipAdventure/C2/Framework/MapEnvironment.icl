@@ -599,7 +599,7 @@ autoMove thisSection target pathFun user shipStatusShare userToActorShare
                             >>- \hopLocks  -> get sharedGraph
                             >>- \graph     -> case pathFun thisSection target statusMap exitLocks hopLocks graph of
                                                 Just (path=:[nextSection:_], _)
-                                                  =   waitForTimer 1
+                                                  =   waitForTimer False 1
                                                   >-| move roomCoord nextSection user
                                                   >-| addLog user "" ("Has moved to Section " <+++ nextSection)
                                                   >-| autoMove nextSection target pathFun user shipStatusShare userToActorShare
