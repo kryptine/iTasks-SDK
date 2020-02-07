@@ -378,7 +378,7 @@ where
 
 	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)] [(DynamicConsId, DEVal)]
 	listBuilderEditor ((mapF, _) :: (a -> b, [b] -> c))
-		= mapEditorWrite resultList $ listEditor (Just $ const Nothing) True True Nothing childrenEd`
+		= mapEditorWrite resultList $ listEditor (Just $ const Nothing) True True Nothing (\(cid, val) -> Just $ DynamicEditorValue cid val) childrenEd`
 	where
 		childrenEd  = childrenEditorList mapF
 		childrenEd` =
