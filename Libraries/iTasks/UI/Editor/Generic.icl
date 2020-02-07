@@ -572,8 +572,8 @@ gEditor{|Bool|}
 	$ selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
 gEditor{|[]|} ex _ tjx _
-	= mapEditorWrite (\l -> Just [x \\ Just x <- l])
-	$ listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
+	= mapEditorWriteWithValue (\mbv l -> mbv)
+	$ listEditor_ tjx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) Just ex
 
 gEditor{|()|} = emptyEditorWithDefaultInEnterMode ()
 gEditor{|(->)|} _ _ tjx fjx _ _ tjy fjy =

@@ -215,20 +215,7 @@ where
 	valueFromState mbB _       = mbB
 
 mapEditorWrite :: !(wb -> w) !(Editor a wb) -> Editor a w
-mapEditorWrite fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh}
-	= {Editor| editor & onEdit=onEdit,onRefresh=onRefresh}
-where
-	onEdit dp e st vst = case editorOnEdit dp e st vst of
-		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
-		(Error e,vst) = (Error e,vst)
-
-	onRefresh dp new st vst = case editorOnRefresh dp new st vst of
-		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap fromf mbw),vst)
-		(Error e,vst) = (Error e,vst)
-
-	fmap :: (a -> b) (Maybe a) -> *Maybe b //Stupid inlining of fmap because of need for unique w
-	fmap fromf Nothing = Nothing
-	fmap fromf (Just w) = Just (fromf w)
+mapEditorWrite fromf editor = mapEditorWriteWithValue (\_ w -> fromf w) editor
 
 mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
 mapEditorWriteError fromf editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
@@ -242,6 +229,23 @@ where
 	mbMapFromF (Ok (change, st, Just w), vst)  = case fromf w of
 		(Error e) = (Error e,vst)
 		(Ok w) = (Ok (change, st, Just w), vst) 
+
+mapEditorWriteWithValue :: !((Maybe a) wb -> w) !(Editor a wb) -> Editor a w
+mapEditorWriteWithValue fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
+	= {Editor| editor & onEdit=onEdit,onRefresh=onRefresh}
+where
+	onEdit dp e st vst = case editorOnEdit dp e st vst of
+		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap (fromf $ editorValueFromState st) mbw),vst)
+		(Error e,vst) = (Error e,vst)
+
+	onRefresh dp new st vst = case editorOnRefresh dp new st vst of
+		(Ok (ui,st,mbw),vst) = (Ok (ui,st,fmap (fromf $ editorValueFromState st) mbw),vst)
+		(Error e,vst) = (Error e,vst)
+
+	fmap :: (a -> b) (Maybe a) -> *Maybe b //Stupid inlining of fmap because of need for unique w
+	fmap fromf Nothing = Nothing
+	fmap fromf (Just w) = Just (fromf w)
+
 
 lensEditor :: !(b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
 lensEditor tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}

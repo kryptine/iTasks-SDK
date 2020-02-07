@@ -91,14 +91,13 @@ where
 
 	options = [{ChoiceText|id=i,text=t} \\ t <- labels & i <- [0..]]
 
-listEditor :: (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a w) -> Editor [a] [w]
+listEditor :: (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (a -> w) (Editor a w) -> Editor [a] [w]
             | JSONEncode{|*|} a
-listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} add remove reorder count itemEditor
+listEditor add remove reorder count writeValue itemEditor = listEditor_ JSONEncode{|*|} add remove reorder count writeValue itemEditor
 
-//FIXME: propagate write values 
-listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a w)
+listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (a -> w) (Editor a w)
             -> Editor [a] [w]
-listEditor_ jsonenc add remove reorder count itemEditor = compoundEditorToEditor
+listEditor_ jsonenc add remove reorder count writeValue itemEditor = compoundEditorToEditor
 	{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
@@ -149,13 +148,17 @@ where
 				# changes =  if (index == 1) [(index,toggle 1 False),(index - 1,toggle 1 True)] [] //Update 'move-up' buttons
 						  ++ if (index == num - 1) [(index,toggle 2 True),(index - 1,toggle 2 False)] [] //Update 'move-down' buttons
 						  ++ [(index,MoveChild (index - 1))] //Actually move the item
-				= (Ok (ChangeUI [] changes, (viewMode, swap ids index), swap childSts index, Nothing), vst)
+				# internalSt = (viewMode, swap ids index)
+				# childSts = swap childSts index
+				= (Ok (ChangeUI [] changes, internalSt, childSts, Just (map writeValue $ validChildValues childSts)), vst)
 		| op == "mdn" && reorder
 			| index < 0 || index > (num - 2) = (Error "List move-down out of bounds",vst)
 				# changes =  if (index == 0) [(index,toggle 1 True),(index + 1,toggle 1 False)] [] //Update 'move-up' buttons
                           ++ if (index == num - 2) [(index,toggle 2 False),(index + 1,toggle 2 True)] [] //Update 'move-down' buttons
                           ++ [(index,MoveChild (index + 1))]
-			    = (Ok (ChangeUI [] changes, (viewMode, swap ids (index + 1)), swap childSts (index + 1), Nothing), vst)
+				# internalSt = (viewMode, swap ids (index + 1))
+				# childSts = swap childSts (index + 1)
+			    = (Ok (ChangeUI [] changes, internalSt, childSts, Just (map writeValue $ validChildValues childSts)), vst)
 		| op == "rem" && remove
 			| index < 0 || index >= num = (Error "List remove out of bounds",vst)
 				# childSts   = removeAt index childSts
@@ -165,7 +168,7 @@ where
 				# changes =  if (index == 0 && num > 1) [(index + 1, toggle 1 False)] []
 						  ++ if (index == num - 1 && index > 0) [(index - 1, toggle 2 False)] []
 						  ++ [(index,RemoveChild)] ++ counter
-			= (Ok (ChangeUI [] changes, internalSt, childSts, Nothing), vst)
+			= (Ok (ChangeUI [] changes, internalSt, childSts, Just (map writeValue $ validChildValues childSts)), vst)
 		| op == "add" && add =: (Just _)
 			# f = fromJust add
 			# items = itemEditor.Editor.valueFromState <$> childSts
@@ -183,7 +186,7 @@ where
 					# counter = maybe [] (\f -> [(ni + 1, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
 					# prevdown = if (ni > 0) [(ni - 1,toggle 2 True)] []
 					# change = ChangeUI [] (insert ++ counter ++ prevdown)
-					= (Ok (change, (viewMode, nids), nChildSts, Nothing), vst)
+					= (Ok (change, (viewMode, nids), nChildSts, Just (map writeValue $ validChildValues nChildSts)), vst)
 		= (Ok (NoChange, (viewMode, ids), childSts, Nothing), vst)
 	where
 		swap []	  _		= []
@@ -204,7 +207,8 @@ where
 				(Error e,vst)
 					= (Error e, vst)
 				(Ok (change,nm, _),vst)
-					= (Ok (childChange index change, (viewMode, ids), updateAt index nm childSts, Nothing), vst)
+					# childSts = updateAt index nm childSts
+					= (Ok (childChange index change, (viewMode, ids), childSts, Just (map writeValue $ validChildValues childSts)), vst)
 	where
 		childChange i NoChange = NoChange
 		childChange i change = ChangeUI [] [(i,ChangeChild (ChangeUI [] [(0,ChangeChild change)]))]
@@ -220,12 +224,14 @@ where
 				(Ok (ui, internalSt, childSts),vst) = (Ok (ReplaceUI ui, internalSt, childSts, Nothing), vst)
 				(Error e,vst)                       = (Error e, vst)
 
-    valueFromState _ childSts = valuesFromState childSts []
+    valueFromState _ childSts = valuesFromState childSts [] //Only return a value if all child values are valid
 	where
 		valuesFromState [] acc = Just $ reverse acc
 		valuesFromState [st: sts] acc = case itemEditor.Editor.valueFromState st of
 			Just val = valuesFromState sts [val: acc]
 			_        = Nothing
+
+	validChildValues childSts = [val \\ Just val <- map itemEditor.Editor.valueFromState childSts]
 
 	nextId [] = 0
 	nextId ids = maxList ids + 1

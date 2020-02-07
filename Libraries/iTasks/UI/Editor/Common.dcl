@@ -80,14 +80,15 @@ chooseWithDropdown :: [String] -> Editor Int Int
 * @param Remove:            Can elements be removed?
 * @param Reorder:           Can elements be reordered?
 * @param Summary:           Optionally generates a summary of the list (e.g. the nr of items)
+* @param Write function:    When an element is updated, this functiion provides the conversion to the write type for the other elements
 * @param Children editor:   The editor for the children
 *
 * @return					The list editor
 */
-listEditor :: (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a w) -> Editor [a] [w]
+listEditor :: (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (a -> w) (Editor a w) -> Editor [a] [w]
             | JSONEncode{|*|} a
 
 //Version without overloading, for use in generic case
 //The first argument should be JSONEncode{|*|} which cannot be used by overloading within generic functions
-listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (Editor a w)
+listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([Maybe a] -> Maybe a)) Bool Bool (Maybe ([Maybe a] -> String)) (a -> w) (Editor a w)
             -> Editor [a] [w]

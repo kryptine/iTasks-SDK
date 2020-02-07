@@ -80,6 +80,7 @@ comapEditorValue :: !(b -> a) !(Editor a w) -> Editor b w | JSONEncode{|*|}, JSO
 */
 mapEditorWrite :: !(wb -> w) !(Editor a wb) -> Editor a w
 mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
+mapEditorWriteWithValue :: !((Maybe a) wb -> w) !(Editor a wb) -> Editor a w
 
 /**
 * Select part of a larger datastructure and map writes back
