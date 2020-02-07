@@ -52,7 +52,7 @@ updateSharedEditor :: [UpdateSharedOption r w] -> UpdateSharedOption r w | iTask
 updateSharedEditor [UpdateSharedUsing tof fromf conflictf editor:_] = UpdateSharedUsing tof fromf conflictf editor
 updateSharedEditor [UpdateSharedAs tof fromf conflictf:_] = UpdateSharedUsing tof fromf conflictf gEditor{|*|}
 updateSharedEditor [_:es] = updateSharedEditor es
-updateSharedEditor [] =  UpdateSharedUsingAuto dynid (flip const) (const o Just) gEditor{|*|}
+updateSharedEditor [] =  UpdateSharedUsingAuto id (\_ v -> dynid v) (const o Just) gEditor{|*|}
 where
 	//If r == w then this is just the identity, otherwise the editor will use a default value
 	dynid x = case dynamic id :: A.a: (a -> a) of
@@ -110,20 +110,8 @@ updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | i
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW (lensEditor tof (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor) (mapRead Just sds)
-
-updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds = abort "FIXME: UpdateSharedUsingAuto"
-
-/* //TODO: Fix the 'Auto' choice problem separately
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
-	= interactRW (lensEditor (fromJust o tof) fromf editor) sds
-	interactRW
-		sds (\mbr -> maybe Enter (Update o Just) mbr)
-		{ onInit    = \r   -> maybe Enter Update (tof r)
-		, onRefresh = \r v -> (maybe Nothing (\r` -> conflictf r` v) (tof r), Nothing)
-		}
-		(lensEditor (fromJust o tof) fromf editor) //TODO Should map to a maybe editor instead...
-		@ fst
-*/
+	= interactRW (lensEditor tof (\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr) editor) (mapRead Just sds)
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
