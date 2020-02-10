@@ -4,7 +4,7 @@ import iTasks, iTasks.Util.Testing, Text.HTML
 derive class iTask ChoiceGrid, ChoiceRow
 
 test :: Task (ChoiceGrid,[Int])
-test = testEditor (lensEditor id (\mbcs sel -> Just (Just (maybe (cgrid []) fst mbcs,sel))) grid <<@ multipleAttr True)
+test = testEditor (lensEditor (\_ x -> x) (\mbcs sel -> Just (Just (maybe (cgrid []) fst mbcs,sel))) grid <<@ multipleAttr True)
 	(Update (cgrid rows, []))
 where
 	cgrid rows = {ChoiceGrid|header=["Key","Value"],rows=rows}

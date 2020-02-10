@@ -4,7 +4,7 @@ import iTasks, iTasks.Util.Testing
 derive class iTask ChoiceNode
 
 test :: Task ([ChoiceNode],[Int])
-test = testEditor (lensEditor id (\mbcs sel -> Just (Just (maybe [] fst mbcs,sel))) tree <<@ multipleAttr True)
+test = testEditor (lensEditor (\_ x -> x) (\mbcs sel -> Just (Just (maybe [] fst mbcs,sel))) tree <<@ multipleAttr True)
 	(Update        
 		([{ChoiceNode|id=1,label="A",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
