@@ -46,7 +46,8 @@ where
 		= (\val -> (p, val)) <$> (dynamicCompoundEditor $ editor p).CompoundEditor.valueFromState st childSts
 
 // Bool part of result indicates whether the type is correct, i.e. the child types are matching
-dynamicCompoundEditor :: !(DynamicEditor a) -> CompoundEditor (Maybe (!DynamicConsId, !ConsType, !Bool)) (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
+dynamicCompoundEditor :: !(DynamicEditor a) -> CompoundEditor
+	(Maybe (!DynamicConsId, !ConsType, !Bool)) (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
 dynamicCompoundEditor dynEditor=:(DynamicEditor elements) 
 	| not $ isEmpty duplicateIds
 		= abort $ concat ["duplicate cons IDs in dynamic editor: ", printToString duplicateIds, "\n"]
@@ -185,7 +186,7 @@ where
 				# change             = ChangeUI attrChange childChange
 				# state              = Just (cons.consId, type, True)
 				# childStates        = [builderChooseState: childSts]
-				= (Ok (change, state, childStates, Nothing), vst)
+				= (Ok (change, state, childStates, Just (valueFromState state childStates)), vst)
 			Error e = (Error e, vst)
 
 	// other events targeted directly at this cons
@@ -197,7 +198,7 @@ where
 					if (typeWasInvalid st) removeErrorIconChange []
 				++
 					[(0, ChangeChild $ ChangeUI [] $ removeNChildren $ length childSts)]
-			= (Ok (ChangeUI attrChange childChange, Nothing, [nullState], Nothing), vst)
+			= (Ok (ChangeUI attrChange childChange, Nothing, [nullState], Just Nothing), vst)
 		| otherwise
 			= (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
 
@@ -212,19 +213,16 @@ where
 					= (Error "Edit event for dynamic editor has invalid path", vst)
 				# (E editor) = children !! argIdx
 				= editor.Editor.onEdit (dp ++ [argIdx]) (tp, e) (childSts !! (argIdx + 1)) vst
-/* //FIXME
 			ListCons lbuilder
 				= (listBuilderEditor lbuilder).Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
-
 			CustomEditorCons editor
-				= editor.Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
-*/
+				= (ignoreEditorWrites editor).Editor.onEdit (dp ++ [0]) (tp, e) (childSts !! 1) vst
 		= case res of
 			Ok (change, childSt, _)
 				# childChange = [(0, ChangeChild $ ChangeUI [] [(argIdx + if hideCons 0 1, ChangeChild change)])]
 				# change      = ChangeUI mbErrorIconAttrChange $ childChange ++ mbErrorIconChange
 				// replace state for this child
-				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`, Nothing), vst)
+				= (Ok (change, Just (cid, type, isOk typeIsCorrect), childSts`,Just (valueFromState (Just (cid, type, isOk typeIsCorrect)) childSts`)), vst)
 			where
 				(mbErrorIconChange, mbErrorIconAttrChange) = mbErrorIconUpd
 				mbErrorIconUpd
@@ -376,9 +374,9 @@ where
 			(f :: (a -> b, [b] -> c), _ :: DynamicEditor c) = Just $ ListCons (dynamic f)
 			_                                               = Nothing
 
-	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)] [(DynamicConsId, DEVal)]
+	listBuilderEditor :: !Dynamic -> Editor [(DynamicConsId, DEVal)] (Maybe (DynamicEditorValue a))
 	listBuilderEditor ((mapF, _) :: (a -> b, [b] -> c))
-		= mapEditorWrite resultList $ listEditor (Just $ const Nothing) True True Nothing (\(cid, val) -> Just $ DynamicEditorValue cid val) childrenEd`
+		= ignoreEditorWrites $ listEditor (Just $ const Nothing) True True Nothing (\(cid, val) -> Just $ DynamicEditorValue cid val) childrenEd`
 	where
 		childrenEd  = childrenEditorList mapF
 		childrenEd` =
@@ -386,8 +384,6 @@ where
 				(\(cid, val)                   -> DynamicEditorValue cid val)
 				(\(DynamicEditorValue cid val) -> (cid, val))
 				childrenEd
-
-		resultList l = [(cid,val) \\ Just (DynamicEditorValue cid val) <- l]
 
 		// first argument only used for type
 		childrenEditorList :: (a -> b) -> Editor (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
