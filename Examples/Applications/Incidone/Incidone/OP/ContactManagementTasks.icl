@@ -397,9 +397,9 @@ updateContactPosition contactNo
     >>- \({Contact|name,type,position},baseLayers) ->
         withShared (position,initPerspective position)
         \tmpInfo ->
-        (Title "Position update" @>> Hint ("Update position of contact "<+++ name) @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) (const o Just)] tmpInfo
+        (Title "Position update" @>> Hint ("Update position of contact "<+++ name) @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> Just (x,y)) (const o Just)] tmpInfo
          -||-
-         updateSharedInformation [UpdateSharedAs (toMap baseLayers) (fromMap baseLayers) (const o Just)] tmpInfo
+         updateSharedInformation [UpdateSharedAs (toMap baseLayers) (\x y -> Just (fromMap baseLayers x y)) (const o Just)] tmpInfo
          -||-
           (Hint "Search the web" @>> viewSharedInformation  [ViewAs (toSearchURLs o fst)] tmpInfo)
         ) @ fst
@@ -450,7 +450,7 @@ where
     where
         items = sdsDeref refs id contactsByNosShort (\_ cs -> cs)
         toPrj l = [(contactIdentity c,contactTitle c) \\ c <-l]
-        fromPrj _ items = map fst items
+        fromPrj _ items = Just (map fst items)
 
     addItem
         =   selectKnownOrDefineNewContact
@@ -564,7 +564,7 @@ viewContactsOnMap sharedContacts sel
    >>- \(baseLayers,perspective) ->
        withShared (False,perspective)
        \localState ->
-            Hint "Show AIS contacts:" @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> (x,y)) (const o Just)] localState
+            Hint "Show AIS contacts:" @>> updateSharedInformation [UpdateSharedAs fst (\(_,y) x -> Just (x,y)) (const o Just)] localState
             ||-
             (updateSharedInformation [UpdateSharedAs (toPrj baseLayers) fromPrj (const o Just)] (mapState localState sharedContacts sel)) @ (\(a,b,c) -> (b,c))
             >^* [OnAction (Action "/Share map to wall") (hasValue sharePerspective)
@@ -596,7 +596,7 @@ where
         = toLeafletMap {ContactMap|perspective=perspective,layers=[{title="Contacts",def=CMMarkersLayer (toMarkers sel contacts)}:baseLayers]}
 
     fromPrj (contacts,sel,_) map=:{LeafletMap|perspective}
-        = (maybe sel Just (updateSelection (selectionFromLeafletMap map)),fromLeafletPerspective perspective)
+        = Just (maybe sel Just (updateSelection (selectionFromLeafletMap map)),fromLeafletPerspective perspective)
 
 	selection (Value (Just no,_) stable)	= Value no stable
 	selection _								= NoValue

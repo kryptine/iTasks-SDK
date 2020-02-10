@@ -34,7 +34,7 @@ editWithStatistics
 
 editFile :: String (Shared sds String)  -> Task () | RWShared sds
 editFile fileName sharedFile
-	= Hint ("edit " +++ fileName) @>> updateSharedInformation [UpdateSharedUsing id (const id) (const o Just) (mapEditorWrite Just textArea)] sharedFile @! ()
+	= Hint ("edit " +++ fileName) @>> updateSharedInformation [UpdateSharedUsing id (const Just) (const o Just) (mapEditorWrite Just textArea)] sharedFile @! ()
 
 showStatistics :: (Shared sds String) -> Task () | RWShared sds
 showStatistics sharedFile = Hint "Statistics:" @>> viewSharedInformation [ViewAs stat] sharedFile @! ()

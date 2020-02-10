@@ -20,6 +20,6 @@ calculateSumInRecord
   = 				withShared (0,0)
   (\sum ->			Title "Sum of 2 numbers, with view" @>> updateSharedInformation
   						[UpdateSharedAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)})
-  						          (\_ res -> (res.firstNumber,res.secondNumber)) (const o Just)] sum
+  						          (\_ res -> Just (res.firstNumber,res.secondNumber)) (const o Just)] sum
   )
   >>= \(i,j) ->		return (i+j)

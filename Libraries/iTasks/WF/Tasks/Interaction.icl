@@ -52,7 +52,7 @@ updateSharedEditor :: [UpdateSharedOption r w] -> UpdateSharedOption r w | iTask
 updateSharedEditor [UpdateSharedUsing tof fromf conflictf editor:_] = UpdateSharedUsing tof fromf conflictf editor
 updateSharedEditor [UpdateSharedAs tof fromf conflictf:_] = UpdateSharedUsing tof fromf conflictf gEditor{|*|}
 updateSharedEditor [_:es] = updateSharedEditor es
-updateSharedEditor [] =  UpdateSharedUsingAuto id (\_ v -> dynid v) (const o Just) gEditor{|*|}
+updateSharedEditor [] =  UpdateSharedUsing id (\_ v -> dynid v) (const o Just) gEditor{|*|}
 where
 	//If r == w then this is just the identity, otherwise the editor will use a default value
 	dynid x = case dynamic id :: A.a: (a -> a) of
@@ -108,13 +108,18 @@ updateInformation` (UpdateUsing tof fromf editor) m
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
+/*
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW
 		(lensEditor (\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr) (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
 		(mapRead Just sds)
-updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
+*/
+updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW 
-		(lensEditor (\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr) (\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr) editor)
+		(lensEditor
+			(\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr)
+			(\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr)
+			editor)
 		(mapRead Just sds)
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
@@ -126,7 +131,7 @@ updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> 
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
 	= withShared m \sdsm ->
-	  interactRW (lensEditor (\_ x -> tof x) (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
+	  interactRW (lensEditor (\_ x -> tof x) (\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr) editor)
 		(mapRead Just (sds |*< sdsm)) @ snd
 
 editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a

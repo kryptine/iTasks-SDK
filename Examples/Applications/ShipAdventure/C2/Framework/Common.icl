@@ -88,11 +88,11 @@ mapView` currentUser es = (updateSharedInformation [UpdateSharedAs toMap fromMap
                    | perspective = perspective
                    , markers     = map (entityToMarker o snd) ('DIS'.toList markers)
                    }
-  fromMap :: (MapState, EntityMap) LeafletMap -> (MapState, EntityMap)
+  fromMap :: (MapState, EntityMap) LeafletMap -> Maybe (MapState, EntityMap)
   fromMap (st, entities) leafletMap
     # contactMap = fromLeafletMap leafletMap
     # (es, st) = foldr updMapMarkers (entities, st) contactMap.ContactMap.markers
-    = ({MapState | st & perspective = contactMap.ContactMap.perspective}, es)
+    = Just ({MapState | st & perspective = contactMap.ContactMap.perspective}, es)
   updMapMarkers contactMarker (markers, st)
     # mid = toInt contactMarker.ContactMapMarker.markerId
     = case 'DIS'.get mid markers of
@@ -116,7 +116,7 @@ mapView sh radarWorks currentUser es = (updateSharedInformation [UpdateSharedAs 
   fromMap (st=:{entities}, _) leafletMap
     # contactMap = fromLeafletMap leafletMap
     # (es, st) = foldr updMapMarkers (entities, st) contactMap.ContactMap.markers
-    = {st & perspective = contactMap.ContactMap.perspective, entities = es}
+    = Just {st & perspective = contactMap.ContactMap.perspective, entities = es}
   updMapMarkers contactMarker (markers, st)
     # mid = toInt contactMarker.ContactMapMarker.markerId
     = case 'DIS'.get mid markers of

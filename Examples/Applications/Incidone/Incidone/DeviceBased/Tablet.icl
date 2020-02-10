@@ -37,7 +37,7 @@ where
             toMap baseLayers (perspective,contacts)
                 = toLeafletMap {ContactMap| perspective = perspective, layers = baseLayers ++ [{title="Contacts",def=CMMarkersLayer [contactGeoToMapMarker False False c \\ c=:{ContactGeo|position=Just _} <- contacts]}]}
             fromMap _ {LeafletMap|perspective}
-                = fromLeafletPerspective perspective
+                = Just (fromLeafletPerspective perspective)
         configure "Incident"
             =   Title title @>> enterChoiceWithSharedAs [ChooseFromList bigLabel] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
         configure "Contact"

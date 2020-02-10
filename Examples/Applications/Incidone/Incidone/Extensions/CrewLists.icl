@@ -59,7 +59,7 @@ where
     where
         items = sdsDeref refs snd contactsByNosShort derefAliasList
         toPrj l = [(contactIdentity c, aNo, contactTitle c)\\(aNo,c) <-l]
-        fromPrj _ items = [(aNo,cNo) \\ (cNo,aNo,_) <- items]
+        fromPrj _ items = Just [(aNo,cNo) \\ (cNo,aNo,_) <- items]
 
     addItem
         = (Hint "Enter a number to use when refering to this contact" @>> enterInformation  []

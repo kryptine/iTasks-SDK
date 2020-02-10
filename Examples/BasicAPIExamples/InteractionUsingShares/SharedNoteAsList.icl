@@ -3,7 +3,7 @@ implementation module BasicAPIExamples.InteractionUsingShares.SharedNoteAsList
 // Update a shared note in a text area and as list
 
 import iTasks
-import Text
+import Text, Data.Func
 
 wf :: String -> Workflow
 wf a = workflow a "Edit a shared note as a list" sharedNoteAsList
@@ -23,5 +23,5 @@ where
 		>>=		\result -> Hint "Result:" @>> viewInformation [] result
 		>>=		return
 
-	noteEditor = UpdateSharedUsing id (const id) (const o Just) (ignoreEditorWrites textArea)
-	listEditor = UpdateSharedAs (split "\n") (\_ l -> join "\n" l) (const o Just)
+	noteEditor = UpdateSharedUsing id (const Just) (const o Just) (ignoreEditorWrites textArea)
+	listEditor = UpdateSharedAs (split "\n") (\_ l -> Just $ join "\n" l) (const o Just)

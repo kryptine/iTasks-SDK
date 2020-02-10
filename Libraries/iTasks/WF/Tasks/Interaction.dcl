@@ -31,9 +31,8 @@ from Data.Functor import class Functor
  * If the result is `Nothing` the view is not updated.
  */
 :: UpdateSharedOption a b 
-	= E.v: UpdateSharedAs (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) & iTask v
-	| E.v: UpdateSharedUsing (a -> v) (a v -> b) (v (Maybe v) -> Maybe v) (Editor v (Maybe v)) & iTask v
-	| E.v: UpdateSharedUsingAuto (a -> v) (a v -> Maybe b) (v (Maybe v) -> Maybe v) (Editor v (Maybe v)) & iTask v
+	= E.v: UpdateSharedAs (a -> v) (a v -> Maybe b) (v (Maybe v) -> Maybe v) & iTask v
+	| E.v: UpdateSharedUsing (a -> v) (a v -> Maybe b) (v (Maybe v) -> Maybe v) (Editor v (Maybe v)) & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s

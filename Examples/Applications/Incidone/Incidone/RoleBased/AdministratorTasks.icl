@@ -232,7 +232,7 @@ where
         \perspective -> (Title "Preview" @>> updateSharedInformation [UpdateSharedAs toPrj fromPrj (const o Just)] (perspective >*| standardMapLayers)) <<@ ApplyLayout flexMap @ fst
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
-        fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
+        fromPrj _ {LeafletMap|perspective} = Just (fromLeafletPerspective perspective)
 		flexMap = layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))
 
 configureWebLinks :: Task ()

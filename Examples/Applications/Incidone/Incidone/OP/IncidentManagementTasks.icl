@@ -176,7 +176,7 @@ where
     where
         items = sdsDeref refs id incidentsByNosShort (\_ is -> is)
         toPrj l = [(incidentIdentity i,incidentTitle i) \\i <-l]
-        fromPrj _ items = map fst items
+        fromPrj _ items = Just (map fst items)
 
     addItem
         =   selectKnownOrDefineNewIncident
