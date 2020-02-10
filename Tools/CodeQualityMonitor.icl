@@ -208,7 +208,7 @@ where
 	editSourceCode state
 		= Title "Edit code" @>> updateSharedInformation 
 			[UpdateSharedUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
-                         (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
+                         (\s c -> Just {InspectState|s & lines = split OS_NEWLINE c})
 						 (const o Just)
                          (mapEditorWrite Just aceTextArea)] state
 
