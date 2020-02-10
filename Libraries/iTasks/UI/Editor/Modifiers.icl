@@ -247,14 +247,14 @@ where
 	fmap fromf (Just w) = Just (fromf w)
 
 
-lensEditor :: !(b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+lensEditor :: !((Maybe a) b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
 lensEditor tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= editorModifierWithStateToEditor
 		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst
 		= appFst (fmap (\(ui, st) -> (ui, editModeValue mode, st)))
-	    $ editorGenUI attr dp (mapEditMode tof mode) vst
+	    $ editorGenUI attr dp (mapEditMode (tof Nothing) mode) vst
 
 	onEdit dp event mbB st vst
 		= appFst (fmap (\(ui, st, mbw) -> (ui, mbB, st, modWrite mbB mbw)))
@@ -262,7 +262,7 @@ where
 
 	onRefresh dp newB mbB st vst
 		= appFst (fmap (\(ui, st, mbw) -> (ui, mbB, st, modWrite mbB mbw)))
-		$ editorOnRefresh dp (tof newB) st vst
+		$ editorOnRefresh dp (tof (editorValueFromState st) newB) st vst
 
 	modWrite mbb mbwa = maybe Nothing (fromf mbb) mbwa
 	valueFromState mbB st = mbB

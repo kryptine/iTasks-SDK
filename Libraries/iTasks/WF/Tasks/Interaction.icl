@@ -94,41 +94,45 @@ findSelection target options idxs = target <$> getItems options idxs
 enterInformation :: ![EnterOption m] -> Task m | iTask m
 enterInformation options = enterInformation` (enterEditor options)
 enterInformation` (EnterUsing fromf editor)
-	= withShared Nothing (interactRW (ignoreEditorReads (lensEditor id (\_ mbw -> Just $ fmap fromf mbw) editor)))
+	= withShared Nothing (interactRW (ignoreEditorReads (lensEditor (\_ x -> x) (\_ mbw -> Just $ fmap fromf mbw) editor)))
 
 viewInformation :: ![ViewOption m] !m -> Task m | iTask m
 viewInformation options m = viewInformation` (viewEditor options) m
 viewInformation` (ViewUsing tof editor) m
-	= interactR (lensEditor tof (\_ _ -> Nothing) editor) (constShare (Just m))
+	= interactR (lensEditor (\_ x -> tof x) (\_ _ -> Nothing) editor) (constShare (Just m))
 
 updateInformation :: ![UpdateOption m] m -> Task m | iTask m
 updateInformation options m = updateInformation` (updateEditor options) m
 updateInformation` (UpdateUsing tof fromf editor) m
-	= withShared (Just m) (interactRW (lensEditor tof (\mbm mbv -> maybe Nothing (\m -> Just $ fmap (fromf m) mbv) mbm) editor))
+	= withShared (Just m) (interactRW (lensEditor (\_ x -> tof x) (\mbm mbv -> maybe Nothing (\m -> Just $ fmap (fromf m) mbv) mbm) editor))
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW (lensEditor tof (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor) (mapRead Just sds)
+	= interactRW
+		(lensEditor (\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr) (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
+		(mapRead Just sds)
 updateSharedInformation` (UpdateSharedUsingAuto tof fromf conflictf editor) sds
-	= interactRW (lensEditor tof (\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr) editor) (mapRead Just sds)
+	= interactRW 
+		(lensEditor (\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr) (\mbr mbw -> maybe Nothing (\r -> maybe Nothing (fromf r) mbw) mbr) editor)
+		(mapRead Just sds)
 
 viewSharedInformation :: ![ViewOption r] !(sds () r w) -> Task r | iTask r & TC w & RWShared sds
 viewSharedInformation options sds = viewSharedInformation` (viewEditor options) sds
 viewSharedInformation` (ViewUsing tof editor) sds
-	= interactR (lensEditor tof (\_ _ -> Nothing) editor) (mapRead Just sds)
+	= interactR (lensEditor (\_ x -> tof x) (\_ _ -> Nothing) editor) (mapRead Just sds)
 
 updateInformationWithShared :: ![UpdateSharedOption (r,m) m] !(sds () r w) m -> Task m | iTask r & iTask m & TC w & RWShared sds
 updateInformationWithShared options sds m = updateInformationWithShared` (updateSharedEditor options) sds m
 updateInformationWithShared` (UpdateSharedUsing tof fromf conflictf editor) sds m
 	= withShared m \sdsm ->
-	  interactRW (lensEditor tof (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
+	  interactRW (lensEditor (\_ x -> tof x) (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
 		(mapRead Just (sds |*< sdsm)) @ snd
 
 editSelection :: ![SelectOption c a] c [Int] -> Task [a] | iTask a
 editSelection options container sel = editSelection` (selectAttributes options) (selectEditor options) container sel
 editSelection` attributes (SelectUsing toView fromView editor) container sel
-	= withShared (Just sel) (interactRW (lensEditor (\r -> (toView container,r)) (\_ w -> Just $ Just w) (withAttributes attributes editor)))
+	= withShared (Just sel) (interactRW (lensEditor (\_ r -> (toView container,r)) (\_ w -> Just $ Just w) (withAttributes attributes editor)))
 	@ (fromView container)
 
 editSelectionWithShared :: ![SelectOption c a] (sds () c w) (c -> [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds
@@ -136,20 +140,20 @@ editSelectionWithShared options sharedContainer initSel = editSelectionWithShare
 editSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer initSel
 	= withShared [] \selsds -> let state = sharedContainer |*< selsds in
 		upd (\(c,_) -> initSel c) state //Initialize the selection
-		>-| interactRW (lensEditor (\(c,r) -> (toView c,r)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just state)
+		>-| interactRW (lensEditor (\_ (c,r) -> (toView c,r)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just state)
 	@ (\(container,sel) -> fromView container sel)
 
 editSharedSelection :: ![SelectOption c a] c (Shared sds [Int]) -> Task [a] | iTask c & iTask a & RWShared sds
 editSharedSelection options container sharedSel = editSharedSelection` (selectAttributes options) (selectEditor options) container sharedSel
 editSharedSelection` attributes (SelectUsing toView fromView editor) container sharedSel
-	= interactRW (lensEditor (\r -> (toView container,r)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just sharedSel)
+	= interactRW (lensEditor (\_ r -> (toView container,r)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just sharedSel)
 	@ (fromView container)
 
 editSharedSelectionWithShared :: ![SelectOption c a] (sds1 () c w) (Shared sds2 [Int]) -> Task [a] | iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 editSharedSelectionWithShared options sharedContainer sharedSel
 	= editSharedSelectionWithShared` (selectAttributes options) (selectEditor options) sharedContainer sharedSel
 editSharedSelectionWithShared` attributes (SelectUsing toView fromView editor) sharedContainer sharedSel
-	= interactRW (lensEditor (\(rc,rs) -> (toView rc,rs)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just (sharedContainer |*< sharedSel))
+	= interactRW (lensEditor (\_ (rc,rs) -> (toView rc,rs)) (\_ w -> Just w) (withAttributes attributes editor)) (mapRead Just (sharedContainer |*< sharedSel))
 	@ (\(container,sel) -> fromView container sel)
 
 //Core choice tasks

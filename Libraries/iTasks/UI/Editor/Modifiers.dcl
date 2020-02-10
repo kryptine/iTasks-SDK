@@ -85,7 +85,7 @@ mapEditorWriteWithValue :: !((Maybe a) wb -> w) !(Editor a wb) -> Editor a w
 /**
 * Select part of a larger datastructure and map writes back
 */
-lensEditor :: !(b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+lensEditor :: !((Maybe a) b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
 
 
 
