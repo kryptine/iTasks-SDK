@@ -9,14 +9,14 @@ import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 ligrettoEditor :: !Color -> UpdateSharedOption GameSt GameSt
-ligrettoEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
+ligrettoEditor me = UpdateSharedUsing id (const Just) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
 												})
 
 accoladesEditor :: !Color -> UpdateSharedOption GameSt GameSt
-accoladesEditor me = UpdateSharedUsing id (const id) (const o Just) (fromSVGEditor
+accoladesEditor me = UpdateSharedUsing id (const Just) (const o Just) (fromSVGEditor
 												{ initView    = id
 												, renderImage = const (player_perspective me)
 												, updModel    = const id
