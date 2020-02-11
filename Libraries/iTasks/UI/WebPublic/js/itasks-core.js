@@ -91,7 +91,11 @@ itasks.Component = {
 		me.initDOMEl();
 		//Size the element if explicit sizes are given
 		me.initDOMElSize();
-		//Add the the child renderings 
+		//Render the child elements
+		me.renderChildren();
+	},
+	renderChildren: function() {
+		var me = this;
 		me.children.forEach(function(child) {
 			if(child.domEl) {
 				me.containerEl.appendChild(child.domEl);
@@ -208,18 +212,24 @@ itasks.Component = {
 			return child.init().then(function(){
 				//Add the child to the dom
 				if(child.domEl) {
-					if(isLast) {
-						me.containerEl.appendChild(child.domEl);
-					} else {
-						me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
-					}
+					me.addChildToDOM(child,idx);
 					child.onShow();
 				}
-
 				finish_up();
 			});
 		} else {
 			finish_up();
+		}
+	},
+	//Separate method for inserting the child in the DOM.
+	//This enables subclasses to put some nodes in a different place than in `containerEl`
+	addChildToDOM: function(child, idx) {
+		var me = this,
+			isLast = (idx == me.children.length);
+		if(isLast) {
+			me.containerEl.appendChild(child.domEl);
+		} else {
+			me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
 		}
 	},
 	beforeChildInsert: function(idx,spec) {},
@@ -231,7 +241,7 @@ itasks.Component = {
 		me.beforeChildRemove(idx,child);
 
 		if(me.initialized && child.domEl) {
-			me.containerEl.removeChild(child.domEl);
+			child.domEl.parentNode.removeChild(child.domEl);
 		}
 		me.children.splice(idx,1);	
 		me.afterChildRemove(idx);

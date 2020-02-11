@@ -115,6 +115,43 @@ itasks.Panel = {
 	
 		return el;	
 	},
+	renderChildren: function() {
+		var me = this;
+		me.children.forEach(function(child) {
+			if(child.domEl) {
+				if(child.domEl.classList.contains("itasks-buttonbar") || child.domEl.classList.contains("itasks-toolbar")) {
+					me.domEl.appendChild(child.domEl);
+				} else {
+					me.containerEl.appendChild(child.domEl);
+				}
+			}
+		});
+	},
+	addChildToDOM: function(child, idx) {
+		var me = this;
+		var is_bar = child.domEl.classList.contains("itasks-buttonbar") || child.domEl.classList.contains("itasks-toolbar") ;
+		var container = is_bar ? me.domEl : me.containerEl;
+
+		var insert_before_idx = idx + 1; //The child is already part of the collection, so search from the next element
+		var insert_before_element = null
+
+		while(insert_before_element == null && insert_before_idx < me.children.length) {
+
+			var sibling = me.children[insert_before_idx].domEl;
+			var sibling_is_bar = sibling.classList.contains("itasks-buttonbar") || sibling.classList.contains("itasks-toolbar") ;
+			if ((is_bar && sibling_is_bar) || (!is_bar && !sibling_is_bar)) {
+				insert_before_element = sibling;
+			} else {
+				insert_before_idx++;
+			}
+		}
+		if(insert_before_element == null) {
+			container.appendChild(child.domEl);
+		} else {
+			container.insertBefore(child.domEl, insert_before_element);
+		}
+	},
+
 	setTitle(title) {
 		var me = this;
 		if(me.headerEl != null) {
@@ -324,7 +361,7 @@ itasks.TabSet = {
 	}
 }
 
-itasks.Window = {
+itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
 	cssCls: 'window',
 	attributes: {
 		movable: true,
@@ -422,7 +459,8 @@ itasks.Window = {
         window.removeEventListener('mousemove', me.onDragging_);
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
-};
+});
+
 itasks.ToolBar  = {
 	cssCls: 'toolbar'
 };
