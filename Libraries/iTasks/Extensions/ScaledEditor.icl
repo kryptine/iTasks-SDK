@@ -5,8 +5,8 @@ import Text.HTML, Text.GenJSON, Data.Error, Data.Func
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Modifiers
-import iTasks.UI.JavaScript
 import iTasks.Internal.Serialization
+import ABC.Interpreter.JavaScript
 import qualified Data.Map as DM
 
 //Basic idea:

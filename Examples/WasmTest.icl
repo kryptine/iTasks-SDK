@@ -2,7 +2,7 @@ module WasmTest
 
 import StdEnv
 import iTasks
-import iTasks.UI.JavaScript
+import ABC.Interpreter.JavaScript
 
 // This is a simple test program to try out things with the WebAssembly ABC interpreter.
 

@@ -4,10 +4,11 @@ import StdEnv
 import Data.Maybe, Data.Functor, Data.Tuple, Data.Func, Data.Error
 import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
-import iTasks.UI.Definition, iTasks.WF.Definition, iTasks.UI.JavaScript
+import iTasks.UI.Definition, iTasks.WF.Definition
 import qualified Data.Map as DM
 import Text, Text.GenJSON
 import Data.GenEq
+import ABC.Interpreter.JavaScript
 
 derive JSONEncode EditState, LeafState, EditMode
 derive JSONDecode EditState, LeafState, EditMode
@@ -153,7 +154,7 @@ withClientSideInit ::
 	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt| taskId} = case genUI attr dp val vst of
 	(Ok (UI type attr items,mask),vst)
-		# (initUI, vst) = serializeForClient (wrapInitUIFunction initUI) vst
+		# (initUI, vst) = serializeForClient (wrapInitFunction initUI) vst
 		# extraAttr = 'DM'.fromList
 			[("taskId",  JSONString taskId)
 			,("editorId",JSONString (editorId dp))

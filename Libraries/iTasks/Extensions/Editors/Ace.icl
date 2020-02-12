@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.Editors.Ace
 
 import iTasks
 import iTasks.UI.Editor, iTasks.UI.Editor.Modifiers, iTasks.UI.Definition
-import iTasks.UI.JavaScript
+import ABC.Interpreter.JavaScript
 import qualified Data.Map as DM
 import Data.Func, StdArray
 

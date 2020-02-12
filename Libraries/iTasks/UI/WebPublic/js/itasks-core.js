@@ -1,6 +1,17 @@
 //Global itasks namespace
 itasks = {};
 
+const ABC_loading_promise=ABCInterpreter.instantiate({
+	bytecode_path: '/js/app.pbc',
+
+	heap_size: 8<<20,
+	stack_size: 512<<10,
+
+	encoding: 'utf-8',
+
+	with_js_ffi: true,
+}).then(instance => { itasks.ABC=instance; });
+
 //Auxiliary definitions for sending Maybe values to server
 const Nothing = ["Nothing"];
 function Just(x) { return["Just", x]; }
@@ -44,10 +55,10 @@ itasks.Component = {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			return ABC_loading_promise.then(function(){
-				var initUI=ABC.deserialize(atob(me.attributes.initUI));
-				var ref=ABC.share_clean_value(initUI,me);
-				ABC.interpret(new SharedCleanValue(ref), [me, ABC.initialized ? 0 : 1]);
-				ABC.clear_shared_clean_value(ref);
+				var initUI=itasks.ABC.deserialize(atob(me.attributes.initUI));
+				var ref=itasks.ABC.share_clean_value(initUI,me);
+				itasks.ABC.interpret(new SharedCleanValue(ref), [me, itasks.ABC.initialized ? 0 : 1]);
+				itasks.ABC.clear_shared_clean_value(ref);
 			});
 		}
 	},
@@ -280,7 +291,7 @@ itasks.Component = {
 
 		if (this.shared_clean_values!=null) {
 			// garbage collect any remaining values shared with wasm
-			this.shared_clean_values.forEach(ref => ABC.clear_shared_clean_value(ref,false));
+			this.shared_clean_values.forEach(ref => itasks.ABC.clear_shared_clean_value(ref,false));
 			this.shared_clean_values.clear();
 		}
 

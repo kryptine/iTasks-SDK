@@ -1,13 +1,14 @@
 implementation module iTasks.Extensions.GIS.Leaflet
 
 import iTasks
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
+import iTasks.UI.Definition, iTasks.UI.Editor
 import StdMisc, Data.Tuple, Data.Error, Data.Func, Text, Data.Functor
 import qualified Data.Map as DM
 //from Text.HTML import instance toString HtmlTag, instance toString SVGElt
 import Text.HTML
 from Text.Encodings.Base64 import base64Encode
 from iTasks.UI.Editor.Common import diffChildren, :: ChildUpdate (..)
+import ABC.Interpreter.JavaScript
 import StdArray
 
 LEAFLET_JS           :== "/leaflet-1.3.4/leaflet.js"
