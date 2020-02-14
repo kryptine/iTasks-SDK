@@ -11,7 +11,7 @@ dynamicEditor dynEditor = compoundEditorToEditor $ dynamicCompoundEditor dynEdit
 
 parametrisedDynamicEditor ::
 	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) (Maybe (!p, !DynamicEditorValue a)) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
-parametrisedDynamicEditor editor = 
+parametrisedDynamicEditor editor =
 	compoundEditorToEditor
 		{CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
@@ -48,7 +48,7 @@ where
 // Bool part of result indicates whether the type is correct, i.e. the child types are matching
 dynamicCompoundEditor :: !(DynamicEditor a) -> CompoundEditor
 	(Maybe (!DynamicConsId, !ConsType, !Bool)) (DynamicEditorValue a) (Maybe (DynamicEditorValue a)) | TC a
-dynamicCompoundEditor dynEditor=:(DynamicEditor elements) 
+dynamicCompoundEditor dynEditor=:(DynamicEditor elements)
 	| not $ isEmpty duplicateIds
 		= abort $ concat ["duplicate cons IDs in dynamic editor: ", printToString duplicateIds, "\n"]
 	= {CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
@@ -201,7 +201,6 @@ where
 			= (Ok (ChangeUI attrChange childChange, Nothing, [nullState], Just Nothing), vst)
 		| otherwise
 			= (Error $ concat ["Unknown dynamic editor select event: '", toString e, "'"], vst)
-
 
 	// update is targeted somewhere inside this value
 	onEdit dp ([argIdx: tp], e) (Just (cid, type, typeWasCorrect)) childSts vst
@@ -459,7 +458,6 @@ where
 		argOf (TypeScheme _ type)         = argOf type
 	// only function conses can have not matching child types
 	childTypesAreMatching _ _ = Ok ()
-
 
 valueCorrespondingTo :: !(DynamicEditor a) !(DynamicEditorValue a) -> a | TC a
 valueCorrespondingTo  dynEditor dynEditorValue = case valueCorrespondingToDyn dynEditor dynEditorValue of

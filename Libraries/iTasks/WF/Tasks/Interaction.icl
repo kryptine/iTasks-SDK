@@ -108,12 +108,6 @@ updateInformation` (UpdateUsing tof fromf editor) m
 
 updateSharedInformation :: ![UpdateSharedOption r w] !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 updateSharedInformation options sds = updateSharedInformation` (updateSharedEditor options) sds
-/*
-updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
-	= interactRW
-		(lensEditor (\mbr r -> let r` = tof r in fromMaybe r` $ conflictf r` mbr) (\mbr mbw -> maybe Nothing (\r -> fmap (fromf r) mbw) mbr) editor)
-		(mapRead Just sds)
-*/
 updateSharedInformation` (UpdateSharedUsing tof fromf conflictf editor) sds
 	= interactRW 
 		(lensEditor

@@ -271,7 +271,7 @@ where
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
- 	//serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s, Maybe (Maybe s)), !*VSt) | gText{|*|} s
+	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!ClientToServerMsg s) !(ServerSVGState s) !*VSt -> (!*MaybeErrorString (!UIChange,!ServerSVGState s,*Maybe (Maybe s)), !*VSt) | gText{|*|} s
   	serverHandleEditFromClient svglet _ (_,ClientHasNewModel new) mask=:{ServerSVGState | fonts,texts} vst
   	  #! (set_attrs,mask,vst) = serverHandleModel svglet {ServerSVGState | mask & model=new} False vst
   	  = trace_n` ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
@@ -295,7 +295,7 @@ where
 
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
-	//serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!MaybeErrorString (!UIChange,!ServerSVGState s, Maybe (Maybe s)), !*VSt) | gEq{|*|} s
+	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !(ServerSVGState s) !*VSt -> (!*MaybeErrorString (!UIChange,!ServerSVGState s,*Maybe (Maybe s)), !*VSt) | gEq{|*|} s
 	serverHandleEditFromContext svglet _ new mask=:{ServerSVGState | model=old,fonts,texts} vst
   	| gEq{|*|} old new
   		= (Ok (NoChange,mask,Nothing),vst)

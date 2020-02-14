@@ -96,7 +96,7 @@ where
 
 	onRefresh dp new st vst=:{VSt| optional}
 		| st === Just new = (Ok (NoChange, st, Nothing), vst)
-		| otherwise       = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [], (Just new), unique (Just new)), vst)
+		| otherwise       = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [], (Just new), Just new), vst)
 
 	valueFromState s = s
 

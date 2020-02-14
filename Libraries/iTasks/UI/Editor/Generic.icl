@@ -116,7 +116,7 @@ where
 					= (Error e, vst)
 		| otherwise
 			= case exOnRefresh (pairPath grd_arity dp) new (toPairState $ CompoundState JSONNull childSts) {VSt|vst & optional = False} of
-				(Ok (change, childSt,_ ),vst)
+				(Ok (change, childSt, _),vst)
 					= (Ok (fromPairChange 0 grd_arity change, (viewMode, optional), fromPairState grd_arity childSt, Nothing), vst)
 				(Error e,vst)
 					= (Error e, vst)
@@ -311,17 +311,18 @@ where
 	valueFromState (True,  _) [childSt] = RIGHT <$> ey.Editor.valueFromState childSt
 	valueFromState _          _         = Nothing
 
-    attachInfoToGenUIChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState), !*VSt)
-	                        -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState]), !*VSt)
+	attachInfoToGenUIChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState), !*VSt)
+	                             -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState]), !*VSt)
 	attachInfoToGenUIChildResult isRight viewMode (res, vst) =
 		((\(ui, childSt) -> (ui, (isRight, viewMode), [childSt])) <$> res, vst)
 
-    attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState, !Maybe w), !*VSt)
+	attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState, !Maybe w), !*VSt)
 	                        -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState], !Maybe w), !*VSt)
 	attachInfoToChildResult isRight viewMode (res, vst) =
 		((\(ui, childSt, mbw) -> (ui, (isRight, viewMode), [childSt], mbw)) <$> res, vst)
 
-    fmapChildResult :: (a -> b) !(!MaybeErrorString (!ui, !EditState, !Maybe (Maybe a)), !*VSt) -> *(!MaybeErrorString (ui, EditState, Maybe (Maybe b)), !*VSt)
+	fmapChildResult :: (a -> b) !(!MaybeErrorString (!ui, !EditState, !Maybe (Maybe a)), !*VSt)
+	                -> *(!MaybeErrorString (ui, EditState, Maybe (Maybe b)), !*VSt)
 	fmapChildResult f (res,vst) = ((\(ui, st, mbw) -> (ui, st, fmap (fmap f) mbw)) <$> res,vst)
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,valueFromState=exValueFromState} _ _ _
@@ -448,7 +449,7 @@ where
 			          ( ReplaceUI $ UI type ('DM'.union (optionalAttr True) attr) items
 			          , (True, viewMode)
 			          , [childSt]
-					  , Nothing
+			          , Nothing
 			          )
 			       ) <$> ui
 			= (ui, {vst & optional = optional})

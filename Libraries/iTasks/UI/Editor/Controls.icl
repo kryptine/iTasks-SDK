@@ -159,7 +159,7 @@ where
 		= (Ok (uia type attr, (mbVal, attr)), vst)
 
 	onEdit _ (_, mbVal) (_, attrs) vst
-		= (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), unique (Just mbVal`)), vst)
+		= (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), Just mbVal`), vst)
 	where
 		(mbVal`, valJSON) = case mbVal of
 			Just val | isValid attrs val = (Just val, toJSON val)
@@ -219,7 +219,7 @@ where
 	onEdit dp (tp, selection) (mbVal, sel, multiple) vst=:{VSt|optional}
 		# options = maybe [] getOptions mbVal
 		| all (checkBounds options) selection
-			= (Ok (NoChange, (mbVal, selection, multiple), unique (Just selection)),vst)
+			= (Ok (NoChange, (mbVal, selection, multiple), Just selection),vst)
 		| otherwise
 			= (Error ("Choice event out of bounds: " +++ toString (toJSON selection)), vst)
 
@@ -245,8 +245,3 @@ where
 	valueFromState _               = Nothing
 
 	mbValToOptions mbVal = toOption <$> maybe [] getOptions mbVal
-
-unique:: (Maybe a) -> *(Maybe a)
-unique (Just x) = Just x
-unique Nothing = Nothing
-

@@ -51,7 +51,7 @@ where
 				= (Ok (ChangeUI [] [(i,ChangeChild change)], viewMode, updateAt i ist childSts, fmap (\w -> [(i,w)]) mbw),vst)
 
 	onRefresh dp new viewMode childSts vst = case onRefreshAll dp 0 new childSts vst of
-		(Error e, vst)                = (Error e,vst)
+		(Error e, vst)                   = (Error e,vst)
 		(Ok ([], childSts,ws), vst)      = (Ok (NoChange, viewMode, childSts, if (ws =:[]) Nothing (Just ws)),vst)
         (Ok (changes, childSts,ws), vst) = (Ok (ChangeUI [] changes, viewMode, childSts, if (ws =:[]) Nothing (Just ws)),vst)
 	where
@@ -59,12 +59,12 @@ where
 			 = case onRefresh_a (dp ++ [i]) n st vst of
 				(Error e, vst) = (Error e, vst)
 				(Ok (c, st, mbw),vst) = case onRefreshAll dp (i + 1) ns sts vst of
-					(Error e,     vst) = (Error e, vst)
+					(Error e,        vst) = (Error e, vst)
 					(Ok (cs, sts,ws),vst) = (Ok ([(i,ChangeChild c):cs],[st: sts],ws ++ maybe [] (\w -> [(i,w)]) mbw), vst)
 
 		onRefreshAll dp i ns [] vst //There are new elements in the list
 			= case genUIAll viewMode dp i ns vst of
-				(Error e,vst)    = (Error e,vst)
+				(Error e,vst)      = (Error e,vst)
 				(Ok (us, sts),vst) = (Ok ([(n,InsertChild u) \\ u <- us & n <- [i..]], sts,[]),vst)
 
 		onRefreshAll dp i [] sts vst //Elements have been removed from the list
@@ -105,7 +105,7 @@ where
 				= (Ok (ChangeUI [] [(i,ChangeChild change)],viewMode,updateAt i ist childSts,fmap (\w -> [(i,w)]) mbw), vst)
 
 	onRefresh dp new viewMode childSts vst = case onRefreshAll 0 editors dp new childSts vst of
-		(Error e, vst)                = (Error e, vst)
+		(Error e, vst)                 = (Error e, vst)
 		(Ok ([],childSts,ws),vst)      = (Ok (NoChange,viewMode,childSts,if (ws =:[]) Nothing (Just ws)),vst)
 		(Ok (changes,childSts,ws),vst) = (Ok (ChangeUI [] changes,viewMode,childSts,if (ws =:[]) Nothing (Just ws)),vst)
 	where
@@ -113,7 +113,7 @@ where
 			 = case ed.Editor.onRefresh (dp ++ [i]) n st vst of
 				(Error e,vst) = (Error e,vst)
 				(Ok (c,st,mbw),vst) = case onRefreshAll (i + 1) eds dp ns sts vst of
-					(Error e,vst)     = (Error e,vst)
+					(Error e,vst)        = (Error e,vst)
 					(Ok (cs,sts,ws),vst) = (Ok ([(i,ChangeChild c):cs],[st:sts],ws ++ maybe [] (\w -> [(i,w)]) mbw),vst)
 
 		//There are new elements in the list
@@ -146,13 +146,13 @@ where
 		(Ok (ui1,mask1),vst) = (Ok (UI type attr [ui1], (), [mask1]),vst)
 
 	onEdit dp ([0:tp],e) _ [m1] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)              = (Error e,vst)
 		(Ok (NoChange,m1,mbw),vst) = (Ok (NoChange, (), [m1],mbw),vst)
 		(Ok (c1,m1,mbw),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1],mbw),vst)
 	onEdit _ _ _ _ vst = (Error "Event route out of range",vst)
 
 	onRefresh dp new _ [m1] vst = case onRefresh_a (dp ++ [0]) new m1 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)              = (Error e,vst)
 		(Ok (NoChange,m1,mbw),vst) = (Ok (NoChange, (), [m1], mbw),vst)
 		(Ok (c1,m1,mbw),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1], mbw),vst)
 
@@ -174,15 +174,15 @@ where
 			(Ok (ui2,m2),vst) = (Ok (UI type attr [ui1,ui2], (), [m1,m2]),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m1,mbw1),vst) = (Ok (NoChange, (), [m1,m2], fmap (\w -> (Just w,Nothing)) mbw1),vst)
 		(Ok (c1,m1,mbw1),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1,m2], fmap (\w -> (Just w,Nothing)) mbw1),vst)
 
 	onEdit dp ([1:tp],e) _ [m1,m2] vst = case onEdit_b (dp ++ [1]) (tp,e) m2 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m2,mbw2),vst) = (Ok (NoChange, (), [m1,m2], fmap (\w -> (Nothing,Just w)) mbw2),vst)
 		(Ok (c2,m2,mbw2),vst)       = (Ok (ChangeUI [] [(1,ChangeChild c2)], (), [m1,m2], fmap (\w -> (Nothing,Just w)) mbw2),vst)
-	onEdit _ _ _ _ vst           = (Error "Event route out of range",vst)
+	onEdit _ _ _ _ vst              = (Error "Event route out of range",vst)
 	
 	onRefresh dp (n1,n2) _ [m1,m2] vst
 		= case onRefresh_a (dp ++ [0]) n1 m1 vst of
@@ -217,17 +217,17 @@ where
 				(Ok (ui3,m3),vst) =(Ok (UI type attr [ui1,ui2,ui3], (), [m1,m2,m3]),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m1,mbw1),vst) = (Ok (NoChange, (), [m1,m2,m3], fmap (\w -> (Just w,Nothing,Nothing)) mbw1),vst)
 		(Ok (c1,m1,mbw1),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1,m2,m3], Nothing),vst)
 
 	onEdit dp ([1:tp],e) _ [m1,m2,m3] vst = case onEdit_b (dp ++ [1]) (tp,e) m2 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m2,mbw2),vst) = (Ok (NoChange, (), [m1,m2,m3], Nothing),vst)
 		(Ok (c2,m2,mbw2),vst)       = (Ok (ChangeUI [] [(1,ChangeChild c2)], (), [m1,m2,m3], fmap (\w -> (Nothing,Just w,Nothing)) mbw2),vst)
 
 	onEdit dp ([2:tp],e) _ [m1,m2,m3] vst = case onEdit_c (dp ++ [2]) (tp,e) m3 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m3,mbw3),vst) = (Ok (NoChange, (), [m1,m2,m3], Nothing),vst)
 		(Ok (c3,m3,mbw3),vst)       = (Ok (ChangeUI [] [(2,ChangeChild c3)], (), [m1,m2,m3], fmap (\w -> (Nothing,Nothing,Just w)) mbw3),vst)
 
@@ -269,22 +269,22 @@ where
 					(Ok (ui4,m4),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4], (), [m1,m2,m3,m4]),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3,m4] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m1,mbw1),vst) = (Ok (NoChange, (), [m1,m2,m3,m4], fmap (\w -> (Just w,Nothing,Nothing,Nothing)) mbw1),vst)
 		(Ok (c1,m1,mbw1),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1,m2,m3,m4], fmap (\w -> (Just w,Nothing,Nothing,Nothing)) mbw1),vst)
 
 	onEdit dp ([1:tp],e) _ [m1,m2,m3,m4] vst = case onEdit_b (dp ++ [1]) (tp,e) m2 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m2,mbw2),vst) = (Ok (NoChange, (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Just w,Nothing,Nothing)) mbw2),vst)
 		(Ok (c2,m2,mbw2),vst)       = (Ok (ChangeUI [] [(1,ChangeChild c2)], (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Just w,Nothing,Nothing)) mbw2),vst)
 
 	onEdit dp ([2:tp],e) _ [m1,m2,m3,m4] vst = case onEdit_c (dp ++ [2]) (tp,e) m3 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m3,mbw3),vst) = (Ok (NoChange, (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Nothing,Just w,Nothing)) mbw3),vst)
 		(Ok (c3,m3,mbw3),vst)       = (Ok (ChangeUI [] [(2,ChangeChild c3)], (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Nothing,Just w,Nothing)) mbw3),vst)
 
 	onEdit dp ([3:tp],e) _ [m1,m2,m3,m4] vst = case onEdit_d (dp ++ [3]) (tp,e) m4 vst of
-		(Error e,vst)            = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m4,mbw4),vst) = (Ok (NoChange, (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Nothing,Nothing,Just w)) mbw4),vst)
 		(Ok (c4,m4,mbw4),vst)       = (Ok (ChangeUI [] [(3,ChangeChild c4)], (), [m1,m2,m3,m4], fmap (\w -> (Nothing,Nothing,Nothing,Just w)) mbw4),vst)
 
@@ -333,27 +333,27 @@ where
 						(Ok (ui5,m5),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4,ui5], (), [m1,m2,m3,m4,m5]),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
-		(Error e,vst)          = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m1,mbw1),vst) = (Ok (NoChange, (), [m1,m2,m3,m4,m5],fmap (\w -> (Just w,Nothing,Nothing,Nothing,Nothing)) mbw1),vst)
 		(Ok (c1,m1,mbw1),vst)       = (Ok (ChangeUI [] [(0,ChangeChild c1)], (), [m1,m2,m3,m4,m5],fmap (\w -> (Just w,Nothing,Nothing,Nothing,Nothing)) mbw1),vst)
 
 	onEdit dp ([1:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_b (dp ++ [1]) (tp,e) m2 vst of
-		(Error e,vst)          = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m2,mbw2),vst) = (Ok (NoChange, (), [m1,m2,m3,m4,m5],fmap (\w -> (Nothing,Just w,Nothing,Nothing,Nothing)) mbw2),vst)
 		(Ok (c2,m2,mbw2),vst)       = (Ok (ChangeUI [] [(1,ChangeChild c2)], (), [m1,m2,m3,m4,m5],fmap (\w -> (Nothing,Just w,Nothing,Nothing,Nothing)) mbw2),vst)
 
 	onEdit dp ([2:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_c (dp ++ [2]) (tp,e) m3 vst of
-		(Error e,vst)          = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m3,mbw3),vst) = (Ok (NoChange, (), [m1,m2,m3,m4,m5],fmap (\w -> (Nothing,Nothing,Just w,Nothing,Nothing)) mbw3),vst)
 		(Ok (c3,m3,mbw3),vst)       = (Ok (ChangeUI [] [(2,ChangeChild c3)], (), [m1,m2,m3,m4,m5],fmap (\w -> (Nothing,Nothing,Just w,Nothing,Nothing)) mbw3),vst)
 
 	onEdit dp ([3:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_d (dp ++ [3]) (tp,e) m4 vst of
-		(Error e,vst)          = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m4,mbw4),vst) = (Ok (NoChange, (), [m1,m2,m3,m4,m5], fmap (\w -> (Nothing,Nothing,Nothing,Just w,Nothing)) mbw4),vst)
 		(Ok (c4,m4,mbw4),vst)       = (Ok (ChangeUI [] [(3,ChangeChild c4)], (), [m1,m2,m3,m4,m5], fmap (\w -> (Nothing,Nothing,Nothing,Just w,Nothing)) mbw4),vst)
 
 	onEdit dp ([4:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_e (dp ++ [4]) (tp,e) m5 vst of
-		(Error e,vst)          = (Error e,vst)
+		(Error e,vst)               = (Error e,vst)
 		(Ok (NoChange,m5,mbw5),vst) = (Ok (NoChange, (), [m1,m2,m3,m4,m5], fmap (\w -> (Nothing,Nothing,Nothing,Nothing,Just w)) mbw5),vst)
 		(Ok (c5,m5,mbw5),vst)       = (Ok (ChangeUI [] [(4,ChangeChild c5)], (), [m1,m2,m3,m4,m5], fmap (\w -> (Nothing,Nothing,Nothing,Nothing,Just w)) mbw5),vst)
 
@@ -401,15 +401,15 @@ where
 						(Ok (uiField, stField),vst)
 							 = (Ok (UI type attr [uiSelector, uiField], mode =: View _, [stSelector, stField]),vst)
 	
-	//Handle choice changes 
+	//Handle choice changes
 	onEdit dp ([0:tp],choiceEdit) viewMode st=:[stateSelector:optStateField] vst
 		= case choiceEditorOnEdit (dp ++ [0]) (tp,choiceEdit) stateSelector vst of
 			(Error e,vst) = (Error e,vst)
 			(Ok (choiceUIChange,stateSelector,_),vst)
 				# (Just currentChoice, val) = valAndChoiceFromState st
-                # mbNewChoice = choiceEditorValueFromState stateSelector
+				# mbNewChoice = choiceEditorValueFromState stateSelector
 				//Based on the effect of the selection change we may need to update the field editor
-                = case (optStateField, mbNewChoice) of
+				= case (optStateField, mbNewChoice) of
 					//Previously no choice was made, but now a choice (within the bounds) has been made
 					//-> create an initial UI
 					([], Just newChoice) | newChoice >= 0 && newChoice < length fieldEditors
@@ -421,7 +421,7 @@ where
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
 								= (Ok (change,viewMode,[stateSelector, stateField], Just (Left newChoice)), vst)
 					//Previously no choice was made and still no choice has been made
-                    ([], _)
+					([], _)
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
 						= (Ok (change,viewMode,[stateSelector], Nothing), vst)
 					//A new choice (within the bounds) has been made

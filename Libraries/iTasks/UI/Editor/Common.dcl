@@ -80,7 +80,7 @@ chooseWithDropdown :: [String] -> Editor Int Int
 * @param Remove:            Can elements be removed?
 * @param Reorder:           Can elements be reordered?
 * @param Summary:           Optionally generates a summary of the list (e.g. the nr of items)
-* @param Write function:    When an element is updated, this functiion provides the conversion to the write type for the other elements
+* @param Write function:    When an element is updated, this function provides the conversion to the write type for the other elements
 * @param Children editor:   The editor for the children
 *
 * @return					The list editor
