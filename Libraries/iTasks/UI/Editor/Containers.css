@@ -35,10 +35,12 @@
 	grid-template-areas:
 		"ls ts rs"
 		"ls header rs"
+		"ls toolbars rs"
 		"ls inner rs"
+		"ls buttonbars rs"
 		"ls bs rs";
 
-	grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
+	grid-template-rows: min-content min-content min-content minmax(0, 1fr) min-content min-content;
 	grid-template-columns: min-content 1fr min-content;
 
 	flex-grow: 1;
@@ -65,12 +67,17 @@
 	flex-direction: column;
 	align-items: flex-start;
 }
-
+.itasks-panel > .itasks-buttonbar {
+	grid-area: buttonbars;
+}
+.itasks-panel > .itasks-toolbar {
+	grid-area: toolbars;
+}
 .itasks-panel.itasks-scroll-content {
-	flex-basis: 0;
 	overflow: auto;
 }
 .itasks-panel.itasks-scroll-content > .itasks-inner {
+	flex-basis: 0;
 	overflow: auto;
 }
 
@@ -101,6 +108,12 @@
 .itasks-panel .itasks-sizer-top:hover, .itasks-panel .itasks-sizer-bottom:hover,
  .itasks-panel .itasks-sizer-left:hover, .itasks-panel .itasks-sizer-right:hover {
 	background-color: var(--select-base-color);
+}
+
+.itasks-window {
+	/* Default minimum sizes */
+	min-width: 300px;
+	min-height: 150px;
 }
 
 .itasks-window > .itasks-header {
@@ -139,11 +152,7 @@
 	flex-basis: auto;
 
 	align-items: flex-start;
-
 	overflow: auto;
-	/* Default minimum sizes */
-	min-width: 300px;
-	min-height: 100px;
 }
 .itasks-window.itasks-scroll-content > .itasks-inner {
 	flex-basis: 0;

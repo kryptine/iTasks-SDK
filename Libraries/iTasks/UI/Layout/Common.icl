@@ -208,14 +208,24 @@ scrollContent = addCSSClass "itasks-scroll-content"
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutRule
 toWindow windowType vpos hpos = sequenceLayouts
-	[wrapUI UIWindow
-	//Move title and class attributes to window
-	,copySubUIAttributes (SelectKeys ["title"]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title"]))
-	//Set window specific attributes
-	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectByClass "step-actions")) convertStep
+	//General case, only if the previous rule did not apply
+	,layoutSubUIs (SelectAND (SelectByPath []) (SelectNOT (SelectByType UIWindow))) wrapInWindow
 	]
+where
+	convertStep = sequenceLayouts
+		[setUIType UIWindow
+		,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+		]
 
+	wrapInWindow = sequenceLayouts
+		[wrapUI UIWindow
+		//Move title and class attributes to window
+		,copySubUIAttributes (SelectKeys ["title"]) [0] []
+		,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys ["title"]))
+		//Set window specific attributes
+		,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+		]
 insertToolBar :: [String] -> LayoutRule
 insertToolBar actions = sequenceLayouts
 	[insertChildUI 0 (ui UIToolBar)

@@ -8,7 +8,7 @@ import Data.Error
 import Text.GenJSON
 import Data.Maybe
 
-import ABC.Interpreter
+import ABC.Interpreter.JavaScript
 
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -53,5 +53,4 @@ dynamicJSONDecode _					= Nothing
 
 serializeForClient :: a !*VSt -> *(!String, !*VSt)
 serializeForClient graph vst=:{VSt| abcInterpreterEnv}
-	# serialized = serialize_for_prelinked_interpretation graph abcInterpreterEnv
-	= (base64Encode serialized, vst)
+	= (jsSerializeGraph graph abcInterpreterEnv, vst)

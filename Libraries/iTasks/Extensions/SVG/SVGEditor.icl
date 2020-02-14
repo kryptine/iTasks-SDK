@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
-import iTasks.UI.JavaScript, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.Internal.Serialization
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.Internal.Serialization
 import Graphics.Scalable.Image
 import Graphics.Scalable.Internal.Image`
 import StdEnv
@@ -21,6 +21,7 @@ import Math.Geometry
 import Text
 import Text.GenJSON
 import Text.HTML
+import ABC.Interpreter.JavaScript
 
 import StdDebug
 trace_n` a b :== /*trace_n a*/ b

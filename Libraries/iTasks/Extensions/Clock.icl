@@ -4,10 +4,10 @@ implementation module iTasks.Extensions.Clock
 */
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
-import iTasks.UI.JavaScript
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM, Data.Tuple, Data.Error
 import Text.HTML, Data.Func
+import ABC.Interpreter.JavaScript
 import StdEnv
 
 derive JSONEncode AnalogClock

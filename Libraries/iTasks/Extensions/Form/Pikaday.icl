@@ -2,10 +2,11 @@ implementation module iTasks.Extensions.Form.Pikaday
 
 import StdEnv
 import iTasks, Data.Func, Data.Functor
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JavaScript
+import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Controls
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
+import ABC.Interpreter.JavaScript
 
 PIKADAY_JS_URL :== "/pikaday/pikaday.js"
 PIKADAY_CSS_URL :== "/pikaday/css/pikaday.css"

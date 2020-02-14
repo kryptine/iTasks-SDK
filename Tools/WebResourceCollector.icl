@@ -29,9 +29,11 @@ Start world
 	//Figure out input and output dirs
 	# (argv,world) = getCommandLine world
 	| length argv <> 5 = world //Fail
-	# (content,world) = readFile (argv !! 2) world //When called by the IDE or cpm the second argument will be the 'linkopts' file
+	# linkopts_file = argv !! 2 //When called by the IDE or cpm the second argument will be the 'linkopts' file
+	# linkerrs_file = argv !! 4 //When called by the IDE or cpm the second argument will be the 'linkerrs' file
+	# (content,world) = readFile linkopts_file world
 	| isError content
-		= abort ("Error opening " +++ argv !! 2 +++ ": " +++ toString (fromError content) +++ "\n")
+		= writeErrorFile linkerrs_file ("Error opening " +++ linkopts_file +++ ": " +++ toString (fromError content) +++ "\n") world
 	# content = fromOk content
 	# outDir = exePathToOutputDir (lookupExePath content)
 	# inDirs = objectPathsToInputDirs (lookupObjectPaths content)
@@ -41,16 +43,22 @@ Start world
 	//Create output dir and 'css' dir in it
 	# (mbErr,world) = createDirectory outDir world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (FILE_EXISTS,_))) //Ignore 'File exists' errors
-		= abort ("Error creating directory " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n")
+		= writeErrorFile linkerrs_file ("Error creating directory " +++ outDir +++ ": " +++ toString (fromError mbErr) +++ "\n") world
 	# (mbErr,world) = createDirectory (outDir </> "css") world
 	| not (mbErr =: (Ok _) || mbErr =: (Error (FILE_EXISTS,_))) //Ignore 'File exists' errors
-		= abort ("Error creating directory " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n")
+		= writeErrorFile linkerrs_file ("Error creating directory " +++ outDir </> "css" +++ ": " +++ toString (fromError mbErr) +++ "\n") world
 	//Create the aggregated css file
 	# (mbErr,world) = writeFile cssFile "" world
 	# world = foldr (\f w -> aggregateCSS f cssFile w) world cssParts
 	//Copy the contents of the input dirs if they exist
 	# world = foldr (\d w -> copyWebResources d outDir w) world inDirs
-	= world
+	//Write an empty error file when
+	= writeErrorFile linkerrs_file "" world
+
+writeErrorFile errorfile message world
+	# (mbErr,world) = writeFile errorfile message world
+	| mbErr =: (Ok _) = world
+	| otherwise = abort (toString (fromError mbErr)) world
 
 //Print a debug message
 print msg world

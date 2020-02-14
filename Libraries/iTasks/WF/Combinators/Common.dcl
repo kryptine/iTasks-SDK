@@ -5,10 +5,7 @@ definition module iTasks.WF.Combinators.Common
 import iTasks.SDS.Definition
 import iTasks.WF.Combinators.Core
 from iTasks.WF.Tasks.Interaction import :: ChoiceOption
-
-from StdBool					import not
-from Data.Map				    import :: Map
-from Data.Either				import :: Either
+from Data.Either import :: Either
 
 instance Functor Task
 
