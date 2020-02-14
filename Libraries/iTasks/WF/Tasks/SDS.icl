@@ -4,13 +4,11 @@ import StdEnv
 
 import iTasks.SDS.Definition
 import iTasks.WF.Tasks.Core
-import iTasks.WF.Definition
 import iTasks.UI.Definition
 
 import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
-import iTasks.Internal.TaskState
 import iTasks.Internal.Util
 
 get :: !(sds () a w) -> Task a | TC a & Readable sds & TC w
