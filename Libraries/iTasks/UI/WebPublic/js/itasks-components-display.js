@@ -1,36 +1,44 @@
-itasks.TextView = {
-	cssCls: 'textview',
-	container: false,
-	initDOMEl: function() {
+itasks.TextView = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'textview';
+		this.container = false;
+	}
+	initDOMEl() {
 		this.domEl.innerHTML = this.attributes.value || '';
-	},
-	setValue: function(html) {
+	}
+	setValue(html) {
 		this.domEl.innerHTML = html;	
-	},
-	onAttributeChange:function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		switch(name) {
 			case 'value': this.domEl.innerHTML = value; break;
 		}
 	}
-};
-itasks.HtmlView = {
-	cssCls: 'htmlview',
-	initDOMEl: function() {
+}
+itasks.HtmlView = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'htmlview';
+	}
+	initDOMEl() {
 		this.domEl.innerHTML = this.attributes.value || '';
-	},
-	setValue: function(html) {
+	}
+	setValue(html) {
 		this.domEl.innerHTML = html;	
-	},
-	onAttributeChange:function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		switch(name) {
 			case 'value': this.domEl.innerHTML = value; break;
 		}
 	}
-};
-itasks.ProgressBar = {
-	domTag: 'div',
-	cssCls: 'progress',
-	initDOMEl: function() {
+}
+itasks.ProgressBar = class extends itasks.Component {
+	constructor(spec) {
+		this.domTag = 'div';
+		this.cssCls = 'progress';
+	}
+	initDOMEl() {
 		var me = this,
 			el = this.domEl;
 
@@ -41,14 +49,14 @@ itasks.ProgressBar = {
 
 		me.setProgress(me.attributes.value);
 		me.setText(me.attributes.text);
-	},
-	setProgress:function(value) {
+	}
+	setProgress(value) {
 		this.domEl.children[0].style=typeof value == 'number' ? ('width:'+value+'%;') : '';
-	},
-	setText:function(text) {
+	}
+	setText(text) {
 		this.domEl.setAttribute('title', text);
-	},
-	onAttributeChange:function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		switch(name) {
 			case 'value':
 				this.setProgress(value);
