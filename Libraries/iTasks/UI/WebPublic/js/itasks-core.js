@@ -550,6 +550,9 @@ itasks.Viewport = class extends itasks.Component {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = class {
+	constructor(spec) {
+		Object.assign(this, spec);
+	}
 	init() {
 		return Promise.resolve();
 	}
