@@ -58,7 +58,6 @@ itasks.Component = class {
 	initUI() {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
-			console.log(me);
 			return ABC_loading_promise.then(function(){
 				var initUI=itasks.ABC.deserialize(atob(me.attributes.initUI));
 				var ref=itasks.ABC.share_clean_value(initUI,me);
