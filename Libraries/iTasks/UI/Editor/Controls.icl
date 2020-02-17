@@ -46,7 +46,7 @@ where
 decimalField :: Editor Real (Maybe Real)
 decimalField = fieldComponent UIDecimalField Nothing (\_ _ -> True)
 
-documentField :: Editor (!String,!String,!String,!String,!Int) (Maybe (!String,!String,!String,!String,!Int))
+documentField :: Editor (String,String,String,String,Int) (Maybe (String,String,String,String,Int))
 documentField = fieldComponent UIDocumentField Nothing (\_ _ -> True)
 
 checkBox :: Editor Bool Bool
@@ -64,20 +64,20 @@ button
 	= mapEditorWrite (fromMaybe False)
 	$ fieldComponent UIButton Nothing (\_ _ -> True)
 
-label :: Editor String String
+label :: Editor String a
 label = viewComponent textAttr UILabel
 
-icon :: Editor (!String,!Maybe String) (!String,!Maybe String)
+icon :: Editor (String,Maybe String) a
 icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip])
                      UIIcon
 
-textView :: Editor String String
+textView :: Editor String a
 textView = viewComponent (valueAttr o JSONString o escapeStr) UITextView
 
-htmlView :: Editor HtmlTag HtmlTag
+htmlView :: Editor HtmlTag a
 htmlView = viewComponent (valueAttr o JSONString o toString) UIHtmlView
 
-progressBar :: Editor (Maybe Int, Maybe String) (Maybe Int, Maybe String)
+progressBar :: Editor (Maybe Int, Maybe String) a
 progressBar = viewComponent combine UIProgressBar
 where
 	combine (amount,text) =
@@ -175,13 +175,13 @@ where
 	editorWithJSONEncode genFunc = genFunc toJSON
 
 //Components which cannot be edited 
-viewComponent :: !(a -> UIAttributes) !UIType -> Editor a a | JSONEncode{|*|}, JSONDecode{|*|} a
+viewComponent :: !(a -> UIAttributes) !UIType -> Editor a b | JSONEncode{|*|}, JSONDecode{|*|} a
 viewComponent toAttributes type = leafEditorToEditor leafEditor
 where
 	leafEditor = {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 
 	genUI attr dp mode vst = case editModeValue mode of
-		Just val = (Ok (uia type ('DM'.union attr $ toAttributes val), val),                vst)
+		Just val = (Ok (uia type ('DM'.union attr $ toAttributes val), val), vst)
 		_        = (Error "View components cannot be used in enter mode", vst)
 
 	onEdit _ (_, ()) _ vst = (Error "Edit event for view component",vst)

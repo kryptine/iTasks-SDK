@@ -11,6 +11,10 @@ from Text.HTML import :: HtmlTag
 from Text.GenJSON import :: JSONNode, generic JSONDecode, generic JSONEncode
 from Data.GenEq import generic gEq
 
+/**
+* The editors that have a polymorphic write type of `a` are for viewing data only
+*/
+
 // ## Form components ##
 // UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField
 // UICheckbox, UISlider, UIButton, UILabel, UIIcon
@@ -44,7 +48,7 @@ decimalField  :: Editor Real (Maybe Real)
 * Form field that allows you to upload files
 * Supported attributes:
 */
-documentField :: Editor (!String,!String,!String,!String,!Int) (Maybe (!String,!String,!String,!String,!Int))
+documentField :: Editor (String,String,String,String,Int) (Maybe (String,String,String,String,Int))
 /**
 * Simple checkbox
 * Supported attributes:
@@ -64,12 +68,12 @@ button        :: Editor Bool Bool
 * A plain text label
 * Supported attributes:
 */
-label         :: Editor String String
+label         :: Editor String a
 /**
 * A small icon with a tooltip
 * Supported attributes:
 */
-icon          :: Editor (!String,!Maybe String) (!String,!Maybe String)
+icon          :: Editor (String,Maybe String) a
 
 // ## Display components ##
 // UITextView, UIHtmlView, UIProgressBar
@@ -78,17 +82,17 @@ icon          :: Editor (!String,!Maybe String) (!String,!Maybe String)
 * A component that displays arbitrary text (html is automatically escaped)
 * Supported attributes:
 */
-textView      :: Editor String String
+textView      :: Editor String a
 /**
 * A component that displays arbitrary HTML (nothing is escaped)
 * Supported attributes:
 */
-htmlView      :: Editor HtmlTag HtmlTag
+htmlView      :: Editor HtmlTag a
 /**
 * A progress bar with a percentage and a description of the progress
 * Supported attributes:
 */
-progressBar   :: Editor (Maybe Int,Maybe String) (Maybe Int,Maybe String) //Percentage, description
+progressBar   :: Editor (Maybe Int,Maybe String) a //Percentage, description
 
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree

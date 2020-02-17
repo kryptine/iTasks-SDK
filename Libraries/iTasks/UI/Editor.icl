@@ -14,48 +14,48 @@ derive JSONEncode EditState, LeafState, EditMode
 derive JSONDecode EditState, LeafState, EditMode
 derive gEq        EditState, LeafState
 
-leafEditorToEditor :: !(LeafEditor edit st a w) -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
+leafEditorToEditor :: !(LeafEditor edit st r w) -> Editor r w | JSONEncode{|*|}, JSONDecode{|*|} st & JSONDecode{|*|} edit
 leafEditorToEditor leafEditor = leafEditorToEditor_ JSONEncode{|*|} JSONDecode{|*|} leafEditor
 
-leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, [JSONNode])) !(LeafEditor edit st a w)
-                    -> Editor a w | JSONDecode{|*|} edit
+leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, [JSONNode])) !(LeafEditor edit st r w)
+                    -> Editor r w | JSONDecode{|*|} edit
 leafEditorToEditor_ jsonEncode jsonDecode leafEditor =
 	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	genUI attr dp val vst = mapRes False $ leafEditor.LeafEditor.genUI attr dp val vst
 
-	onEdit dp (tp, jsone) (LeafState {state}) vst = case fromJSON` jsonDecode state of
+	onEdit dp (tp, jsone) (LeafState {state}) vst = case fromJSON` state of
 		Just st = case fromJSON jsone of
 			Just e = case leafEditor.LeafEditor.onEdit dp (tp, e) st vst of
-				(Ok (ui,st,mbw),vst) = (Ok (ui, LeafState {touched = True, state = toJSON` jsonEncode st}, mbw),vst)
+				(Ok (ui,st,mbw),vst) = (Ok (ui, LeafState {touched = True, state = toJSON` st}, mbw),vst)
 				(Error e,vst) = (Error e,vst)
 			_      = (Error ("Invalid edit event for leaf editor: " +++ toString jsone), vst)
 		_       = (Error "Corrupt internal state in leaf editor", vst)
 	onEdit _ _ _ vst = (Error "Corrupt editor state in leaf editor", vst)
 
-	onRefresh dp val (LeafState leafSt) vst = case fromJSON` jsonDecode leafSt.state of
+	onRefresh dp val (LeafState leafSt) vst = case fromJSON` leafSt.state of
 		Just st = case leafEditor.LeafEditor.onRefresh dp val st vst of
-			(Ok (ui,st,mbw),vst) = (Ok (ui, LeafState {touched = leafSt.touched, state = toJSON` jsonEncode st}, mbw),vst)
+			(Ok (ui,st,mbw),vst) = (Ok (ui, LeafState {touched = leafSt.touched, state = toJSON` st}, mbw),vst)
 			(Error e,vst) = (Error e,vst)
 		_       = (Error "Corrupt internal state in leaf editor", vst)
 	onRefresh _ _ _ vst = (Error "Corrupt editor state in leaf editor", vst)
 
-	valueFromState (LeafState {state}) = case fromJSON` jsonDecode state of
+	valueFromState (LeafState {state}) = case fromJSON` state of
 		Just st = case leafEditor.LeafEditor.valueFromState st of
 			Just val = Just val
 			_        = Nothing
 		_       = Nothing
 	valueFromState _ = Nothing
 
-	mapRes touched (mbRes, vst) = ((\(ui, st) -> (ui, LeafState {touched = touched, state = toJSON` jsonEncode st})) <$> mbRes, vst)
+	mapRes touched (mbRes, vst) = ((\(ui, st) -> (ui, LeafState {touched = touched, state = toJSON` st})) <$> mbRes, vst)
 
-	toJSON` jsonEncode x = case (jsonEncode False x) of
+	toJSON` x = case (jsonEncode False x) of
 		[node] = node
 		_      = JSONError
 
-	fromJSON` jsonDecode node = fst (jsonDecode False [node])
+	fromJSON` node = fst (jsonDecode False [node])
 
-compoundEditorToEditor :: !(CompoundEditor st a w) -> Editor a w | JSONDecode{|*|}, JSONEncode{|*|} st
+compoundEditorToEditor :: !(CompoundEditor st r w) -> Editor r w | JSONDecode{|*|}, JSONEncode{|*|} st
 compoundEditorToEditor compoundEditor =
 	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
@@ -88,7 +88,7 @@ where
 	        | JSONEncode{|*|} st
 	mapRes (mbRes, vst) = ((\(ui, st, childSts) -> (ui, CompoundState (toJSON st) childSts)) <$> mbRes, vst)
 
-editorModifierWithStateToEditor :: !(EditorModifierWithState st a w) -> Editor a w | JSONDecode{|*|}, JSONEncode{|*|} st
+editorModifierWithStateToEditor :: !(EditorModifierWithState st r w) -> Editor r w | JSONDecode{|*|}, JSONEncode{|*|} st
 editorModifierWithStateToEditor modifier =
 	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where

@@ -14,7 +14,7 @@ derive gText ControlLight
 gEditor{|ControlLight|} = controlLightEditlet
 
 //SVG Based fake control light
-controlLightEditlet :: Editor ControlLight (Maybe ControlLight)
+controlLightEditlet :: Editor ControlLight a
 controlLightEditlet = leafEditorToEditor
 	{LeafEditor
       |genUI  = withClientSideInit initUI genUI

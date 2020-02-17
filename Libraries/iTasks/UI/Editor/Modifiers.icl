@@ -7,7 +7,7 @@ import Data.Error, Text.GenJSON, Data.Tuple, Data.Functor, Data.Maybe
 import Data.GenEq, Data.Func
 import qualified Data.Map as DM
 
-withEditModeAttr :: !(Editor a w) -> Editor a w
+withEditModeAttr :: !(Editor r w) -> Editor r w
 withEditModeAttr editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
 where
 	genUI attr dp mode vst=:{VSt|taskId} = case editorGenUI attr dp (mapEditMode id mode) vst of
@@ -18,7 +18,7 @@ where
 		modeString (Update _) = "update"
 		modeString (View _)   = "view"
 
-withDynamicHintAttributes :: !String !(Editor a w) -> Editor a w
+withDynamicHintAttributes :: !String !(Editor r w) -> Editor r w
 withDynamicHintAttributes typeDesc editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh, valueFromState}
 	= {Editor| editor & genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -74,7 +74,7 @@ stdAttributeChanges typename optional om nvalid nm
 derive JSONEncode StoredMode
 derive JSONDecode StoredMode
 
-selectByMode :: !(Editor a w) !(Editor a w) !(Editor a w) -> Editor a w
+selectByMode :: !(Editor r w) !(Editor r w) !(Editor r w) -> Editor r w
 selectByMode
 		viewEditor  =:{Editor|genUI=viewGenUI,  onEdit=viewOnEdit,  onRefresh=viewOnRefresh,   valueFromState=viewValueFromState}
 		enterEditor =:{Editor|genUI=enterGenUI, onEdit=enterOnEdit, onRefresh=enterOnRefresh,  valueFromState=enterValueFromState}
@@ -112,12 +112,12 @@ where
 	attachModeGen mode (res, vst) = ((\(x, st) -> (x, mode, st)) <$> res, vst)
 	attachMode mode (res, vst) = ((\(x, st, mbw) -> (x, mode, st, mbw)) <$> res, vst)
 
-withChangedEditMode :: !((EditMode a) -> EditMode a) !(Editor a w) -> Editor a w
+withChangedEditMode :: !((EditMode r) -> EditMode r) !(Editor r w) -> Editor r w
 withChangedEditMode toNewMode editor=:{Editor| genUI=editorGenUI} = {Editor| editor & genUI = genUI}
 where
 	genUI attr dp mode vst = editorGenUI attr dp (mapEditMode id $ toNewMode mode) vst
 
-viewConstantValue :: !a !(Editor a w) -> Editor () w
+viewConstantValue :: !r !(Editor r w) -> Editor () w
 viewConstantValue val e = bijectEditorValue (const val) (const ()) $ withChangedEditMode (const $ View val) e
 
 ignoreEditorWrites :: !(Editor ra wb) -> Editor ra wa
@@ -140,7 +140,7 @@ where
 	onRefresh dp new st vst = (Ok (NoChange,st,Nothing),vst)
 	valueFromState st = Nothing
 
-bijectEditorValue :: !(a -> b) !(b -> a) !(Editor b w) -> Editor a w
+bijectEditorValue :: !(ra -> rb) !(rb -> ra) !(Editor rb w) -> Editor ra w
 bijectEditorValue tof fromf editor=:{Editor|genUI=editorGenUI,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= {Editor| editor & genUI=genUI,onRefresh=onRefresh,valueFromState=valueFromState}
 where
@@ -151,7 +151,15 @@ where
 		Just val = Just $ fromf val
 		_        = Nothing
 
-injectEditorValue :: !(a -> b) !(b -> MaybeErrorString a) !(Editor b w) -> Editor a w
+comapEditorValue :: !(ra -> rb) !(Editor rb w) -> Editor ra w
+comapEditorValue tof editor=:{Editor|genUI=editorGenUI,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
+	= {Editor| editor & genUI=genUI,onRefresh=onRefresh,valueFromState=valueFromState}
+where
+	genUI attr dp mode vst  = editorGenUI attr dp (mapEditMode tof mode) vst
+	onRefresh dp new st vst = editorOnRefresh dp (tof new) st vst
+	valueFromState st = Nothing
+
+injectEditorValue :: !(ra -> rb) !(rb -> MaybeErrorString ra) !(Editor rb w) -> Editor ra w
 injectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
@@ -176,7 +184,7 @@ where
 				= (Ok (mergeUIChanges change attrChange, st, mbw), vst)
 		_ = (Ok (change, st, mbw), vst)
 
-surjectEditorValue :: !(a (Maybe b) -> b) !(b (Maybe a) -> a) !(Editor b w) -> Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
+surjectEditorValue :: !(ra (Maybe rb) -> rb) !(rb (Maybe ra) -> ra) !(Editor rb w) -> Editor ra w | JSONEncode{|*|}, JSONDecode{|*|} ra
 surjectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= editorModifierWithStateToEditor
 		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
@@ -202,22 +210,10 @@ where
 	where
 		mbNewB = editorValueFromState innerSt
 
-comapEditorValue :: !(b -> a) !(Editor a w) -> Editor b w | JSONEncode{|*|}, JSONDecode{|*|} b
-comapEditorValue tof {Editor|genUI=editorGenUI,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
-	= editorModifierWithStateToEditor
-		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
-where
-	genUI attr dp mode vst     = appFst (fmap (\(ui, st) -> (ui, editModeValue mode, st))) $
-	                             editorGenUI attr dp (mapEditMode tof mode) vst
-	onEdit dp _ mbB st vst     = (Ok (NoChange, mbB, st, Nothing), vst) //Ignore edits
-	onRefresh dp newB _ st vst = appFst (fmap (\(ui, st, mbw) -> (ui, Just newB, st, mbw))) $
-	                             editorOnRefresh dp (tof newB) st vst
-	valueFromState mbB _       = mbB
-
-mapEditorWrite :: !(wb -> w) !(Editor a wb) -> Editor a w
+mapEditorWrite :: !(wb -> w) !(Editor r wb) -> Editor r w
 mapEditorWrite fromf editor = mapEditorWriteWithValue (\_ w -> fromf w) editor
 
-mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor a wb) -> Editor a w
+mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor r wb) -> Editor r w
 mapEditorWriteError fromf editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
 	= {Editor|editor & onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -230,7 +226,7 @@ where
 		(Error e) = (Error e,vst)
 		(Ok w) = (Ok (change, st, Just w), vst) 
 
-mapEditorWriteWithValue :: !((Maybe a) wb -> w) !(Editor a wb) -> Editor a w
+mapEditorWriteWithValue :: !((Maybe r) wb -> w) !(Editor r wb) -> Editor r w
 mapEditorWriteWithValue fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= {Editor| editor & onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -247,7 +243,7 @@ where
 	fmap fromf (Just w) = Just (fromf w)
 
 
-lensEditor :: !((Maybe a) b -> a) !((Maybe b) wa -> Maybe wb) !(Editor a wa) -> Editor b wb | JSONEncode{|*|}, JSONDecode{|*|} b
+lensEditor :: !((Maybe ra) rb -> ra) !((Maybe rb) wa -> Maybe wb) !(Editor ra wa) -> Editor rb wb | JSONEncode{|*|}, JSONDecode{|*|} rb
 lensEditor tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
 	= editorModifierWithStateToEditor
 		{EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
