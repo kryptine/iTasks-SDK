@@ -1,12 +1,12 @@
-//Mixin containing the selection/toggle behavior 
-itasks.Selector = { 
-	select: function (selection, toggle = false) {
-        var me = this,
+//Abstract class containing the selection/toggle behavior
+itasks.Selector = class extends itasks.Component {
+	select(selection, toggle = false) {
+		var me = this,
 			options = me.attributes.options,
 			oldSelection = me.attributes.value.slice(0),
 			i;
 		if(toggle) {
- 			//Unselect items in the toggle set
+			//Unselect items in the toggle set
 			me.attributes.value = me.attributes.value.filter(function(x) {return !selection.includes(x)});
 			//Add the items from the selection that were not already selected
 			me.attributes.value = me.attributes.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
@@ -15,15 +15,15 @@ itasks.Selector = {
 		}
 		//Update DOM
 		options.forEach(me.selectOptionsInDOM.bind(me));
-	},
-	selectOptionsInDOM: function(option) {
+	}
+	selectOptionsInDOM(option) {
 		var me = this;
 		me.selectInDOM(option.domEl,me.attributes.value.includes(option.id));
 		if(option.children) {
 			option.children.forEach(me.selectOptionsInDOM.bind(me));
 		}
-	},
-    onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		switch(name) {
 			case 'value':
@@ -36,14 +36,17 @@ itasks.Selector = {
 	}
 };
 
-itasks.Dropdown = Object.assign({
-    domTag: 'select',
-	attributes: {
-    	width: 150,
-		height: 'wrap',
-		multiple: false
-	},
-    initDOMEl: function() {
+itasks.Dropdown = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+    	this.domTag = 'select';
+		this.attributes = Object.assign({
+			width: 150,
+			height: 'wrap',
+			multiple: false
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl;
 
@@ -64,11 +67,11 @@ itasks.Dropdown = Object.assign({
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
 			});
 		}
-    },
-	selectInDOM: function(el,selected) {
+	}
+	selectInDOM(el,selected) {
 		el.selected = selected;
-	},
-	setOptions: function(options) {
+	}
+	setOptions(options) {
         var me = this,
             el = me.domEl;
 
@@ -126,24 +129,27 @@ itasks.Dropdown = Object.assign({
 			}
         },me);
 	}
-},itasks.Selector);
+};
 
-itasks.CheckGroup = Object.assign({
-	domTag: 'ul',
-	cssCls: 'checkgroup',
-	attributes: {
-		multiple: false,
-	},
-	initDOMEl: function() {
+itasks.CheckGroup = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'ul';
+		this.cssCls = 'checkgroup';
+		this.attributes = Object.assign({
+			multiple: false
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 			el = me.domEl;
         me.setOptions(me.attributes.options);
         //Highlight initital selection
 		me.select(me.attributes.value,false);
-    },
-	setOptions: function(options) {
+	}
+	setOptions(options) {
         var me = this,
-			el = me.domEl
+			el = me.domEl,
             inputName = "choice-" + me.attributes.taskId + "-" + me.attributes.editorId;
         //Store options
 		me.attributes.options = options;
@@ -182,18 +188,21 @@ itasks.CheckGroup = Object.assign({
             el.appendChild(liEl);
 			option.domEl = liEl;
         });
-	},
-	selectInDOM: function(el,selected) {
+	}
+	selectInDOM(el,selected) {
 		el.children[0].checked = selected;
 	}
-},itasks.Selector);
+};
 
-itasks.ChoiceList = Object.assign({
-	cssCls: 'choice-list',
-	attributes: {
-		multiple: false
-	},
-    initDOMEl: function() {
+itasks.ChoiceList = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'choice-list';
+		this.attributes = Object.assign({
+			multiple: false
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl;
 
@@ -201,8 +210,8 @@ itasks.ChoiceList = Object.assign({
 
 		//Highlight initital selection
 		me.select(me.attributes.value,false);
-    },
-	setOptions: function(options) {
+    }
+	setOptions(options) {
          var me = this, el = me.domEl;
 		//Store options
 		me.attributes.options = options;
@@ -233,20 +242,23 @@ itasks.ChoiceList = Object.assign({
             el.appendChild(optionEl);
 			option.domEl = optionEl;
         });
-	},
+	}
 	selectInDOM(el, selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	}
-},itasks.Selector);
+};
 
-itasks.Grid = Object.assign({
-	cssCls: 'choicegrid',
-	attributes: {
-		width: 'flex',
-		height: 'flex',
-		multiple: false
-	},
-    initDOMEl: function() {
+itasks.Grid = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'choicegrid';
+		this.attributes = Object.assign({
+			width: 'flex',
+			height: 'flex',
+			multiple: false
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl,
             headerEl,bodyEl,rowEl,cellEl;
@@ -275,9 +287,9 @@ itasks.Grid = Object.assign({
             });
         }
         el.appendChild(bodyEl);
-    },
-	setOptions: function(options) {
-		var me = this, bodyEl = me.bodyEl;
+	}
+	setOptions(options) {
+		var me = this, bodyEl = me.bodyEl, rowEl, cellEl;
 		//Store options
 		me.attributes.options = options;
 
@@ -318,20 +330,24 @@ itasks.Grid = Object.assign({
             bodyEl.appendChild(rowEl);
 			option.domEl = rowEl;
         });
-	},
-	initContainerEl: function() {},
+	}
+	initContainerEl() {
+	}
 	selectInDOM(el,selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	}
-},itasks.Selector);
+};
 
-itasks.Tree = Object.assign({
-	attributes: {
-    	height: 'flex',
-		multiple: false,
-		options: []
-	},
-    initDOMEl: function() {
+itasks.Tree = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.attributes = Object.assign({
+			height: 'flex',
+			multiple: false,
+			options: []
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl;
 
@@ -341,8 +357,8 @@ itasks.Tree = Object.assign({
 		me.rootNodeId = me.attributes.taskId + "-" + me.attributes.editorId + "-node";
         me.setOptions(me.attributes.options);
         el.appendChild(me.rootNode);
-    },
-    addNode: function(option,parentNode,rootNodeId,idx) {
+    }
+    addNode(option,parentNode,rootNodeId,idx) {
         var me = this,
             node,nodeId,label,childExpand,childOl;
 
@@ -408,11 +424,11 @@ itasks.Tree = Object.assign({
 
         //Track the option in the dom
 		option.domEl = node;
-    },
-    selectInDOM(el,selected) {
-        el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
-    },
-	setOptions: function(options) {
+	}
+	selectInDOM(el,selected) {
+		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
+	}
+	setOptions(options) {
 		const me = this;
 
 		//Clear
@@ -428,25 +444,28 @@ itasks.Tree = Object.assign({
 		//Select options
 		me.select(me.attributes.value, false);
 	}
-},itasks.Selector);
+};
 
-itasks.TabBar = Object.assign({
-	domTag: 'ul',
-	cssCls: 'tabbar',
-	attributes: {
-		height: 'wrap',
-		width: 'flex',
-		multiple: false
-	},
-	initDOMEl: function() {
+itasks.TabBar = class extends itasks.Selector {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'ul';
+		this.cssCls = 'tabbar';
+		this.attributes = Object.assign({
+			height: 'wrap',
+			width: 'flex',
+			multiple: false
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this;
 		me.setOptions(me.attributes.options);
 		me.select(me.attributes.value, false);
-	},
+	}
 	selectInDOM(el,selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
-	},
-	setOptions: function(options) {
+	}
+	setOptions(options) {
 		var me = this, el = me.domEl;
 
 		//Store options
@@ -479,4 +498,4 @@ itasks.TabBar = Object.assign({
 			el.appendChild(optionEl);
 		 },me);
 	}
-},itasks.Selector);
+};
