@@ -82,9 +82,8 @@ where
     addNew          new = [(0, InsertChild (toUI x)) \\ x <- new]
 
 chooseWithDropdown :: [String] -> Editor Int Int
-chooseWithDropdown labels = mapEditorWrite selection
-							$ bijectEditorValue (\i -> [i]) selection
-                            (withConstantChoices options dropdown <<@ multipleAttr False)
+chooseWithDropdown labels = mapEditorWrite selection $
+	bijectEditorValue (\i -> [i]) selection (withConstantChoices options dropdown <<@ multipleAttr False)
 where
 	selection [x] = x
 	selection _   = 0
