@@ -85,7 +85,7 @@ itasks.Dropdown = class extends itasks.Selector {
 
         if(!me.attributes.multiple) {
 			//The empty selection (only for single selections)
-        	optionEl = document.createElement('option');
+			var optionEl = document.createElement('option');
         	optionEl.innerHTML = "Select...";
         	optionEl.value = "";
         	el.appendChild(optionEl);
@@ -95,7 +95,7 @@ itasks.Dropdown = class extends itasks.Selector {
 		var curParentEl   = el;
 
 		options.forEach(function(option) {
-            optionEl = document.createElement('option');
+			var optionEl = document.createElement('option');
             optionEl.value = option.id;
             optionEl.innerHTML = option.text;
             if(me.attributes.value.includes(option.id)) {
