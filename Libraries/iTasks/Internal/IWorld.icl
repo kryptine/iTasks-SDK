@@ -30,7 +30,7 @@ import iTasks.WF.Derives
 createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 createIWorld options world
 	# (ts=:{tv_nsec=seed}, world) = nsTime world
-	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.byteCodePath world
+	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.appPath options.byteCodePath world
 	= case mbAbcEnv of
 		Just abcEnv = Right
 			{IWorld
