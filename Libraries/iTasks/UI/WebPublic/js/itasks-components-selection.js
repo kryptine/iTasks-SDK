@@ -255,7 +255,8 @@ itasks.Grid = class extends itasks.Selector {
 		this.attributes = Object.assign({
 			width: 'flex',
 			height: 'flex',
-			multiple: false
+			multiple: false,
+			columns: []
 		},this.attributes);
 	}
 	initDOMEl() {

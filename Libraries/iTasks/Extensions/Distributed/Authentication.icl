@@ -103,7 +103,7 @@ where
 		handleClientRequest id ["auth", username, password]
 			# username = base64Decode username
 			# password = base64Decode password
-			= authenticateUser (Username username) (Password password)
+			= authenticateUser (Username username) (Password password) False
 			>>- \user -> return [(base64Encode (toString (toJSON user)))]
 		handleClientRequest id ["users"]
 			= get users

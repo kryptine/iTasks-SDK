@@ -222,8 +222,8 @@ where
 
 	valueFromState (Just val, sel, multiple)
 		// Non-multi select choice are only valid with a single selected item
-		| not multiple && lengthSel <> 1 = Nothing
-		| otherwise                      = Just (val, sel)
+		| not multiple && lengthSel > 1 = Nothing
+		| otherwise                     = Just (val, sel)
 	where
 		lengthSel = length sel
 	valueFromState _               = Nothing

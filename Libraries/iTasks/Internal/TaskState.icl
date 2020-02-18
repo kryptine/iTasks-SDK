@@ -56,8 +56,8 @@ derive gDefault InstanceType, TaskId, TaskListFilter
 gDefault{|TaskMeta|}
 	= {taskId= TaskId 0 0,instanceType=PersistentInstance,build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
 		,detachedFrom=Nothing,status=Right False,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
-		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing
-		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
+		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing, cookies = 'DM'.newMap
+		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet, unsyncedCookies = []
 		,change = Nothing, initialized = False}
 
 gDefault{|ExtendedTaskListFilter|} = fullExtendedTaskListFilter
@@ -139,13 +139,13 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
-createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createSessionTaskInstance :: !(Task a) !Cookies !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createSessionTaskInstance task cookies iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
 	# (Ok instanceNo,iworld) = newInstanceNo iworld
 	# (instanceKey,iworld)  = newInstanceKey iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=SessionInstance
-		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock,taskAttributes=attributes}
+		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock, cookies = cookies}
 	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld

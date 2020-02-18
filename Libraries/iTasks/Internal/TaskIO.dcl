@@ -24,9 +24,11 @@ taskEvents :: SimpleSDSLens TaskInput
 //of that instance to reflect the instance's new state
 
 :: TaskOutputMessage
-	= TOUIChange !UIChange
-	| TOException !String
-	| TODetach !InstanceNo
+	= TOUIChange !UIChange                      //* The task UI needs to be updated (the common case)
+	| TOSetCookie !String !String !(Maybe Int)  //* Set a cookie in the client that the task is connected to
+	| TORemoved                                 //* Let the client know the task no longer exist
+	| TORevoked                                 //* Let the client know the task no accessable
+	| TOException !String                       //* The task ended with an uncaught exception
 
 :: TaskOutput :== Queue TaskOutputMessage
 
@@ -57,6 +59,10 @@ dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)
 */
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 
+/**
+* Queue different types of output at once
+*/
+queueOutput :: !InstanceNo ![TaskOutputMessage] !*IWorld -> *IWorld
 /**
 * Queue ui change task output
 */

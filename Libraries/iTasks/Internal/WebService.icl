@@ -2,7 +2,7 @@ implementation module iTasks.Internal.WebService
 
 import StdList, StdBool, StdTuple, StdArray, StdFile
 from StdFunc import o, const
-import Data.Maybe, Data.Functor
+import Data.Maybe, Data.Functor, Data.Func
 from Data.Map import :: Map (..)
 import qualified Data.List as DL
 import qualified Data.Map as DM
@@ -396,8 +396,8 @@ where
 		# (messages, output) = dequeueOutput (map fst activeInstances) output
 		//Add exception messages for the instances for which we could not check the key
 		# messages
-			=  [(i,TOException ("Task instance " +++ toString i +++ " could not be found")) \\ i <- removedInstances]
-			++ [(i,TOException ("You no longer have acces to task instance " +++ toString i)) \\ i <- revokedInstances]
+			=  [(i,TORemoved) \\ i <- removedInstances]
+			++ [(i,TORevoked) \\ i <- revokedInstances]
 			++ messages
 		= case messages of //Ignore empty updates
 			[] = ([],False,(clientname,state,activeInstances),Nothing,iworld)
@@ -405,19 +405,32 @@ where
 				# json = [wsockTextMsg (toString (jsonMessage message)) \\ message <- messages]
 				= (flatten json,False, (clientname,state,activeInstances), Just output, iworld)
 
-	jsonMessage (instanceNo, TOUIChange change)
-		= JSONArray [JSONInt 0,JSONString "ui-change"
-					,JSONObject [("instanceNo",JSONInt instanceNo),("change",encodeUIChange change)]]
-	jsonMessage (instanceNo, TOException description)
-		=JSONArray [JSONInt 0,JSONString "exception"
-					,JSONObject [("instanceNo",JSONInt instanceNo),("description",JSONString description)]]
+
+	jsonMessage (instanceNo, output)
+		= JSONArray [JSONInt 0,JSONString (type output),JSONObject [("instanceNo",JSONInt instanceNo):fields output]]
+	where
+		type (TOUIChange _) = "ui-change"
+		type (TOSetCookie _ _ _) = "set-cookie"
+		type (TORemoved) = "removed"
+		type (TORevoked) = "revoked"
+		type (TOException _) = "exception"
+
+		fields (TOUIChange change) = [("change",encodeUIChange change)]
+		fields (TOSetCookie name value maxttl) = [("name",JSONString name),("value",JSONString value),("max-age",maybe JSONNull JSONInt maxttl)]
+		fields (TOException description) = [("description",JSONString description)]
+		fields _ = []
 
 	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect (map fst instances) iworld))
 	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
 
 	createTaskInstance` req [{WebTask|path,task=WebTaskWrapper task}:taskUrls] iworld
-		| req.HTTPRequest.req_path == uiUrl path = createSessionTaskInstance (task req) 'DM'.newMap iworld
+		| req.HTTPRequest.req_path == uiUrl path = createSessionTaskInstance (task req) (cookies req) iworld
 		| otherwise = createTaskInstance` req taskUrls iworld
+
+	cookies :: HTTPRequest -> Map String String
+	cookies req = maybe 'DM'.newMap splitcookies $ 'DM'.get "Cookie" req.HTTPRequest.req_headers
+	where
+		splitcookies s = 'DM'.fromList [(k,v) \\ [k,v:_] <- map (split "=" o trim) (split ";" s)]
 
 	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
 
