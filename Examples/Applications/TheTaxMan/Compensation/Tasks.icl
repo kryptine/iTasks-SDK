@@ -79,7 +79,7 @@ declarationApplicant today
 
 reminder :: Date String -> Task ()
 reminder when msg
-	= waitForDate when >>| Hint ("Reminder: please " +++ msg) @>> viewInformation [] ()
+	= waitForDate True when >>| Hint ("Reminder: please " +++ msg) @>> viewInformation [] ()
 
 selectOfficialSolarPanelCompany :: Task Company
 selectOfficialSolarPanelCompany

@@ -81,10 +81,10 @@ deadline :: Date (Task a) -> Task (Maybe a) | iTask a
 deadline date task
 	=	(task >>- return o Just)
 		-||-
-		(waitForDate date >>| return Nothing)
+		(waitForDate True date >>| return Nothing)
 
 deadlineWith :: Date a (Task a) -> Task a | iTask a
 deadlineWith date value task
 	=	task
 		-||-
-		(waitForDate date >>| return value)
+		(waitForDate True date >>| return value)

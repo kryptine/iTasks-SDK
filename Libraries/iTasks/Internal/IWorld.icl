@@ -101,7 +101,7 @@ iworldTimespecNextFire now reg {start,interval}
 	# start = toI start
 	  interval = toI interval
 	  reg = toI reg
-	  passed = reg - start
+	  passed = max (zero - interval) (reg - start)
 	= toT (start + ((passed / interval + one) * interval))
 where
 	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec

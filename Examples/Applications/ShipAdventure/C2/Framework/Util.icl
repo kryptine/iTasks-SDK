@@ -71,7 +71,7 @@ where f []                 = []
                | otherwise = [a : f as]
 
 doTaskPeriodically :: Int (Task a) -> Task a | iTask a
-doTaskPeriodically period task = forever (waitForTimer period >>| task)
+doTaskPeriodically period task = forever (waitForTimer False period >>| task)
 
 doTaskPeriodicallyUntilPause :: Int (Task a) -> Task () | iTask a
 doTaskPeriodicallyUntilPause period task
