@@ -117,28 +117,33 @@ utcDateTimeToTimestamp :: !DateTime  -> Timestamp
 /**
 * Creates a task which blocks a workflow until a specified time.
 *
+* @param Whether to show a UI with the current time
 * @param Time: The specified time at which the task should complete
 *
 * @return The time to wait for
-* 
 */
-waitForTime		:: !Time			-> Task Time
+waitForTime :: !Bool !Time -> Task Time
+
 /**
 * Creates a task which blocks a workflow until a specified date.
 *
+* @param Whether to show a UI with the current date
 * @param Date: The specified date at which the task should complete
 *
 * @return The date to wait for
 */
-waitForDate		:: !Date			-> Task Date
+waitForDate :: !Bool !Date -> Task Date
+
 /**
 * Creates a task which blocks a workflow until a specified date and time.
 *
+* @param Whether to show a UI with the current date and time
 * @param DateTime: The specified date and time at which the task should complete
 *
 * @return The date and time to wait for
 */
-waitForDateTime :: !DateTime 		-> Task DateTime
+waitForDateTime :: !Bool !DateTime -> Task DateTime
+
 /**
 * Task completes after specified amount of time has passed
 * since the creation of the task.
@@ -147,7 +152,6 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 * @param The time to wait (in seconds before the task should complete
 *
 * @return The time the timer went off
-* 
 */
 waitForTimer :: !Bool !Int -> Task DateTime
 
