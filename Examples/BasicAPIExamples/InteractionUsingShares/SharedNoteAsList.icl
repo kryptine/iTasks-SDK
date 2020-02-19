@@ -20,8 +20,8 @@ where
 				-||-
 				(Title "Lines" @>> Hint "Edit lines" @>> updateSharedInformation [listEditor] state)
 						<<@ ArrangeHorizontal
-		>>=		\result -> Hint "Result:" @>> viewInformation [] result
-		>>=		return
+		>>!		\result -> Hint "Result:" @>> viewInformation [] result
+		>>!		return
 
 	noteEditor = UpdateSharedUsing id (const id) (const o Just) textArea
 	listEditor = UpdateSharedAs (split "\n") (\_ l -> join "\n" l) (const o Just)

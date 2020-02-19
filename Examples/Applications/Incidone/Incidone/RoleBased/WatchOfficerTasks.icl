@@ -83,7 +83,7 @@ where
     addContact :: Task (Maybe ContactNo)
     addContact
         =   (Title "Add contact") @>> enterInformation []
-        >>? createContact
+        >?? createContact
 
 :: ActionSet = PersonalActions | IncidentActions !IncidentNo
 

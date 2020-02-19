@@ -18,4 +18,4 @@ positiveNumber
 	= 		enterInformation "Please enter a positive number" []
 	>>* 	[ OnAction  ActionOk (ifValue (\n -> n > 0) return)
 	        ]
-	>>=		viewInformation "Entered number is:" []
+	>>-		viewInformation "Entered number is:" []

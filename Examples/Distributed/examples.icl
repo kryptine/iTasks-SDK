@@ -40,33 +40,33 @@ hostTaskPoolServer :: Task ()
 hostTaskPoolServer
 	= getDomain
 	>>- \domain -> (Hint "Task pool port" @>> enterInformation [])
-	>>= \port -> (instanceServer port domain) -|| (instanceFilter (const True) domain)
+	>>! \port -> (instanceServer port domain) -|| (instanceFilter (const True) domain)
 
 connectToTaskPoolServer :: Task ()
 connectToTaskPoolServer
 	= Hint "Connect to task pool" @>> enterInformation []
-	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> (instanceClient host port Nothing (Domain host)) -|| (instanceFilter (const True) (Domain host))
+	>>! \{ConnectToTaskPool|domain=(Domain host),port} -> (instanceClient host port Nothing (Domain host)) -|| (instanceFilter (const True) (Domain host))
 
 intermediateTaskPoolServer :: Task ()
 intermediateTaskPoolServer
 	= Hint "Enter YOUR subdomain" @>> enterInformation []
-	>>= \subdomain -> Hint "Enter a port for YOUR task pool server" @>> enterInformation []
-	>>= \serverPort -> Hint "Connect to (master) task pool" @>> enterInformation []
-	>>= \{ConnectToTaskPool|domain=(Domain host),port} -> ((instanceClient host port Nothing (Domain host)) -|| (instanceClameFilter (const True) (Domain host))) -|| instanceServer serverPort subdomain
+	>>! \subdomain -> Hint "Enter a port for YOUR task pool server" @>> enterInformation []
+	>>! \serverPort -> Hint "Connect to (master) task pool" @>> enterInformation []
+	>>! \{ConnectToTaskPool|domain=(Domain host),port} -> ((instanceClient host port Nothing (Domain host)) -|| (instanceClameFilter (const True) (Domain host))) -|| instanceServer serverPort subdomain
 
 askQuestion :: Task String
 askQuestion
 	= get currentDomain
 	>>- \domain -> usersOf domain
 	>>- \users -> Hint "Select a user" @>> enterChoice [] users
-	>>= \user ->  Hint "Question" @>> enterInformation []
-	>>= \question -> user @. domain @: (answer question)
+	>>! \user ->  Hint "Question" @>> enterInformation []
+	>>! \question -> user @. domain @: (answer question)
 	>>- \answer -> Hint "Anser" @>> viewInformation [] answer
 where
 	answer :: String -> Task String
 	answer question
 		= Hint question @>> enterInformation []
-		>>= return
+		>>! return
 
 :: TestRecord = {number :: Int, numbers :: [Int], text :: String, texts :: [String]}
 
@@ -77,15 +77,15 @@ myShared = sharedStore "myShared" {number = 18, numbers = [1,2,3], text =  "Hell
 sharedExample :: Task TestRecord
 sharedExample
 	=		enterDomain
-	>>= \domain  -> usersOf domain
-	>>=	\users   -> Hint "Task for:" @>> enterChoice [] users
-	>>= \user    -> ((user @. domain) @: updateMyShared)
+	>>! \domain  -> usersOf domain
+	>>-	\users   -> Hint "Task for:" @>> enterChoice [] users
+	>>! \user    -> ((user @. domain) @: updateMyShared)
 	||- (Hint "myShare"  @>> viewSharedInformation [] myShared)
 
 updateMyShared :: Task TestRecord
 updateMyShared
 	= Hint "New value for shared" @>> enterInformation []
-	>>= \val -> set val myShared
+	>>! \val -> set val myShared
 
 :: ServerRole = DomainServer Domain
 	      | Server Domain
@@ -108,9 +108,9 @@ startMode executable
 	=   get serverRoleShare
 	>>- \role = case role of
 			DomainServer domain -> startAuthEngine domain
-				>>| installWorkflows (myTasks True)
-				>>| loginAndManageWork "Service engineer application" Nothing Nothing False
-			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
+				>-| installWorkflows (myTasks True)
+				>-| loginAndManageWork "Service engineer application" Nothing Nothing False
+			Server domain -> startAuthEngine domain >-| loginRemote (myTasks False)
 			_ -> Title "Welcome" @>> viewInformation [] "Choose what this iTasks instance is."
 		             >>* [ OnAction (Action "Domain server") (always (domainServer))
             			 , OnAction (Action "Server") (always (server))
@@ -119,16 +119,16 @@ where
 	server :: Task ()
 	server
 		= enterDomain
-		>>= \domain -> set (Server domain) serverRoleShare
-		>>| startAuthEngine domain >>| loginRemote (myTasks False)
+		>>! \domain -> set (Server domain) serverRoleShare
+		>-| startAuthEngine domain >-| loginRemote (myTasks False)
 
 	domainServer :: Task ()
 	domainServer
 		= enterDomain
-		>>= \domain -> set (DomainServer domain) serverRoleShare
-		>>| startAuthEngine domain
-		>>| installWorkflows (myTasks True)
-		>>| loginAndManageWork "Service engineer application" Nothing Nothing False
+		>>! \domain -> set (DomainServer domain) serverRoleShare
+		>-| startAuthEngine domain
+		>-| installWorkflows (myTasks True)
+		>-| loginAndManageWork "Service engineer application" Nothing Nothing False
 
 loginRemote :: ![Workflow] -> Task ()
 loginRemote workflows
@@ -140,9 +140,9 @@ loginRemote workflows
 where
 	browseAuthenticated workflows {Credentials|username,password}
 		= remoteAuthenticateUser username password
-		>>= \mbUser -> case mbUser of
+		>>? \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorkOfCurrentUser Nothing)
-			Nothing		= Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >>| return ()
+			Nothing		= Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >!| return ()
 
 Start :: *World -> *World
 Start world	= doTasks [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))] world

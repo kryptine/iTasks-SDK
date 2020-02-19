@@ -14,4 +14,4 @@ main = enterDateTime @! ()
 enterDateTime :: Task [(Date, Time)]
 enterDateTime
 	= 	Hint "Enter a date and time" @>> enterInformation []
-	>>=	\result -> Hint "You Entered:" @>> viewInformation [] result
+	>>!	\result -> Hint "You Entered:" @>> viewInformation [] result

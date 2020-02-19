@@ -630,7 +630,7 @@ where
 		= Title "Loading task" @>> viewInformation [] "Please wait, the task is loaded ..."
 		||- (addWrapperTaskHandler instanceno (handlerTask shared)
 	 	     >-| sendRequestToInstanceServer clientId ("instance " +++ (if force "get-force " "get ") +++ toString instanceno)
-                     >>| (watch shared >>* [OnValue (ifValue (\v -> not (v == "")) return)])
+                     >-| (watch shared >>* [OnValue (ifValue (\v -> not (v == "")) return)])
 		) >>- \result -> if (result=="ASSIGNED") (assigned instanceno shared) (return result)
 
 	handlerTask :: (Shared sds String) String -> Task () | RWShared sds

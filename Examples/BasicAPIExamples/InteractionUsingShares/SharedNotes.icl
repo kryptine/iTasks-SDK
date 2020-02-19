@@ -26,5 +26,5 @@ sharedNotes
 			 (Hint "Update shared note 2" @>> updateSharedInformation [UpdateSharedUsing id (const id) (const o Just) textArea] note)
 			) <<@ ArrangeHorizontal 
 		)
-	>>= \result -> Hint "Resulting string is:" @>> viewInformation [ViewUsing id textArea] result
-	>>= return
+	>>! \result -> Hint "Resulting string is:" @>> viewInformation [ViewUsing id textArea] result
+	>>! return

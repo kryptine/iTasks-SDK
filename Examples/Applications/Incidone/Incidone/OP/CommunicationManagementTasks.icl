@@ -29,13 +29,13 @@ updateCommunication communicationNo
             (P2000Message,Out)  = composeP2000Message communicationNo
             _
                 =   (Title "Communication details:") @>> viewSharedInformation [] (sdsFocus communicationNo communicationDetailsByNo)
-                >>| return communicationNo
+                >!| return communicationNo
 
 //Answer an incoming call
 answerPhoneCall :: CommunicationNo -> Task CommunicationNo
 answerPhoneCall communicationNo
     =   setInitialHandledBy communicationNo
-    >>| connectInboundPhoneCall communicationNo
+    >?| connectInboundPhoneCall communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
           manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
@@ -48,7 +48,7 @@ answerPhoneCall communicationNo
 initiatePhoneCall :: CommunicationNo -> Task CommunicationNo
 initiatePhoneCall communicationNo
     =   setInitialHandledBy communicationNo
-    >>| connectOutboundPhoneCall communicationNo
+    >?| connectOutboundPhoneCall communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
           manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
@@ -61,7 +61,7 @@ initiatePhoneCall communicationNo
 answerRadioCall :: CommunicationNo -> Task CommunicationNo
 answerRadioCall communicationNo
     =   setInitialHandledBy communicationNo
-    >>| updateRadioCallMeta communicationNo
+    >?| updateRadioCallMeta communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
           manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
@@ -74,7 +74,7 @@ answerRadioCall communicationNo
 initiateRadioCall :: CommunicationNo -> Task CommunicationNo
 initiateRadioCall communicationNo
     =   setInitialHandledBy communicationNo
-    >>| updateRadioCallMeta communicationNo
+    >?| updateRadioCallMeta communicationNo
     ||- ((manageCommunicationContact communicationNo
           -&&-
           manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide True)
@@ -87,7 +87,7 @@ initiateRadioCall communicationNo
 composeEmailMessage :: CommunicationNo -> Task CommunicationNo
 composeEmailMessage communicationNo
     =   setInitialHandledBy communicationNo
-    >>| updateMessageMeta communicationNo
+    >?| updateMessageMeta communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitEmailMessage
           -&&-
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
@@ -102,7 +102,7 @@ where
 composeP2000Message :: CommunicationNo -> Task CommunicationNo
 composeP2000Message communicationNo
     =   setInitialHandledBy communicationNo
-    >>| updateMessageMeta communicationNo
+    >?| updateMessageMeta communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitP2000Message
           -&&-
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
@@ -144,7 +144,7 @@ where
         @!  ()
 
     add =   selectKnownOrDefineNewIncident <<@ Title "+"
-        >>= createIncidentIfNew
+        >>? createIncidentIfNew
 
 /**
 * Interact with the PBX integration to establish an actual phone connection
@@ -354,18 +354,18 @@ transmitP2000Message communicationNo
 reportPhoneCallBegin :: (Maybe String) (Maybe String) -> Task CommunicationNo
 reportPhoneCallBegin externalNo externalRef
     =   traceValue ("Call started: " <+++ externalNo <+++ " " <+++ externalRef)
-    >>| createPhoneCall In
+    >-| createPhoneCall In
     >>- \communicationNo ->
         upd (\c -> {Communication|c & status = Just Ringing}) (sdsFocus communicationNo communicationByNo)
-    >>| upd (\p -> {PhoneCall|p & externalNo = externalNo, externalRef = externalRef}) (sdsFocus communicationNo phoneCallByNo)
-    >>| addNotification ("Incoming call from: "+++ fromMaybe "(unknown)" externalNo)
+    >-| upd (\p -> {PhoneCall|p & externalNo = externalNo, externalRef = externalRef}) (sdsFocus communicationNo phoneCallByNo)
+    >-| addNotification ("Incoming call from: "+++ fromMaybe "(unknown)" externalNo)
     @!  communicationNo
 
 reportPhoneCallConnected :: (Either CommunicationNo String) -> Task ()
 reportPhoneCallConnected (Left communicationNo) = upd (\c -> {Communication|c & status = Just Connected}) (sdsFocus communicationNo communicationByNo) @! ()
 reportPhoneCallConnected (Right externalRef)
     =   traceValue ("Call connected: " +++ externalRef)
-    >>| updateCommunicationByCallReference externalRef updateFun
+    >-| updateCommunicationByCallReference externalRef updateFun
 where
     updateFun c = {Communication|c & status = Just Connected}
 
@@ -373,7 +373,7 @@ reportPhoneCallEnd :: (Either CommunicationNo String) -> Task ()
 reportPhoneCallEnd (Left communicationNo) = upd (\c -> {Communication|c & status = Just Answered}) (sdsFocus communicationNo communicationByNo) @! ()
 reportPhoneCallEnd (Right externalRef)
     =   traceValue ("Call ended: " +++ externalRef)
-    >>| updateCommunicationByCallReference externalRef updateFun
+    >-| updateCommunicationByCallReference externalRef updateFun
 where
     updateFun c=:{Communication|status=Just Connected}  = {Communication|c & status = Just Answered}
     updateFun c                                         = {Communication|c & status = Just Missed}

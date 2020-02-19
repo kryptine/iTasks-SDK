@@ -13,4 +13,4 @@ main = enterText @! ()
 enterText :: Task String
 enterText
 	=   Hint "Enter text:" @>> enterInformation [EnterUsing id textArea]
-	>>= \result -> Hint "You entered:" @>> viewInformation [ViewUsing id textArea] result
+	>>! \result -> Hint "You entered:" @>> viewInformation [ViewUsing id textArea] result

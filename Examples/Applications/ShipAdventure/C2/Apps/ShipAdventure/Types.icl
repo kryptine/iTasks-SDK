@@ -407,9 +407,9 @@ setSectionDetectors :: Task ()
 setSectionDetectors
   = updateMapStatus KitchenMode
     >>* [OnValue (\tv -> case tv of
-                           Value (SetStatus c3d st)   _ -> Just (setSectionStatus c3d st myStatusMap >>| setSectionDetectors)
-                           Value (ToggleDoor c3d d)   _ -> Just (toggleDoor c3d d >>| setSectionDetectors)
-                           Value (ToggleHop c3d c3d`) _ -> Just (toggleHop c3d c3d` >>| setSectionDetectors)
+                           Value (SetStatus c3d st)   _ -> Just (setSectionStatus c3d st myStatusMap >?| setSectionDetectors)
+                           Value (ToggleDoor c3d d)   _ -> Just (toggleDoor c3d d >?| setSectionDetectors)
+                           Value (ToggleHop c3d c3d`) _ -> Just (toggleHop c3d c3d` >?| setSectionDetectors)
                            _                            -> Nothing
                  )]
 
@@ -451,7 +451,7 @@ where
 setAlarm :: !User !(!Coord3D, !SectionStatus) !(Shared sds MySectionStatusMap) -> Task () | RWShared sds
 setAlarm user (alarmLoc, status) shStatusMap
   =   setSectionStatus alarmLoc status shStatusMap
-  >>| addLog user ""  ("Resets " <+++ status <+++ " in Section " <+++ alarmLoc <+++ " to False.")
+  >?| addLog user ""  ("Resets " <+++ status <+++ " in Section " <+++ alarmLoc <+++ " to False.")
 
 setSectionStatus :: !Coord3D !SectionStatus !(Shared sds (SectionStatusMap SectionStatus)) -> Task () | RWShared sds
 setSectionStatus roomNumber status statusMap

@@ -23,9 +23,9 @@ pay
 	let pay_now   = filter (\collection=:{Collection | date} -> date <= today) payments
 		pay_later = filter (\collection=:{Collection | date} -> date >  today) payments
 	in				set pay_later collectionPayments
-	>>|				addToStore pay_now collectionsProcessed
-	>>|				Title "Payments performed on:" @>> viewInformation [] today
-	>>|				pay
+	>-|				addToStore pay_now collectionsProcessed
+	>-|				Title "Payments performed on:" @>> viewInformation [] today
+	>!|				pay
 
 viewSelectedCitizen :: Task ()
 viewSelectedCitizen
@@ -89,7 +89,7 @@ showCitizenInformationOfCurrentUser :: Task ()
 showCitizenInformationOfCurrentUser
 	=		 	currentSSN
 	>>- \ssn -> viewCitizenInformation ssn defaultValue
-	>>|			return ()
+	>!|			return ()
 
 examplefilepath :: !FilePath !String -> FilePath
 examplefilepath dir filename = dir <+++ pathSeparator <+++ "ExampleData" <+++ pathSeparator <+++ filename
@@ -104,8 +104,8 @@ convertExampleData
 						 } \\ line <- lines,
 						 [no,name:_] <- [split "\t" line]
 						 ] companies
-	>>=	\roofers ->	Title "roofing companies:" @>> viewInformation [] roofers
-	>>|				readLinesFromFile (examplefilepath curDir "adresses.txt")
+	>>-	\roofers ->	Title "roofing companies:" @>> viewInformation [] roofers
+	>!|				readLinesFromFile (examplefilepath curDir "adresses.txt")
 	>>- \lines ->	set [{ Citizen
 						 | ssn         = ssn
 						 , name        = {Name | forename = fore, surname = sur}
@@ -115,13 +115,13 @@ convertExampleData
 						\\ 	line <- lines,
 							[ssn,fore,sur,postcode,no:_] <- [split "\t" line]
 						] citizens
-	>>=	\cvs ->		Title "citizens:" @>> viewInformation [] cvs
-	>>|				readLinesFromFile (examplefilepath curDir "real_estate_owners.txt")
+	>>-	\cvs ->		Title "citizens:" @>> viewInformation [] cvs
+	>!|				readLinesFromFile (examplefilepath curDir "real_estate_owners.txt")
 	>>- \lines ->   set (foldl add_real_estate_owner [] lines) realEstateOwners
-	>>=	\owners ->	Title "real estate owners:" @>> viewInformation [] owners
-	>>|				set (foldl add_cadastre_real_estate [] owners) cadastreRealEstate
-	>>= \cadastre -> Title "cadastre:" @>> viewInformation [] cadastre
-	>>|				readLinesFromFile (examplefilepath curDir "officers.txt")
+	>>-	\owners ->	Title "real estate owners:" @>> viewInformation [] owners
+	>!|				set (foldl add_cadastre_real_estate [] owners) cadastreRealEstate
+	>>- \cadastre -> Title "cadastre:" @>> viewInformation [] cadastre
+	>!|				readLinesFromFile (examplefilepath curDir "officers.txt")
 	>>- \officers -> importDemoUsersFlow
 	>>- \demoAccounts -> allTasks
 					(createUser <$> 
@@ -139,8 +139,8 @@ convertExampleData
 		 								\\ cv <- cvs]
 
 					)
-	>>=	\a -> Title "accounts" @>> viewInformation [] a
-	>>|	viewInformation [] "Done!" @! ()
+	>>-	\a -> Title "accounts" @>> viewInformation [] a
+	>!|	viewInformation [] "Done!" @! ()
 where
 	add_real_estate_owner :: [RealEstateOwner] String -> [RealEstateOwner]
 	add_real_estate_owner data line_from_real_estate_owners

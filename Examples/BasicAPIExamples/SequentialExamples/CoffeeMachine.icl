@@ -21,8 +21,8 @@ coffeemachine
 					,("Tea", EUR 50)
 					,("Chocolate", EUR 100)
 					]
-	>>=  getCoins (EUR 0)
-	>>=	 return
+	>>!  getCoins (EUR 0)
+	>>!	 return
 	)
 
 getCoins :: EUR (String,EUR) -> Task (String,EUR)

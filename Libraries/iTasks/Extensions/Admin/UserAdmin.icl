@@ -116,7 +116,7 @@ createUserFlow =
 		, OnAction	    ActionOk 		(hasValue (\user ->
 										    createUser user
 										>-| Title "User created" @>> viewInformation [] "Successfully added new user"
-										>>| return ()
+										>!| return ()
 										))
 		]
 		
@@ -131,7 +131,7 @@ updateUserFlow userId
 					    set (Just newAccount) (userAccount userId)
 					>>- \storedAccount -> Title "User updated"
 					    @>> viewInformation [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)] storedAccount
-					>>| return newAccount
+					>!| return newAccount
 					))
 				])
 		Nothing
@@ -158,7 +158,7 @@ where
 		Hint "Password updated" @>> viewInformation
 		                [ ViewAs \(Just {StoredUserAccount|title}) ->
 		                         "Successfully changed password for " +++ fromMaybe "Untitled" title
-		                ] account`` >>|
+		                ] account`` >!|
 		return account`
 
 deleteUserFlow :: UserId -> Task StoredUserAccount
@@ -170,7 +170,7 @@ deleteUserFlow userId
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
 									>-|	Hint "User deleted" @>> viewInformation [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
-									>>| return account
+									>!| return account
 									))
 				]
 				

@@ -19,7 +19,7 @@ where
         =   get asteriskLinkConfig
         >>- \{AsteriskConfig|host,port,username,password} ->
             set ([],False,[authEvent username password],False) channel
-        >>| syncNetworkChannel host port "\r\n\r\n" decodeAsteriskEvent encodeAsteriskEvent channel
+        >-| syncNetworkChannel host port "\r\n\r\n" decodeAsteriskEvent encodeAsteriskEvent channel
 
     consume channel
         =   consumeNetworkStream processEvents channel
