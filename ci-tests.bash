@@ -25,11 +25,11 @@ fi
 if [ $(uname) = "Linux" ]; then
 	errors="$(
 		cd Examples
+		cp BasicAPIExamples.prj{.default,}
 		find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
 			|  sed 's/definition module //g' \
 			|  xargs cpm project BasicAPIExamples.prj compile \
-			|& grep -Po '(?<=Error \[).*(?=\.icl.*)' \
-			| uniq)"
+			|& grep -i 'Error \[.*\.icl')"
 	echo "$errors" >&2
 	[ -z "$errors" ]
 fi
