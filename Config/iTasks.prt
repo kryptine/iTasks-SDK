@@ -44,7 +44,5 @@ Global
 		StripByteCode:	True
 		KeepByteCodeSymbols:	True
 		PrelinkByteCode:	True
-	Paths
-		Path:	{Project}
 	Precompile:	
 	Postlink:	
