@@ -477,10 +477,10 @@ itasks.TabBar = class extends itasks.Selector {
 		}
 
 		options.forEach(function(option) {
-			optionEl = document.createElement('li');
+			var optionEl = document.createElement('li');
 			optionEl.value = option.id;
 
-			label = document.createElement('a');
+			var label = document.createElement('a');
 			label.innerHTML = '<span>'+ (option.text || '-')+'</span>';
 			label.href = '#';
 
