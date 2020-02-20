@@ -29,7 +29,7 @@ if [ $(uname) = "Linux" ]; then
 		find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
 			|  sed 's/definition module //g' \
 			|  xargs cpm project BasicAPIExamples.prj compile \
-			|& grep -i 'Error \[.*\.icl')"
+			|& grep -i 'Error \[.*\.[di]cl')"
 	echo "$errors" >&2
 	[ -z "$errors" ]
 fi
