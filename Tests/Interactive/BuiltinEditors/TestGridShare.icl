@@ -1,8 +1,9 @@
 module TestGridShare
-import iTasks, iTasks.Util.Testing
+import iTasks, iTasks.Util.Testing, Text.HTML
+derive class iTask ChoiceGrid, ChoiceRow
 
 test :: Task (ChoiceGrid,[Int])
-test = (testEditorWithShare (grid <<@ multipleAttr True) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update)
+test = (testEditorWithShare (grid <<@ multipleAttr True) (Update ({ChoiceGrid|header=["Key","Value"],rows=rows},[]))
 where
     rows = [{ChoiceRow|id=1,cells=[Text "A",Text "1"]},{ChoiceRow|id=2,cells=[Text "B",Text "2"]},{ChoiceRow|id=3,cells=[Text "C",Text "3"]}]
 
