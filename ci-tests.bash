@@ -23,6 +23,9 @@ fi
 
 #Try to compile all modules
 if [ $(uname) = "Linux" ]; then
+	#Temporary disable stopping on errors because grep returns 1
+	#when no matches are found
+	set +e
 	errors="$(
 		cd Examples
 		cp BasicAPIExamples.prj{.default,}
@@ -30,6 +33,7 @@ if [ $(uname) = "Linux" ]; then
 			|  sed 's/definition module //g' \
 			|  xargs cpm project BasicAPIExamples.prj compile \
 			|& grep -i 'Error \[.*\.[di]cl')"
+	set -e
 	echo "$errors" >&2
 	[ -z "$errors" ]
 fi
