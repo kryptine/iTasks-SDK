@@ -67,7 +67,6 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	{ reqTaskId     :: !TaskId       //* Id of the task that read the SDS. This Id also connects a chain of notify requests that were registered together
 	, reqSDSId      :: !SDSIdentity  //* Id of the actual SDS used to create this request (may be a derived one)
 	, cmpParam      :: !Dynamic      //* Parameter we are saving for comparison
-	, cmpParamText  :: String        //* String version of comparison parameter for tracing (lazy as not used usually)
 	, remoteOptions :: !Maybe RemoteNotifyOptions //* When the notify request is made from another client, this field
 												  //* include the information to send a refresh event to that client.
 	}

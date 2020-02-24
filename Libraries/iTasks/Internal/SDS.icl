@@ -111,8 +111,8 @@ where
 		{ reqTaskId=taskId
 		, reqSDSId=reqSDSId
 		, cmpParam=dynamic p
-		, cmpParamText=toSingleLineText p
-		, remoteOptions = mbRemoteOptions}
+		, remoteOptions = mbRemoteOptions
+		}
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld
@@ -197,11 +197,6 @@ where
 	where
 		addReg list {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _)} _
 			= 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
-
-formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
-formatSDSRegistrationsList list = 'Text'.join "\n" lines
-where
-	lines = [ "Task id " +++ toString reqTaskId +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText} <- list]
 
 formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines

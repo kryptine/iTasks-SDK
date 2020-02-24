@@ -138,7 +138,5 @@ queueNotifyEvents :: !String !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWor
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 
-formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
-
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
