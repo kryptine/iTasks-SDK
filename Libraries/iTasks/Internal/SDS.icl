@@ -98,6 +98,7 @@ mbRegister p sds (Just (taskId, reqSDSId)) context iworld=:{IWorld|sdsNotifyRequ
 			_ 								= ('DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask)
 	  }
 where
+	buildRequest :: !TaskContext TaskId !SDSIdentity !p -> SDSNotifyRequest | TC, gText{|*|} p
 	buildRequest (RemoteTaskContext reqTaskId currTaskId remoteSDSId host port) _ reqSDSId p
 		= buildRequest` reqTaskId reqSDSId p (Just {hostToNotify=host, portToNotify=port, remoteSdsId=remoteSDSId})
 	buildRequest (TaskContext taskId) _ reqSDSId p
@@ -105,6 +106,7 @@ where
 	buildRequest EmptyContext taskId reqSDSId p
 		= buildRequest` taskId reqSDSId p Nothing
 
+	buildRequest` :: !TaskId !SDSIdentity !p !(Maybe RemoteNotifyOptions) -> SDSNotifyRequest | TC, gText{|*|} p
 	buildRequest` taskId reqSDSId p mbRemoteOptions =
 		{ reqTaskId=taskId
 		, reqSDSId=reqSDSId
