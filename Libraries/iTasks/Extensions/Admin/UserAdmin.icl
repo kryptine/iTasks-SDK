@@ -5,19 +5,25 @@ import iTasks, iTasks.Internal.Store
 import iTasks.Extensions.CSVFile
 import iTasks.UI.Editor
 import Text, Data.Tuple, Data.Maybe, Data.Func, Data.Functor, Data.List, Crypto.Hash.SHA1
+import qualified Data.Map as DM
 
 derive class iTask UserAccount, StoredUserAccount, StoredCredentials
 
 //Initial root user
-ROOT_USER :== { StoredUserAccount
-              | credentials = { StoredCredentials
-                              | username           = Username "root"
-                              , saltedPasswordHash = "1e27e41d50caf2b0516e77c60fc377e8ae5a32ee" // password is "root"
-                              , salt               = "25wAdtdQcJZOQLETvki7eJFcI7u5XoSO"
-                              }
-              , title       = Just "Root user"
-              , roles       = ["admin","manager"]
-              }
+ROOT_USER :==
+	{ StoredUserAccount
+	| title       = Just "Root user"
+	, roles       = ["admin","manager"]
+	, token       = Nothing
+	, credentials =
+		{ StoredCredentials
+		| username           = Username "root"
+		, saltedPasswordHash = "1e27e41d50caf2b0516e77c60fc377e8ae5a32ee" // password is "root"
+		, salt               = "25wAdtdQcJZOQLETvki7eJFcI7u5XoSO"
+		}
+	}
+
+AUTHENTICATION_COOKIE_TTL :== 3600 * 24 * 7 //One week validity
 
 userAccounts :: SDSLens () [StoredUserAccount] [StoredUserAccount]
 userAccounts = sdsFocus "UserAccounts" (storeShare NS_APPLICATION_SHARES False InJSONFile (Just [ROOT_USER]))
@@ -33,17 +39,25 @@ where
 	hasRole role (AuthenticatedUser _ roles _) = isMember role roles
 	hasRole _ _ = False
 
-userAccount :: UserId -> SDSLens () (Maybe StoredUserAccount) (Maybe StoredUserAccount)
-userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) (Just \_ accounts -> Ok (getAccount userId accounts)) userAccounts
+userAccount :: SDSLens UserId (Maybe StoredUserAccount) (Maybe StoredUserAccount)
+userAccount = sdsLens "userAccount" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing userAccounts
 where
-	getAccount :: UserId [StoredUserAccount] -> Maybe StoredUserAccount
-	getAccount userId accounts = case [a \\ a <- accounts | identifyUserAccount a == userId] of
-		[a] = Just a
-		_	= Nothing
-		
-	setAccount :: (Maybe StoredUserAccount) [StoredUserAccount] -> [StoredUserAccount]
-	setAccount Nothing accounts = accounts
-	setAccount (Just updated) accounts = [if (identifyUserAccount a == identifyUserAccount updated) updated a \\ a <- accounts]
+	read userId accounts = Ok $ listToMaybe [a \\ a <- accounts | identifyUserAccount a == userId]
+	write userId accounts Nothing = Ok Nothing
+	write userId accounts (Just account) = Ok $ Just [if (identifyUserAccount a == userId) account a \\ a <- accounts]
+	notify p _ t q = p == q
+
+userToken :: SDSLens String (Maybe StoredUserAccount) ()
+userToken = sdsLens "userToken" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing userAccounts
+where
+	read token accounts = Ok $ listToMaybe [a \\ a <- accounts | maybe False (checkToken (split ":" token)) a.StoredUserAccount.token]
+
+	checkToken [tokenpublic,tokenprivate:_] {StoredCredentials|username=(Username uname),saltedPasswordHash,salt}
+		= uname == tokenpublic && saltedPasswordHash == sha1 (tokenprivate +++ salt)
+	checkToken _ _ = False
+
+	write token () = Ok Nothing
+	notify _ _ _ _ = False
 
 identifyUserAccount :: StoredUserAccount -> UserId
 identifyUserAccount {StoredUserAccount|credentials={StoredCredentials|username}} = toString username
@@ -55,19 +69,51 @@ accountTitle :: !StoredUserAccount -> String
 accountTitle {StoredUserAccount|credentials={StoredCredentials|username},title=Just title} = title
 accountTitle {StoredUserAccount|credentials={StoredCredentials|username}} = "Untitled (" +++ toString username +++ ")"
 
-authenticateUser :: !Username !Password	-> Task (Maybe User)
-authenticateUser (Username username) password
-	=	get (userAccount username)
-	@	(maybe Nothing (\a -> if (isValidPassword password a.StoredUserAccount.credentials) (Just (accountToUser a)) Nothing))
+authenticateUser :: !Username !Password	!Bool -> Task (Maybe User)
+authenticateUser (Username username) password persistent
+	| persistent
+		= checkUserAccount username password
+		>>- maybe (return Nothing) (\user -> storeUserToken username >-| return (Just user))
+	| otherwise
+		= checkUserAccount username password
 where
-    isValidPassword :: !Password !StoredCredentials -> Bool
-    isValidPassword (Password password) credentials =
+	checkUserAccount username password
+		=	get (sdsFocus username userAccount)
+		@	(maybe Nothing (\a -> if (isValidPassword password a.StoredUserAccount.credentials) (Just (accountToUser a)) Nothing))
+
+	isValidPassword :: !Password !StoredCredentials -> Bool
+	isValidPassword (Password password) credentials =
 		sha1 (password +++ credentials.salt) == credentials.saltedPasswordHash
-	
+
+	storeUserToken :: String -> Task ()
+	storeUserToken username
+		= getRandom -&&- getRandom -&&- getRandom
+		>>- \(salt,(tokenpublic,tokenprivate)) ->
+			set ("auth-token",tokenpublic +++ ":" +++ tokenprivate, Just AUTHENTICATION_COOKIE_TTL) currentTaskInstanceCookies
+			-&&-
+			upd (fmap $ setToken salt tokenpublic tokenprivate) (sdsFocus username userAccount)
+		@! ()
+	where
+		setToken salt tokenpublic tokenprivate account =
+			{account & token = Just {username=Username tokenpublic,saltedPasswordHash = sha1 (tokenprivate +++ salt), salt = salt}}
+		getRandom = get (sdsFocus 32 randomString)
+
+authenticateUsingToken :: Task (Maybe User)
+authenticateUsingToken
+	= watch (mapRead ('DM'.get "auth-token") currentTaskInstanceCookies)
+	>>* [OnValue (ifValue isJust (checkToken o fromJust))]
+where
+	checkToken :: String -> Task (Maybe User)
+	checkToken token = get (sdsFocus token userToken)
+		>>- maybe (clearAuthenticationToken @! Nothing) (\a -> return (Just (accountToUser a)))
+
+clearAuthenticationToken :: Task ()
+clearAuthenticationToken = set ("auth-token","",Just 0) currentTaskInstanceCookies @! ()
+
 doAuthenticated :: (Task a) -> Task a | iTask a
 doAuthenticated task = doAuthenticatedWith verify task
 where
-	verify {Credentials|username,password} = authenticateUser username password
+	verify {Credentials|username,password} = authenticateUser username password False
 	
 doAuthenticatedWith :: !(Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
 doAuthenticatedWith verifyCredentials task
@@ -80,7 +126,7 @@ doAuthenticatedWith verifyCredentials task
 createUser :: !UserAccount -> Task StoredUserAccount
 createUser account
 	=	createStoredAccount >>~ \storedAccount ->
-	    get (userAccount (identifyUserAccount storedAccount))
+	    get (sdsFocus (identifyUserAccount storedAccount) userAccount)
 	>>- \mbExisting -> case mbExisting of
 		Nothing
 			= upd (\accounts -> accounts ++ [storedAccount]) userAccounts @ const storedAccount
@@ -88,10 +134,12 @@ createUser account
 			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
 where
 	createStoredAccount :: Task StoredUserAccount
-	createStoredAccount = createStoredCredentials account.UserAccount.credentials.Credentials.username
-	                                              account.UserAccount.credentials.Credentials.password @ \credentials ->
-		                  { StoredUserAccount | credentials = credentials , title       = account.UserAccount.title , roles       = account.UserAccount.roles
-		                  }
+	createStoredAccount
+		= createStoredCredentials account.UserAccount.credentials.Credentials.username
+			account.UserAccount.credentials.Credentials.password
+		@ \credentials ->
+			{ StoredUserAccount | credentials = credentials , title = account.UserAccount.title
+			, roles = account.UserAccount.roles, token = Nothing }
 
 deleteUser :: !UserId -> Task ()
 deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @! ()
@@ -122,13 +170,13 @@ createUserFlow =
 		
 updateUserFlow :: UserId -> Task StoredUserAccount
 updateUserFlow userId
-	=	get (userAccount userId)
+	=	get (sdsFocus userId userAccount)
 	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	(Title ("Editing " +++ fromMaybe "Untitled" account.StoredUserAccount.title) @>> Hint "Please make your changes" @>> updateInformation [] account
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
-					    set (Just newAccount) (userAccount userId)
+					    set (Just newAccount) (sdsFocus userId userAccount)
 					>>- \storedAccount -> Title "User updated"
 					    @>> viewInformation [ViewAs (\(Just {StoredUserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)] storedAccount
 					>!| return newAccount
@@ -139,7 +187,7 @@ updateUserFlow userId
 
 changePasswordFlow :: !UserId -> Task StoredUserAccount
 changePasswordFlow userId =
-	get (userAccount userId) >>~ \mbAccount ->
+	get (sdsFocus userId userAccount) >>~ \mbAccount ->
 	case mbAccount of
 		Just account = 
 			Title ("Change Password for " +++ fromMaybe "Untitled" account.StoredUserAccount.title) @>>
@@ -154,7 +202,7 @@ where
 	updatePassword account password =
 		createStoredCredentials account.StoredUserAccount.credentials.StoredCredentials.username password >>- \creds ->
 		let account` = {StoredUserAccount| account & credentials = creds} in
-		set (Just account`) (userAccount userId) >>- \account`` ->
+		set (Just account`) (sdsFocus userId userAccount) >>- \account`` ->
 		Hint "Password updated" @>> viewInformation
 		                [ ViewAs \(Just {StoredUserAccount|title}) ->
 		                         "Successfully changed password for " +++ fromMaybe "Untitled" title
@@ -163,7 +211,7 @@ where
 
 deleteUserFlow :: UserId -> Task StoredUserAccount
 deleteUserFlow userId
-	=	get (userAccount userId)
+	=	get (sdsFocus userId userAccount)
 	>>- \mbAccount -> case mbAccount of 
 		(Just account)
 			=	Title "Delete user" @>> viewInformation [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")

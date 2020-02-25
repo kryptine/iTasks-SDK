@@ -306,9 +306,11 @@ initParallelTask evalOpts listId Embedded parTask iworld=:{options,clock,current
 		, firstEvent           = Just clock
 		, lastEvent            = Just clock
 		, lastIO               = Nothing
+		, cookies              = 'DM'.newMap
 		, taskAttributes       = 'DM'.newMap
 		, managementAttributes = 'DM'.newMap
 		, unsyncedAttributes   = 'DS'.newSet
+		, unsyncedCookies      = []
 		, change               = Nothing
 		, initialized          = False
 		}

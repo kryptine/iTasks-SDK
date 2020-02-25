@@ -2,6 +2,7 @@ module iTasks.WF.Tasks.Core.UnitTests
 import iTasks.Util.Testing
 import qualified Data.Map as DM
 import Data.Either, Data.Maybe
+import Data.Maybe.GenPrint
 import Text.GenPrint
 
 derive gPrint TaskOutputMessage

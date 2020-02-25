@@ -95,6 +95,14 @@ where
 	# destroyed = newResult =: DestroyedResult
 	//Reset necessary 'current' values in iworld
 	# iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
+	//Read unsynced cookies from meta-data //TODO: we should be able to this during updateTaskState, but SDS.modify can't return a value anymore
+	# (mbErr,iworld) = if destroyed
+		(Ok [],iworld)
+		(readUnsyncedCookies instanceNo iworld)
+	| mbErr=:(Error _)
+		# (Error (_,description)) = mbErr
+		= exitWithException instanceNo description iworld
+	# syncCookies = fromOk mbErr
 	//Write the updated state, or cleanup
 	# (mbErr,iworld) = if destroyed
 		(cleanupTaskState instanceNo iworld)
@@ -106,10 +114,10 @@ where
 		ValueResult value _ change _
 			| destroyed = (Ok value,iworld)
 			| isNothing currentSession = (Ok value, iworld)
-			| otherwise = case compactUIChange change of
-				//Only queue UI changes if something interesting is changed
-				NoChange = (Ok value,iworld)
-				change = (Ok value, queueUIChange instanceNo change iworld)
+			| otherwise = case (compactUIChange change, syncCookies) of
+				//Only queue output if something interesting is changed
+				(NoChange,[]) = (Ok value,iworld)
+				(change,_) = (Ok value, queueOutput instanceNo [TOUIChange change:[TOSetCookie k v ttl \\ (k,v,ttl) <- reverse syncCookies]] iworld)
 		ExceptionResult (e,description)
 			# iworld = if (type =: StartupInstance)
 				(printStdErr description {iworld & shutdown=Just 1})
@@ -117,6 +125,10 @@ where
 			= exitWithException instanceNo description iworld
 		DestroyedResult
 			= (Ok NoValue, iworld)
+
+	readUnsyncedCookies instanceNo iworld
+		# (mbErr,iworld) = read (sdsFocus (instanceNo,False,True) taskInstance) EmptyContext iworld
+		= (fmap ((\{TaskMeta|unsyncedCookies} -> unsyncedCookies) o directResult) mbErr, iworld)
 
 	updateTaskState instanceNo newResult newTask newValue nextTaskNo nextTaskTime iworld=:{clock}
 		//Store progress
@@ -173,6 +185,7 @@ where
 			, nextTaskNo = nextTaskNo
 			, nextTaskTime = nextTaskTime + 1
 			, taskAttributes = taskAttributes
+			, unsyncedCookies = []
 			}
 	where
 		getAttributeChanges :: !UIChange -> [UIAttributeChange]

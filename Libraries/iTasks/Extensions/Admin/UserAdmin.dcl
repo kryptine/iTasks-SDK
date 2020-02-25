@@ -19,6 +19,7 @@ from iTasks.Extensions.Document import :: Document
 	{ credentials :: !StoredCredentials
 	, title       :: !Maybe UserTitle
 	, roles       :: ![Role]
+	, token       :: !Maybe StoredCredentials
 	}
 
 /**
@@ -46,10 +47,24 @@ usersWithRole			:: !Role ->		SDSLens () [User] ()
 *
 * @param Username: The username
 * @param Password: The password
+* @param Persistent: Set a persistent authentication token in browser cookies
 *
 * @return A single user who matches the given credentials, or nothing of none or more than one exists.
 */
-authenticateUser	:: !Username !Password	-> Task (Maybe User)
+authenticateUser	:: !Username !Password !Bool -> Task (Maybe User)
+
+/**
+* Check the browser cookies for a stored persistent login token
+* - If no token is set, the task blocks indefinitely
+* - If a valid token is set, it returns the user
+* - If an invalid token is set, it returns Nothing
+*/
+authenticateUsingToken :: Task (Maybe User)
+
+/**
+* Clear any persistent authentication cookies
+*/
+clearAuthenticationToken :: Task ()
 
 /**
 * Wraps a task with an authentication task

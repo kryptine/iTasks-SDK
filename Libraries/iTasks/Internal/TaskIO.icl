@@ -100,23 +100,22 @@ clearEvents instanceNo iworld
 where
 	clear (Queue fs bs) = Queue [f \\ f=:(i,_) <- fs | i <> instanceNo] [b \\ b=:(i,_) <- bs | i <> instanceNo]
 
-queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
-queueUIChange instanceNo change iworld
-	# (_,iworld) = 'SDS'.modify ('DQ'.enqueue (TOUIChange change)) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
-	= iworld
-
-queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
-queueUIChanges instanceNo changes iworld
-	# (_,iworld) = 'SDS'.modify (enqueueAll changes) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
+queueOutput :: !InstanceNo ![TaskOutputMessage] !*IWorld -> *IWorld
+queueOutput instanceNo messages iworld
+	# (_,iworld) = 'SDS'.modify (enqueueAll messages) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 	= iworld
 where
 	enqueueAll [] q = q
-	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue (TOUIChange x) q)
+	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+
+queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
+queueUIChange instanceNo change iworld = queueOutput instanceNo [TOUIChange change] iworld
+
+queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
+queueUIChanges instanceNo changes iworld = queueOutput instanceNo (map TOUIChange changes) iworld
 
 queueException :: !InstanceNo !String !*IWorld -> *IWorld
-queueException instanceNo description iworld
-	# (_,iworld) = 'SDS'.modify (\q -> 'DQ'.enqueue (TOException description) q) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
-	= iworld
+queueException instanceNo description iworld = queueOutput instanceNo [TOException description] iworld
 
 attachViewport :: !InstanceNo !*IWorld -> *IWorld
 attachViewport instanceNo iworld
