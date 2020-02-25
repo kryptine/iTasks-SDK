@@ -9,8 +9,8 @@ from Data.Functor import class Functor
 
 /*** General input/update/output tasks ***/
 :: ViewOption a
-	= E.v: ViewAs    (a -> v) & iTask v
-	| E.v: ViewUsing (a -> v) (Editor v (Maybe v)) & iTask v
+	= E.v:   ViewAs    (a -> v) & iTask v
+	| E.v w: ViewUsing (a -> v) (Editor v w) & iTask v
 
 :: EnterOption a
 	= E.v: EnterAs    (v -> a) & iTask v
