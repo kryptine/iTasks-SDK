@@ -30,7 +30,7 @@ import iTasks.WF.Derives
 createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 createIWorld options world
 	# (ts=:{tv_nsec=seed}, world) = nsTime world
-	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.byteCodePath world
+	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.appPath options.byteCodePath world
 	= case mbAbcEnv of
 		Just abcEnv = Right
 			{IWorld
@@ -101,7 +101,7 @@ iworldTimespecNextFire now reg {start,interval}
 	# start = toI start
 	  interval = toI interval
 	  reg = toI reg
-	  passed = reg - start
+	  passed = max (zero - interval) (reg - start)
 	= toT (start + ((passed / interval + one) * interval))
 where
 	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec

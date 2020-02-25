@@ -31,7 +31,7 @@ editTaskExpr mv =
 	[ ( "Run", const True, \v ->
 			Title "Evaluate the task" @>> Hint info2 @>> viewInformation [] ()
 		||-
-			(set [] globalValueShare >>| evalTaskExpr (valueCorrespondingTo taskEditor v))
+			(set [] globalValueShare >-| evalTaskExpr (valueCorrespondingTo taskEditor v))
 		>>*
 		[ OnAction (Action "Back") (always (editTaskExpr (Just v)))
 		, OnAction
@@ -343,7 +343,7 @@ globalValueShare = sharedStore "global share for typed task editor" []
 evalTaskExpr :: TaskExpr -> Task Value
 evalTaskExpr (Done expr) = return $ evalExpr expr
 evalTaskExpr (EnterInfo (Ty toValue) msg) = Hint msg @>> enterInformation [] @ toValue
-evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>= evalTaskFunc taskFunc
+evalTaskExpr (Then task taskFunc) = evalTaskExpr task >>? evalTaskFunc taskFunc
 evalTaskExpr (Both task1 task2) =
 	(evalTaskExpr task1 -&&- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal @ \(a, b) -> VPair a b
 evalTaskExpr (Any task1 task2) = (evalTaskExpr task1 -||- evalTaskExpr task2) <<@ ApplyLayout arrangeHorizontal
@@ -357,7 +357,7 @@ evalTaskExpr (Forever task) = forever (evalTaskExpr task)
 
 evalTaskFunc :: TaskFunc Value -> Task Value
 evalTaskFunc (ThenF this next) val =
-	evalTaskFunc this val >>= evalTaskFunc next
+	evalTaskFunc this val >>? evalTaskFunc next
 evalTaskFunc (ViewF msg func) val = case evalFunc val func of
 	(VInt i) -> (Hint msg @>> viewInformation [] i @ VInt) <<@ ApplyLayout arrangeHorizontal
 	(VBool b) -> (Hint msg @>> viewInformation [] b @ VBool) <<@ ApplyLayout arrangeHorizontal

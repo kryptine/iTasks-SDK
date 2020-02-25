@@ -7,8 +7,8 @@ import Trax.UI
 play_trax :: Task User
 play_trax
 	=             get currentUser
-	  >>= \me  -> Hint "Who do you want to play Trax with:" @>> enterChoiceWithShared [] users
-	  >>= \you -> play_game me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
+	  >>- \me  -> Hint "Who do you want to play Trax with:" @>> enterChoiceWithShared [] users
+	  >>! \you -> play_game me you {trax=zero,names=[me,you],turn=True,choice=Nothing}
 
 play_game :: User User TraxSt -> Task User
 play_game me you traxSt

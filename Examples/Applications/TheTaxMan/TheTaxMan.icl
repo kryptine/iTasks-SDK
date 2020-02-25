@@ -31,9 +31,9 @@ startRequestCompensation
 			(Action "Start Request")
 			"Subsidy Request"
 			(forever (				Hint "What kind of subsidy would you like to request?" @>> enterChoice [] ["Solar Panels", "Allowances"]
-					 >>= \choice ->	case choice of
-					 					"Solar Panels" -> currentCitizen >>= requestSolarPanelCompensation
-										_              -> viewInformation [] "Not implemented" >>| return ()
+					 >>! \choice ->	case choice of
+										"Solar Panels" -> currentCitizen >>- requestSolarPanelCompensation
+										_              -> viewInformation [] "Not implemented" >!| return ()
 			)        )
 
 adminEditors :: [Workflow]

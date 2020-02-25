@@ -11,7 +11,7 @@ class DB a where
 	/*
 	* Retrieve the database handle
 	*/
-	databaseId	:: Shared [a]
+	databaseId	:: SimpleSDSLens [a]
 	/*
 	* Retrieve the reference to a stored instance
 	*/

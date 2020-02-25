@@ -29,7 +29,7 @@ instance Functor Task
 * @param Second: The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) 			-> Task b		| TC, JSONEncode{|*|} a
+(>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 
 /**
 * Combines two tasks sequentially. The first task is executed first.
@@ -40,7 +40,7 @@ instance Functor Task
 * @param Second: The second task
 * @return The combined task
 */
-(>>|) infixl 1 :: !(Task a) !(Task b) 			-> Task b		| TC, JSONEncode{|*|} a
+(>?|) infixl 1 :: !(Task a) !(Task b) -> Task b | TC, JSONEncode{|*|} a
 
 /**
 * Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
@@ -51,6 +51,10 @@ instance Functor Task
 * @return The combined task
 */
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
+
+//* Like `>>!`, but ignoring the result of the first task.
+(>!|) infixl 1 :: !(Task a) !(Task b) -> Task b | TC, JSONEncode{|*|} a
+
 /**
 * Combines two tasks sequentially but continues only when the first task has a stable value.
 *
@@ -78,7 +82,7 @@ instance Functor Task
 */
 (>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | TC, JSONEncode{|*|} a
 /**
-* Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
+* Combines two tasks sequentially just as `>>?`, but the result of the second task is disregarded.
 *
 * @param First: The first task to be executed
 * @param Second: The second task to be executed

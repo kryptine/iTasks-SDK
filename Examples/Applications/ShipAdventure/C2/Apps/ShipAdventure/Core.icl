@@ -35,18 +35,18 @@ myTasks = [ workflow "Walk around"  "Enter map, walk around, follow instructions
           ]
 
 currentUserWalkAround :: Task ()
-currentUserWalkAround = get currentUser >>= actorWithInstructions
+currentUserWalkAround = get currentUser >>- actorWithInstructions
 
 // initial task to place an actor on the map
 // one can only assign tasks to actors on the map
 actorWithInstructions :: !User -> Task ()
 actorWithInstructions user
   =           get myUserActorMap
-  >>= \uam -> case 'DM'.get user uam of
+  >>- \uam -> case 'DM'.get user uam of
                 Nothing
                   =   pickStartRoom
                   >>* [OnValue (hasValue (   \loc -> addLog user "" ("Entered the building starting in room " <+++ loc)
-                                         >>|         addActorToMap mkSection (newActor user) loc inventoryInSectionShare myStatusMap myUserActorMap myInventoryMap))]
+                                         >-|         addActorToMap mkSection (newActor user) loc inventoryInSectionShare myStatusMap myUserActorMap myInventoryMap))]
                 Just _ = moveAround mkSection user inventoryInSectionShare myStatusMap myUserActorMap myInventoryMap
   where
   newActor :: !User -> MyActor
@@ -161,8 +161,8 @@ derive class iTask MoveSt
 handleAlarm :: !(!User, !(!Coord3D, !SectionStatus), !(!Coord3D, !MyActor), !Priority) -> Task ()
 handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
   =   updStatusOfActor actor.userName Busy
-  >>| addLog ("D-Off " <+++ me) actor.userName (message "Start Handling ")
-  >>| appendTopLevelTaskPrioFor me (message "Wait for ") "High" True
+  >-| addLog ("D-Off " <+++ me) actor.userName (message "Start Handling ")
+  >-| appendTopLevelTaskPrioFor me (message "Wait for ") "High" True
         (handleWhileWalking actor (message "Handle ") priority) @! ()
   where
   message :: !String -> String
@@ -175,7 +175,7 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
         , OnValue  (ifValue isFailed (\x -> Title ("Task " <+++ title <+++ " failed, returning:") @>> viewInformation  [] x @! ()))
         , OnAction (Action "Cancel task") (always (Title "Canceled" @>> viewInformation [] ("Task " <+++ title <+++ " has been cancelled by you") @! ()))
         ]
-    >>| return ()
+    >!| return ()
     where
     taskToHandle
       =   moveAround mkSection actor.userName inventoryInSectionShare myStatusMap myUserActorMap myInventoryMap
@@ -224,34 +224,34 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
 
     useExtinquisher curActor
       =   useObject alarmLoc (getObjectOfType curActor FireExtinguisher) user myUserActorMap inventoryInSectionShare
-      >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
-      >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation [] "Well Done, Fire Extinguished !" @! ()
-      >>| return (MoveDone "Fire Extinguised")
+      >?| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
+      >?| updStatusOfActor curActor.userName Available
+      >?| viewInformation [] "Well Done, Fire Extinguished !" @! ()
+      >!| return (MoveDone "Fire Extinguised")
 
     useFireBlanket curActor
       =   useObject alarmLoc (getObjectOfType curActor FireBlanket) user myUserActorMap inventoryInSectionShare
-      >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
-      >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation [] "Well Done, Fire Extinguished !" @! ()
-      >>| return (MoveDone "Fire Extinguised")
+      >?| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
+      >?| updStatusOfActor curActor.userName Available
+      >?| viewInformation [] "Well Done, Fire Extinguished !" @! ()
+      >!| return (MoveDone "Fire Extinguised")
 
     usePlug curActor
       =   useObject alarmLoc (getObjectOfType curActor Plug) user myUserActorMap inventoryInSectionShare
-      >>| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
-      >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation [] "Well Done, Flooding Stopped !" @! ()
-      >>| return (MoveDone "Flooding Stopped")
+      >?| setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
+      >?| updStatusOfActor curActor.userName Available
+      >?| viewInformation [] "Well Done, Flooding Stopped !" @! ()
+      >!| return (MoveDone "Flooding Stopped")
 
     smokeReport curActor
       =   setAlarm actor.userName (alarmLoc, NormalStatus) myStatusMap
-      >>| updStatusOfActor curActor.userName Available
-      >>| viewInformation [] "Well Done, Reason of Smoke Detected !" @! ()
-      >>| return (MoveDone "Don't smoke under a smoke detector!")
+      >?| updStatusOfActor curActor.userName Available
+      >?| viewInformation [] "Well Done, Reason of Smoke Detected !" @! ()
+      >!| return (MoveDone "Don't smoke under a smoke detector!")
 
     giveUp curActor
       =   updStatusOfActor curActor.userName Available
-      >>| return (MoveFailed "I gave up, send somebody else...")
+      >?| return (MoveFailed "I gave up, send somebody else...")
 
 goto :: !(Maybe [Coord3D]) -> String
 goto Nothing      = "Unreachable!"
@@ -266,7 +266,7 @@ goto2 (Just (dir,_)) = toString (hd dir)
 updStatusOfActor :: !User !Availability -> Task ()
 updStatusOfActor user availability
   =   updActorStatus user (\st -> {st & occupied = availability}) myUserActorMap
-  >>| addLog user "" ("Has become " <+++ availability)
+  >?| addLog user "" ("Has become " <+++ availability)
 
 scriptDefined :: !SectionStatus -> Task Bool
 scriptDefined status
@@ -277,19 +277,19 @@ scriptDefined status
 
 autoHandleWithScript :: !(!User, !(!Coord3D, !SectionStatus), !(!Coord3D, !MyActor), !Priority) -> Task ()
 autoHandleWithScript (commander, (alarmLoc, status), (actorLoc, actor), prio)
-  | hasFire status  = get handleFireScript  >>= continueWithScript
-  | hasWater status = get handleFloodScript >>= continueWithScript
-  | hasSmoke status = get handleSmokeScript >>= continueWithScript
+  | hasFire status  = get handleFireScript  >>- continueWithScript
+  | hasWater status = get handleFloodScript >>- continueWithScript
+  | hasSmoke status = get handleSmokeScript >>- continueWithScript
   | otherwise       = return ()
   where
   continueWithScript :: ![Script] -> Task ()
   continueWithScript script
     = appendTopLevelTaskPrioFor actor.userName ("Auto script " <+++ toString status <+++ " in room " <+++ alarmLoc) "High" True
       (   updStatusOfActor actor.userName Busy
-      >>| addLog ("Commander " <+++ commander) actor.userName ("Simulate Handling " <+++ toString status <+++ " detected in " <+++ alarmLoc)
-      >>| interperScript (alarmLoc, status) actor.userName script // perform script (actorLoc,actor)
-      >>| updStatusOfActor actor.userName Available
-      >>| addLog actor.userName commander ("Simulation Handling " <+++ toString status <+++ " in room " <+++ alarmLoc <+++ " Finished " <+++ if True "Succesfully" "Failed")
+      >?| addLog ("Commander " <+++ commander) actor.userName ("Simulate Handling " <+++ toString status <+++ " detected in " <+++ alarmLoc)
+      >-| interperScript (alarmLoc, status) actor.userName script // perform script (actorLoc,actor)
+      >?| updStatusOfActor actor.userName Available
+      >?| addLog actor.userName commander ("Simulation Handling " <+++ toString status <+++ " in room " <+++ alarmLoc <+++ " Finished " <+++ if True "Succesfully" "Failed")
       ) @! ()
 
 // simulate via auto stuf
@@ -302,29 +302,29 @@ autoHandleAlarm commander user (alarmLoc, status)
 startSimulation :: !User !User !(!Coord3D, !SectionStatus) -> Task Bool
 startSimulation commander user (alarmLoc, status)
   =   updStatusOfActor user Busy
-  >>| addLog ("Commander " <+++ commander) user ("Simulate Handling " <+++ toString status <+++ " detected in " <+++ alarmLoc)
-  >>| get (myStatusMap |*| sectionUsersShare |*| myUserActorMap |*| lockedExitsShare |*| lockedHopsShare |*| myInventoryMap |*| sharedGraph)
+  >?| addLog ("Commander " <+++ commander) user ("Simulate Handling " <+++ toString status <+++ " detected in " <+++ alarmLoc)
+  >-| get (myStatusMap |*| sectionUsersShare |*| myUserActorMap |*| lockedExitsShare |*| lockedHopsShare |*| myInventoryMap |*| sharedGraph)
   >>- \((((((statusMap, mam), usersActorMap), exitLocks), hopLocks), invMap), graph) ->
         case findUser user mam usersActorMap of
           Just (myLoc, curActor)
             = case findClosestObject status statusMap invMap myLoc alarmLoc exitLocks hopLocks graph of
                 (Nothing, _)
                   =   addLog ("Commander " <+++ commander) user "startSimulation: closest object not found"
-                  >>| endSimulation False
+                  >-| endSimulation False
                 (Just loc, mbObj)
                   = (case mbObj of
                        Nothing  = simulateHandling myLoc alarmLoc status curActor
                        Just obj = simulateHandlingWithObject myLoc obj loc alarmLoc status curActor.userName
                     )
-                    >>| endSimulation True
+                    >?| endSimulation True
           _ =   addLog ("Commander " <+++ commander) user "startSimulation: actor not found"
-            >>| endSimulation False
+            >-| endSimulation False
   where
   endSimulation :: !Bool -> Task Bool
   endSimulation ok
     =   updStatusOfActor user Available
-    >>| addLog user commander  ("Simulation Handling " <+++ toString status <+++ " in room " <+++ alarmLoc <+++ " Finished " <+++ if True "Succesfully" "Unsuccesfully")
-    >>| return ok
+    >?| addLog user commander  ("Simulation Handling " <+++ toString status <+++ " in room " <+++ alarmLoc <+++ " Finished " <+++ if True "Succesfully" "Unsuccesfully")
+    >-| return ok
 
 
 simulateHandling :: !Coord3D !Coord3D !SectionStatus !MyActor -> Task Bool
@@ -341,12 +341,12 @@ simulateHandlingWithObject startLoc object objectLoc alarmLoc status user
                                                           " to " <+++	alarmLoc <+++
                                                           " via " <+++ objectLoc <+++
                                                           " fetching " <+++ object)
-  >>|                   autoMove startLoc objectLoc shipShortestPath user myStatusMap myUserActorMap
-  >>= \objectReached -> if objectReached (pickupObject objectLoc object user myUserActorMap inventoryInSectionShare
-  >>|                                    autoMove objectLoc alarmLoc shipShortestPath user myStatusMap myUserActorMap
-  >>= \targetReached -> if targetReached (waitForTimer 1
-  >>|                                    useObject alarmLoc object user myUserActorMap inventoryInSectionShare
-  >>= \used          -> if used          (setAlarm user (alarmLoc, NormalStatus) myStatusMap @! True)
+  >-|                   autoMove startLoc objectLoc shipShortestPath user myStatusMap myUserActorMap
+  >>? \objectReached -> if objectReached (pickupObject objectLoc object user myUserActorMap inventoryInSectionShare
+  >?|                                    autoMove objectLoc alarmLoc shipShortestPath user myStatusMap myUserActorMap
+  >>? \targetReached -> if targetReached (waitForTimer False 1
+  >?|                                    useObject alarmLoc object user myUserActorMap inventoryInSectionShare
+  >>? \used          -> if used          (setAlarm user (alarmLoc, NormalStatus) myStatusMap @! True)
                                          (return False))
                                          (return False))
                                          (return False)

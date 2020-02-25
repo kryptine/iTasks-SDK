@@ -27,5 +27,5 @@ enterSharedPersons
 					-||
 					(Hint "Current Content of this Shared List:" @>> viewSharedInformation [] sharedList) 	 		// while showing that list
 						<<@ ArrangeHorizontal															// show both list next to each other (default is below)
-	>>= \result ->  Hint "The List contains the following:" @>> viewInformation [] result								// show the final result
-	>>=				return																				// done
+	>>! \result ->  Hint "The List contains the following:" @>> viewInformation [] result								// show the final result
+	>>!				return																				// done

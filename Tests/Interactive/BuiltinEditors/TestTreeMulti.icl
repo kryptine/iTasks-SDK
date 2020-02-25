@@ -1,5 +1,6 @@
 module TestTreeMulti
 import iTasks, iTasks.Util.Testing
+derive class iTask ChoiceNode
 
 derive class iTask ChoiceNode
 
@@ -10,6 +11,5 @@ test = testEditor (lensEditor (\_ x -> x) (\mbcs sel -> Just (Just (maybe [] fst
         ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}
         ],[])) 
-
 
 Start world = doTasks test world

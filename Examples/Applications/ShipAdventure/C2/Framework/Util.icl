@@ -47,10 +47,10 @@ editSharedListGeneric options list
       	[OnAction (Action "Clear All")  		(always clearAll)
       	\\ ESLClearAll <- options] )) @! ()
 
-where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! ()
+where addItem  tenter  = tenter >>? \item -> upd (\us -> us ++ [item]) list @! ()
       deleteItem (k,u) = upd (\us -> removeAt k us) list  @! ()
       editItem t (k,u) =   t u
-                       >>= \item -> upd (\us -> updateAt k item us) list
+                       >>? \item -> upd (\us -> updateAt k item us) list
                        @!  ()
       viewItem t (k,u) = t u @! ()
       clearAll         = Title "Clear All" @>> viewInformation []
@@ -71,7 +71,7 @@ where f []                 = []
                | otherwise = [a : f as]
 
 doTaskPeriodically :: Int (Task a) -> Task a | iTask a
-doTaskPeriodically period task = forever (waitForTimer period >>| task)
+doTaskPeriodically period task = forever (waitForTimer False period >?| task)
 
 doTaskPeriodicallyUntilPause :: Int (Task a) -> Task () | iTask a
 doTaskPeriodicallyUntilPause period task
@@ -111,7 +111,7 @@ showInfo msg = Title "Information" @>> viewInformation [] msg
 
 doTasksSequentially :: [Task a] -> Task () | iTask a
 doTasksSequentially []     = return ()
-doTasksSequentially [t:ts] = t >>| doTasksSequentially ts
+doTasksSequentially [t:ts] = t >?| doTasksSequentially ts
 
 allTabs :: [Task a] -> (Task [a]) | iTask a
 allTabs ts = allTasks ts  	<<@ ArrangeWithTabs True
@@ -154,7 +154,7 @@ chatDialog me _ = doOrClose (forever (Hint "Type a message" @>> enterInformation
                      >>*  [OnAction ActionOk            (hasValue doUpate)])) @! ()
 where
  doUpate m =               get currentDateTime
-               >>=  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats
+               >>-  \dt -> upd (\cs -> cs ++ [{sender=toString me,when=dt,message=m}]) chats
                @! ()
 
 editChats :: Task ()

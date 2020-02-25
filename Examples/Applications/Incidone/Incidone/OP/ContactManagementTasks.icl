@@ -128,10 +128,10 @@ where
 
     editContactBasics contactNo
         =   (get (contactBasics contactNo)
-        >>= \old ->
+        >>- \old ->
             updateInformation [] old
-        >>? \new -> set new (contactBasics contactNo)
-        >>| logContactBasicsUpdated contactNo old new
+        >?? \new -> set new (contactBasics contactNo)
+        >-| logContactBasicsUpdated contactNo old new
         ) @! ()
 
     shareContact contactNo
@@ -157,8 +157,8 @@ where
     editDetails share log
         =   get share
         >>- \old -> Icon "details" @>> Title "Details (editing)" @>> updateInformation [] old
-        >>? \new -> set new share
-        >>| log old new
+        >?? \new -> set new share
+        >-| log old new
 
 manageContactPhotos :: ContactNo -> Task ()
 manageContactPhotos contactNo
@@ -174,11 +174,11 @@ where
 
     addPhoto
         =   Title "Add photo" @>> Hint "Please select a photo to upload" @>> enterInformation []
-        >>? addContactPhoto contactNo
+        >?? addContactPhoto contactNo
 
     delPhoto photo
         =   Title "Delete photo" @>> Hint "Do you want to delete this photo?" @>> viewInformation [ViewAs (\{original} ->original.Document.name)] photo
-        >>? removeContactPhoto contactNo
+        >?? removeContactPhoto contactNo
 
 manageContactCommunication :: ContactNo -> Task ()
 manageContactCommunication contactNo
@@ -221,7 +221,7 @@ where
 
     addMean contactNo
         =   Title "Add communication mean" @>> enterInformation  [EnterAs toNewCommunicationMean]
-        >>? createCommunicationMean contactNo
+        >?? createCommunicationMean contactNo
 
     editMean id
         = get (sdsFocus id communicationMeanById)
@@ -234,7 +234,7 @@ where
                        @ \{EmailAccountDetails|emailAddress} -> {CommunicationMean|c & emailAddress = emailAddress}
             CMP2000 -> (Title "Edit P2000 details") @>> updateInformation  [] {P2000ReceiverDetails|capCode = capCode}
                        @ \{P2000ReceiverDetails|capCode} -> {CommunicationMean|c & capCode = capCode}
-        >>? \new ->
+        >?? \new ->
             set new (sdsFocus id communicationMeanById)
 
     removeMean id = deleteCommunicationMean id
@@ -278,13 +278,13 @@ where
     open sel	=	manageIncidentInformation ws sel
     add			=	Title "Add contact to incident" @>> Hint "Select an incident to add this contact to" @>>
 					enterChoiceWithSharedAs [] allIncidentsShort incidentShortIdentity
-                >>? \i ->
+                >?? \i ->
                     upd (\is -> [incidentNo \\{IncidentDetails|incidentNo} <-is] ++ [i]) incidents
-                >>| logContactAdded i contactNo
+                >-| logContactAdded i contactNo
     remove sel	=	Title "Remove contact from incident" @>> Hint "Are your sure you want this contact to be removed from this incident?" @>>
 					viewSharedInformation [] (sdsFocus sel incidentTitleByNo)
                 >>* [OnAction ActionNo (always (return ()))
-                    ,OnAction ActionYes (always (upd (\is -> [ incidentNo \\ {IncidentDetails|incidentNo} <- is | incidentNo <> sel]) incidents >>| logContactRemoved sel contactNo))
+                    ,OnAction ActionYes (always (upd (\is -> [ incidentNo \\ {IncidentDetails|incidentNo} <- is | incidentNo <> sel]) incidents >-| logContactRemoved sel contactNo))
                     ]
 
 	viewNoSelection = return () //FIXME
@@ -320,7 +320,7 @@ where
               -&&-
               (Label "Access level" @>> updateChoice [ChooseFromCheckGroup viewLevel] [PartnerAccess,WOAccess] (fromMaybe PartnerAccess original.ContactAccess.access))
             )
-        >>? \(updatedAccount,updatedAccess) ->
+        >?? \(updatedAccount,updatedAccess) ->
             set {ContactAccess|account=updatedAccount,access=Just updatedAccess} access
 
     viewLevel WOAccess = "Watch Officer access"
@@ -403,9 +403,9 @@ updateContactPosition contactNo
          -||-
           (Hint "Search the web" @>> viewSharedInformation  [ViewAs (toSearchURLs o fst)] tmpInfo)
         ) @ fst
-    >>? \newPosition ->
+    >?? \newPosition ->
         upd (\c -> {Contact|c&position=newPosition}) (sdsFocus contactNo contactByNo)
-    >>| logContactPositionUpdated contactNo position newPosition
+    >-| logContactPositionUpdated contactNo position newPosition
     @!  newPosition
 where
 	initPerspective position = {ContactMapPerspective|defaultValue & center = fromMaybe defaultValue.ContactMapPerspective.center contactPos, zoom = 7, cursor = contactPos}
@@ -435,9 +435,9 @@ updateContactStatus contactNo
     =   get (sdsFocus contactNo contactByNo)
     >>- \{Contact|status} ->
         Title "Status" @>> updateInformation [] status
-    >>? \newStatus ->
+    >?? \newStatus ->
         upd (\c -> {Contact|c&status = newStatus}) (sdsFocus contactNo contactByNo)
-    >>| logContactStatusUpdated contactNo status newStatus
+    >-| logContactStatusUpdated contactNo status newStatus
     @!  newStatus
 
 updateSharedContactRefList :: (Shared sds [ContactNo]) -> Task [ContactNo] | RWShared sds
@@ -454,7 +454,7 @@ where
 
     addItem
         =   selectKnownOrDefineNewContact
-        >>? (\def -> createContactIfNew def >>- \contactNo -> upd (\r -> r ++ [contactNo]) refs)
+        >?? (\def -> createContactIfNew def >>- \contactNo -> upd (\r -> r ++ [contactNo]) refs)
 
 selectKnownOrDefineNewContact :: Task (Either ContactNo NewContact)
 selectKnownOrDefineNewContact
@@ -493,7 +493,7 @@ where
 	delete :: ContactNo -> Task ()
 	delete contactNo
 		=	get databaseDef
-		>>= \db -> sqlExecute db ["allContacts"] (execDelete "DELETE FROM Contact WHERE contactNo = ?" (toSQL contactNo)) @! ()
+		>>- \db -> sqlExecute db ["allContacts"] (execDelete "DELETE FROM Contact WHERE contactNo = ?" (toSQL contactNo)) @! ()
 
 addContactPhoto :: ContactNo Document -> Task ContactPhoto
 addContactPhoto contactNo original

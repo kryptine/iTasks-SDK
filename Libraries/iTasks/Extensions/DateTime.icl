@@ -10,6 +10,8 @@ import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Sources.System
 from iTasks.Internal.Task import mkInstantTask
 import iTasks.Internal.IWorld
+import iTasks.Internal.TaskEval
+import iTasks.Internal.Util
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
@@ -224,26 +226,54 @@ utcDateTimeToTimestamp :: !DateTime -> Timestamp
 utcDateTimeToTimestamp {DateTime|day,mon,year,hour,min,sec} =
     timeGm {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
 
-waitForTime :: !Time -> Task Time
-waitForTime time
-	= Title "Wait for time" @>> Hint ("Wait until " +++ toString time) @>> viewSharedInformation [] currentTime
-	>>* [OnValue (ifValue (\now -> time < now) return)]
+waitForTime :: !Bool !Time -> Task Time
+waitForTime withUI time
+	| withUI    = waitWithUI "Wait for time" currentTime time
+	| otherwise =
+		get currentDate >>- \today ->
+		let target = toDateTime today time in
+		get currentTime >>- \now
+			| now <= time -> waitWithoutUI target @ toTime
+			# (Timestamp target) = utcDateTimeToTimestamp target
+			# target = timestampToGmDateTime (Timestamp (target + 3600*24))
+			-> waitWithoutUI target @ toTime
 
-waitForDate :: !Date -> Task Date
-waitForDate date
-	= Title "Wait for date" @>> Hint ("Wait until " +++ toString date) @>> viewSharedInformation [] currentDate
-	>>* [OnValue (ifValue (\now -> date < now) return)]
+waitForDate :: !Bool !Date -> Task Date
+waitForDate withUI date
+	| withUI    = waitWithUI "Wait for date" currentDate date
+	| otherwise = waitWithoutUI (toDateTime date {Time | hour=0,min=0,sec=0}) @ toDate
 	
-waitForDateTime :: !DateTime -> Task DateTime
-waitForDateTime datetime
-	= Title "Wait for date and time" @>> Hint ("Wait until " +++ toString datetime) @>> viewSharedInformation [] currentDateTime
-	>>* [OnValue (ifValue (\now -> datetime < now) return)]
+waitForDateTime :: !Bool !DateTime -> Task DateTime
+waitForDateTime withUI datetime
+	| withUI    = waitWithUI "Wait for date and time" currentDateTime datetime
+	| otherwise = waitWithoutUI datetime
 
-waitForTimer :: !Int -> Task DateTime
-waitForTimer interval =
-    get currentTimestamp                                  >>- \(Timestamp now) ->
-    timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
-    waitForDateTime endTime
+waitForTimer :: !Bool !Int -> Task DateTime
+waitForTimer withUI interval =
+	get currentTimestamp >>- \(Timestamp now) ->
+	timestampToLocalDateTime (Timestamp (now + interval)) >>-
+	waitForDateTime withUI
+
+waitWithUI :: !String !(sds () d ()) !d -> Task d | Registrable sds & <, toString, iTask d
+waitWithUI title share target =
+	Title title @>> Hint ("Wait until " +++ toString target) @>> viewSharedInformation [] share >>*
+	[OnValue (ifValue (\now -> target <= now) return)]
+
+waitWithoutUI :: !DateTime -> Task DateTime
+waitWithoutUI datetime =
+	localDateTimeToTimestamp datetime >>- \timestamp ->
+	let
+		timespec = timestampToSpec timestamp
+		param = {start=timespec,interval={tv_sec=1,tv_nsec=0}}
+	in
+	Task (eval param) >>*
+	[OnValue (ifValue ((<=) timespec) \_ -> get currentDateTime)]
+where
+	eval _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	eval param event {taskId,lastEval} iworld
+		# (Ok (ReadingDone now),iworld) = readRegister taskId (sdsFocus param iworldTimespec) iworld
+		= (ValueResult (Value now False) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task (eval param)), iworld)
 
 dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 dateTimeStampedShare sds

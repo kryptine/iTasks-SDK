@@ -99,8 +99,8 @@ where
 
 testCommonInteractions :: String -> Task a | iTask, gDefault{|*|} a
 testCommonInteractions typeName
-	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [] >>= viewInformation [])
-	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue >>= viewInformation [])
+	= 	 (Title "Enter" @>> Hint ("Enter information of type " +++ typeName) @>> enterInformation [] >>! viewInformation [])
+	-||- (Title "Update" @>> Hint ("Update default value of type " +++ typeName) @>> updateInformation  [] defaultValue >>! viewInformation [])
 	-||- (withShared defaultValue
 			\s -> ((Title "Update shared" @>> Hint ("Update shared value of type " +++ typeName) @>> updateSharedInformation [] s)
 				   -||

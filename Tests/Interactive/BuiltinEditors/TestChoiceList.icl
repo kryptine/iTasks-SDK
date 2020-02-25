@@ -1,6 +1,5 @@
 module TestChoiceList
 import iTasks, iTasks.Util.Testing
-
 derive class iTask ChoiceText
 
 test :: Task ([ChoiceText],[Int])

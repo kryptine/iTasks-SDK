@@ -1,10 +1,17 @@
-itasks.Container = {
-	cssCls: 'container'
+itasks.Container = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'container';
+	}
 };
 
-itasks.Panel = {
-	cssCls: 'panel',
-	initDOMEl: function() {
+itasks.Panel = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'panel';
+	}
+
+	initDOMEl() {
 		var me = this,
 			isTab = (me.parentCmp && me.parentCmp.type == 'TabSet');
 
@@ -69,8 +76,8 @@ itasks.Panel = {
 			};
 			me.domEl.appendChild(fullscreener);
 		}
-	},
-	createSizer: function(side) {
+	}
+	createSizer(side) {
 	
 		var me = this,
 		    el = document.createElement('div');
@@ -114,8 +121,8 @@ itasks.Panel = {
 			}, false);
 	
 		return el;	
-	},
-	renderChildren: function() {
+	}
+	renderChildren() {
 		var me = this;
 		me.children.forEach(function(child) {
 			if(child.domEl) {
@@ -126,8 +133,8 @@ itasks.Panel = {
 				}
 			}
 		});
-	},
-	addChildToDOM: function(child, idx) {
+	}
+	addChildToDOM(child, idx) {
 		var me = this;
 		var is_bar = child.domEl.classList.contains("itasks-buttonbar") || child.domEl.classList.contains("itasks-toolbar") ;
 		var container = is_bar ? me.domEl : me.containerEl;
@@ -150,8 +157,7 @@ itasks.Panel = {
 		} else {
 			container.insertBefore(child.domEl, insert_before_element);
 		}
-	},
-
+	}
 	setTitle(title) {
 		var me = this;
 		if(me.headerEl != null) {
@@ -161,23 +167,25 @@ itasks.Panel = {
 			var titleEl = me.tabEl.getElementsByTagName('span')[0];
 			titleEl.textContent = title;
 		}
-	},
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		if(name == 'title') {
 			this.setTitle(value);	
 		}	
 	}
 };
-itasks.TabSet = {
-	cssCls: 'tabset',
-    activeTab: 0,
-	attributes: {
-		height: 'flex',
-		width: 'flex'
-	},
-	replacing: false,
-
-    initDOMEl: function() {
+itasks.TabSet = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'tabset';
+		this.activeTab = 0;
+		this.attributes = Object.assign({
+			width: 'flex',
+			height: 'flex'
+		},this.attributes);
+		this.replacing = false;
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl;
 
@@ -194,8 +202,8 @@ itasks.TabSet = {
         me.containerEl = document.createElement('div');
         me.containerEl.classList.add(me.cssPrefix + 'tabitems');
         me.domEl.appendChild(me.containerEl);
-    },
-	createTabEl: function (cmp, selected) {
+	}
+	createTabEl(cmp, selected) {
 		var me = this, tab, label, icon;
 		tab = document.createElement('li');
 		label = document.createElement('a');
@@ -236,7 +244,7 @@ itasks.TabSet = {
 	
 		if (cmp.type !== 'Button'){
 			if(cmp.attributes.closeTaskId) {
-				closeLink = document.createElement('a');
+				let closeLink = document.createElement('a');
 				closeLink.innerHTML = 'x';
 				closeLink.href = '#';
 				closeLink.classList.add(me.cssPrefix + 'tabclose');
@@ -261,8 +269,8 @@ itasks.TabSet = {
 		cmp.tabEl = tab;
 
 		return tab;
-	},
-	setActiveTab: function(idx) {
+	}
+	setActiveTab(idx) {
         var me = this;
 
 		//Deselect previously selected tab
@@ -280,8 +288,8 @@ itasks.TabSet = {
             me.tabBar.children[me.activeTab].classList.add(me.cssPrefix + 'selected');
 			me.children[me.activeTab].onShow();
         }
-	},
-	setActiveTabBasedOnOrder: function() {
+	}
+	setActiveTabBasedOnOrder() {
 		var me = this,
 			maxOrder = 0,
 			maxIndex = 0;
@@ -294,15 +302,15 @@ itasks.TabSet = {
 			}
 		});
 		me.setActiveTab(maxIndex);
-	},
-	beforeChildInsert: function(idx,spec) {
+	}
+	beforeChildInsert(idx,spec) {
 		var me = this;
 
 		//Overwrite size to always be flex items
 		spec.width = 'flex';
 		spec.height = 'flex';
-	},
-	afterChildInsert: function(idx) {
+	}
+	afterChildInsert(idx) {
 		var me = this,
 			child = me.children[idx];
 
@@ -321,8 +329,8 @@ itasks.TabSet = {
 			}
 			me.setActiveTabBasedOnOrder();
 		}
-	},
-	afterChildRemove: function(idx) {
+	}
+	afterChildRemove(idx) {
 		var me = this;
 
 		if(me.initialized && !me.replacing) {
@@ -338,14 +346,14 @@ itasks.TabSet = {
 				me.activeTab--;
 			}
 		}
-	},
-	afterChildChange: function(idx,change) {
+	}
+	afterChildChange(idx,change) {
 		var me = this;
 		if(change["attributes"]) {
 			me.setActiveTabBasedOnOrder();
 		}
-	},
-	replaceChild: function(idx,spec) {
+	}
+	replaceChild(idx,spec) {
 		var me = this;
 		if(idx >= 0 && idx < me.children.length) {
 			return new Promise(function (resolve) {
@@ -359,19 +367,21 @@ itasks.TabSet = {
 			});
 		}
 	}
-}
+};
 
-itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
-	cssCls: 'window',
-	attributes: {
-		movable: true,
-		resizable: true,
-		windowType: 'floating',
-		hpos: 'center',
-		vpos: 'top',
-	},
-
-    initDOMEl: function() {
+itasks.Window = class extends itasks.Panel {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'window';
+		this.attributes = Object.assign({
+			movable: true,
+			resizable: true,
+			windowType: 'floating',
+			hpos: 'center',
+			vpos: 'top'
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,left,top;
 
         switch(me.attributes.windowType) {
@@ -405,9 +415,10 @@ itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
 		//Intially position the window offscreen, it will be repositioned once its dimensions are known
 		me.domEl.style.top = '-10000px';
 		me.domEl.style.left = '-10000px';
-	},
-    initSize: function() {},
-	onShow: function() {
+	}
+	initSize() {
+	}
+	onShow() {
 		//Position the window when it is is first shown
 		var me = this, top, left;
 
@@ -427,8 +438,8 @@ itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
 			me.domEl.style.left = left + 'px';
 			me.positioned = true;
 		}
-	},
-    onStartDrag: function(e) {
+	}
+	onStartDrag(e) {
         var me = this;
         e.preventDefault();
         me.lastX = e.clientX;
@@ -437,8 +448,8 @@ itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
         me.onStopDrag_ = me.onStopDrag.bind(me);
         window.addEventListener('mousemove', me.onDragging_);
         window.addEventListener('mouseup', me.onStopDrag_);
-    },
-    onDragging: function(e) {
+	}
+	onDragging(e) {
         var me = this,
             newX = e.clientX,
             newY = e.clientY,
@@ -453,35 +464,53 @@ itasks.Window = Object.assign(Object.assign({}, itasks.Panel),{
 
         me.lastX = newX;
         me.lastY = newY;
-    },
-    onStopDrag: function(e) {
+	}
+	onStopDrag(e) {
         var me = this;
         window.removeEventListener('mousemove', me.onDragging_);
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
-});
-
-itasks.ToolBar  = {
-	cssCls: 'toolbar'
 };
 
-itasks.ButtonBar  = {
-	cssCls: 'buttonbar'
-};
-itasks.List = {
-	cssCls: 'list'
-};
-itasks.ListItem = {
-	cssCls: 'listitem'
-};
-itasks.Debug = {
-	cssCls: 'debug'
+itasks.ToolBar = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'toolbar';
+	}
 };
 
-itasks.Menu = {
-	cssCls: 'menu',
-    initDOMEl: function() {
-		var me = this;	
+itasks.ButtonBar = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'buttonbar';
+	}
+};
+itasks.List = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'list';
+	}
+};
+itasks.ListItem = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'listitem';
+	}
+};
+itasks.Debug = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'debug';
+	}
+};
+
+itasks.Menu = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'menu';
+	}
+	initDOMEl() {
+		var me = this;
 
 		if (!(me.parentCmp.type != 'Menu' && me.children.length == 1)){
 			me.labelEl = document.createElement('div');
@@ -504,9 +533,12 @@ itasks.Menu = {
 			me.containerEl.classList.add(me.cssPrefix + 'menu-content');
 			me.domEl.appendChild(me.containerEl);
 		}
-	},
+	}
 };
 
-itasks.MenuSep = {
-	cssCls: 'menu-sep',
+itasks.MenuSep = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'menu-sep';
+	}
 };

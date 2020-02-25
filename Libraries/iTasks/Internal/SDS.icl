@@ -80,7 +80,7 @@ readRegister taskId sds iworld = case readRegisterSDS sds () (TaskContext taskId
 	(Ok (ReadResult r sds), iworld) = (Ok (ReadingDone r), iworld)
 	(Ok (AsyncRead sds), iworld) = (Ok (Reading sds), iworld)
 
-mbRegister :: !p (sds p r w) !(Maybe (!TaskId, !SDSIdentity)) !TaskContext !*IWorld -> *IWorld | gText{|*|} p & TC p & Identifiable sds
+mbRegister :: !p (sds p r w) !(Maybe (!TaskId, !SDSIdentity)) !TaskContext !*IWorld -> *IWorld | TC p & Identifiable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
 mbRegister _ _ Nothing _ iworld = iworld
 mbRegister p sds (Just (taskId, reqSDSId)) context iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask, world}
@@ -98,6 +98,7 @@ mbRegister p sds (Just (taskId, reqSDSId)) context iworld=:{IWorld|sdsNotifyRequ
 			_ 								= ('DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask)
 	  }
 where
+	buildRequest :: !TaskContext TaskId !SDSIdentity !p -> SDSNotifyRequest | TC p
 	buildRequest (RemoteTaskContext reqTaskId currTaskId remoteSDSId host port) _ reqSDSId p
 		= buildRequest` reqTaskId reqSDSId p (Just {hostToNotify=host, portToNotify=port, remoteSdsId=remoteSDSId})
 	buildRequest (TaskContext taskId) _ reqSDSId p
@@ -105,12 +106,13 @@ where
 	buildRequest EmptyContext taskId reqSDSId p
 		= buildRequest` taskId reqSDSId p Nothing
 
+	buildRequest` :: !TaskId !SDSIdentity !p !(Maybe RemoteNotifyOptions) -> SDSNotifyRequest | TC p
 	buildRequest` taskId reqSDSId p mbRemoteOptions =
 		{ reqTaskId=taskId
 		, reqSDSId=reqSDSId
 		, cmpParam=dynamic p
-		, cmpParamText=toSingleLineText p
-		, remoteOptions = mbRemoteOptions}
+		, remoteOptions = mbRemoteOptions
+		}
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld
@@ -196,11 +198,6 @@ where
 		addReg list {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _)} _
 			= 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
-formatSDSRegistrationsList :: [SDSNotifyRequest] -> String
-formatSDSRegistrationsList list = 'Text'.join "\n" lines
-where
-	lines = [ "Task id " +++ toString reqTaskId +++ ": " +++ reqSDSId +++ " (" +++ cmpParamText +++ ")" \\ {reqTaskId, reqSDSId, cmpParamText} <- list]
-
 formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
 where
@@ -274,7 +271,7 @@ where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSSource sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSSource :: !(SDSSource p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-              -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+              -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSSource sds=:(SDSSource {SDSSourceOptions|read,name}) p c mbNotify iworld
 	# iworld = mbRegister p sds mbNotify c iworld
 	= case read p iworld of
@@ -390,7 +387,7 @@ where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSLens sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSLens :: !(SDSLens p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-            -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+            -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSLens sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify iworld
 	# iworld = mbRegister p sds mbNotify c iworld
 	= case read of
@@ -450,7 +447,7 @@ instance Registrable SDSCache where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSCache sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSCache :: !(SDSCache p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-             -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+             -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 	# iworld = mbRegister p sds mbNotify c iworld
 	# key = (sdsIdentity sds,toSingleLineText p)
@@ -522,7 +519,7 @@ instance Registrable SDSSequence where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSSequence sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSSequence :: !(SDSSequence p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSSequence sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,paramr,read,name}) p c mbNotify iworld
 	# iworld = mbRegister p sds mbNotify c iworld
 	= case readAndMbRegisterSDS sds1 (paraml p) c mbNotify iworld of
@@ -607,7 +604,7 @@ instance Registrable SDSSelect where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSSelect sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSSelect :: !(SDSSelect p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-              -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+              -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSSelect sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,name}) p c mbNotify iworld
 	# iworld = mbRegister p sds mbNotify c iworld
 	= case select p of
@@ -729,7 +726,7 @@ instance Registrable SDSParallel where
 	readRegisterSDS sds p c taskId reqSDSId iworld = readSDSParallel sds p c (Just (taskId, reqSDSId)) iworld
 
 readSDSParallel :: !(SDSParallel p r w) !p !TaskContext !(Maybe (!TaskId, !SDSIdentity)) !*IWorld
-                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | TC p & TC r & TC w
 readSDSParallel sds=:(SDSParallel sds1 sds2 opts=:{SDSParallelOptions|param,read,name}) p c mbNotify iworld
 	# iworld = mbRegister p sds mbNotify c iworld
 	# (p1,p2) = param p

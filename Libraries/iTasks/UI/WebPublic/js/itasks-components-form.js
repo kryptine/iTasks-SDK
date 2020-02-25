@@ -1,9 +1,12 @@
-itasks.TextField = {
-	domTag: 'input',
-	attributes: {
-		eventTimeout: 500
-	},
-	initDOMEl: function() {
+itasks.TextField = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'input';
+		this.attributes = Object.assign({
+			eventTimeout: 500
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 			el = this.domEl;
 		el.type = 'text';
@@ -33,8 +36,8 @@ itasks.TextField = {
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
 			});
 		}
-	},
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
 			if(me.domEl !== document.activeElement || ! document.hasFocus() ) { //Don't update the focused element...
@@ -43,16 +46,19 @@ itasks.TextField = {
 		}
 	}
 };
-itasks.TextArea = {
-    domTag: 'textarea',
-	attributes: {
-		height: 'flex',
-		width: 'flex',
-		minHeight: 150,
-		minWidth: 400,
-		eventTimeout: 500,
-	},
-    initDOMEl: function() {
+itasks.TextArea = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'textarea';
+		this.attributes = Object.assign({
+			height: 'flex',
+			width: 'flex',
+			minHeight: 150,
+			minWidth: 400,
+			eventTimeout: 500
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = this.domEl;
         el.innerHTML = me.attributes.value ? me.attributes.value : '';
@@ -80,8 +86,8 @@ itasks.TextArea = {
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
         	});
 		}
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
 			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
@@ -90,12 +96,15 @@ itasks.TextArea = {
 		}
 	}
 };
-itasks.PasswordField = {
-	domTag: 'input',
-	attributes: {
-		eventTimeout: 500
-	},
-	initDOMEl: function() {
+itasks.PasswordField = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'input';
+		this.attributes = Object.assign({
+			eventTimeout: 500
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 			el = this.domEl;
 		el.type = 'password';
@@ -125,7 +134,7 @@ itasks.PasswordField = {
 			});
 		}
 	}
-	,onAttributeChange: function(name,value) {
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
 			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
@@ -134,13 +143,16 @@ itasks.PasswordField = {
 		}
 	}
 };
-itasks.NumberField = {
-	domTag: 'input',
-    allowDecimal: false,
-	attributes: {
-		width: 150
-	},
-    initDOMEl: function() {
+itasks.NumberField = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'input';
+		this.allowDecimal = false;
+		this.attributes = Object.assign({
+			width: 150
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 		    el = this.domEl;
 		el.type = 'number';
@@ -157,8 +169,8 @@ itasks.NumberField = {
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
         	});
 		}
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
 			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
@@ -167,15 +179,24 @@ itasks.NumberField = {
 		}
 	}
 };
-itasks.IntegerField = Object.assign(Object.assign({}, itasks.NumberField),{
-    allowDecimal: false
-});
-itasks.DecimalField = Object.assign(Object.assign({}, itasks.NumberField),{
-    allowDecimal: true
-});
-itasks.DocumentField = {
-	cssCls: 'edit-document',
-        initDOMEl: function() {
+itasks.IntegerField = class extends itasks.NumberField {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+    	this.allowDecimal = false;
+	}
+};
+itasks.DecimalField = class extends itasks.NumberField {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+    	this.allowDecimal = true;
+	}
+};
+itasks.DocumentField = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'edit-document';
+	}
+	initDOMEl() {
 
         var me = this,
             el = this.domEl;
@@ -191,23 +212,23 @@ itasks.DocumentField = {
         el.appendChild(me.labelEl);
         me.actionEl = document.createElement('a');
 
-	// only enable clear link if control is not disabled
-	if (!(me.attributes.enabled === false)) {
-		me.actionEl.href = "#";
-		me.actionEl.addEventListener('click',me.onAction.bind(me));
+		// only enable clear link if control is not disabled
+		if (!(me.attributes.enabled === false)) {
+			me.actionEl.href = "#";
+			me.actionEl.addEventListener('click',me.onAction.bind(me));
+		}
+
+		el.appendChild(me.actionEl);
+
+		me.xhr = null;
+		me.value = me.attributes.value || null;
+		me.showValue();
 	}
-
-	el.appendChild(me.actionEl);
-
-        me.xhr = null;
-        me.value = me.attributes.value || null;
-        me.showValue();
-    },
-    showUploading: function(progress) {
-        this.labelEl.innerHTML = "Uploading... " + progress + "%";
-        this.actionEl.innerHTML = "Cancel";
-    },
-    showValue: function() {
+	showUploading(progress) {
+		this.labelEl.innerHTML = "Uploading... " + progress + "%";
+		this.actionEl.innerHTML = "Cancel";
+	}
+	showValue() {
         var me = this;
         if(me.attributes.value !== null) {
             me.labelEl.innerHTML = '<a href="' + me.attributes.value[1] + '" target="_blank">' + me.attributes.value[2] + '</a>';
@@ -216,8 +237,8 @@ itasks.DocumentField = {
             me.labelEl.innerHTML = 'No file selected';
             me.actionEl.innerHTML = 'Select';
         }
-    },
-    onAction: function(e) {
+	}
+	onAction(e) {
         var me = this;
         e.preventDefault();
 
@@ -234,8 +255,8 @@ itasks.DocumentField = {
         } else { //Select
             me.fileEl.click();
         }
-    },
-    onFileSelect: function() {
+	}
+	onFileSelect() {
         var me = this,
             fd;
 
@@ -250,8 +271,8 @@ itasks.DocumentField = {
         fd = new FormData();
         fd.append('upload',me.fileEl.files[0]);
         me.xhr.send(fd);
-    },
-    onUploadStateChange: function(e) {
+	}
+	onUploadStateChange(e) {
         var me = this, rsp,doc,value;
 
         if (me.xhr.readyState == 4 && me.xhr.status == 200) {
@@ -267,14 +288,14 @@ itasks.DocumentField = {
             me.attributes.value = value;
             me.showValue();
         }
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
 			me.setEditorValue(value);
 		}
-	},
-    setEditorValue: function(value) {
+	}
+	setEditorValue(value) {
 		var me = this;
 
         if(me.xhr != null) {
@@ -283,14 +304,17 @@ itasks.DocumentField = {
         }
         me.attributes.value = value; 
         me.showValue();
-    }
+	}
 };
-itasks.Checkbox = {
-	domTag: 'input',
-	attributes: {
-    	width: 'wrap'
-	},
-    initDOMEl: function() {
+itasks.Checkbox = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'input';
+		this.attributes = Object.assign({
+			width: 'wrap'
+		},this.attributes);
+	}
+	initDOMEl() {
         var me = this,
             el = this.domEl;
         el.type = 'checkbox';
@@ -304,17 +328,20 @@ itasks.Checkbox = {
 			me.doEditEvent(me.attributes.taskId,me.attributes.editorId,Just(value));
 	        });
 		}
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
         	me.domEl.checked = value;
 		}
 	}
 };
-itasks.Slider = {
-	domTag: 'input',
-    initDOMEl: function() {
+itasks.Slider = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'input';
+	}
+	initDOMEl() {
         var me = this,
             el = this.domEl;
         el.type = 'range';
@@ -329,23 +356,26 @@ itasks.Slider = {
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId, Just(Number(e.target.value)));
         	});
 		}
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'value') {
         	me.domEl.value = value;
 		}
 	}
 };
-itasks.Button = {
-	domTag: 'button',
-	cssCls: 'button',
-	attributes: {
-		height: 'wrap',
-		width: 'wrap',
-		enabled: true
-	},
-	initDOMEl: function() {
+itasks.Button = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'button';
+		this.cssCls = 'button';
+		this.attributes = Object.assign({
+			height: 'wrap',
+			width: 'wrap',
+			enabled: true
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 			el = me.domEl;
 
@@ -380,11 +410,10 @@ itasks.Button = {
 			e.preventDefault();
 			return false;
 		});
-	},
-
-	initContainerEl: function() { //Make sure no padding is set on buttons
-	},
-	onAttributeChange: function(name,value) {
+	}
+	initContainerEl() { //Make sure no padding is set on buttons
+	}
+	onAttributeChange(name,value) {
 		var me = this;
 		switch(name) {
 			case 'enabled':
@@ -392,30 +421,34 @@ itasks.Button = {
 				break;
 		}
 	}
-
 };
-itasks.Label = {
-    domTag: 'label',
-	container: false,
-	cssCls: 'label',
-	attributes: {},
-    initDOMEl: function() {
+itasks.Label = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.domTag = 'label';
+		this.container = false;
+		this.cssCls = 'label';
+	}
+	initDOMEl() {
         var me = this,
             el = me.domEl;
         el.innerHTML = me.attributes.text;
-    },
-	onAttributeChange:function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		switch(name) {
 			case 'text': this.domEl.innerHTML = value; break;
 		}
 	}
 };
-itasks.Icon = {
-	attributes: {
-		width: 'wrap',
-		height: 'wrap'
-	},
-	initDOMEl: function() {
+itasks.Icon = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.attributes = Object.assign({
+			width: 'wrap',
+			height: 'wrap'
+		},this.attributes);
+	}
+	initDOMEl() {
 		var me = this,
 			el = me.domEl;
 		el.classList.add(me.cssPrefix + 'icon');
@@ -425,8 +458,8 @@ itasks.Icon = {
 		if(me.attributes.tooltip) {
 			el.dataset.tooltip=me.attributes.tooltip;
 		}
-	},
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this,
 			el = me.domEl;
 		switch(name) {

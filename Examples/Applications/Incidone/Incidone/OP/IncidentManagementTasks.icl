@@ -79,11 +79,11 @@ where
     add	= Title "Add contact..." @>> oneOrAnother
             ("Known contact",enterChoiceWithSharedAs [ChooseFromDropdown id] allContactsShort contactNo)
             ("Add new contact",enterInformation [])
-		>>? \contact ->
+		>?? \contact ->
             createContactIfNew contact
             >>- \contactNo ->
 		        upd (\cs -> map contactIdentity cs ++ [contactNo]) contacts
-            >>| logContactAdded incidentNo contactNo
+            >-| logContactAdded incidentNo contactNo
     where
         contactNo {ContactShort|contactNo} = contactNo
 
@@ -93,7 +93,7 @@ where
 	remove sel
         = Title "Remove contact from incident" @>> Hint "Are your sure you want to remove this contact?" @>> viewSharedInformation [] (mapRead contactTitle (sdsFocus sel contactByNo)) //TODO: Create contactTitle share
 	    >>* [OnAction ActionNo (always (return ()))
-	        ,OnAction ActionYes (always (upd (\cs -> [c \\ c <- map contactIdentity cs | c <> sel]) contacts >>| logContactRemoved incidentNo sel))
+	        ,OnAction ActionYes (always (upd (\cs -> [c \\ c <- map contactIdentity cs | c <> sel]) contacts >-| logContactRemoved incidentNo sel))
 		    ]
 
 manageIncidentActions :: IncidentNo -> Task ()
@@ -180,7 +180,7 @@ where
 
     addItem
         =   selectKnownOrDefineNewIncident
-        >>? (\def -> createIncidentIfNew def >>- \incidentNo -> upd (\r -> r ++ [incidentNo]) refs)
+        >?? (\def -> createIncidentIfNew def >>- \incidentNo -> upd (\r -> r ++ [incidentNo]) refs)
 
 selectKnownOrDefineNewIncident :: Task (Either IncidentNo NewIncident)
 selectKnownOrDefineNewIncident
@@ -203,7 +203,7 @@ addLogMessage message incidentNo
 	>>- \(user,now) ->
         set {LogEntry|incident = incidentNo,eventAt = now, loggedAt = now, loggedBy = user, message = toString message}
             (sdsFocus incidentNo incidentLog)
-    >>| addNotification (toString message)
+    >-| addNotification (toString message)
 	@!	incidentNo
 
 addLogMessageForContact :: msg ContactNo -> Task [IncidentNo] | toString msg
@@ -369,7 +369,7 @@ where
 	delete :: IncidentNo -> Task ()
 	delete incidentNo
 		= get databaseDef
-		>>= \db -> sqlExecute db ["allIncidents"] (execDelete "DELETE FROM Incident WHERE incidentNo = ?" (toSQL incidentNo)) @! ()
+		>>- \db -> sqlExecute db ["allIncidents"] (execDelete "DELETE FROM Incident WHERE incidentNo = ?" (toSQL incidentNo)) @! ()
 
 closeIncident :: IncidentNo -> Task ()
 closeIncident incidentNo

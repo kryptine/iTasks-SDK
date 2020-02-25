@@ -1,5 +1,5 @@
-itasks.Raw = {
-	initDOMEl: function() {
+itasks.Raw = class extends itasks.Component {
+	initDOMEl() {
 		var me = this;
 		me.headerEl = document.createElement('div');
 		me.headerEl.classList.add(me.cssPrefix + 'header');
@@ -9,42 +9,66 @@ itasks.Raw = {
 		me.containerEl = document.createElement('div');
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
-	},
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		me.headerEl.innerHTML = me.type + ": " + JSON.stringify(me.attributes);
 	}
 };
-itasks.RawRecord = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-record'
-});
-itasks.RawCons = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-cons'
-});
-itasks.RawVarCons = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-var-cons'
-});
-itasks.RawInteract = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-interact'
-});
-itasks.RawStep = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-step',	
-});
-itasks.RawParallel = Object.assign({},itasks.Raw,{
-	cssCls: 'raw-parallel',	
-});
-itasks.RawEmpty = {
-	cssCls: 'raw-empty',
-	initDOMEl: function() {
+itasks.RawRecord = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-record';
+	}
+};
+itasks.RawCons = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-cons';
+	}
+};
+itasks.RawVarCons = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-var-cons';
+	}
+};
+itasks.RawInteract = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-interact';
+	}
+};
+itasks.RawStep = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-step';
+	}
+};
+itasks.RawParallel = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-parallel';
+	}
+};
+itasks.RawEmpty = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-empty';
+	}
+	initDOMEl() {
 		this.domEl.innerHTML = '(empty)';
 	}
 };
-itasks.RawAction = {
-	cssCls: 'raw-action',	
-	domTag: 'a',
-	attributes: {
-		width: 'wrap'
-	},
-	initDOMEl: function() {
+itasks.RawAction = class extends itasks.Raw {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'raw-action';
+		this.domTag = 'a';
+		this.attributes = {
+			width: 'wrap'
+		};
+	}
+	initDOMEl() {
 		var me = this, el = me.domEl;
 
 		el.innerHTML = me.attributes.actionId;
@@ -54,8 +78,8 @@ itasks.RawAction = {
 			me.doEditEvent(me.attributes.taskId,null,me.attributes.actionId);
 			e.preventDefault();
 		});
-    },
-	onAttributeChange: function(name,value) {
+	}
+	onAttributeChange(name,value) {
 		var me = this, el = me.domEl;
 		switch(name) {
 			case 'enabled':

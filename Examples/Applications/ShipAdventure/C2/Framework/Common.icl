@@ -51,7 +51,7 @@ registerEntity mkE
   >>- \ms -> let nextIdx = 'DIS'.size ms.entities
                  newE    = mkE nextIdx in
              set {ms & entities = 'DIS'.put nextIdx newE ms.entities} mapState
-  >>|        return newE
+  >-|        return newE
 
 updateEntity :: Int (Entity -> Entity) -> Task ()
 updateEntity n f

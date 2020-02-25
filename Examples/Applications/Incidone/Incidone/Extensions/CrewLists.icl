@@ -65,7 +65,7 @@ where
         = (Hint "Enter a number to use when refering to this contact" @>> enterInformation  []
             -&&-
            selectKnownOrDefineNewContact)
-        >>? (\(aliasNo,def) -> createContactIfNew def >>- \contactNo -> upd (\r -> r++[(aliasNo,contactNo)]) refs)
+        >?? (\(aliasNo,def) -> createContactIfNew def >>- \contactNo -> upd (\r -> r++[(aliasNo,contactNo)]) refs)
         @!  ()
 
 derefAliasList :: [(Int,ContactNo)] [ContactShort] -> [(Int,ContactShort)]

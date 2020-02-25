@@ -22,4 +22,4 @@ calculateSumInRecord
   						[UpdateSharedAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)})
   						          (\_ res -> Just (res.firstNumber,res.secondNumber)) (const o Just)] sum
   )
-  >>= \(i,j) ->		return (i+j)
+  >>! \(i,j) ->		return (i+j)

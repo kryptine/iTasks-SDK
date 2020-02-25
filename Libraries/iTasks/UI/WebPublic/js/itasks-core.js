@@ -22,27 +22,31 @@ function Just(x) { return["Just", x]; }
 itasks.components = new WeakMap();
 
 //Core behavior
-itasks.Component = {
+itasks.Component = class {
+	constructor(spec, parentCmp = null) {
+		this.domTag = 'div';
+		this.domEl = null;
 
-	domTag: 'div',
-	domEl: null,
+		this.container = true;
+		this.containerEl = null;
 
-	container: true,
-	containerEl: null,
+		this.cssPrefix = 'itasks-';
+		this.cssCls = 'component';
 
-	cssPrefix: 'itasks-',
-	cssCls: 'component',
+		this.parentCmp = parentCmp;
+		this.attributes = {};
+		this.children = [];
 
-	attributes: {},
-	parentCmp: null,
-	children: [],
+		this.initialized = false;
 
-	initialized: false,
+		this.shared_clean_values = null;
 
-	init: function() {
+		//Initialize object attributes from spec
+		Object.assign(this, spec);
+	}
+	init() {
 		var me = this;
 		me.lastFire = 0;
-
 		return me.world=Promise.resolve()
 			.then(me.initUI.bind(me))
 			.then(me.initComponent.bind(me))
@@ -50,8 +54,8 @@ itasks.Component = {
 			.then(me.renderComponent.bind(me))
 			.then(me.registerComponent.bind(me))
 			.then(function(){ me.initialized=true; });
-	},
-	initUI: function() {
+	}
+	initUI() {
 		var me=this;
 		if (me.attributes.initUI!=null && me.attributes.initUI!='') {
 			return ABC_loading_promise.then(function(){
@@ -61,9 +65,10 @@ itasks.Component = {
 				itasks.ABC.clear_shared_clean_value(ref);
 			});
 		}
-	},
-	initComponent: function() {}, //Abstract method: every component implements this differently
-	initChildren: function() {
+	}
+	initComponent() { //Abstract method: every component implements this differently
+	}
+	initChildren() {
 		var me = this;
 		return me.children.reduce((promise,spec,i) => promise.then(function(){
 			me.beforeChildInsert(i,spec);
@@ -72,15 +77,15 @@ itasks.Component = {
 				me.afterChildInsert(i,me.children[i]);
 			});
 		}), Promise.resolve());
-	},
-	renderComponent: function() {
+	}
+	renderComponent() {
 		var me = this;
 		if(me.domEl === null) { //Create a new dom element
 			me.domEl = document.createElement(me.domTag);
 		} else { //Clear an existing element
 			me.domEl.innerHTML = '';
 		}
-		//Initialially make the outer dom element also the container element that holds the child components
+		//Initially make the outer dom element also the container element that holds the child components
 		me.containerEl = me.domEl;
 			
 		//Style the dom element
@@ -104,23 +109,23 @@ itasks.Component = {
 		me.initDOMElSize();
 		//Render the child elements
 		me.renderChildren();
-	},
-	renderChildren: function() {
+	}
+	renderChildren() {
 		var me = this;
 		me.children.forEach(function(child) {
 			if(child.domEl) {
 				me.containerEl.appendChild(child.domEl);
 			}
 		});
-	},
-	registerComponent: function() {
+	}
+	registerComponent() {
 		if(this.domEl !== null) {
 			itasks.components.set(this.domEl,this);
-		}	
-	},
-	initDOMEl: function() {},
-
-	initDOMElSize: function() {
+		}
+	}
+	initDOMEl() {
+	}
+	initDOMElSize() {
 		var me = this,
 			el = me.domEl,
 			width = me.attributes.width,
@@ -147,8 +152,8 @@ itasks.Component = {
 				el.style.height = height + 'px';
 			}
 		}
-    },
-	doEditEvent: function (taskId, editorId, value) {
+	}
+	doEditEvent(taskId, editorId, value) {
 		var me = this;
 		if(me.parentCmp) {
 			//Timeout is set, check if we can fire
@@ -164,42 +169,20 @@ itasks.Component = {
 				me.parentCmp.doEditEvent(taskId, editorId, value);
 			}
 		}
-	},
-	findChild: function(obj) {
+	}
+	findChild(obj) {
 		var me = this, num = me.children.length, i;
 
 		for( i = 0; i < num; i++) {
-			if(me.children[i] === obj) {	
+			if(me.children[i] === obj) {
 				return i;
 			}
 		}
-	},
-	createChild: function(spec) {
-		var me = this,
-			type = spec.type || 'Component',
-			child = {};
-
-		if(type !== 'Data') {
-			me.addSpec_(child, itasks.Component);
-		}
-				
-		if(itasks[type]) {
-			me.addSpec_(child,itasks[type]);
-		}
-		child.parentCmp = me;
-		child.children = [];
-
-		me.addSpec_(child,spec);
-
-		return child;
-	},
-	addSpec_:function(obj,spec) {
-		var attributes = {};
-		Object.assign(attributes,obj.attributes,spec.attributes);
-		Object.assign(obj,spec);
-		obj.attributes = attributes;
-	},
-	insertChild: function(idx = 0, spec = {}) {
+	}
+	createChild(spec) {
+		return new itasks[spec.type || 'Component'](spec,this);
+	}
+	insertChild(idx = 0, spec = {}) {
 		var me = this,
 			child = null,
 			isLast = (idx == me.children.length);
@@ -231,10 +214,10 @@ itasks.Component = {
 		} else {
 			finish_up();
 		}
-	},
+	}
 	//Separate method for inserting the child in the DOM.
 	//This enables subclasses to put some nodes in a different place than in `containerEl`
-	addChildToDOM: function(child, idx) {
+	addChildToDOM(child, idx) {
 		var me = this,
 			isLast = (idx == me.children.length);
 		if(isLast) {
@@ -242,10 +225,12 @@ itasks.Component = {
 		} else {
 			me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
 		}
-	},
-	beforeChildInsert: function(idx,spec) {},
-	afterChildInsert: function(idx,child) {},
-	removeChild: function(idx = 0) {
+	}
+	beforeChildInsert(idx,spec) {
+	}
+	afterChildInsert(idx,child) {
+	}
+	removeChild(idx = 0) {
 		var me = this, child = me.children[idx];
 
 		child._beforeRemove();
@@ -256,15 +241,15 @@ itasks.Component = {
 		}
 		me.children.splice(idx,1);	
 		me.afterChildRemove(idx);
-	},
-	replaceChild: function(idx,spec) {
+	}
+	replaceChild(idx,spec) {
 		var me = this;
 		if(idx >= 0 && idx < me.children.length) {
 			me.removeChild(idx);
 			return me.insertChild(idx,spec);
 		}
-	},
-	moveChild: function(sidx,didx) {
+	}
+	moveChild(sidx,didx) {
 		var me = this, child;
 
 		if(me.initialized && me.children[sidx].domEl) {
@@ -274,19 +259,19 @@ itasks.Component = {
 				me.containerEl.insertBefore(me.containerEl.children[sidx],me.containerEl.children[(didx > sidx) ? (didx + 1) : didx]);
 			}
 		}
-
 		child = me.children.splice(sidx,1)[0]; //Remove followed by insert...
 		me.children.splice(didx, 0, child);
-	},
-	beforeChildRemove: function(idx,child) {},
-	afterChildRemove: function(idx) {},
+	}
+	beforeChildRemove(idx,child) {
+	}
+	afterChildRemove(idx) {
+	}
 	/* beforeRemove can be overwritten to add a handler for 'destroy' events.
 	 * _beforeRemove is internal and should not be overwritten.
 	 */
-	beforeRemove: function() {
-	},
-	shared_clean_values: null,
-	_beforeRemove: function() {
+	beforeRemove() {
+	}
+	_beforeRemove() {
 		this.beforeRemove();
 
 		if (this.shared_clean_values!=null) {
@@ -296,14 +281,14 @@ itasks.Component = {
 		}
 
 		this.children.forEach(child => child._beforeRemove());
-	},
-	setAttribute: function(name,value) {
+	}
+	setAttribute(name,value) {
 		var me = this;
 	
 		me.attributes[name] = value;
 		me._onAttributeChange(name,value);
-	},
-	_onAttributeChange: function(name,value) {
+	}
+	_onAttributeChange(name,value) {
 		var me = this;
 		if(name == 'class') {
 			me.domEl.className = me.cssPrefix + me.cssCls;
@@ -317,9 +302,10 @@ itasks.Component = {
 		} else {
 			me.onAttributeChange(name,value);
 		}
-	},
-	onAttributeChange: function(name,value) {},
-	onUIChange: function(change) {
+	}
+	onAttributeChange(name,value) {
+	}
+	onUIChange(change) {
 		var me = this;
 		me.world=me.world.then (function(){
 			if(change) {
@@ -331,15 +317,15 @@ itasks.Component = {
 				}
 			}
 		});
-	},
-	onReplaceUI: function(spec) {
+	}
+	onReplaceUI(spec) {
 		var me = this;
 		if(me.parentCmp) {
 			var idx = me.parentCmp.findChild(me);
 			return me.parentCmp.replaceChild(idx,spec);
 		}
-	},
-	onChangeUI: function(attributeChanges,childChanges) {
+	}
+	onChangeUI(attributeChanges,childChanges) {
 		var me = this;
 
 		//Handle attribute changes
@@ -375,20 +361,21 @@ itasks.Component = {
 				}
 			}), Promise.resolve());
 		}
-	},
-	afterChildChange: function(idx,change) {},
-	onShow: function() {
+	}
+	afterChildChange(idx,change) {
+	}
+	onShow() {
 		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
-	},
-	onHide: function() {
+	}
+	onHide() {
 		this.children.forEach(function(child) { if(child.onHide) {child.onHide();}});
-	},
-	onResize: function() {
+	}
+	onResize() {
 		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
-	},
-	onHtmlEvent: function(msg) { //Abstract
-	},
-	getViewport: function() {
+	}
+	onHtmlEvent(msg) {
+	}
+	getViewport() {
 		var me = this, vp = me.parentCmp;
 		while(vp) {
 			if(vp.cssCls == 'viewport') { //Bit of a hack...
@@ -399,9 +386,14 @@ itasks.Component = {
 		return null;
 	}
 };
-itasks.Loader = {
-	cssCls: 'loader',
-	initDOMEl: function() {
+
+itasks.Loader = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'loader';
+	}
+
+	initDOMEl() {
 		var me = this,
 			l = document.createElement('div');
 			l.classList.add(me.cssPrefix + 'loader-spinner');
@@ -414,24 +406,30 @@ itasks.Loader = {
 		}
 	}
 };
-itasks.ExceptionView = {
-	cssCls: 'exception',
-	container: false,
-	initDOMEl: function() {
 
+itasks.ExceptionView = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'exception';
+		this.container = false;
+	}
+
+	initDOMEl() {
 		//Temporary
 		this.domEl.classList.add(this.cssPrefix + 'flex-width');
 		this.domEl.classList.add(this.cssPrefix + 'flex-height');
-
 		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
 	}
 };
-itasks.Viewport = {
-	cssCls: 'viewport',
-	syncTitle: false,
 
-	initComponent:function() {
-		var me = this;	
+itasks.Viewport = class extends itasks.Component {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
+		this.cssCls = 'viewport';
+		this.syncTitle = spec.syncTitle || false;
+	}
+	initComponent() {
+		var me = this;
 
 		//Create a temporary root element
 		me.insertChild(0,{type:'Loader', parentCmp: me});
@@ -463,15 +461,15 @@ itasks.Viewport = {
 		}
 
 		me.addWindowResizeListener();
-	},
-	addWindowResizeListener: function() {
+	}
+	addWindowResizeListener() {
 		var me = this;
 		if(me.parentViewport !== null) { //Only listen to window changes as the top level
 			return;
 		}
 		window.addEventListener('resize',me.onResize.bind(me));
-	},
-	determineTaskEndpoint: function() {
+	}
+	determineTaskEndpoint() {
 		var me = this;
 		if(me.taskUrl) { //Something was configured explicitly
 			if(me.taskUrl.startsWith('ws://')) {
@@ -486,18 +484,18 @@ itasks.Viewport = {
 		} else {
 			return me.parentViewport.determineTaskEndpoint();
 		}
-	},
-	doEditEvent: function (taskId, editorId, value) {
+	}
+	doEditEvent(taskId, editorId, value) {
 		var me = this, taskNo = taskId.split("-")[1];
 		if(editorId) {
 			me.connection.sendEditEvent(me.attributes.instanceNo, taskNo, editorId, value);
 		} else {
 			me.connection.sendActionEvent(me.attributes.instanceNo, taskNo, value);
 		}
-	},
-	onInstanceUIChange: function(change) {
+	}
+	onInstanceUIChange(change) {
 		var me = this;
-	
+
 		me.children[0].onUIChange(change);
 		//Sync title of the top level element
 		if(me.syncTitle) {
@@ -516,33 +514,33 @@ itasks.Viewport = {
 		me.changeListeners.forEach(function(cl) {
 			cl.onViewportChange(change);
 		});
-	},
-	addChangeListener: function(cmp) {
+	}
+	addChangeListener(cmp) {
 		var me = this;
 		me.changeListeners.push(cmp);
-	},
-	removeChangeListener: function(cmp) {
+	}
+	removeChangeListener(cmp) {
 		var me = this;
 		me.changeListeners = me.changeListeners.filter(function(el) {
 			return el != cmp;
 		});
-	},
-	onException: function(exception) {
+	}
+	onException(exception) {
 		var me = this;
 		//Remove all children and show the exception message
 		for(var i = me.children.length - 1; i >= 0; i--) {
 			me.removeChild(i);
 		}
 		me.insertChild(0,{type:'ExceptionView', parentCmp: me, attributes: { value : exception}});
-	},
-	beforeRemove: function() {
-		var me = this, instanceNo = me.attributes['instanceNo'];	
-		
+	}
+	beforeRemove() {
+		var me = this, instanceNo = me.attributes['instanceNo'];
+
 		if(instanceNo) {
 			me.connection.detachTaskInstance(instanceNo);
 		}
-	},
-	_beforeRemove: function() {
+	}
+	_beforeRemove() {
 		this.beforeRemove();
 	}
 };
@@ -550,37 +548,40 @@ itasks.Viewport = {
 //Data components are elements in the tree that don't render themselves, but make it possible to
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
-itasks.Data = {
-	init: function () { return Promise.resolve(); },
-	beforeRemove: function() {},
-	_beforeRemove: function() {},
+itasks.Data = class {
+	constructor(spec) {
+		Object.assign(this, spec);
+	}
+	init() {
+		return Promise.resolve();
+	}
+	beforeRemove() {
+	}
+	_beforeRemove() {
+	}
 };
 
 //Convenience function for concisely creating viewports
 itasks.viewport = function(spec,domEl) {
-	var vp = {}, vpattr = {};
-
-	Object.assign(vpattr,itasks.Component.attributes,itasks.Viewport.attributes,spec.attributes);
-	Object.assign(vp,itasks.Component,itasks.Viewport,spec);
-	
-	vp.attributes = vpattr;
+	var vp = new itasks.Viewport(spec);
 	vp.domEl = domEl;
 	vp.init();
 };
 
-itasks.Connection = {
-	wsock: null,
-	endpointUrl: null,
-	pingTimer: null,
-	pingInterval: 10000, //10 seconds
+itasks.Connection = class {
+	constructor(endpointUrl) {
+		this.endpointUrl = endpointUrl;
+		this.wsock = null;
+		this.pingTimer = null;
+		this.pingInterval = 10000; //10 seconds
 
-	newSessionCallbacks: {},
-	taskInstanceCallbacks: {},
+		this.newSessionCallbacks = {};
+		this.taskInstanceCallbacks = {};
 
-	reqId: 0,
-	deferred: [],
-
-	connect: function() {
+		this.reqId = 0;
+		this.deferred = [];
+	}
+	connect() {
 		var me = this;
 
 		me.wsock = new WebSocket(me.endpointUrl);
@@ -593,25 +594,25 @@ itasks.Connection = {
 		me.wsock.onmessage = me.onMessage_.bind(me);
 		me.wsock.onerror = me.onError_.bind(me);
 		me.wsock.onclose = me.onClose_.bind(me);
-	},
-	_ping: function() {
+	}
+	_ping() {
 		var me = this, reqId = me.reqId++;
 		if(me._isConnected()) {
 			me.wsock.send(JSON.stringify([parseInt(reqId),'ping',{}]));
 		}
-	},
-	_send: function(msg) {
+	}
+	_send(msg) {
 		var me = this;	
 		if(me._isConnected()) {
 			me.wsock.send(JSON.stringify(msg));
 		} else {
 			me.deferred.push(JSON.stringify(msg));
 		}
-	},
-	_isConnected: function() {
+	}
+	_isConnected() {
 		return (this.wsock !== null && this.wsock.readyState == 1)
-	},
-	newSession: function(onStart, onUIChange, onException) {
+	}
+	newSession(onStart, onUIChange, onException) {
 		var me = this, reqId = me.reqId++;
 			
 		me.newSessionCallbacks[reqId] = 
@@ -621,8 +622,8 @@ itasks.Connection = {
 			};
 
 		me._send([parseInt(reqId),'new',{}]);
-	},
-	attachTaskInstance: function(instanceNo, instanceKey, onUIChange, onException) {
+	}
+	attachTaskInstance(instanceNo, instanceKey, onUIChange, onException) {
 		var me = this, reqId = me.reqId++;
 
 		me.taskInstanceCallbacks[instanceNo] =
@@ -631,22 +632,22 @@ itasks.Connection = {
 			};
 
 		me._send([parseInt(reqId),'attach',{'instanceNo':parseInt(instanceNo),'instanceKey': instanceKey}]);
-	},
-	detachTaskInstance: function(instanceNo) {
+	}
+	detachTaskInstance(instanceNo) {
 		var me = this, reqId = me.reqId++;
 
 		delete(me.taskInstanceCallbacks[instanceNo]);
 		me._send([parseInt(reqId),'detach',{'instanceNo':parseInt(instanceNo)}]);
-	},
-	sendEditEvent: function(instanceNo, taskNo, edit, value) {
+	}
+	sendEditEvent(instanceNo, taskNo, edit, value) {
 		var me = this, reqId = me.reqId++;
 		me._send([parseInt(reqId),'ui-event',{'instanceNo':parseInt(instanceNo),'taskNo':parseInt(taskNo),'edit':edit, 'value': value}]);
-	},
-	sendActionEvent: function(instanceNo, taskNo, action) {
+	}
+	sendActionEvent(instanceNo, taskNo, action) {
 		var me = this, reqId = me.reqId++;
 		me._send([parseInt(reqId),'ui-event',{'instanceNo':parseInt(instanceNo),'taskNo':parseInt(taskNo),'action': action}]);
-	},
-	disconnect: function() {
+	}
+	disconnect() {
 		var me = this;
 		if(me.pingTimer !== null) {
 			window.clearInterval(me.pingTimer);
@@ -656,18 +657,18 @@ itasks.Connection = {
 			me.wsock.close();
 			me.wsock = null;
 		}
-	},
-	onError_: function(e) {
+	}
+	onError_(e) {
 		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
-	},
-	onReset_: function(e) {
+	}
+	onReset_(e) {
 		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
-	},
-	onClose_: function(e) {
+	}
+	onClose_(e) {
 		//If there are still attached task instances, we consider it an exeption for those viewports
 		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException("The connection to the server closed unexpectedly");});
-	},
-	onMessage_: function(e) {
+	}
+	onMessage_(e) {
 		var me = this,
 			msg = JSON.parse(e.data);
 
@@ -724,7 +725,7 @@ itasks.ConnectionPool = {
 			return me.connections[endpointUrl];
 		} else {
 			//Create the connection
-			connection = Object.assign(Object.create(itasks.Connection),{endpointUrl: endpointUrl});
+			connection = new itasks.Connection(endpointUrl);
 			connection.connect();
 			me.connections[endpointUrl] = connection;
 			return connection;

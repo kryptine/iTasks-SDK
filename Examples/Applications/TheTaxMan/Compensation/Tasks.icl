@@ -60,7 +60,7 @@ derive class iTask ValidityChecks
 showChecks :: ValidityChecks -> Task ()
 showChecks checks
 	=	Hint "Your request can not be submitted; it does not satisfy the following rules:" @>> viewInformation [] checks
-	>>|	return ()
+	>!|	return ()
 
 checkConditions :: Citizen -> Task ValidityChecks
 checkConditions applicant
@@ -73,18 +73,18 @@ checkConditions applicant
 
 declarationApplicant :: Date -> Task TaxCompensationDocuments
 declarationApplicant today
-	= 	(Hint "Please enter the following information for your tax compensation request:" @>> enterInformation [] >>= return)
+	= 	(Hint "Please enter the following information for your tax compensation request:" @>> enterInformation [] >>! return)
 		-||
 		(reminder (clientReminderDate today) "please finish your request for tax compensation")
 
 reminder :: Date String -> Task ()
 reminder when msg
-	= waitForDate when >>| Hint ("Reminder: please " +++ msg) @>> viewInformation [] ()
+	= waitForDate True when >?| Hint ("Reminder: please " +++ msg) @>> viewInformation [] ()
 
 selectOfficialSolarPanelCompany :: Task Company
 selectOfficialSolarPanelCompany
 	= Hint "Please enter the name of the company that installed the solar panels" @>> enterChoiceWithShared [] (companiesOfType "solar panel company")
-	>>= return
+	>>! return
 
 declarationCompany :: Date NameHomeAddress -> Task (Company,Maybe CompanyDeclaration)
 declarationCompany today applicant
@@ -96,8 +96,8 @@ declarationCompany today applicant
 					   														-||
 					  												   (reminder (clientReminderDate today) "please finish the proof"))
 					)
-	>>=	\declaration -> Title ("Declaration of company " +++ company.Company.cocName +++ " was " +++ if (isNothing declaration) "Negative" "Positive") @>> viewInformation [] declaration
-	>>| 			return (company,declaration)
+	>>!	\declaration -> Title ("Declaration of company " +++ company.Company.cocName +++ " was " +++ if (isNothing declaration) "Negative" "Positive") @>> viewInformation [] declaration
+	>!| 			return (company,declaration)
 where
 	msg_inform company = "Company " +++ company.Company.cocName +++ " has been asked to provide information. Waiting..."
 
@@ -117,7 +117,7 @@ where
 		=	 (Hint "Which solar panels were used?" @>> enterChoiceWithShared [] acceptedSolarPanels)
 		-&&- (Hint "How many square meters of solar panels have been installed? [round up to whole numbers]" @>> enterInformation [])
 		-&&- (Hint "Upload photos..."  @>> enterInformation [])
-		>>= \(type,(area,photos)) -> return {solarPanelType = type, roofPhotos = photos, date = today, roofAreaCovered = area}
+		>>! \(type,(area,photos)) -> return {solarPanelType = type, roofPhotos = photos, date = today, roofAreaCovered = area}
 
 /*	customer :: NameHomeAddress -> String
 	customer {NameHomeAddress | name={forename,surname}, homeAddress={Address | postcode,houseNumber}}
@@ -168,19 +168,19 @@ submitSubsidy dossier
 						, OnAction (Action "Cancel request") (ifCond (decision.status <> Approved) (return ()))
 						, OnAction (Action "Continue")       (ifCond (decision.status == Approved) (return ()))
 						]
-	>>| return ()
+	>?| return ()
 
 resubmitSubsidy :: TaxSolarPanelDossier -> Task ()
 resubmitSubsidy dossier
 	= 				Hint "Edit your documents..." @>> updateInformation [] dossier.request.documents
-	>>= \ndocs ->	submitOrCancelSubsidy {dossier & request.documents = ndocs }
+	>>! \ndocs ->	submitOrCancelSubsidy {dossier & request.documents = ndocs }
 
 processRequest :: TaxSolarPanelDossier -> Task Decision
 processRequest dossier
 	= 				(Title "Dossier Request Solar Panel Subsidy" @>> viewInformation [] dossier)
 					||-
 					(Hint "Approve or explain why request is rejected:" @>> updateInformation [] Approved)
-	>>= \verdict ->	get currentDate
+	>>! \verdict ->	get currentDate
 	>>- \today ->
 	let	compensation = if (verdict == Approved) (solar_panel_subsidy_law today.Date.year dossier.request.documents.TaxCompensationDocuments.invoiceAmount) 0
 		decision     = 	{ ssn 				= dossier.request.TaxCompensationCitizenRequest.ssn
@@ -196,10 +196,10 @@ processRequest dossier
 						, amount			= compensation
 						}
 	in		Title "Decision" @>> viewInformation [] decision
-	>>|		addToStore [dossier] solarPanelSubsidyRequests						// store dossier applicant
-	>>|		addToStore [decision] decisions										// store decision
-	>>|		addToCollectionStore collection										// store collection in proper store, iff applicable
-	>>|		return decision														// answer decision applicant
+	>!|		addToStore [dossier] solarPanelSubsidyRequests						// store dossier applicant
+	>-|		addToStore [decision] decisions										// store decision
+	>-|		addToCollectionStore collection										// store collection in proper store, iff applicable
+	>-|		return decision														// answer decision applicant
 
 :: Year :== Int
 

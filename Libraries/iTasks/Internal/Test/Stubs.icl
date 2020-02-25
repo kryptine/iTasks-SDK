@@ -28,7 +28,12 @@ toStubIWorld world
 		, memoryShares = newMap
 		, readCache = newMap
 		, writeCache = newMap
-		, abcInterpreterEnv = {pie_symbols={}, pie_code_start= -1}
+		, abcInterpreterEnv =
+			{ pie_code_start     = -1
+			, pie_symbols        = {}
+			, pie_sorted_symbols = {}
+			, pie_host_symbols   = {}
+			}
 		, ioTasks = {done=[], todo=[]}
 		, ioStates = newMap
 		, signalHandlers = []
@@ -48,5 +53,10 @@ toStubVSt =
 	, optional          = False
 	, selectedConsIndex = -1
 	, pathInEditMode    = []
-	, abcInterpreterEnv = {pie_symbols={}, pie_code_start= -1}
+	, abcInterpreterEnv =
+			{ pie_code_start     = -1
+			, pie_symbols        = {}
+			, pie_sorted_symbols = {}
+			, pie_host_symbols   = {}
+			}
 	}
