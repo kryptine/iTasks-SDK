@@ -125,29 +125,25 @@ directResult _ = abort "No direct result!"
 //Check the registrations and find the set of id's for which the current predicate holds
 //and for which id's it doesn't
 checkRegistrations :: !SDSIdentity !(SDSNotifyPred p) !*IWorld
-                   -> (!Set (!TaskId, !Maybe RemoteNotifyOptions), !Set (!TaskId, !Maybe RemoteNotifyOptions), !*IWorld)
+                   -> (!Set (!TaskId, !Maybe RemoteNotifyOptions), Set (!TaskId, !Maybe RemoteNotifyOptions), !*IWorld)
                     | TC p
 checkRegistrations sdsId pred iworld
-	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
-	# (match,nomatch) 			= matchRegistrations pred registrations
+	# (registrations, iworld) = lookupRegistrations sdsId iworld
+	# (match,nomatch)         = 'DM'.foldrWithKey match ('Set'.newSet,'Set'.newSet) registrations
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
-	lookupRegistrations :: SDSIdentity !*IWorld -> (![(SDSNotifyRequest, Timespec)], !*IWorld)
+	lookupRegistrations :: !SDSIdentity !*IWorld -> (!Map SDSNotifyRequest Timespec, !*IWorld)
 	lookupRegistrations sdsId iworld=:{sdsNotifyRequests} =
-		('DM'.toList $ 'DM'.findWithDefault 'DM'.newMap sdsId sdsNotifyRequests, iworld)
+		('DM'.findWithDefault 'DM'.newMap sdsId sdsNotifyRequests, iworld)
 
-	//Match the notify requests against the predicate to determine two sets:
-	//The registrations that matched the predicate, and those that did not match the predicate
-	matchRegistrations pred [] = ('Set'.newSet,'Set'.newSet)
-	matchRegistrations pred [(req=:{SDSNotifyRequest|cmpParam}, reqTimespec):regs]
-		# (match,nomatch) = matchRegistrations pred regs
-		= case cmpParam of
-			(p :: p^) = if (pred reqTimespec p)
-						   ('Set'.insert (req.reqTaskId, req.remoteOptions) match,nomatch)
-						   (match, 'Set'.insert (req.reqTaskId, req.remoteOptions) nomatch)
-			//In case of a type mismatch, just ignore (should not happen)
-			_                        = abort "Not matching!"
+	match {reqTaskId,cmpParam,remoteOptions} reqTimespec (match,nomatch) = case cmpParam of
+		(p :: p^)
+			| pred reqTimespec p
+				= ('Set'.insert (reqTaskId, remoteOptions) match,nomatch)
+				= (match, 'Set'.insert (reqTaskId, remoteOptions) nomatch)
+		_
+			= abort "dynamic type error in checkRegistrations\n"
 
 modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds
 modify f sds context iworld
