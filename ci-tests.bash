@@ -23,17 +23,16 @@ fi
 
 #Try to compile all modules
 if [ $(uname) = "Linux" ]; then
-	#Temporary disable stopping on errors because grep returns 1
-	#when no matches are found
-	set +e
 	errors="$(
 		cd Examples
 		cp BasicAPIExamples.prj{.default,}
 		find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
 			|  sed 's/definition module //g' \
 			|  xargs cpm project BasicAPIExamples.prj compile \
-			|& grep -i 'Error \[.*\.[di]cl')"
-	set -e
+			|& grep -i 'Error \[.*\.[di]cl' \
+			|  cat)"
+	#The last pipe through cat is needed because grep returns 1
+	#when no matches are found
 	echo "$errors" >&2
 	[ -z "$errors" ]
 fi
