@@ -34,13 +34,13 @@ rawInstanceOutput    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.ne
 
 //Event queues of task instances
 taskEvents :: SimpleSDSLens TaskInput
-taskEvents = sdsFocus "events" rawInstanceEvents
+taskEvents =: sdsFocus "events" rawInstanceEvents
 
 taskOutput :: SimpleSDSLens (Map InstanceNo TaskOutput)
-taskOutput = sdsFocus "taskOutput" rawInstanceOutput
+taskOutput =: sdsFocus "taskOutput" rawInstanceOutput
 
 taskInstanceOutput :: SDSLens InstanceNo TaskOutput TaskOutput
-taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskOutput
+taskInstanceOutput =: sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskOutput
 where
 	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs))
 	write instanceNo outputs output = Ok (Just ('DM'.put instanceNo output outputs))

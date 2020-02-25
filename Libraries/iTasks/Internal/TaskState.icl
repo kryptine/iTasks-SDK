@@ -81,7 +81,7 @@ decodeTaskValue (Value enc stable) = maybe NoValue (\dec -> Value dec stable) (f
 decodeTaskValue NoValue = NoValue
 
 allTaskLists :: SDSLens TaskId [TaskMeta] [TaskMeta]
-allTaskLists =
+allTaskLists =:
 	mapReadWrite
 		(fromMaybe [], \metas _ -> Just $ if (isEmpty metas) Nothing (Just metas))
 		Nothing
@@ -90,7 +90,7 @@ where
 	param (TaskId instanceNo taskNo) = "tasklist-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskValues :: SDSLens TaskId (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
-allTaskValues =
+allTaskValues =:
 	mapReadWrite
 		(fromMaybe 'DM'.newMap, \values _ -> Just $ if ('DM'.null values) Nothing (Just values))
 		Nothing
@@ -99,7 +99,7 @@ where
 	param (TaskId instanceNo taskNo) = "taskvalues-"+++toString instanceNo +++ "-" +++toString taskNo
 
 allTaskReducts :: SDSLens TaskId (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
-allTaskReducts =
+allTaskReducts =:
 	mapReadWrite
 		(fromMaybe 'DM'.newMap, \reducts _ -> Just $ if ('DM'.null reducts) Nothing (Just reducts))
 		Nothing
@@ -109,11 +109,11 @@ where
 
 //Next instance no counter
 nextInstanceNo :: SimpleSDSLens Int
-nextInstanceNo = sdsFocus "increment" $ storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
+nextInstanceNo =: sdsFocus "increment" $ storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
 
 //Local shared data
 taskInstanceShares :: SDSLens InstanceNo (Maybe (Map TaskId DeferredJSON)) (Maybe (Map TaskId DeferredJSON))
-taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
+taskInstanceShares =: sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (mbStoreShare NS_TASK_INSTANCES True InDynamicFile)
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
@@ -203,8 +203,8 @@ where
 (`b`) (Error e, st) _ = (Error e, st)
 
 taskListMetaData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (!TaskId,![TaskMeta]) [TaskMeta]
-taskListMetaData
-	= sdsLens "taskListMetaData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskLists
+taskListMetaData =:
+	sdsLens "taskListMetaData" param (SDSRead read) (SDSWrite write) (SDSNotify notify) Nothing allTaskLists
 where
 	param (listId,_,_,_) = listId
 	read (listId,selfId,tfilter,efilter) rows
@@ -291,10 +291,10 @@ where
 		   )
 
 taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
-taskListDynamicValueData = taskIdIndexedStore "taskListDynamicValueData" allTaskValues
+taskListDynamicValueData =: taskIdIndexedStore "taskListDynamicValueData" allTaskValues
 
 taskListDynamicTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (Task DeferredJSON)) (Map TaskId (Task DeferredJSON))
-taskListDynamicTaskData = taskIdIndexedStore "taskListDynamicTaskData" allTaskReducts
+taskListDynamicTaskData =: taskIdIndexedStore "taskListDynamicTaskData" allTaskReducts
 
 taskIdIndexedStore ::
 	!String !(sds TaskId (Map TaskId a) (Map TaskId a))
@@ -337,7 +337,7 @@ where
 //Filtered views on the instance index
 
 taskInstance :: SDSLens (InstanceNo,Bool,Bool) TaskMeta TaskMeta
-taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListMetaData
+taskInstance =: sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing taskListMetaData
 where
 	param (no,includeTaskIO,includeProgress)
 		# tfilter = {TaskListFilter|fullTaskListFilter & onlyTaskId = Just [TaskId no 0],includeProgress=includeProgress,includeTaskAttributes=includeProgress}
@@ -350,7 +350,7 @@ where
 
 //Last computed value for task instance
 taskInstanceValue :: SDSLens InstanceNo (TaskValue DeferredJSON) (TaskValue DeferredJSON)
-taskInstanceValue = sdsLens "taskInstanceValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
+taskInstanceValue =: sdsLens "taskInstanceValue" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicValueData
 where
 	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
 
@@ -359,7 +359,7 @@ where
 	notify _  _ _ _ = True
 
 taskInstanceTask :: SDSLens InstanceNo (Task DeferredJSON) (Task DeferredJSON)
-taskInstanceTask = sdsLens "taskInstanceTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
+taskInstanceTask =: sdsLens "taskInstanceTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing taskListDynamicTaskData
 where
 	param no = (TaskId 0 0, TaskId no 0, {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}, defaultValue)
 
@@ -418,7 +418,7 @@ where
 		]
 
 taskInstanceParallelTaskList :: SDSLens (TaskId,TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
-taskInstanceParallelTaskList = sdsTranslate "taskInstanceParallelTaskList" param taskListMetaData
+taskInstanceParallelTaskList =: sdsTranslate "taskInstanceParallelTaskList" param taskListMetaData
 where
 	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
@@ -435,7 +435,7 @@ where
 	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
 taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId,Bool) TaskMeta TaskMeta
-taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskList
+taskInstanceParallelTaskListItem =: sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskList
 where
 	param (listId,taskId,includeValue) = (listId,taskId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId], includeValue = includeValue})
 	read p=:(_,taskId,_) (listId,[x]) = Ok x
@@ -460,7 +460,7 @@ where
 	reducer p ws = read p ws
 
 taskInstanceParallelTaskListTask :: SDSLens (TaskId,TaskId) (Task DeferredJSON) (Task DeferredJSON)
-taskInstanceParallelTaskListTask =
+taskInstanceParallelTaskListTask =:
 	sdsLens
 		"taskInstanceParallelTaskListTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer)
 		(sdsTranslate "taskInstanceParallelTaskListTasksDynamic" paramTasks taskListDynamicTaskData)
@@ -518,7 +518,7 @@ newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld = generateRandomString 32 iworld
 
 documentContent :: SDSLens String String String
-documentContent = sdsTranslate "documentContent" (\docId -> docId +++ "-content") (blobStoreShare NS_DOCUMENT_CONTENT False Nothing)
+documentContent =: sdsTranslate "documentContent" (\docId -> docId +++ "-content") (blobStoreShare NS_DOCUMENT_CONTENT False Nothing)
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld

@@ -17,7 +17,7 @@ constShare :: !a -> SDSSource p a ()
 constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 nullShare :: SDSSource p () a
-nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const (const False)), env))
+nullShare =: createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const (const False)), env))
 
 unitShare :: SimpleSDSSource ()
 unitShare = nullShare
@@ -35,13 +35,13 @@ where
 
 // Random source
 randomInt :: SDSSource () Int ()
-randomInt = createReadOnlySDS randomInt
+randomInt =: createReadOnlySDS randomInt
 where
 	randomInt () iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
 
 randomString :: SDSSource Int String ()
-randomString = createReadOnlySDS generateRandomString
+randomString =: createReadOnlySDS generateRandomString
 
 memoryShare :: SDSSource String (Maybe a) (Maybe a) | TC a
 memoryShare = createReadWriteSDS "_core_" "memoryShare" read write
@@ -58,7 +58,7 @@ where
        = (Ok (const ((===) key)),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
 
 fileShare :: SDSSource FilePath (Maybe String) (Maybe String)
-fileShare = createReadWriteSDS "_core_" "fileShare" (fileRead fromFile) (fileWrite toFile)
+fileShare =: createReadWriteSDS "_core_" "fileShare" (fileRead fromFile) (fileWrite toFile)
 where
 	fromFile path content = Ok content
 
@@ -75,7 +75,7 @@ where
 
 // Share that maps to a file that holds a serialized graph representation of the value
 graphFileShare :: SDSSource FilePath (Maybe a) (Maybe a)
-graphFileShare = createReadWriteSDS "_core_" "graphFileShare" (fileRead fromFile) (fileWrite toFile)
+graphFileShare =: createReadWriteSDS "_core_" "graphFileShare" (fileRead fromFile) (fileWrite toFile)
 where
 	fromFile path content = case deserialize {c \\ c <-: content} of
 	    Ok val  = Ok val
@@ -135,7 +135,7 @@ where
 		= create next rest world //Created the directory, continue
 
 directoryListing :: SDSSource FilePath [String] ()
-directoryListing = createReadOnlySDSError read
+directoryListing =: createReadOnlySDSError read
 where
 	read path iworld = case readDirectory path iworld of
 		(Ok files,iworld) = (Ok [f \\ f <- files | f <> "." && f <> ".."],iworld)

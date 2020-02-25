@@ -606,5 +606,8 @@ updateClock iworld=:{IWorld|clock,world}
 	# (timespec,world) = nsTime world
 	# iworld & world   = world
 	//Write SDS if necessary
-	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
+	# (mbe,iworld)     = write timespec focusedTimeSpec EmptyContext iworld
 	= (() <$ mbe, iworld)
+
+/* CAF for efficiency */
+focusedTimeSpec =: sdsFocus {start=zero,interval=zero} iworldTimespec

@@ -94,16 +94,16 @@ where
 	fromPrj nwf wfs = Ok (Just [if (wf.Workflow.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: SDSLens () [Workflow] ()
-allowedWorkflows = mapRead filterAllowed (workflows |*| currentUser)
+allowedWorkflows =: mapRead filterAllowed (workflows |*| currentUser)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 
 //All tasks that you can do in a session
 allowedTransientTasks :: SDSLens () [Workflow] ()
-allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | transient]) allowedWorkflows
+allowedTransientTasks =: mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | transient]) allowedWorkflows
 
 allowedPersistentWorkflows :: SDSLens () [Workflow] ()
-allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
+allowedPersistentWorkflows =: mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
 
 instance Startable WorkflowCollection
 where

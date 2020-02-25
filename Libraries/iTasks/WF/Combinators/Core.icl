@@ -415,7 +415,8 @@ where
 				(Ok res) = (Ok res,iworld)
 				(Error e) = (Error (exception (ExceptionList e)), iworld)
 		//Lookup task evaluation function, and task evaluation state
-		# (mbTask,iworld) = read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
+		# thisTask = sdsFocus (listId,taskId) taskInstanceParallelTaskListTask
+		# (mbTask,iworld) = read thisTask EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
 		//Evaluate new branches with a reset event, other with the event
@@ -442,7 +443,7 @@ where
 				//Check if the value changed
 				# valueChanged = val =!= value
 				//Write the new reduct
-				# (mbError, iworld) = write task (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
+				# (mbError, iworld) = write task thisTask EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
 				//Write meta data
                 # (mbError,iworld) = modify

@@ -86,7 +86,7 @@ destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
 iworldTimespec :: SDSSource (ClockParameter Timespec) Timespec Timespec
-iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
+iworldTimespec =: createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
     write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
@@ -108,7 +108,7 @@ where
 	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
-iworldTimestamp = mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 
+iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: SDSParallel () DateTime ()
