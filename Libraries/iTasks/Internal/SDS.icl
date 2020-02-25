@@ -59,10 +59,6 @@ createSDS ns id read write = SDSSource
 	, write = write
 	}
 
-//Construct the identity of an sds
-sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
-sdsIdentity s = 'Text'.concat (nameSDS s [])
-
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p iworld = (npred p, iworld)
 
@@ -137,7 +133,7 @@ checkRegistrations sdsId pred iworld
 	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
-	lookupRegistrations :: String !*IWorld -> (![(SDSNotifyRequest, Timespec)], !*IWorld)
+	lookupRegistrations :: SDSIdentity !*IWorld -> (![(SDSNotifyRequest, Timespec)], !*IWorld)
 	lookupRegistrations sdsId iworld=:{sdsNotifyRequests} =
 		('DM'.toList $ 'DM'.findWithDefault 'DM'.newMap sdsId sdsNotifyRequests, iworld)
 
@@ -162,11 +158,11 @@ modify f sds context iworld
 	# iworld = queueNotifyEvents (sdsIdentity sds) notify iworld
 	= (Ok (ModifyingDone w), iworld)
 
-queueNotifyEvents :: !String !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
+queueNotifyEvents :: !SDSIdentity !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
 queueNotifyEvents sdsId notify iworld
     # remotes = [(reqTaskId, remoteOptions) \\ (reqTaskId, Just remoteOptions) <- 'Set'.toList notify]
     # locals = [reqTaskId \\ (reqTaskId, Nothing) <- 'Set'.toList notify]
-    # iworld = queueRefresh [(reqTaskId,"Notification for write of " +++ sdsId) \\ reqTaskId <- locals] iworld
+    # iworld = queueRefresh [(reqTaskId,"Notification for write of " +++ toString sdsId) \\ reqTaskId <- locals] iworld
     = queueRemoteRefresh remotes iworld
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
@@ -202,7 +198,7 @@ formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
 where
 	lines = [toString instanceNo +++ " -> " +++
-				('Text'.join "\n\t" [toString tId +++ ":" +++ sdsId \\ (tId, sdsId) <- requests])
+				('Text'.join "\n\t" ['Text'.concat [toString tId,":",toString sdsId] \\ (tId, sdsId) <- requests])
 			\\ (instanceNo, requests) <- list]
 
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
@@ -224,8 +220,12 @@ where
 
 instance Identifiable SDSSource
 where
-	nameSDS (SDSSource {SDSSourceOptions|name}) acc = ["$", name, "$":acc]
-	nameSDS (SDSValue done mr sds) acc = nameSDS sds acc
+	sdsIdentity (SDSSource {SDSSourceOptions|name}) =
+		{ id_name    = name
+		, id_child_a = NoChild
+		, id_child_b = NoChild
+		}
+	sdsIdentity (SDSValue done mr sds) = sdsIdentity sds
 
 instance Readable SDSSource
 where
@@ -282,7 +282,11 @@ readSDSSource sds=:(SDSValue done v _) _ _ _ iworld = (Ok (ReadResult v sds), iw
 
 instance Identifiable SDSLens
 where
-	nameSDS (SDSLens sds {SDSLensOptions|name}) acc = nameSDS sds ["/[", name, "]":acc]
+	sdsIdentity (SDSLens sds {SDSLensOptions|name}) =
+		{ id_name    = name
+		, id_child_a = Child (sdsIdentity sds)
+		, id_child_b = NoChild
+		}
 
 instance Readable SDSLens
 where
@@ -400,8 +404,13 @@ readSDSLens sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify i
 		SDSReadConst f = (Ok (ReadResult (f p) sds), iworld)
 
 // SDSCache
-instance Identifiable SDSCache where
-	nameSDS (SDSCache sds _) acc = ["$": nameSDS sds ["$":acc]]
+instance Identifiable SDSCache
+where
+	sdsIdentity (SDSCache sds _) =
+		{ id_name    = "%"
+		, id_child_a = Child (sdsIdentity sds)
+		, id_child_b = NoChild
+		}
 
 instance Readable SDSCache where
 	readSDS sds p c iworld = readSDSCache sds p c Nothing iworld
@@ -463,8 +472,13 @@ readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 			(Ok (ReadResult val ssds),iworld)  = (Ok (ReadResult val sds), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
 
 // SDSSequence
-instance Identifiable SDSSequence where
-	nameSDS (SDSSequence sds1 sds2 {SDSSequenceOptions|name}) acc = ["<",name:nameSDS sds1 [",":nameSDS sds2 [">":acc]]]
+instance Identifiable SDSSequence
+where
+	sdsIdentity (SDSSequence sds1 sds2 {SDSSequenceOptions|name}) =
+		{ id_name    = ">"+++name
+		, id_child_a = Child (sdsIdentity sds1)
+		, id_child_b = Child (sdsIdentity sds2)
+		}
 
 instance Readable SDSSequence where
 	readSDS sds p c iworld = readSDSSequence sds p c Nothing iworld
@@ -533,8 +547,13 @@ readSDSSequence sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,par
 				(Ok (AsyncRead sds2), iworld) = (Ok (AsyncRead (SDSSequence ssds1 sds2 opts)), iworld)
 
 // SDSSelect
-instance Identifiable SDSSelect where
-	nameSDS (SDSSelect sds1 sds2 {SDSSelectOptions|name}) acc = ["{", name:nameSDS sds1 [",":nameSDS sds2 ["}":acc]]]
+instance Identifiable SDSSelect
+where
+	sdsIdentity (SDSSelect sds1 sds2 {SDSSelectOptions|name}) =
+		{ id_name    = name
+		, id_child_a = Child (sdsIdentity sds1)
+		, id_child_b = Child (sdsIdentity sds2)
+		}
 
 instance Readable SDSSelect where
 	readSDS sds p c iworld = readSDSSelect sds p c Nothing iworld
@@ -618,14 +637,19 @@ readSDSSelect sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,name}) p 
 			(Ok (AsyncRead sds), iworld)        = (Ok (AsyncRead (SDSSelect sds1 sds opts)), iworld)
 
 // SDSParallel
-instance Identifiable SDSParallel where
-	nameSDS sds acc = case sds of
-        SDSParallel           sds1 sds2 opts = parallelName sds1 sds2 opts
-        SDSParallelWriteLeft  sds1 sds2 opts = parallelName sds1 sds2 opts
-        SDSParallelWriteRight sds1 sds2 opts = parallelName sds1 sds2 opts
-        SDSParallelWriteNone  sds1 sds2 opts = parallelName sds1 sds2 opts
-    where
-        parallelName sds1 sds2 opts = ["|",opts.SDSParallelOptions.name:nameSDS sds1 [",":nameSDS sds2 ["|":acc]]]
+instance Identifiable SDSParallel
+where
+	sdsIdentity sds = case sds of
+		SDSParallel           sds1 sds2 opts = parallel sds1 sds2 opts
+		SDSParallelWriteLeft  sds1 sds2 opts = parallel sds1 sds2 opts
+		SDSParallelWriteRight sds1 sds2 opts = parallel sds1 sds2 opts
+		SDSParallelWriteNone  sds1 sds2 opts = parallel sds1 sds2 opts
+	where
+		parallel sds1 sds2 opts =
+			{ id_name    = "|"+++opts.SDSParallelOptions.name
+			, id_child_a = Child (sdsIdentity sds1)
+			, id_child_b = Child (sdsIdentity sds2)
+			}
 
 instance Readable SDSParallel where
 	readSDS sds p c iworld = readSDSParallel sds p c Nothing iworld
@@ -790,8 +814,13 @@ readSDSParallel sds=:(SDSParallelWriteNone sds1 sds2 opts=:{SDSParallelOptions|p
 optionsS :: SDSShareOptions -> String
 optionsS o = o.SDSShareOptions.domain +++ ":" +++ toString o.SDSShareOptions.port
 
-instance Identifiable SDSRemoteSource where
-	nameSDS (SDSRemoteSource sds _ options) acc = ["REMOTE%" +++ optionsS options +++ "%" : nameSDS sds acc]
+instance Identifiable SDSRemoteSource
+where
+	sdsIdentity (SDSRemoteSource sds _ options) =
+		{ id_name    = optionsS options
+		, id_child_a = Child (sdsIdentity sds)
+		, id_child_b = NoChild
+		}
 
 instance Readable SDSRemoteSource where
 	readSDS sds p c iworld = readSDSRemoteSource sds p c Nothing iworld
@@ -863,8 +892,13 @@ readSDSRemoteSource sds=:(SDSRemoteSource _ Nothing opts) p context register iwo
 		(Ok connectionId, iworld)          = (Ok (AsyncRead (SDSRemoteSource sds (Just connectionId) opts)), iworld)
 
 // Remote services
-instance Identifiable SDSRemoteService where
-	nameSDS (SDSRemoteService mbConnId opts) acc = ["SERVICE%" +++ toString opts +++ "%" : acc]
+instance Identifiable SDSRemoteService
+where
+	sdsIdentity (SDSRemoteService mbConnId opts) =
+		{ id_name    = toString opts
+		, id_child_a = NoChild
+		, id_child_b = NoChild
+		}
 
 instance Readable SDSRemoteService where
 	readSDS sds p c iworld = readSDSRemoteService sds p c Nothing iworld
@@ -922,15 +956,16 @@ readSDSRemoteService sds=:(SDSRemoteService Nothing opts) p (TaskContext taskId)
 instance == RemoteNotifyOptions where
 	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)
 
-instance Identifiable SDSDebug where
-	nameSDS (SDSDebug name sds) acc = nameSDS sds acc
+instance Identifiable SDSDebug
+where
+	sdsIdentity (SDSDebug name sds) = sdsIdentity sds
 
 instance Readable SDSDebug where
 	readSDS sds p c iworld = readSDSDebug sds p c Nothing iworld
 
 instance Writeable SDSDebug where
 	writeSDS (SDSDebug name sds) p context w iworld=:{sdsNotifyRequests}
-		# iworld = iShow ["Writing to share " +++ name +++ "(identity=" +++ sdsIdentity sds +++ ")"] iworld
+		# iworld = iShow ['Text'.concat ["Writing to share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
 		# iworld = iShow [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds) sdsNotifyRequests))] iworld
 		= db (writeSDS sds p context w iworld)
 		where
@@ -948,7 +983,7 @@ instance Registrable SDSDebug where
 
 instance Modifiable SDSDebug where
 	modifySDS f (SDSDebug name sds) p context iworld=:{sdsNotifyRequests}
-		# iworld = iShow ["Modifying share " +++ name +++ "(identity=" +++ sdsIdentity sds +++ ")"] iworld
+		# iworld = iShow ['Text'.concat ["Modifying share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
 		# (regs, iworld) = listAllSDSRegistrations iworld
 		# iworld = iShow [formatRegistrations regs] iworld
 		= db (modifySDS f sds p context iworld)
@@ -978,7 +1013,7 @@ notifyToString (taskId, Nothing) = "local " +++ toString taskId
 notifyToString (taskId, (Just remote)) = "remote " +++ toString taskId +++ " " +++ toString remote
 
 instance toString RemoteNotifyOptions where
-	toString {hostToNotify, portToNotify, remoteSdsId} = hostToNotify +++ ":" +++ toString portToNotify +++ "@" +++ remoteSdsId
+	toString {hostToNotify, portToNotify, remoteSdsId} = 'Text'.concat [hostToNotify,":",toString portToNotify,"@",toString remoteSdsId]
 
 instance toString (Maybe RemoteNotifyOptions) where
 	toString Nothing = ""
@@ -991,8 +1026,14 @@ readAndMbRegisterSDS sds p c mbRegister iworld = case mbRegister of
 	Just (regTaskId, reqSDSId) = readRegisterSDS sds p c regTaskId reqSDSId iworld
 	Nothing                    = readSDS sds p c iworld
 
-instance Identifiable SDSNoNotify where
-	nameSDS (SDSNoNotify sds) c = ["!":nameSDS sds ["!":c]]
+instance Identifiable SDSNoNotify
+where
+	sdsIdentity (SDSNoNotify sds) =
+		{ id_name    = "?"
+		, id_child_a = Child (sdsIdentity sds)
+		, id_child_b = NoChild
+		}
+
 instance Readable SDSNoNotify where
 	readSDS (SDSNoNotify sds) p c iworld
 		= case readSDS sds p c iworld of

@@ -40,8 +40,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
 	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentity)                    // Allows to efficiently find notification by taskID for clearing notifications
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
-	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
-	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+	, readCache             :: !Map (SDSIdentity,String) Dynamic                // Cached share reads
+	, writeCache            :: !Map (SDSIdentity,String) (Dynamic,DeferredWrite) // Cached deferred writes
 	, abcInterpreterEnv     :: !PrelinkedInterpretationEnvironment              // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks

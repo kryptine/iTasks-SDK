@@ -2,6 +2,9 @@ definition module iTasks.SDS.Definition
 /**
 * This module provides the types that define a shared data source
 */
+
+from StdOverloaded import class <, class ==, class toString
+
 from iTasks.WF.Definition import :: TaskException, class iTask, :: TaskId
 from iTasks.Internal.IWorld import :: IWorld, :: ConnectionId
 
@@ -9,6 +12,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
 import Data.GenEq, Internet.HTTP, Data.Maybe.Ord
+from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
@@ -17,7 +21,25 @@ from Data.Set import :: Set
 
 derive gText SDSNotifyRequest, RemoteNotifyOptions
 
-:: SDSIdentity  :== String
+//* This type is for internal purposes only.
+:: MaybeSDSIdentityChild
+	= NoChild
+	| Child !SDSIdentity
+
+//* This type is for internal purposes only.
+:: SDSIdentity =
+	{ id_name    :: !String
+	, id_child_a :: !MaybeSDSIdentityChild
+	, id_child_b :: !MaybeSDSIdentityChild
+	}
+
+instance < SDSIdentity
+instance == SDSIdentity
+instance toString SDSIdentity
+derive JSONEncode SDSIdentity
+derive JSONDecode SDSIdentity
+
+dependsOnShareWithName :: !String !SDSIdentity -> Bool
 
 :: TaskContext = EmptyContext // Used in the internals of the iTasks system
                | TaskContext TaskId // Used when a local task is reading from a share
@@ -76,15 +98,12 @@ instance < SDSNotifyRequest, RemoteNotifyOptions
 :: RemoteNotifyOptions =
 	{ hostToNotify :: !String
 	, portToNotify :: !Int
-	, remoteSdsId  :: !String
+	, remoteSdsId  :: !SDSIdentity
 	}
 
 class Identifiable sds
 where
-	/**
-	 * Identify the shared datasource
-	 */
-	nameSDS :: !(sds p r w) ![String] -> [String]
+	sdsIdentity :: !(sds p r w) -> SDSIdentity
 
 class Readable sds | Identifiable sds
 where
