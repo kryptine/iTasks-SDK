@@ -254,7 +254,7 @@ waitForTimer withUI interval =
 	timestampToLocalDateTime (Timestamp (now + interval)) >>-
 	waitForDateTime withUI
 
-waitWithUI :: !String !(sds () d ()) !d -> Task d | Registrable sds & <, toString, iTask d
+waitWithUI :: !String !(sds () d ()) !d -> Task d | RWShared sds & <, toString, iTask d
 waitWithUI title share target =
 	Title title @>> Hint ("Wait until " +++ toString target) @>> viewSharedInformation [] share >>*
 	[OnValue (ifValue (\now -> target <= now) return)]

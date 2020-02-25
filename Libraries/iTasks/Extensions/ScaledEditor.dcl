@@ -6,4 +6,4 @@ from iTasks.UI.Editor import :: Editor
 * the container. This is useful for presentations and other applications where you need a
 * predictable fixed UI size, but don't know the resolution of the display.
 */
-scaledEditor :: Int Int (Editor a) -> Editor a
+scaledEditor :: !Int !Int !(Editor a w) -> Editor a w

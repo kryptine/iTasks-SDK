@@ -15,7 +15,7 @@ import qualified Data.Map as DM
 //- Add an onResize handler on the container that measures both the outer
 //  and inner element and sets a CSS transform on the inner element.
 
-scaledEditor :: Int Int (Editor a) -> Editor a
+scaledEditor :: !Int !Int !(Editor a w) -> Editor a w
 scaledEditor width height editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	fixedEditor = (sizeAttr (ExactSize width) (ExactSize height)) @>> editor
@@ -27,15 +27,15 @@ where
 		(Error e,vst) = (Error e,vst)
 
 	onEdit datapath event state vst = case fixedEditor.Editor.onEdit datapath event state vst of
-		(Ok (change,state),vst) 
+		(Ok (change,state,mbw),vst) 
 			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
-			= (Ok (wrapChange initUIString change,state),vst)
+			= (Ok (wrapChange initUIString change,state,mbw),vst)
 		(Error e,vst) = (Error e,vst)
 
 	onRefresh datapath value state vst = case fixedEditor.Editor.onRefresh datapath value state vst of
-		(Ok (change,state),vst)
+		(Ok (change,state,mbw),vst)
 			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
-			= (Ok (wrapChange initUIString change,state),vst)
+			= (Ok (wrapChange initUIString change,state,mbw),vst)
 		(Error e,vst) = (Error e,vst)
 
 	valueFromState = fixedEditor.Editor.valueFromState
