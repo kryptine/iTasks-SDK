@@ -1,6 +1,5 @@
 module TestTree
 import iTasks, iTasks.Util.Testing
-derive class iTask ChoiceNode
 
 derive class iTask ChoiceNode
 
