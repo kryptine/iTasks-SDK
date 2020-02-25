@@ -50,6 +50,7 @@ Global
 		Path:	{Project}
 		Path:	{Project}/Ligretto
 		Path:	{Project}/iTaskGraphics
+		Path:	{Application}/lib/Gast
 	Precompile:	
 	Postlink:	
 MainModule

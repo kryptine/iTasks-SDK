@@ -22,19 +22,19 @@ where
 
 	genUI attr datapath mode vst = case fixedEditor.Editor.genUI attr datapath (mapEditMode id mode) vst of
 		(Ok (editorUI,editorState),vst) 
- 			# (initUIString, vst) = serializeForClient (wrapInitUIFunction initUI) vst 
+			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
 			= (Ok (wrapUI initUIString editorUI,editorState),vst)
 		(Error e,vst) = (Error e,vst)
 
 	onEdit datapath event state vst = case fixedEditor.Editor.onEdit datapath event state vst of
 		(Ok (change,state),vst) 
- 			# (initUIString, vst) = serializeForClient (wrapInitUIFunction initUI) vst 
+			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
 			= (Ok (wrapChange initUIString change,state),vst)
 		(Error e,vst) = (Error e,vst)
 
 	onRefresh datapath value state vst = case fixedEditor.Editor.onRefresh datapath value state vst of
 		(Ok (change,state),vst)
- 			# (initUIString, vst) = serializeForClient (wrapInitUIFunction initUI) vst 
+			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
 			= (Ok (wrapChange initUIString change,state),vst)
 		(Error e,vst) = (Error e,vst)
 
