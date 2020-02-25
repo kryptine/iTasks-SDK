@@ -10,7 +10,7 @@ from Data.Map import unions
 
 derive class iTask FileInfo, Tm
 
-editFilePath :: String Action !(Maybe FilePath) -> Task (Maybe FilePath)
+editFilePath :: !String Action !(Maybe FilePath) -> Task (Maybe FilePath)
 editFilePath title action initialPath 
 	=   (determineInitialDir initialPath
 	>>- \(initDir,initFile) ->
@@ -49,7 +49,7 @@ where
 	selection sds = mapReadWrite (Just, const) Nothing sds
  
 	editFilename :: (Shared sds (FilePath, Maybe String))  -> Task (FilePath,Maybe String) | RWShared sds
-	editFilename sSelection = updateSharedInformation [UpdateSharedAs snd (\(d,_) f -> (d,f)) \_->id] sSelection
+	editFilename sSelection = updateSharedInformation [UpdateSharedAs snd (\(d,_) f -> Just (d,f)) (const o Just)] sSelection
 
 	fileListLayout = setUIAttributes (unions [sizeAttr FlexSize (ExactSize 200)/*, minWidthAttr (ExactBound 400)*/])
 	navigateUpLayout = layoutSubUIs SelectChildren (setUIAttributes (widthAttr FlexSize))
