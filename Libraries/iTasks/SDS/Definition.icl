@@ -25,8 +25,8 @@ where
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where
-	< x y = ((x.reqTaskId, x.reqSDSId, x.cmpParamText), x.remoteOptions) <
-	        ((y.reqTaskId, y.reqSDSId, y.cmpParamText), y.remoteOptions)
+	< x y = (x.reqTaskId, x.reqSDSId, x.remoteOptions) <
+	        (y.reqTaskId, y.reqSDSId, y.remoteOptions)
 
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
