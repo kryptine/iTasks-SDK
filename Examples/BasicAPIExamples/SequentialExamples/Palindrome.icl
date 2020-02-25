@@ -16,8 +16,8 @@ palindrome
 	>>* 	[ OnAction  ActionOk     (ifValue palindrome (\v -> return (Just v)))
             , OnAction  ActionCancel (always (return Nothing))
             ]
-    >>=		\result -> Hint "Result is:" @>> viewInformation [] result
-    >>=		return
+    >>-		\result -> Hint "Result is:" @>> viewInformation [] result
+    >>!		return
 where
 	palindrome s = lc == reverse lc
 	where lc :: [Char]

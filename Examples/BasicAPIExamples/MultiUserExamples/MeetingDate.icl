@@ -16,12 +16,12 @@ main = multiUserExample @! ()
 
 multiUserExample
 	=				allTasks (map (createUser o mkUserAccount) players)
-	>>|				(Hint "Login under one of the following names (password = login name)" @>> viewInformation []
+	>-|				(Hint "Login under one of the following names (password = login name)" @>> viewInformation []
 						(join ", " players))
 					-||-
 					(Hint "and then Select \"new\" to create a new Task..." @>> viewInformation [] "")
-	>>|				installWorkflows [wf "Meeting date"]
-	>>|				loginAndManageWork "Meeting_4_3 Example" Nothing Nothing False
+	>!|				installWorkflows [wf "Meeting date"]
+	>-|				loginAndManageWork "Meeting_4_3 Example" Nothing Nothing False
 where
 	mkUserAccount name
 		= {UserAccount| credentials = {Credentials| username = Username name, password = Password name}, title = Nothing, roles = ["manager"] }
@@ -34,9 +34,9 @@ players = ["bob","alice","carol","dave"]
 
 myExample
 	= 					DefineMeetingPurpose
-	>>= \purpose ->		SelectDatesToPropose
-	>>= \dates ->		SelectAttendencees
-	>>= \others -> 		AskOthers purpose others dates
+	>>! \purpose ->		SelectDatesToPropose
+	>>! \dates ->		SelectAttendencees
+	>>! \others -> 		AskOthers purpose others dates
 
 :: DateOption
 	 = 	{ date 		:: Date
@@ -73,7 +73,7 @@ where
 	askAll table
 		=   allTasks[(user, purpose) @: checkOptions (toString user) \\ user <- others]
 		>-| (Hint "Select the date for the meeting:" @>> enterChoiceWithShared [ChooseFromGrid id] table)
-		>>=	\result -> Hint "Date chosen:" @>> viewInformation [] result
+		>>!	\result -> Hint "Date chosen:" @>> viewInformation [] result
 	where
 		checkOptions user
 			=				(Hint "Current Responses:" @>> viewSharedInformation [] table)
@@ -81,7 +81,7 @@ where
 							(Hint "Select the date(s) you can attend the meeting (ctrl alt):"
 								@>> enterMultipleChoice [ChooseFromGrid (\i -> dates!!i)] [0..length dates - 1])
 
-			>>=	\ids ->	upd (\table -> [{t & users = if (isMember j ids) [user:t.users] t.users} \\ j <- [0..] & t <- table]) table
+			>>!	\ids ->	upd (\table -> [{t & users = if (isMember j ids) [user:t.users] t.users} \\ j <- [0..] & t <- table]) table
 
 
 

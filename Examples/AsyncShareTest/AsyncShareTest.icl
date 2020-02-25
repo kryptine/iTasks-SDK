@@ -67,4 +67,4 @@ where
 
 	client = updateSharedInformation "This share is stored somewhere else" [] remoteTestShare
 
-	weather = get weatherService >>= viewInformation "This is the current weather in Nijmegen" [] >>| client
+	weather = get weatherService >>- viewInformation "This is the current weather in Nijmegen" [] >!| client

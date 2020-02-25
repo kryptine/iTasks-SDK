@@ -2,7 +2,7 @@ module TestCallProcess
 import iTasks
 
 test = Hint "Press the button to run an OS process" @>> viewInformation [] ()
-     >>| withShared []
+     >!| withShared []
         \io -> (externalProcess "/bin/date" [] Nothing io {onStartup=onStartup
                                                           ,onOutData=onOutData
                                                           ,onErrData=onErrData

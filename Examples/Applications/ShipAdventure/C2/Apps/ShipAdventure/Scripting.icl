@@ -36,7 +36,7 @@ changeScript prompt script
   =   Hint ("Current Script: " <+++ prompt) @>> viewSharedInformation [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
   >>* [ OnAction (Action "Fine") (always (return ()))
       , OnAction (Action "Change") (always (  Hint ("Change Script: " <+++ prompt) @>> updateSharedInformation  [] script
-                                              >>| changeScript prompt script
+                                              >!| changeScript prompt script
                                               ))
       ]
 
@@ -55,34 +55,34 @@ interperScript (targetSection, status) user script
     >>- \((((statusMap, invMap), exitLocks), hopLocks), graph) ->
           let newLoc = whereIs targetSection target actorLoc statusMap invMap exitLocks hopLocks graph
           in      autoMove actorLoc newLoc shipShortestPath actor.userName myStatusMap myUserActorMap
-              >>| perform next (newLoc,actor)
+              >?| perform next (newLoc,actor)
   perform [Take objType`:next] (actorLoc,actor)
     =              get myInventoryMap
     >>- \invMap -> case 'DM'.get actorLoc invMap of
                       Just inv
                         = case [obj \\ obj=:{Object | objType } <- 'DIS'.elems inv | objType` == objType] of
                             [obj : _] =   pickupObject actorLoc obj actor.userName myUserActorMap inventoryInSectionShare
-                                      >>| perform next (actorLoc,actor)
+                                      >?| perform next (actorLoc,actor)
                             _ = perform next (actorLoc, actor)
                       _ = perform next (actorLoc, actor)
   perform [Drop objType`:next] (actorLoc,actor)
       = case [obj \\ obj=:{Object | objType } <- actor.carrying | objType` == objType] of
           [obj : _]
             =   dropObject actorLoc obj actor.userName myUserActorMap inventoryInSectionShare
-            >>| perform next (actorLoc,actor)
+            >?| perform next (actorLoc,actor)
           _ = perform next (actorLoc,actor)
   perform [Use objType`:next] (actorLoc,actor)
       = case [obj \\ obj=:{Object | objType } <- actor.carrying | objType` == objType] of
           [obj : _]
             =   useObject actorLoc obj actor.userName myUserActorMap inventoryInSectionShare
-            >>| perform next (actorLoc,actor)
+            >?| perform next (actorLoc,actor)
           _ = perform next (actorLoc,actor)
   perform [ReSetTargetDetector:next] (actorLoc,actor)
     =   setAlarm actor.userName (targetSection, NormalStatus) myStatusMap
-    >>| perform next (actorLoc,actor)
+    >?| perform next (actorLoc,actor)
   perform [If condition script1 script2:next] (actorLoc,actor)
     =              get myInventoryMap
-    >>= \invMap -> case 'DM'.get actorLoc invMap of
+    >>- \invMap -> case 'DM'.get actorLoc invMap of
                      Just inv
                        | isTrue ('DIS'.elems inv) condition (actorLoc,actor) = perform (script1 ++ next) (actorLoc, actor)
                      _                                                       = perform (script2 ++ next) (actorLoc, actor)
