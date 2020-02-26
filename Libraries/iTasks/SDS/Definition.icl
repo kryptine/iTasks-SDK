@@ -11,8 +11,10 @@ import Data.GenEq
 import Data.Either
 import Data.Error
 import Data.Maybe
+import Data.Func
 import iTasks.WF.Derives
 import StdTuple
+import dynamic_string
 
 import Internet.HTTP
 
@@ -25,8 +27,10 @@ where
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where
-	< x y = (x.reqTaskId, x.reqSDSId, x.remoteOptions) <
-	        (y.reqTaskId, y.reqSDSId, y.remoteOptions)
+	< x y =
+			((x.reqTaskId, x.reqSDSId, dynamic_to_string $ hyperstrict x.cmpParam), x.remoteOptions)
+		<
+			((y.reqTaskId, y.reqSDSId, dynamic_to_string $ hyperstrict y.cmpParam), y.remoteOptions)
 
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
