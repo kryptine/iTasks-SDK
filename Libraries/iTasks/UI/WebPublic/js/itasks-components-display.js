@@ -34,7 +34,8 @@ itasks.HtmlView = class extends itasks.Component {
 	}
 }
 itasks.ProgressBar = class extends itasks.Component {
-	constructor(spec) {
+	constructor(spec,parentCmp) {
+		super(spec,parentCmp);
 		this.domTag = 'div';
 		this.cssCls = 'progress';
 	}
