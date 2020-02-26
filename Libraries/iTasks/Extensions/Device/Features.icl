@@ -17,4 +17,4 @@ manageDeviceFeaturs :: Task DeviceFeatures
 manageDeviceFeaturs
 	=              get device
 	>>- \info -> Hint "Manage device features" @>> updateInformation [] info
-	>>= \info -> set info device
+	>>! \info -> set info device

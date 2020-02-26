@@ -13,4 +13,4 @@ main = enterInt @! ()
 enterInt :: Task Int
 enterInt
 	=   Hint "Enter an Integer number:" @>> enterInformation []
-	>>= \result -> Hint "You entered:" @>> viewInformation [] result
+	>>! \result -> Hint "You entered:" @>> viewInformation [] result

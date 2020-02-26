@@ -22,7 +22,7 @@ derive class iTask OpenWeatherResponse
 
 Start world = startEngine serviceTask world
 where
-	serviceTask = get weatherService >>= viewInformation "Current weather" []
+	serviceTask = get weatherService >>- viewInformation "Current weather" []
 
 // api.openweathermap.org/data/2.5/weather?q=London,uk
 weatherOptions :: OpenWeatherRequest -> WebServiceShareOptions () (Either String OpenWeatherResponse) ()

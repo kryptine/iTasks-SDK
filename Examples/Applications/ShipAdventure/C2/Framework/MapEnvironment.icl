@@ -12,7 +12,7 @@ import qualified Data.Heap as DH
 from Data.Heap import :: Heap
 import Data.GenLexOrd
 from C2.Framework.Logging import addLog
-import C2.Apps.ShipAdventure.Types => qualified >>=, >>|, sequence
+import C2.Apps.ShipAdventure.Types => qualified sequence
 import Data.List
 import Data.Eq
 import Data.Maybe

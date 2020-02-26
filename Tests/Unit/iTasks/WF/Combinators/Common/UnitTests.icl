@@ -3,6 +3,7 @@ module iTasks.WF.Combinators.Common.UnitTests
 import Data.Func, Data.Either
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Data.Maybe.GenPrint
 import iTasks.Util.Testing
 
 Start world = runUnitTests tests world

@@ -23,12 +23,12 @@ where
 createNewIncident :: Task (Maybe IncidentNo)
 createNewIncident
 	=	Title "Create new incident" @>> Hint "Fill in the following basic information to create a new incident" @>> enterInformation []
-	>>? createIncident
+	>?? createIncident
 
 createNewContact :: Task (Maybe ContactNo)
 createNewContact
 	=	Title "New contact" @>> Hint "Enter the basic information of the new contact" @>> enterInformation []
-	>>? createContact
+	>?? createContact
 
 indexedStore :: String v -> SDSLens k v v | Eq k & Ord k & iTask k & iTask v
 indexedStore name def = sdsSplit "indexedStore" (\p -> ((),p)) read write (Just \p mapping. Ok (fromMaybe def ('DM'.get p mapping))) (sharedStore name 'DM'.newMap)
@@ -97,9 +97,9 @@ where
 	view = viewSharedInformation [] s
 	edit old
 		=	updateInformation [] old
-		>>?	\new ->
+		>??	\new ->
 			set new s
-        >>| log old new
+        >-| log old new
 
 doOrClose :: (Task a) -> Task (Maybe a) | iTask a
 doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
@@ -138,8 +138,8 @@ where
 viewNoSelection :: Task ()
 viewNoSelection = viewTitle "Select..." @! ()
 
-(>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
-(>>?) taska taskbf = step taska (const Nothing)
+(>??) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
+(>??) taska taskbf = step taska (const Nothing)
                             [OnAction ActionCancel			(always (return Nothing))
 							,OnAction ActionOk              (hasValue (\a -> taskbf a @ Just))
 							,OnValue  					    (ifStable (\a -> taskbf a @ Just))
@@ -165,7 +165,7 @@ where
     allStable cur _             = False
 
     more list =   viewInformation [] ()
-              >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
+              >>* [OnAction (Action action) (always (appendTask Embedded more list >-| task))]
 
 manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
@@ -178,8 +178,8 @@ where
         =   addTask
         >>- \i ->
             upd (\is -> is++[i]) refsList
-        >>| appendTask Embedded add list
-        >>| removeWhenStable (detailsTask i) list
+        >-| appendTask Embedded add list
+        >-| removeWhenStable (detailsTask i) list
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\v -> get (taskListSelfId l) >>- \id -> removeTask id l @! v))]
 
@@ -239,7 +239,7 @@ where
 
     process (received,receiveStopped,_,_)
         =   upd empty channel
-        >>| if (isEmpty received) (return ()) (processTask received)
+        >-| if (isEmpty received) (return ()) (processTask received)
         @!  receiveStopped
 
 	empty :: ([m],Bool,[m],Bool) -> ([m],Bool,[m],Bool)

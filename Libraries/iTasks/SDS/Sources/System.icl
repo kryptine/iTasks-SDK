@@ -86,7 +86,7 @@ currentTaskInstanceNo :: SDSSource () InstanceNo ()
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
 
 currentTaskInstanceAttributes :: SDSSequence () TaskAttributes TaskAttributes
-currentTaskInstanceAttributes= sdsSequence "currentTaskInstanceAttributes" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
+currentTaskInstanceAttributes = sdsSequence "currentTaskInstanceAttributes" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
 where
 	param1 _ = ()
 	param2 _ selfNo = (TaskId 0 0, TaskId selfNo 0, tfilter selfNo, defaultValue)
@@ -96,6 +96,23 @@ where
 	read no selfNo = Right $ \(_,(_,[{TaskMeta|taskAttributes,managementAttributes}])) -> 'DM'.union managementAttributes taskAttributes
 	write1 _ _ = Ok Nothing
 	write2 _ (_,[meta]) update = Ok $ Just $ [{TaskMeta|meta & managementAttributes = 'DM'.union update meta.TaskMeta.managementAttributes}]
+
+currentTaskInstanceCookies :: SDSSequence () Cookies (String,String,Maybe Int)
+currentTaskInstanceCookies = sdsSequence "currentTaskInstanceCookies" param1 param2 read (SDSWriteConst write1) (SDSWrite write2) currentTaskInstanceNo taskListMetaData
+where
+	param1 _ = ()
+	param2 _ selfNo = (TaskId 0 0, TaskId selfNo 0, tfilter selfNo, defaultValue)
+	where
+		tfilter no = {TaskListFilter|defaultValue & onlyTaskId = Just [TaskId no 0]}
+
+	read no selfNo = Right $ \(_,(_,[{TaskMeta|cookies}])) -> cookies
+	write1 _ _ = Ok Nothing
+	write2 _ (_,[meta]) setcookie = Ok $ Just $
+		[{TaskMeta|meta & cookies = set setcookie meta.TaskMeta.cookies, unsyncedCookies = [setcookie:meta.TaskMeta.unsyncedCookies]}]
+	where
+		set (key,value,Just 0) cookies = 'DM'.del key cookies
+		set (key,value,_) cookies = 'DM'.put key value cookies
+
 
 allTaskInstances :: SDSSequence () [TaskInstance] ()
 allTaskInstances= sdsSequence "allTaskInstances" param1 param2 read (SDSWriteConst write1) (SDSWriteConst write2) currentTaskInstanceNo taskListMetaData

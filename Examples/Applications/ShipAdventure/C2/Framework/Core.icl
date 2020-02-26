@@ -22,11 +22,11 @@ ccMain :: (User -> [User -> Task Entity])
        -> Task ()
 ccMain regEntities contBgTasks alwaysOnTasks tlist
   = forever (catchAll ((        (Hint "Select user" @>> enterChoiceWithShared [] users) <<@ ApplyLayout frameCompact
-                            >>= doUserTask))
-                      (\err -> Title "Error" @>> viewInformation [] err >>| return ()))
+                            >>! doUserTask))
+                      (\err -> Title "Error" @>> viewInformation [] err >!| return ()))
 where
 	doUserTask me =            set me currentUser
-                  >>|          allTasks (map (\f -> f me) (regEntities me))
+                  >-|          allTasks (map (\f -> f me) (regEntities me))
                   >>~ \ents -> (allTasks (map (\f -> f me ents) (contBgTasks me)))
                                ||-
                                whileAuthenticated me ents alwaysOnTasks tlist <<@ ApplyLayout (sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI])
@@ -118,7 +118,7 @@ addCancebleTaskForUser desc user prio task = mkAssign desc user prio (doOrClose 
 addTaskForUserAndReport :: String User User TaskPrio (User -> Task a) -> Task a | iTask a
 addTaskForUserAndReport des user sender prio task = addTaskForUser des user prio extask
   where
-  extask user = task user >>= \res -> addTaskForUser ("Result: " +++ des) sender prio (\_ -> viewRes res)
+  extask user = task user >>? \res -> addTaskForUser ("Result: " +++ des) sender prio (\_ -> viewRes res)
   viewRes res = Title "Result" @>> viewInformation [] res
 
 makeWatchTask :: String User TaskPrio (sds () r w) (r -> Bool) (r -> Task ())  -> Task () | iTask r & RWShared sds & TC w

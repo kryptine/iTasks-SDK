@@ -32,15 +32,15 @@ shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
 exportShip :: Task ()
 exportShip
   =                Hint "Enter file name" @>> enterInformation []
-  >>= \fileName -> get (myInventoryMap |*| myNetwork |*| myCables |*| myDevices |*| maps2DShare)
+  >>! \fileName -> get (myInventoryMap |*| myNetwork |*| myCables |*| myDevices |*| maps2DShare)
   >>- \data     -> exportJSONFile (fileName +++ ".map") data
-  >>|              Title "Success!" @>> viewInformation [] "File exported"
-  >>|              exportShip @! ()
+  >-|              Title "Success!" @>> viewInformation [] "File exported"
+  >!|              exportShip @! ()
 
 importShip :: Task ()
 importShip
   =                getMapNames
-  >>= \mapNames -> Hint "Select file" @>> enterChoice [] mapNames
+  >>- \mapNames -> Hint "Select file" @>> enterChoice [] mapNames
   >>*              [ OnAction (Action "Import") (hasValue doImport)
                    , OnAction (Action "Refresh list") (always importShip)
                    ]
@@ -49,8 +49,8 @@ importShip
   doImport mapName
     =            getMap mapName
     >>- \data -> set data (myInventoryMap >*< myNetwork >*< myCables >*< myDevices >*< maps2DShare)
-    >>|          Title "Ship imported" @>> viewInformation [] "Ship imported"
-    >>|          importShip @! ()
+    >-|          Title "Ship imported" @>> viewInformation [] "Ship imported"
+    >!|          importShip @! ()
 
 getMap :: !String -> Task (!(!(!(!MySectionInventoryMap, !Network), !IntMap Cable), !IntMap Device), !Maps2D)
 getMap mapName = get applicationDirectory >>- \curDir -> accWorldError (getMap` mapName curDir) id

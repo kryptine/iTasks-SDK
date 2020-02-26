@@ -353,9 +353,9 @@ where
     where
         configureDelayed attr configer task list
             =   configer initContacts initIncidents
-            >>= \(config,status) ->
+            >>? \(config,status) ->
                 set status (selfActionStatus list)
-            >>| task config (selfActionStatus list) <<@ attr
+            >-| task config (selfActionStatus list) <<@ attr
         initStatus {ItemMeta|title,description}
             = {ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=initIncidents}
 
@@ -467,7 +467,7 @@ where
         =   createCommunication P2000Message Out (Just contactNo)
         >>- \communicationNo ->
             maybe (return ()) (initMessageFromTemplate communicationNo contactNo) mbP2000Template
-        >>| doOrClose (composeP2000Message communicationNo) <<@ InWindow
+        >-| doOrClose (composeP2000Message communicationNo) <<@ InWindow
         >>- \mbCommunication -> case mbCommunication of
             Nothing
                 = return ()
@@ -582,7 +582,7 @@ where
         >>- \mbReplacement -> case mbReplacement of
             Just (ActionTasks configer task)
                 =   viewInformation [] "Because the software was upgraded, this action must unfortunately be reconfigured" ||- configer [] []
-                >>= \(c,_) ->
+                >>! \(c,_) ->
                     replaceTask taskId (\l -> (task c (selfActionStatus l) @? const NoValue)) topLevelTasks
             _
                 =   viewInformation [] "Sorry, this action is no longer available in the current version of Incidone."
@@ -608,7 +608,7 @@ where
 deleteActionItem :: InstanceNo -> Task (Maybe ActionStatus)
 deleteActionItem instanceNo
     = ( Title "Delete" @>> Hint "Are you sure you want to remove this action?" @>> viewSharedInformation [ViewAs view] status
-    >>? \stat -> removeTask (TaskId instanceNo 0) topLevelTasks @! stat
+    >?? \stat -> removeTask (TaskId instanceNo 0) topLevelTasks @! stat
         ) <<@ InWindow
 where
     status = sdsFocus instanceNo actionStatusByNo
@@ -638,7 +638,7 @@ edit task sds
     =   get sds
     >>- \current ->
         task current
-    >>? \updated ->
+    >?? \updated ->
         set updated sds
 
 enterActionStatus :: [ContactNo] [IncidentNo] -> Task ActionStatus
@@ -737,15 +737,15 @@ where
     configureAction selSds = whileUnchanged selSds configTask
     where
         configTask Nothing  = (Title "Configure" @>> viewInformation  [] "Select an action first..." @? const NoValue) /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
-                            >>? return
+                            >?? return
         configTask (Just item=:{CatalogAction|identity,tasks=ActionTasks configer task})
             = configer initContacts initIncidents <<@ Title "Configure" /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
-            >>? \(config,initStatus) -> addAction identity initStatus list (\l -> task config l)
+            >?? \(config,initStatus) -> addAction identity initStatus list (\l -> task config l)
 
 addAction :: String ActionStatus (SharedTaskList a) ((SimpleSDSLens ActionStatus) -> Task ()) -> Task TaskId | iTask a
 addAction identity initStatus list task
     =   logActionAdded initStatus
-    >>| appendTask (Detached True attributes) (\l -> (task (selfActionStatus l)) @? const NoValue) list
+    >?| appendTask (Detached True attributes) (\l -> (task (selfActionStatus l)) @? const NoValue) list
 where
     attributes = initAttributes identity initStatus
 
@@ -753,7 +753,7 @@ where
 addSubActionItem :: [ContactNo] [IncidentNo] CatalogAction (SharedTaskList a) -> Task (Maybe TaskId) | iTask a
 addSubActionItem initContacts initIncidents item=:{CatalogAction|identity,tasks=ActionTasks configer task} list
     =  (configer initContacts initIncidents
-    >>? \(config,initStatus) ->
+    >?? \(config,initStatus) ->
         appendTask (Detached True (initAttributes identity initStatus)) (\list -> (task config (selfActionStatus list)) @? const NoValue) list
     ) <<@ InWindow
 
@@ -777,17 +777,17 @@ manageUserActionCatalog
 where
     addCatalogItem
         =   Title "Add" @>> enterInformation []
-        >>? \nx ->
+        >?? \nx ->
             upd (\xs -> xs++[nx]) userActionCatalog @! ()
 
     editCatalogItem item
         =   Title "Edit" @>> updateInformation [] item
-        >>? \nx ->
+        >?? \nx ->
             upd (\xs -> [if (x.UserCatalogAction.identity == nx.UserCatalogAction.identity) nx x \\ x<- xs]) userActionCatalog @! ()
 
     removeCatalogItem item
         =   Title "Remove" @>> viewInformation [] ("Remove " <+++ item.UserCatalogAction.identity <+++ "?")
-        >>? \nx ->
+        >?? \nx ->
 	    upd (\xs -> [x \\ x <- xs | x.UserCatalogAction.identity <> item.UserCatalogAction.identity]) userActionCatalog @! ()
 
     exportCatalog
@@ -804,7 +804,7 @@ where
     importCatalog
         =   doOrClose (
             Hint instructions @>> enterInformation []
-            >>= \doc -> catchAll (
+            >>! \doc -> catchAll (
                     importJSONDocument doc
                 >>- \actions ->
                     set actions userActionCatalog

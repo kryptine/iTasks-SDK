@@ -347,14 +347,14 @@ crudWith choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = go
         ]
   newItem
     =            Title "New item" @>> enterInformation enterOpts
-    >>= \item -> upd (putItem item) sh
+    >>! \item -> upd (putItem item) sh
     >-|          goCRUD
   viewItem x
     =            Title "View item" @>> viewInformation viewOpts x
-    >>|          goCRUD
+    >!|          goCRUD
   editItem x
     =            Title "Edit item" @>> updateInformation updateOpts x
-    >>= \item -> upd (putItem item) sh
+    >>! \item -> upd (putItem item) sh
     >-|          goCRUD
   deleteItem x
     =            upd (delItem x) sh

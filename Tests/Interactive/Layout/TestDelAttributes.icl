@@ -2,7 +2,7 @@ module TestDelAttributes
 import iTasks
 
 test :: Task ()
-test = (updateInformation [] "Test for deleting an attribute" @! () >> return) <<@ ApplyLayout layout
+test = (updateInformation [] "Test for deleting an attribute" @! () >>! return) <<@ ApplyLayout layout
 where
     layout = delUIAttributes (SelectKeys ["direction"])
 

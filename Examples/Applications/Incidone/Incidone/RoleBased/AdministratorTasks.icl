@@ -63,14 +63,14 @@ where
     where
         editDatabaseConfig config
             =   Title "Database configuration" @>> Hint "Please edit settings" @>> updateInformation [] config
-            >>= \newConfig ->
+            >>! \newConfig ->
                 checkDatabaseConfig newConfig
             >>- \mbError -> case mbError of
                 Ok config
                     = set config databaseConfig @! ()
                 Error NoDatabaseTables
                     =   set newConfig databaseConfig
-                    >>| Title "Create tables" @>> Hint "The database you configured does not have tables set up yet." @>> viewInformation [] "Do you want to create them now?"
+                    >-| Title "Create tables" @>> Hint "The database you configured does not have tables set up yet." @>> viewInformation [] "Do you want to create them now?"
                     >>* [OnAction ActionYes (always (createIncidoneTables (toDatabaseDef newConfig) @! ()))
                         ,OnAction ActionNo (always (return ()))
                         ]
@@ -115,7 +115,7 @@ where
 
         deleteTable db table
             =   Hint "Are your sure you want to delete this table?" @>> viewInformation [] table
-            >>? \_ -> sqlExecuteDropTable db table
+            >?? \_ -> sqlExecuteDropTable db table
             @! ()
 
     createIncidoneTables db
@@ -127,7 +127,7 @@ where
 
     emptyDatabase db
         =   Title "Empty database" @>> viewInformation [] "Are your sure you want fully remove all database tables?"
-        >>? \_ ->
+        >?? \_ ->
             get (sdsFocus db sqlTables)
         >>- \tables ->
             sequence [sqlExecuteDropTable db table \\ table <- tables]
@@ -142,7 +142,7 @@ manageUsers = forever (catchAll (
         ,OnAction (Action "/Import from CSV") (always (importUsers <<@ InWindow))
         ,OnAction (Action "/Set admin password") (always (setAdminPassword <<@ InWindow))
         ]
-      ) (\e -> Hint "Error" @>> viewInformation [] e >>| return ()))
+      ) (\e -> Hint "Error" @>> viewInformation [] e >!| return ()))
 where
     manageExistingUsers
         =   (enterChoiceWithSharedAs [ChooseFromGrid id] allContactsShort contactIdentity
@@ -152,12 +152,12 @@ where
 	viewNoSelection = Hint "Select a user" @>> viewInformation [] ()
     addUser
         =   (Title "Add user") @>> enterInformation []
-        >>? \newUser -> (createContact newUser @! ())
+        >?? \newUser -> (createContact newUser @! ())
 
     importUsers = doOrClose (
             Hint instructions @>> enterInformation []
-        >>= \doc -> catchAll (
-                importContactsFromCSVFile doc >-| viewInformation [] "Succesfully imported contacts" >>| return ()
+        >>! \doc -> catchAll (
+                importContactsFromCSVFile doc >-| viewInformation [] "Succesfully imported contacts" >!| return ()
             ) (\_ -> viewInformation [] "Failed to import contacts" @! ())
         ) <<@ Title "Import contacts"
 	where
@@ -178,10 +178,10 @@ where
             @ \(o,(n1,n2)) -> (o,n1,n2)
 
         updatePassword ((old,new1,new2),current)
-            | old =!= current = Hint "Error" @>> viewInformation [] "You did not enter the correct old password" >>| return Nothing
-            | new1 =!= new2   = Hint "Error" @>> viewInformation [] "The new passwords are not the same" >>| return Nothing
+            | old =!= current = Hint "Error" @>> viewInformation [] "You did not enter the correct old password" >!| return Nothing
+            | new1 =!= new2   = Hint "Error" @>> viewInformation [] "The new passwords are not the same" >!| return Nothing
                               = set new1 adminPassword
-                              >>| viewInformation [] "The admin password has been updated" >>| return (Just ())
+                              >-| viewInformation [] "The admin password has been updated" >!| return (Just ())
 
 manageDemoData :: Task ()
 manageDemoData
@@ -194,7 +194,7 @@ where
         =   (Hint "Enter the number of demo incidents that you would like to create and press continue" @>> enterInformation [])
             -&&-
             (Hint "Immediate close the incidents?" @>> enterInformation [])
-        >>= \(num,closed) ->
+        >>! \(num,closed) ->
             sequence (repeatn num (generateTestIncident closed))
         @! ()
 
@@ -238,7 +238,7 @@ where
 configureWebLinks :: Task ()
 configureWebLinks
     = viewAndEdit (Hint "Web integration configuration" @>> viewSharedInformation [] webLinksConfig)
-                  (get webLinksConfig >>- updateInformation [] >>? \updated -> set updated webLinksConfig)
+                  (get webLinksConfig >>- updateInformation [] >?? \updated -> set updated webLinksConfig)
     >^* [OnAction (Action "/Export") (always (exportConfig <<@ InWindow))
         ,OnAction (Action "/Import") (always (importConfig <<@ InWindow))]
     @! ()
@@ -257,7 +257,7 @@ where
     importConfig
         =   doOrClose (
             (Hint instructions @>> enterInformation [])
-            >>= \doc -> catchAll (
+            >>! \doc -> catchAll (
                     importJSONDocument doc
                 >>- \config ->
                     set config webLinksConfig

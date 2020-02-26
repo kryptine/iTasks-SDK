@@ -32,7 +32,7 @@ dOffMap :: Task ()
 dOffMap
   # me = AuthenticatedUser "doff" ["doff"] (Just "D-Officer")
   =   set me currentUser
-  >>| updateMapStatus DOffMode @! ()
+  >-| updateMapStatus DOffMode @! ()
 
 damageControl :: Task ()
 damageControl
@@ -53,12 +53,12 @@ damagePrediction
       ]
   where
   disableSection (Value (disSects, FocusOnSection c3d) _)
-    | not (isDisabled c3d disSects) = Just (upd ('DS'.insert c3d) disabledSections >>| damagePrediction)
+    | not (isDisabled c3d disSects) = Just (upd ('DS'.insert c3d) disabledSections >-| damagePrediction)
   disableSection _ = Nothing
   enableSection (Value (disSects, FocusOnSection c3d) _)
-    | isDisabled c3d disSects = Just (upd ('DS'.delete c3d) disabledSections >>| damagePrediction)
+    | isDisabled c3d disSects = Just (upd ('DS'.delete c3d) disabledSections >-| damagePrediction)
   enableSection _ = Nothing
-  resetSections = set 'DS'.newSet disabledSections >>| damagePrediction
+  resetSections = set 'DS'.newSet disabledSections >-| damagePrediction
   isDisabled c3d disSects = 'DS'.member c3d disSects
 
 showCommandAims :: Task ()

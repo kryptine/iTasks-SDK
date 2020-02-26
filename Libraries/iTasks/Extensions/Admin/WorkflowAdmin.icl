@@ -127,28 +127,33 @@ loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
 		(((	identifyApplication applicationName loginMessage
 			||-
 			(anyTask [
-	 				Title "Authenticated access" @>> Hint "Enter your credentials and login" @>> enterInformation [] @ Just
-				>>* [OnAction (Action "Login")  (hasValue return)]
+					(Title "Authenticated access" @>>
+					( (Title "Authenticated access" @>> Hint "Enter your credentials and login" @>> enterInformation []) -&&-
+					  (Label "Remember login" @>> enterInformation [])
+					)
+				>>* [OnAction (Action "Login") (hasValue (\c -> authenticate c @ Left))])
+				, authenticateUsingToken @ Left
 				:if allowGuests
 					[
 						Title "Guest access" @>>
 						Hint "Alternatively, you can continue anonymously as guest user" @>>
-						viewInformation [] ()
-					 	>>| (return Nothing)
+						viewInformation [] () >!| (return (Right ()))
 					]
 					[]
 				] <<@ ArrangeHorizontal)
 	 	   )  <<@ ApplyLayout layout
-		>>- browse) //Compact layout before login, full screen afterwards
+		>>- browse
+		>-| clearAuthenticationToken) //Compact layout before login, full screen afterwards
 		) <<@ Title applicationName
 where
-	browse (Just {Credentials|username,password})
-		= authenticateUser username password
-		>>- \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorkOfCurrentUser welcomeMessage)
-			Nothing		= (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >>| return ()) <<@ ApplyLayout frameCompact
-	browse Nothing
-		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorkOfCurrentUser welcomeMessage)
+	authenticate ({Credentials|username,password},persistent)
+		= authenticateUser username password persistent
+
+	browse (Left Nothing) = (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >!| return ()) <<@ ApplyLayout frameCompact
+	browse (Left (Just user)) = workAs user main
+	browse (Right ()) = workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) main
+
+	main = manageWorkOfCurrentUser welcomeMessage
 
 	identifyApplication name welcomeMessage = viewInformation [] html
 	where
@@ -288,7 +293,7 @@ startWorkflow list wf
 	                                      , ("createdAt",  toJSON now)
 	                                      , ("createdFor", toJSON (toUserConstraint user))
 	                                      , ("priority",   toJSON 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
-	>>= \procId ->
+	>>- \procId ->
 	    openTask list procId
 	@   const wf
 where
@@ -296,7 +301,7 @@ where
 	userAttr _                           = []
 
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
-unwrapWorkflowTask (ParamWorkflowTask tf) = (Hint "Enter parameters" @>> enterInformation [] >>= tf @! ())
+unwrapWorkflowTask (ParamWorkflowTask tf) = (Hint "Enter parameters" @>> enterInformation [] >>! tf @! ())
 
 openTask :: !(SharedTaskList ()) !TaskId -> Task ()
 openTask taskList taskId
@@ -305,7 +310,7 @@ openTask taskList taskId
 workOnTask :: !TaskId -> Task ()
 workOnTask taskId
     =   (workOn taskId <<@ ApplyLayout (setUIAttributes (heightAttr FlexSize))
-    >>* [OnValue    (ifValue (\v. case v of (ASExcepted _) = True; _ = False) (\(ASExcepted excs) -> Hint "Error: An exception occurred in this task" @>> viewInformation [] excs >>| return ()))
+    >>* [OnValue    (ifValue (\v. case v of (ASExcepted _) = True; _ = False) (\(ASExcepted excs) -> Hint "Error: An exception occurred in this task" @>> viewInformation [] excs >!| return ()))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return ()))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return ())) //If the task is stable, there is no need to work on it anymore
@@ -323,7 +328,7 @@ where
         >>- \mbReplacement -> case mbReplacement of
             Nothing
                 =   Title "Error" @>> viewInformation [] "Sorry, this task is no longer available in the workflow catalog"
-                >>| return ()
+                >!| return ()
             Just replacement
                 =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
                 >-| workOnTask taskId
@@ -380,7 +385,7 @@ restrictedTransientWorkflow path description roles task = toWorkflow path descri
 
 inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
 inputWorkflow name desc inputdesc tfun
-	= workflow name desc (Hint inputdesc @>> enterInformation [] >>= tfun)
+	= workflow name desc (Hint inputdesc @>> enterInformation [] >>! tfun)
 
 instance toWorkflow (Task a) | iTask a
 where

@@ -26,7 +26,7 @@ where
 
   editItem x
     =   Title "Edit item" @>> updateInformation updateOpts x
-    >>* [OnAction ActionOk (hasValue (\item -> upd (delItem x) sh >>| upd (putItem item) sh @! ()))
+    >>* [OnAction ActionOk (hasValue (\item -> upd (delItem x) sh >-| upd (putItem item) sh @! ()))
 		,OnAction ActionCancel (always (return ()))
 		]
   deleteItem x
@@ -81,10 +81,10 @@ deadline :: Date (Task a) -> Task (Maybe a) | iTask a
 deadline date task
 	=	(task >>- return o Just)
 		-||-
-		(waitForDate True date >>| return Nothing)
+		(waitForDate True date >?| return Nothing)
 
 deadlineWith :: Date a (Task a) -> Task a | iTask a
 deadlineWith date value task
 	=	task
 		-||-
-		(waitForDate True date >>| return value)
+		(waitForDate True date >?| return value)

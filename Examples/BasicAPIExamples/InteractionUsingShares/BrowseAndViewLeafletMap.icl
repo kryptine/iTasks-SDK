@@ -17,4 +17,4 @@ browseAndViewLeafletMap
 		(\smap -> 	(Hint "Browse Map" @>> updateSharedInformation [] smap) 			// update it here
 					-||
 					(Hint "View Browsing Map" @>> viewSharedInformation [] smap) )		// while viewing it here
-	>>= \result -> Hint "Resulting map looks as follows" @>> viewInformation [] result					// show final result
+	>>! \result -> Hint "Resulting map looks as follows" @>> viewInformation [] result					// show final result

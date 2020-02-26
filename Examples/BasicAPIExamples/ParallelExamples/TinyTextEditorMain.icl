@@ -26,7 +26,7 @@ derive class iTask Statistics, Replace
 editWithStatistics :: Task ()
 editWithStatistics
  =						enterInformation "Give name of text file you want to edit..." []
-	>>= \fileName -> 	let file = sharedStore fileName ""
+	>>! \fileName -> 	let file = sharedStore fileName ""
 						in	editFile fileName file
 							-||-
 							(showStatistics file -||- replace initReplace file <<@ ApplyLayout arrangeHorizontal)
@@ -57,5 +57,5 @@ replace cmnd sharedFile
 where
  	substitute cmnd
 	 	=	upd (replaceSubString cmnd.search (if (isNothing cmnd.replaceBy) "" (fromJust cmnd.replaceBy))) sharedFile
-	 	>>| replace cmnd sharedFile
+	 	>-| replace cmnd sharedFile
 

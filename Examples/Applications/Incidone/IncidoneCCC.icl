@@ -44,7 +44,7 @@ Start world = doTasks
 where
 	//Main task for command center operators
 	ccPerson :: Task ()
-	ccPerson = forever (catchAll (doAuthenticated usersMainTask) (\err -> Hint "Error" @>> viewInformation [] err >>| return ()))
+	ccPerson = forever (catchAll (doAuthenticated usersMainTask) (\err -> Hint "Error" @>> viewInformation [] err >!| return ()))
 
 	usersMainTask :: User -> Task ()
 	usersMainTask me=:(AuthenticatedUser "admin" _ _)

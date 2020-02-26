@@ -46,7 +46,7 @@ enterMultiple :: !String !Int (Task a) -> Task [a] | iTask a
 manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared sds [Int]) -> Task () | RWShared sds
 
 //Ok/Cancel transition
-(>>?) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
+(>??) infixl 1 :: !(Task a) !(a -> Task b) -> Task (Maybe b) | iTask a & iTask b
 
 //Start/stop a background task
 manageBackgroundTask :: !String !String (Task a) -> Task () | iTask a
