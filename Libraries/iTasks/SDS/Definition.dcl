@@ -50,39 +50,42 @@ dependsOnShareWithName :: !String !SDSIdentity -> Bool
                                    !String // The host to which to send a refresh notification
                                    !Int  // The port to which to send a refresh notification
 
-:: ReadResult p r w =
+:: ReadResult p r w
 	/**
 	 * Reading from the share has yielded a result. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: ReadResult !r !(sds p r w) & RWShared sds & TC r & TC w
+	= E. sds: ReadResult !r !(sds p r w) & RWShared sds & TC r & TC w
 	/**
 	 * Reading from the share has not yet yielded a result because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next read operation.
 	 */
 	| E. sds: AsyncRead !(sds p r w) & RWShared sds & TC r & TC w
+	| ReadException !TaskException
 
-:: WriteResult p r w =
+:: WriteResult p r w
 	/**
 	 * Writing to the share has succeeded. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
+	= E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Denotes that writing to a SDS had lead to some asynchronous action.
 	 * We return a new version of the share, which MUST be used for the next write operation.
 	 * The SDS is required to be a Readable AND Writeable, because writing to a SDS may require reading from another.
 	 */
 	| E. sds: AsyncWrite !(sds p r w) & RWShared sds & TC r & TC w
+	| WriteException !TaskException
 
-:: ModifyResult p r w =
+:: ModifyResult p r w
 	/**
 	 * Modifying the share has succeeded, all asynchronous operations have finished.
 	 */
-	E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
+	= E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.
 	 */
 	| E. sds: AsyncModify !(sds p r w) !(r -> MaybeError TaskException w) & RWShared sds
+	| ModifyException !TaskException
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
@@ -114,7 +117,7 @@ where
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
 	 */
 	readSDS :: !(sds p r w) !p !TaskContext !*IWorld
-	        -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	        -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Readable sds
 where
@@ -127,7 +130,7 @@ where
 	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
 	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !SDSIdentity !*IWorld
-	                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	                -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Writeable sds | Identifiable sds
 where
@@ -139,7 +142,7 @@ where
 	 * @param value which to write to the sds.
 	 */
 	writeSDS :: !(sds p r w) !p !TaskContext !w !*IWorld
-	         -> *(!MaybeError TaskException (WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	         -> *(!WriteResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Modifiable sds | Readable, Writeable sds
 where
@@ -151,7 +154,7 @@ where
 	 * @param The context in which to read/write to the SDS
 	 */
 	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) !p !TaskContext !*IWorld
-	          -> *(!MaybeError TaskException (ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	          -> *(!ModifyResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class RWShared sds | Modifiable, Registrable sds
 

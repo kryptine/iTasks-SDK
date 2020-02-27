@@ -137,23 +137,23 @@ where
 			| size request == 0 = (Error "Received empty request", iworld)
 			| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 			= case deserializeFromBase64 request symbols of
-				(SDSReadRequest sds p) = case readSDS sds p (TaskContext taskId) iworld of
-					(Error (_, e), iworld)							= (Error e, iworld)
-					(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 (Ok v))), iworld)
-					(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld)
-				(SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port) = case readRegisterSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) taskId reqSDSId iworld of
-					(Error (_, e), iworld) 							= (Error e, iworld)
-					(Ok (ReadResult v _), iworld)					= (Ok (Left (serializeToBase64 (Ok v))), iworld)
-					(Ok (AsyncRead sds), iworld)					= (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld)
-				(SDSWriteRequest sds p val) 					= case writeSDS sds p (TaskContext taskId) val iworld of
-					(Error (_, e), iworld) 							= (Error e, iworld)
-					(Ok (WriteResult notify _), iworld)				= (Ok (Left (serializeToBase64 (Ok ()))), queueNotifyEvents (sdsIdentity sds) notify iworld)
-					(Ok (AsyncWrite sds), iworld)					= (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
-				(SDSModifyRequest sds p f)						= case modifySDS f sds p (TaskContext taskId) iworld of
-					(Error (_, e), iworld) 							= (Error e, iworld)
-					(Ok (ModifyResult notify r w _), iworld)		= (Ok (Left (serializeToBase64 (Ok (r,w)))), queueNotifyEvents (sdsIdentity sds) notify iworld)
-					(Ok (AsyncModify sds f), iworld)				= (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld)
-				(SDSRefreshRequest refreshTaskId sdsId)
+				SDSReadRequest sds p = case readSDS sds p (TaskContext taskId) iworld of
+					(ReadResult v _, iworld)       = (Ok (Left (serializeToBase64 (Ok v))), iworld)
+					(AsyncRead sds, iworld)        = (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld)
+					(ReadException (_, e), iworld) = (Error e, iworld)
+				SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port = case readRegisterSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) taskId reqSDSId iworld of
+					(ReadResult v _, iworld)       = (Ok (Left (serializeToBase64 (Ok v))), iworld)
+					(AsyncRead sds, iworld)        = (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld)
+					(ReadException (_, e), iworld) = (Error e, iworld)
+				SDSWriteRequest sds p val = case writeSDS sds p (TaskContext taskId) val iworld of
+					(WriteResult notify _, iworld)  = (Ok (Left (serializeToBase64 (Ok ()))), queueNotifyEvents (sdsIdentity sds) notify iworld)
+					(AsyncWrite sds, iworld)        = (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
+					(WriteException (_, e), iworld) = (Error e, iworld)
+				SDSModifyRequest sds p f = case modifySDS f sds p (TaskContext taskId) iworld of
+					(ModifyResult notify r w _, iworld) = (Ok (Left (serializeToBase64 (Ok (r,w)))), queueNotifyEvents (sdsIdentity sds) notify iworld)
+					(AsyncModify sds f, iworld)         = (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld)
+					(ModifyException (_, e), iworld)    = (Error e, iworld)
+				SDSRefreshRequest refreshTaskId sdsId
 				// If we receive a request to refresh the sds service task, we find all remote
 				// registrations for the SDS id and send requests to refresh them to their respective clients.
 				| taskId == refreshTaskId = refreshRemoteTasks sdsId iworld
