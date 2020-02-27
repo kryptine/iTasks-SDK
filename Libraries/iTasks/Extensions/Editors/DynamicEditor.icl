@@ -578,9 +578,21 @@ where
 
 	valueCorrespondingToFunc :: !Dynamic ![(DynamicConsId, DEVal)] -> Dynamic
 	valueCorrespondingToFunc v [] = v
-	valueCorrespondingToFunc f [x : xs] = case (f, valueCorrespondingTo` x) of
+	valueCorrespondingToFunc f [x=:(consId, _) : xs] = case (f, dynValue) of
 		(f :: a -> b, x :: a) = valueCorrespondingToFunc (dynamic (f x)) xs
-		_                     = abort "corrupt dynamic editor value"
+		_ =
+			abort $
+				concat
+					[ "Cannot unify demanded type with offered type for constructor '", toString consId, "':\n "
+					, firstArgString $ typeCodeOfDynamic f, "\n ", toString $ typeCodeOfDynamic dynValue, "\n"
+					]
+	where
+		dynValue = valueCorrespondingTo` x
+
+		firstArgString :: !TypeCode -> String
+		firstArgString (TypeScheme _ tc)              = firstArgString tc
+		firstArgString (TypeApp (TypeApp _ fstArg) _) = toString fstArg
+		firstArgString _                              = "no argument required"
 
 	valueCorrespondingToGen :: (Editor a) !JSONNode -> Dynamic | JSONDecode{|*|}, TC a
 	valueCorrespondingToGen editor json = dynamic (fromJSON` editor json)
