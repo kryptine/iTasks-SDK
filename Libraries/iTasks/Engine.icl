@@ -285,11 +285,14 @@ where
 	getTimeoutFromClock now requests = map getTimeoutFromClock` ('DM'.toList requests)
 	where
 		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
-		getTimeoutFromClock` (snr=:{cmpParam=(ts :: ClockParameter Timespec)}, reqTimespec)
-			| dependsOnShareWithName "IWorld:timespec" snr.reqSDSId && ts.interval <> zero
-				# fire = iworldTimespecNextFire now reqTimespec ts
-				= Just (max 0 (toMs fire - toMs now))
-			= mt
-		getTimeoutFromClock` _ = mt
+		getTimeoutFromClock` (snr, reqTimespec)
+			| dependsOnShareWithName "IWorld:timespec" snr.reqSDSId = case snr.cmpParam of
+				(ts :: ClockParameter Timespec) | ts.interval <> zero
+					# fire = iworldTimespecNextFire now reqTimespec ts
+					= Just (max 0 (toMs fire - toMs now))
+				_
+					= mt
+			| otherwise
+				= mt
 
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
