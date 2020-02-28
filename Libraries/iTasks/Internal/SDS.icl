@@ -158,10 +158,14 @@ modify f sds context iworld = case modifySDS (\r. Ok (f r)) sds () context iworl
 
 queueNotifyEvents :: !SDSIdentity !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
 queueNotifyEvents sdsId notify iworld
-    # remotes = [(reqTaskId, remoteOptions) \\ (reqTaskId, Just remoteOptions) <- 'Set'.toList notify]
-    # locals = [reqTaskId \\ (reqTaskId, Nothing) <- 'Set'.toList notify]
-    # iworld = queueRefresh [(reqTaskId,"Notification for write of " +++ toString sdsId) \\ reqTaskId <- locals] iworld
-    = queueRemoteRefresh remotes iworld
+	# (remotes,locals) = partition_notify [] [] ('Set'.toList notify)
+	# iworld = queueRefresh [(reqTaskId,"Notification for write of " +++ toString sdsId) \\ reqTaskId <- locals] iworld
+	= queueRemoteRefresh remotes iworld
+where
+	partition_notify rem loc [] = (rem,loc)
+	partition_notify rem loc [(taskId,mbRemoteOpts):rest] = case mbRemoteOpts of
+		Just opts = partition_notify [(taskId,opts):rem] loc rest
+		Nothing   = partition_notify rem [taskId:loc] rest
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask}
