@@ -108,73 +108,9 @@ where
 		{ reqTaskId=taskId
 		, reqSDSId=reqSDSId
 		, cmpParam=dynamic p
-		, cmpParamHash = murmur (copy_to_string (hyperstrict p))
+		, cmpParamHash = murmurHash (copy_to_string (hyperstrict p))
 		, remoteOptions = mbRemoteOptions
 		}
-	where
-		// A hash largely following x64 MurmurHash3 (https://github.com/aappleby/smhasher)
-		// This hash is not cryptographically secure, but generates few collisions and is
-		// relatively fast (https://softwareengineering.stackexchange.com/a/145633)
-		murmur :: !String -> Int
-		murmur s
-			# (h1,h2) = runblocks 0 (nblocks-1) seed seed
-			# (h1,h2) = runtail (len bitand 15) h1 h2
-			# h1 = h1 bitxor len
-			# h2 = h2 bitxor len
-			# h1 = h1 + h2
-			# h2 = h2 + h1
-			# h1 = fmix64 h1
-			# h2 = fmix64 h2
-			# h1 = h1 + h2
-			# h2 = h2 + h1
-			= h1 bitxor h2 // NB: real murmur returns both h1 and h2 here
-		where
-			seed = 0 // TODO
-			len = size s
-			nblocks = len >> 4
-			c1 = 0x87c37b91114253d5
-			c2 = 0x4cf5ad432745937f
-
-			runblocks :: !Int !Int !Int !Int -> (!Int, !Int)
-			runblocks i end h1 h2
-				| i >= end = (h1,h2)
-				# k1 = get_int_from_string (i<<4) s
-				# k2 = get_int_from_string ((i<<4)+8) s
-				# k1 = (rotl64 (k1 * c1) 31) * c2
-				# h1 = ((rotl64 (h1 bitxor k1) 27) + h2) * 5 + 0x52dce729
-				# k2 = (rotl64 (k2 * c2) 33) * c1
-				# h2 = ((rotl64 (h2 bitxor k2) 31) + h1) * 5 + 0x38495ab5
-				= runblocks (i+1) end h1 h2
-
-			runtail :: !Int !Int !Int -> (!Int, !Int)
-			// NB: because the input is from copy_to_string its length is always a multiple of 8!
-			runtail 8 h1 h2
-				# k1 = get_int_from_string (len bitand -8) s
-				# k1 = (rotl64 (k1 * c1) 31) * c2
-				# h1 = h1 bitxor k1
-				= (h1,h2)
-			runtail 0 h1 h2
-				= (h1,h2)
-
-			rotl64 :: !Int !Int -> Int
-			rotl64 x r = (x << r) bitor (x >> (64-r))
-
-			fmix64 :: !Int -> Int
-			fmix64 k
-				# k = k bitxor (k >> 33)
-				# k = k * 0xff51afd7ed558ccd
-				# k = k bitxor (k >> 33)
-				# k = k * 0xc4ceb9fe1a85ec53
-				# k = k bitxor (k >> 33)
-				= k
-
-			get_int_from_string :: !Int !String -> Int
-			get_int_from_string offset s = code {
-				push_a_b 0
-				pop_a 1
-				addI
-				load_i 16
-			}
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld
@@ -285,11 +221,7 @@ fromWriteException (WriteException e) :== e
 
 instance Identifiable SDSSource
 where
-	sdsIdentity (SDSSource {SDSSourceOptions|name}) =
-		{ id_name    = name
-		, id_child_a = NoChild
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSSource {SDSSourceOptions|name}) = createSDSIdentity name NoChild NoChild
 	sdsIdentity (SDSValue done mr sds) = sdsIdentity sds
 
 instance Readable SDSSource
@@ -347,11 +279,7 @@ readSDSSource sds p c mbNotify iworld :== case sds of
 
 instance Identifiable SDSLens
 where
-	sdsIdentity (SDSLens sds {SDSLensOptions|name}) =
-		{ id_name    = name
-		, id_child_a = Child (sdsIdentity sds)
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSLens sds {SDSLensOptions|name}) = createSDSIdentity name (Child (sdsIdentity sds)) NoChild
 
 instance Readable SDSLens
 where
@@ -471,11 +399,7 @@ readSDSLens sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify i
 // SDSCache
 instance Identifiable SDSCache
 where
-	sdsIdentity (SDSCache sds _) =
-		{ id_name    = "%"
-		, id_child_a = Child (sdsIdentity sds)
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSCache sds _) = createSDSIdentity "%" (Child (sdsIdentity sds)) NoChild
 
 instance Readable SDSCache
 where
@@ -543,11 +467,10 @@ readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 // SDSSequence
 instance Identifiable SDSSequence
 where
-	sdsIdentity (SDSSequence sds1 sds2 {SDSSequenceOptions|name}) =
-		{ id_name    = ">"+++name
-		, id_child_a = Child (sdsIdentity sds1)
-		, id_child_b = Child (sdsIdentity sds2)
-		}
+	sdsIdentity (SDSSequence sds1 sds2 {SDSSequenceOptions|name}) = createSDSIdentity
+		(">"+++name)
+		(Child (sdsIdentity sds1))
+		(Child (sdsIdentity sds2))
 
 instance Readable SDSSequence
 where
@@ -618,11 +541,10 @@ readSDSSequence sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,par
 // SDSSelect
 instance Identifiable SDSSelect
 where
-	sdsIdentity (SDSSelect sds1 sds2 {SDSSelectOptions|name}) =
-		{ id_name    = name
-		, id_child_a = Child (sdsIdentity sds1)
-		, id_child_b = Child (sdsIdentity sds2)
-		}
+	sdsIdentity (SDSSelect sds1 sds2 {SDSSelectOptions|name}) = createSDSIdentity
+		name
+		(Child (sdsIdentity sds1))
+		(Child (sdsIdentity sds2))
 
 instance Readable SDSSelect
 where
@@ -714,11 +636,10 @@ where
 		SDSParallelWriteRight sds1 sds2 opts = parallel sds1 sds2 opts
 		SDSParallelWriteNone  sds1 sds2 opts = parallel sds1 sds2 opts
 	where
-		parallel sds1 sds2 opts =
-			{ id_name    = "|"+++opts.SDSParallelOptions.name
-			, id_child_a = Child (sdsIdentity sds1)
-			, id_child_b = Child (sdsIdentity sds2)
-			}
+		parallel sds1 sds2 opts = createSDSIdentity
+			("|"+++opts.SDSParallelOptions.name)
+			(Child (sdsIdentity sds1))
+			(Child (sdsIdentity sds2))
 
 instance Readable SDSParallel
 where
@@ -880,11 +801,10 @@ optionsS o = o.SDSShareOptions.domain +++ ":" +++ toString o.SDSShareOptions.por
 
 instance Identifiable SDSRemoteSource
 where
-	sdsIdentity (SDSRemoteSource sds _ options) =
-		{ id_name    = optionsS options
-		, id_child_a = Child (sdsIdentity sds)
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSRemoteSource sds _ options) = createSDSIdentity
+		(optionsS options)
+		(Child (sdsIdentity sds))
+		NoChild
 
 instance Readable SDSRemoteSource
 where
@@ -966,11 +886,7 @@ readSDSRemoteSource sds=:(SDSRemoteSource _ Nothing opts) p context register iwo
 // Remote services
 instance Identifiable SDSRemoteService
 where
-	sdsIdentity (SDSRemoteService mbConnId opts) =
-		{ id_name    = toString opts
-		, id_child_a = NoChild
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSRemoteService mbConnId opts) = createSDSIdentity (toString opts) NoChild NoChild
 
 instance Readable SDSRemoteService
 where
@@ -1131,11 +1047,7 @@ readAndMbRegisterSDS sds p c mbRegister iworld :== case mbRegister of
 
 instance Identifiable SDSNoNotify
 where
-	sdsIdentity (SDSNoNotify sds) =
-		{ id_name    = "?"
-		, id_child_a = Child (sdsIdentity sds)
-		, id_child_b = NoChild
-		}
+	sdsIdentity (SDSNoNotify sds) = createSDSIdentity "?" (Child (sdsIdentity sds)) NoChild
 
 instance Readable SDSNoNotify
 where

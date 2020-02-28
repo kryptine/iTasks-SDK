@@ -15,6 +15,7 @@ import dynamic_string
 
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
+import iTasks.Internal.Util
 
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
@@ -46,8 +47,8 @@ where
 instance < SDSIdentity
 where
 	(<) a b
-		| a.id_name < b.id_name = True
-		| a.id_name > b.id_name = False
+		| a.id_name_hash < b.id_name_hash = True
+		| a.id_name_hash > b.id_name_hash = False
 		| a.id_child_a < b.id_child_a = True
 		| a.id_child_a > b.id_child_a = False
 		| otherwise = a.id_child_b < b.id_child_b
@@ -63,7 +64,7 @@ where
 instance == SDSIdentity
 where
 	(==) a b =
-		a.id_name == b.id_name &&
+		a.id_name_hash == b.id_name_hash &&
 		a.id_child_a == b.id_child_a &&
 		a.id_child_b == b.id_child_b
 
@@ -86,17 +87,25 @@ JSONDecode{|SDSIdentity|} _ org=:[JSONObject obj:rest] = case lookup "name" obj 
 			(Just a,[]) = case lookup "child_b" obj of
 				Just child_b = case JSONDecode{|*|} True [child_b] of
 					(Just b,[]) = if (length obj==3)
-						(Just {id_name=name,id_child_a=Child a,id_child_b=Child b},rest)
+						(Just (createSDSIdentity name (Child a) (Child b)),rest)
 						(Nothing, org)
 					_ = (Nothing, org)
 				_ = if (length obj==2)
-					(Just {id_name=name,id_child_a=Child a,id_child_b=NoChild},rest)
+					(Just (createSDSIdentity name (Child a) NoChild),rest)
 					(Nothing, org)
 			_ = (Nothing, org)
 		_ = if (length obj==1)
-			(Just {id_name=name,id_child_a=NoChild,id_child_b=NoChild},rest)
+			(Just (createSDSIdentity name NoChild NoChild),rest)
 			(Nothing, org)
 	_ = (Nothing, org)
+
+createSDSIdentity :: !String !MaybeSDSIdentityChild !MaybeSDSIdentityChild -> SDSIdentity
+createSDSIdentity name a b =
+	{ id_name      = name
+	, id_name_hash = murmurHash name
+	, id_child_a   = a
+	, id_child_b   = b
+	}
 
 dependsOnShareWithName :: !String !SDSIdentity -> Bool
 dependsOnShareWithName name id = depends id
