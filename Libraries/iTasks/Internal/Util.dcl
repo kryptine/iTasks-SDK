@@ -41,7 +41,7 @@ mkTaskEvalInfo :: !TaskTime -> TaskEvalInfo
 mkUIIfReset :: !Event !UI -> UIChange
 
 /**
- * A hash largely following MurmurHash3 (https://github.com/aappleby/smhasher)
+ * A hash largely following MurmurHash2 (https://github.com/aappleby/smhasher)
  * for x64. This hash is not cryptographically secure, but generates few
  * collisions and is relatively fast. It can therefore be used to speed up
  * comparisons (https://softwareengineering.stackexchange.com/a/145633).
