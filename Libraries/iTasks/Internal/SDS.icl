@@ -9,6 +9,7 @@ import qualified Data.Map as DM
 import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text.GenJSON, Data.Foldable
 from Data.Set import instance Foldable Set, instance < (Set a)
 import qualified Data.Set as Set
+import graph_copy
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval
@@ -107,8 +108,73 @@ where
 		{ reqTaskId=taskId
 		, reqSDSId=reqSDSId
 		, cmpParam=dynamic p
+		, cmpParamHash = murmur (copy_to_string (hyperstrict p))
 		, remoteOptions = mbRemoteOptions
 		}
+	where
+		// A hash largely following x64 MurmurHash3 (https://github.com/aappleby/smhasher)
+		// This hash is not cryptographically secure, but generates few collisions and is
+		// relatively fast (https://softwareengineering.stackexchange.com/a/145633)
+		murmur :: !String -> Int
+		murmur s
+			# (h1,h2) = runblocks 0 (nblocks-1) seed seed
+			# (h1,h2) = runtail (len bitand 15) h1 h2
+			# h1 = h1 bitxor len
+			# h2 = h2 bitxor len
+			# h1 = h1 + h2
+			# h2 = h2 + h1
+			# h1 = fmix64 h1
+			# h2 = fmix64 h2
+			# h1 = h1 + h2
+			# h2 = h2 + h1
+			= h1 bitxor h2 // NB: real murmur returns both h1 and h2 here
+		where
+			seed = 0 // TODO
+			len = size s
+			nblocks = len >> 4
+			c1 = 0x87c37b91114253d5
+			c2 = 0x4cf5ad432745937f
+
+			runblocks :: !Int !Int !Int !Int -> (!Int, !Int)
+			runblocks i end h1 h2
+				| i >= end = (h1,h2)
+				# k1 = get_int_from_string (i<<4) s
+				# k2 = get_int_from_string ((i<<4)+8) s
+				# k1 = (rotl64 (k1 * c1) 31) * c2
+				# h1 = ((rotl64 (h1 bitxor k1) 27) + h2) * 5 + 0x52dce729
+				# k2 = (rotl64 (k2 * c2) 33) * c1
+				# h2 = ((rotl64 (h2 bitxor k2) 31) + h1) * 5 + 0x38495ab5
+				= runblocks (i+1) end h1 h2
+
+			runtail :: !Int !Int !Int -> (!Int, !Int)
+			// NB: because the input is from copy_to_string its length is always a multiple of 8!
+			runtail 8 h1 h2
+				# k1 = get_int_from_string (len bitand -8) s
+				# k1 = (rotl64 (k1 * c1) 31) * c2
+				# h1 = h1 bitxor k1
+				= (h1,h2)
+			runtail 0 h1 h2
+				= (h1,h2)
+
+			rotl64 :: !Int !Int -> Int
+			rotl64 x r = (x << r) bitor (x >> (64-r))
+
+			fmix64 :: !Int -> Int
+			fmix64 k
+				# k = k bitxor (k >> 33)
+				# k = k * 0xff51afd7ed558ccd
+				# k = k bitxor (k >> 33)
+				# k = k * 0xc4ceb9fe1a85ec53
+				# k = k bitxor (k >> 33)
+				= k
+
+			get_int_from_string :: !Int !String -> Int
+			get_int_from_string offset s = code {
+				push_a_b 0
+				pop_a 1
+				addI
+				load_i 16
+			}
 
 write :: !w !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncWrite r w), !*IWorld) | TC r & TC w & Writeable sds
 write w sds c iworld

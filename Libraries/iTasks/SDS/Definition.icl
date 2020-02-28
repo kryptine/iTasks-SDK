@@ -116,10 +116,14 @@ where
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where
-	(<) x y =
-			((x.reqTaskId, x.reqSDSId, dynamic_to_string $ hyperstrict x.cmpParam), x.remoteOptions)
-		<
-			((y.reqTaskId, y.reqSDSId, dynamic_to_string $ hyperstrict y.cmpParam), y.remoteOptions)
+	(<) x y
+		| x.reqTaskId < y.reqTaskId = True
+		| x.reqTaskId > y.reqTaskId = False
+		| x.cmpParamHash < y.cmpParamHash = True
+		| x.cmpParamHash > y.cmpParamHash = False
+		| x.reqSDSId < y.reqSDSId = True
+		| x.reqSDSId > y.reqSDSId = False
+		| otherwise = x.remoteOptions < y.remoteOptions
 
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
