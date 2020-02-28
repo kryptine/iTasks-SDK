@@ -37,36 +37,8 @@ gText{|SDSIdentity|} f (Just id) =
 			]
 	]
 
-instance < MaybeSDSIdentityChild
-where
-	(<) NoChild   NoChild   = True
-	(<) NoChild   _         = False
-	(<) (Child _) NoChild   = False
-	(<) (Child a) (Child b) = a < b
-
-instance < SDSIdentity
-where
-	(<) a b
-		| a.id_name_hash < b.id_name_hash = True
-		| a.id_name_hash > b.id_name_hash = False
-		| a.id_child_a < b.id_child_a = True
-		| a.id_child_a > b.id_child_a = False
-		| otherwise = a.id_child_b < b.id_child_b
-
-instance == MaybeSDSIdentityChild
-where
-	(==) a b = case a of
-		NoChild = b=:NoChild
-		Child a = case b of
-			NoChild = False
-			Child b = a == b
-
-instance == SDSIdentity
-where
-	(==) a b =
-		a.id_name_hash == b.id_name_hash &&
-		a.id_child_a == b.id_child_a &&
-		a.id_child_b == b.id_child_b
+instance < SDSIdentity where (<) a b = a.id_hash < b.id_hash
+instance == SDSIdentity where (==) a b = a.id_hash == b.id_hash
 
 instance toString SDSIdentity where toString sdsId = toSingleLineText sdsId
 
@@ -101,11 +73,14 @@ JSONDecode{|SDSIdentity|} _ org=:[JSONObject obj:rest] = case lookup "name" obj 
 
 createSDSIdentity :: !String !MaybeSDSIdentityChild !MaybeSDSIdentityChild -> SDSIdentity
 createSDSIdentity name a b =
-	{ id_name      = name
-	, id_name_hash = murmurHash name
-	, id_child_a   = a
-	, id_child_b   = b
+	{ id_name    = name
+	, id_child_a = a
+	, id_child_b = b
+	, id_hash    = (murmurHash name) bitxor (hash a) bitxor (hash b)
 	}
+where
+	hash NoChild   = 0
+	hash (Child c) = c.id_hash
 
 dependsOnShareWithName :: !String !SDSIdentity -> Bool
 dependsOnShareWithName name id = depends id
