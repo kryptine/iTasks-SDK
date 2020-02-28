@@ -157,7 +157,7 @@ where
 				// If we receive a request to refresh the sds service task, we find all remote
 				// registrations for the SDS id and send requests to refresh them to their respective clients.
 				| taskId == refreshTaskId = refreshRemoteTasks sdsId iworld
-				= (Ok (Left "Refresh queued"), queueRefresh [refreshTaskId] iworld)
+				= (Ok (Left "Refresh queued"), queueRefresh refreshTaskId iworld)
 		where
 			newlines [] = 0
 			newlines ['\n':xs] = inc (newlines xs)

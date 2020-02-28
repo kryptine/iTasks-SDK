@@ -2,6 +2,7 @@ implementation module iTasks.Internal.TaskIO
 
 import StdEnv
 from Control.Applicative import class Alternative(<|>)
+import qualified Data.Foldable as Foldable
 import Data.Func
 import Data.Error
 import Data.Maybe
@@ -12,6 +13,7 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Queue as DQ
 import qualified Data.Set as DS
+from Data.Set import :: Set, instance Foldable Set
 import Data.Set.GenJSON
 import iTasks.WF.Definition
 import iTasks.Internal.SDSService
@@ -72,12 +74,14 @@ where
 					(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
 		_ = Nothing
 
-queueRefresh :: ![TaskId] !*IWorld -> *IWorld
-queueRefresh [] iworld = iworld
-queueRefresh tasks iworld
+queueRefresh :: !TaskId !*IWorld -> *IWorld
+queueRefresh task iworld = queueRefreshes ('DS'.singleton task) iworld
+
+queueRefreshes :: !(Set TaskId) !*IWorld -> *IWorld
+queueRefreshes tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.fromList tasks) iworld
-	# iworld = foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
+	# iworld = 'SDS'.clearTaskSDSRegistrations tasks iworld
+	# iworld = 'Foldable'.foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
