@@ -153,7 +153,7 @@ evalInteract r mst mode sds handlers editor writefun event=:(EditEvent eTaskId n
 evalInteract r mst mode sds handlers editor writefun ResetEvent evalOpts iworld
 	# v = maybe Nothing editor.Editor.valueFromState mst
 	= evalInteractInitWithValue r v mode sds handlers editor writefun evalOpts iworld
-evalInteract r mst mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
+evalInteract r mst mode sds handlers editor writefun event=:(RefreshEvent taskIds) evalOpts=:{taskId,lastEval} iworld
 	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
 	# st = fromJust mst
 	# v = editor.Editor.valueFromState st

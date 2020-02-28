@@ -59,28 +59,25 @@ where
 	// merge multiple refresh events for same instance
 	queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
 	queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
-		RefreshEvent refreshTasks reason =
+		RefreshEvent refreshTasks =
 			((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
 			((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
 		where
 			queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
 			queueWithMergedRefreshEventList [] = Nothing
 			queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
-				RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
-					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
+				RefreshEvent refreshTasks` | instanceNo` == instanceNo =
+					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`)) : tl]
 				_ =
 					(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
-
-			mergeReason :: !String !String -> String
-			mergeReason x y = concat [x , "; " , y]
 		_ = Nothing
 
-queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
+queueRefresh :: ![TaskId] !*IWorld -> *IWorld
 queueRefresh [] iworld = iworld
 queueRefresh tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
-	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
+	# iworld = 'SDS'.clearTaskSDSRegistrations ('DS'.fromList tasks) iworld
+	# iworld = foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)

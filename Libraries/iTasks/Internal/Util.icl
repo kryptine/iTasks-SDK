@@ -71,7 +71,7 @@ generateRandomString length iworld=:{IWorld|random}
 	= (toString (take length [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop length random})
 
 isRefreshForTask :: !Event !TaskId -> Bool
-isRefreshForTask (RefreshEvent taskIds _) taskId = 'DS'.member taskId taskIds
+isRefreshForTask (RefreshEvent taskIds) taskId = 'DS'.member taskId taskIds
 isRefreshForTask ResetEvent _ = True
 isRefreshForTask _ _ = False
 

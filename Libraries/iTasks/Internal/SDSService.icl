@@ -56,7 +56,7 @@ where
 				Just (IOActive values) = 'Map'.put taskId (IODestroyed values) ioStates
 				_                      = ioStates
         	= (DestroyedResult, {iworld & ioStates = ioStates})
-		eval (RefreshEvent taskIds cause) {lastEval} iworld
+		eval (RefreshEvent taskIds) {lastEval} iworld
 			| not ('Set'.member taskId taskIds)
 				= (ValueResult
 					(Value () False)
@@ -157,7 +157,7 @@ where
 				// If we receive a request to refresh the sds service task, we find all remote
 				// registrations for the SDS id and send requests to refresh them to their respective clients.
 				| taskId == refreshTaskId = refreshRemoteTasks sdsId iworld
-				= (Ok (Left "Refresh queued"), queueRefresh [(refreshTaskId, "Notification for remote write of " +++ toString sdsId)] iworld)
+				= (Ok (Left "Refresh queued"), queueRefresh [refreshTaskId] iworld)
 		where
 			newlines [] = 0
 			newlines ['\n':xs] = inc (newlines xs)
