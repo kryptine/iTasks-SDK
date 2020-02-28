@@ -250,7 +250,7 @@ required type w. The reducer has the job to turn this ws into w.
 :: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !(sds1 p1 r w) !(sds2 p2 r w) !(SDSSelectOptions p r w p1 p2)
                    & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
 
-:: SDSSelectOptions p r w p1 p2 =
+:: SDSSelectOptions p r w p1 p2 = !
 	{ name    :: !String
 	, select  :: !p -> Either p1 p2
 	, notifyl :: !SDSLensNotify p1 p2 w r
@@ -277,7 +277,7 @@ required type w. The reducer has the job to turn this ws into w.
 	  SDSParallelWriteNone !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
 	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
-:: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
+:: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w = !
 	{ name   :: !String
 	, param  :: !p -> (p1, p2)
 	, read   :: !(!r1, !r2) -> r
@@ -299,7 +299,7 @@ required type w. The reducer has the job to turn this ws into w.
 	            !(SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w)
 	& RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
-:: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w =
+:: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w = !
 	{ name   :: !String
 	, paraml :: !p -> p1
 	, paramr :: !p r1 -> p2

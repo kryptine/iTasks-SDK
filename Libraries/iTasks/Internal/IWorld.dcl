@@ -30,7 +30,7 @@ from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld =
+:: *IWorld = !
 	{ options               :: !EngineOptions                                   // Engine configuration
 	, clock                 :: !Timespec                                        // Server side clock
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
