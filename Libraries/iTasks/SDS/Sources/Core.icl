@@ -53,9 +53,9 @@ where
 			(Just _)            = (Error (exception ("Read shared memory with incorrect type " +++ key)), iworld)
 
 	write key (Just val) iworld=:{IWorld|memoryShares}
-       = (Ok (const ((===) key)),{IWorld|iworld & memoryShares = 'DM'.put key (dynamic val :: a^) memoryShares})
+       = (Ok (\_ k -> k == key),{IWorld|iworld & memoryShares = 'DM'.put key (dynamic val :: a^) memoryShares})
 	write key Nothing iworld=:{IWorld|memoryShares}
-       = (Ok (const ((===) key)),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
+       = (Ok (\_ k -> k == key),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
 
 fileShare :: SDSSource FilePath (Maybe String) (Maybe String)
 fileShare =: createReadWriteSDS "_core_" "fileShare" (fileRead fromFile) (fileWrite toFile)
