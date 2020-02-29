@@ -45,7 +45,7 @@ createSDSIdentity :: !String !MaybeSDSIdentityChild !MaybeSDSIdentityChild -> SD
 dependsOnShareWithName :: !String !SDSIdentity -> Bool
 
 :: TaskContext = EmptyContext // Used in the internals of the iTasks system
-               | TaskContext TaskId // Used when a local task is reading from a share
+               | TaskContext !TaskId // Used when a local task is reading from a share
                // Used when a remote task is reading from a share locally
                | RemoteTaskContext !TaskId  // The id of the original task reading the share
                                    !TaskId // The id of the current task handling the request

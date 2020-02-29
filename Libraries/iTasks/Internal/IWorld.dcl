@@ -116,8 +116,8 @@ destroyIWorld :: !*IWorld -> *World
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
 :: ClockParameter a =
-	{ start :: a
-	, interval :: a
+	{ start    :: !a
+	, interval :: !a
 	}
 
 iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
