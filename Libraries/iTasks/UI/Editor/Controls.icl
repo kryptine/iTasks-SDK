@@ -71,6 +71,16 @@ where
 dropdown :: Editor ([ChoiceText], [Int])
 dropdown = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIDropdown
 
+dropdownWithGroups :: Editor ([(ChoiceText, Maybe String)], [Int])
+dropdownWithGroups = choiceComponent (const 'DM'.newMap) id toOptionText (checkBoundsText o fmap fst) UIDropdown
+where
+	toOptionText :: !(!ChoiceText, !Maybe String) -> JSONNode
+	toOptionText ({ChoiceText|id,text}, groupLabel) =
+		JSONObject
+			[ ("id",JSONInt id),("text",JSONString text)
+			: maybe [] (\label -> [("grouplabel", JSONString label)]) groupLabel
+			]
+
 checkGroup :: Editor ([ChoiceText], [Int])
 checkGroup = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UICheckGroup
 
