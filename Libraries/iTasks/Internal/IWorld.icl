@@ -24,6 +24,7 @@ import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
+import iTasks.SDS.Combinators.Core
 import iTasks.WF.Definition
 import iTasks.WF.Derives
 
@@ -112,16 +113,12 @@ iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: SDSParallel () DateTime ()
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
-where
+iworldLocalDateTime =: sdsParallel "iworldLocalDateTime"
     // ignore value, but use notifications for 'iworldTimestamp'
-    sdsPar = { SDSParallelOptions
-             | name   = "iworldLocalDateTime"
-             , param  = \p -> (p,p)
-             , read   = fst
-             , writel = SDSWriteConst \_ _ -> Ok Nothing
-             , writer = SDSWriteConst \_ _ -> Ok Nothing
-             }
+	(\p -> (p,p)) fst
+	(SDSWriteConst \_ _ -> Ok Nothing) (SDSWriteConst \_ _ -> Ok Nothing)
+	(createReadOnlySDS \_ -> iworldLocalDateTime`)
+	(sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp)
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 iworldLocalDateTime` iworld=:{clock={tv_sec}, world}

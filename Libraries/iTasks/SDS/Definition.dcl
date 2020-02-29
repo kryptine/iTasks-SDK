@@ -207,8 +207,9 @@ instance toString (WebServiceShareOptions p r w)
 :: SDSLens p r w  = E. ps rs ws sds: SDSLens !(sds ps rs ws) !(SDSLensOptions p r w ps rs ws)
                   & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
 
-:: SDSLensOptions p r w ps rs ws =
-	{ name    :: !String
+:: SDSLensOptions p r w ps rs ws = !
+	{ id      :: !SDSIdentity
+	, name    :: !String
 	, param   :: !p -> ps
 	, read    :: !SDSLensRead p r rs
 	, write   :: !SDSLensWrite p w rs ws
@@ -251,7 +252,8 @@ required type w. The reducer has the job to turn this ws into w.
                    & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
 
 :: SDSSelectOptions p r w p1 p2 = !
-	{ name    :: !String
+	{ id      :: !SDSIdentity
+	, name    :: !String
 	, select  :: !p -> Either p1 p2
 	, notifyl :: !SDSLensNotify p1 p2 w r
 	, notifyr :: !SDSLensNotify p2 p1 w r
@@ -278,7 +280,8 @@ required type w. The reducer has the job to turn this ws into w.
 	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w = !
-	{ name   :: !String
+	{ id     :: !SDSIdentity
+	, name   :: !String
 	, param  :: !p -> (p1, p2)
 	, read   :: !(!r1, !r2) -> r
 	, writel :: !SDSLensWrite p w r1 w1
@@ -300,7 +303,8 @@ required type w. The reducer has the job to turn this ws into w.
 	& RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w = !
-	{ name   :: !String
+	{ id     :: !SDSIdentity
+	, name   :: !String
 	, paraml :: !p -> p1
 	, paramr :: !p r1 -> p2
 	, read   :: !p r1 -> Either r ((r1,r2) -> r)
@@ -315,7 +319,8 @@ required type w. The reducer has the job to turn this ws into w.
 
 :: SDSCache p r w = SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & gText{|*|}, TC p & TC r & TC w
 :: SDSCacheOptions p r w  =
-	{ write :: !p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
+	{ id    :: !SDSIdentity
+	, write :: !p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite

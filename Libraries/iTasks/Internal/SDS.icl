@@ -283,7 +283,7 @@ readSDSSource sds p c mbNotify iworld :== case sds of
 
 instance Identifiable SDSLens
 where
-	sdsIdentity (SDSLens sds {SDSLensOptions|name}) = createSDSIdentity name (Child (sdsIdentity sds)) NoChild
+	sdsIdentity (SDSLens _ opts) = opts.SDSLensOptions.id
 
 instance Readable SDSLens
 where
@@ -403,7 +403,7 @@ readSDSLens sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify i
 // SDSCache
 instance Identifiable SDSCache
 where
-	sdsIdentity (SDSCache sds _) = createSDSIdentity "%" (Child (sdsIdentity sds)) NoChild
+	sdsIdentity (SDSCache _ opts) = opts.SDSCacheOptions.id
 
 instance Readable SDSCache
 where
@@ -471,10 +471,7 @@ readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 // SDSSequence
 instance Identifiable SDSSequence
 where
-	sdsIdentity (SDSSequence sds1 sds2 {SDSSequenceOptions|name}) = createSDSIdentity
-		(">"+++name)
-		(Child (sdsIdentity sds1))
-		(Child (sdsIdentity sds2))
+	sdsIdentity (SDSSequence _ _ {SDSSequenceOptions|id}) = id
 
 instance Readable SDSSequence
 where
@@ -545,10 +542,7 @@ readSDSSequence sds=:(SDSSequence sds1 sds2 opts=:{SDSSequenceOptions|paraml,par
 // SDSSelect
 instance Identifiable SDSSelect
 where
-	sdsIdentity (SDSSelect sds1 sds2 {SDSSelectOptions|name}) = createSDSIdentity
-		name
-		(Child (sdsIdentity sds1))
-		(Child (sdsIdentity sds2))
+	sdsIdentity (SDSSelect _ _ {SDSSelectOptions|id}) = id
 
 instance Readable SDSSelect
 where
@@ -635,15 +629,10 @@ readSDSSelect sds=:(SDSSelect sds1 sds2 opts=:{SDSSelectOptions|select,name}) p 
 instance Identifiable SDSParallel
 where
 	sdsIdentity sds = case sds of
-		SDSParallel           sds1 sds2 opts = parallel sds1 sds2 opts
-		SDSParallelWriteLeft  sds1 sds2 opts = parallel sds1 sds2 opts
-		SDSParallelWriteRight sds1 sds2 opts = parallel sds1 sds2 opts
-		SDSParallelWriteNone  sds1 sds2 opts = parallel sds1 sds2 opts
-	where
-		parallel sds1 sds2 opts = createSDSIdentity
-			("|"+++opts.SDSParallelOptions.name)
-			(Child (sdsIdentity sds1))
-			(Child (sdsIdentity sds2))
+		SDSParallel           _ _ opts = opts.SDSParallelOptions.id
+		SDSParallelWriteLeft  _ _ opts = opts.SDSParallelOptions.id
+		SDSParallelWriteRight _ _ opts = opts.SDSParallelOptions.id
+		SDSParallelWriteNone  _ _ opts = opts.SDSParallelOptions.id
 
 instance Readable SDSParallel
 where
