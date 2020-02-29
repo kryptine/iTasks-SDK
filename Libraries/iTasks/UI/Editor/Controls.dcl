@@ -93,12 +93,12 @@ progressBar   :: Editor (Maybe Int,Maybe String) //Percentage, description
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree
 /**
-* A dropdown box with grouped items
+* A dropdown box
 * Supported attributes:
 */
 dropdown      :: Editor ([ChoiceText], [Int])
 /**
-* A dropdown box
+* A dropdown box with grouped items
 * Supported attributes:
 */
 dropdownWithGroups :: Editor ([(ChoiceText, Maybe String)], [Int])
