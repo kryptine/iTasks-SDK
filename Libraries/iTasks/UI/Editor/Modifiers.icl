@@ -4,7 +4,7 @@ from StdFunc import o, const, flip, id
 import StdBool, StdString, StdList
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.GenJSON, Data.Tuple, Data.Functor, Data.Maybe
-import Data.GenEq, Data.Func
+import Data.GenEq, Data.Func, Data.List
 import qualified Data.Map as DM
 
 withEditModeAttr :: !(Editor r w) -> Editor r w
@@ -164,25 +164,14 @@ injectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefr
 	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst   = editorGenUI attr dp (mapEditMode tof mode) vst
-	onEdit dp e st vst       = mbMapFromF $ editorOnEdit dp e st vst
-	onRefresh dp newa st vst = mbMapFromF $ editorOnRefresh dp (tof newa) st vst
+	onEdit dp e st vst       = editorOnEdit dp e st vst
+	onRefresh dp newa st vst = editorOnRefresh dp (tof newa) st vst
 
 	valueFromState st = case editorValueFromState st of
 		Just valb = case fromf valb of
 			Ok vala = Just vala
 			_       = Nothing
 		_ = Nothing
-
-	// TODO: store and clear error
-	mbMapFromF (Error e, vst) = (Error e, vst)
-	mbMapFromF (Ok (change, st, mbw), vst) = case editorValueFromState st of
-		Just newb = case fromf newb of
-			(Ok _) = (Ok (change, st, mbw), vst)
-			Error e
-				# attrChange = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID)
-					,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
-				= (Ok (mergeUIChanges change attrChange, st, mbw), vst)
-		_ = (Ok (change, st, mbw), vst)
 
 surjectEditorValue :: !(ra (Maybe rb) -> rb) !(rb (Maybe ra) -> ra) !(Editor rb w) -> Editor ra w | JSONEncode{|*|}, JSONDecode{|*|} ra
 surjectEditorValue tof fromf {Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
@@ -214,17 +203,67 @@ mapEditorWrite :: !(wb -> w) !(Editor r wb) -> Editor r w
 mapEditorWrite fromf editor = mapEditorWriteWithValue (\_ w -> fromf w) editor
 
 mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor r wb) -> Editor r w
-mapEditorWriteError fromf editor=:{Editor|onEdit=editorOnEdit,onRefresh=editorOnRefresh}
-	= {Editor|editor & onEdit=onEdit,onRefresh=onRefresh}
+mapEditorWriteError fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}
+	= editorModifierWithStateToEditor {EditorModifierWithState|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
-	onEdit dp e st vst      = mbMapFromF $ editorOnEdit dp e st vst
-	onRefresh dp new st vst = mbMapFromF $ editorOnRefresh dp new st vst
+	genUI attr dp mode vst = case editorGenUI attr dp (unique mode) vst of
+		(Ok (ui,est),vst)
+			# (mbtype,mbhint) = errorInfoUI ui
+			= (Ok (ui,(mbtype,mbhint,False),est),vst)
+		(Error e,vst) = (Error e,vst)
+	onEdit dp e st est vst = case editorOnEdit dp e est vst of
+		(Ok (change, est, mbw),vst) = (Ok $ mapFromF (change, st, est, mbw), vst)
+		(Error e,vst) = (Error e,vst)
+	onRefresh dp new st est vst = case editorOnRefresh dp new est vst of
+		(Ok (change, est, mbw),vst) = (Ok $ mapFromF (change, st, est, mbw), vst)
+		(Error e,vst) = (Error e,vst)
+	valueFromState st est = editorValueFromState est
 
-    mbMapFromF (Error e, vst) = (Error e, vst)
-	mbMapFromF (Ok (change, st, Nothing), vst)  = (Ok (change, st, Nothing), vst) 
-	mbMapFromF (Ok (change, st, Just w), vst)  = case fromf w of
-		(Error e) = (Error e,vst)
-		(Ok w) = (Ok (change, st, Just w), vst) 
+	mapFromF (change, st, est, Nothing) = (change, st, est, Nothing)
+	mapFromF (change, st, est, Just w) = case fromf w of
+		(Ok w)
+			# (change,st) = restoreErrorInfo change st
+			= (change, st, est, Just w)
+		(Error e)
+			# (change,st) = maskErrorInfo e change st
+			= (change, st, est, Nothing)
+
+	//Track the hint and type attributes of the underlying editor
+	errorInfoUI (UI _ attrs _) = ('DM'.get HINT_TYPE_ATTRIBUTE attrs, 'DM'.get HINT_ATTRIBUTE attrs)
+
+	errorInfoChange NoChange = (Nothing,Nothing)
+	errorInfoChange (ReplaceUI ui)
+		# (typeUpd,hintUpd) = errorInfoUI ui
+		= (Just typeUpd,Just hintUpd)
+	errorInfoChange (ChangeUI attrChanges _)
+		# typeUpd = foldl (check HINT_TYPE_ATTRIBUTE) Nothing attrChanges
+		# hintUpd = foldl (check HINT_ATTRIBUTE) Nothing attrChanges
+		= (typeUpd,hintUpd)
+	where
+		check attr cur (SetAttribute k v) = if (k == attr) (Just (Just v)) cur
+		check attr cur (DelAttribute k) = if (k == attr) (Just Nothing) cur
+
+	//Restore masked value if necessary and track underlying /hint
+	restoreErrorInfo change st=:(mbtype,mbhint,masked)
+		# (newtype,newhint) = errorInfoChange change
+		= (mergeUIChanges (restore st) change, (fromMaybe mbtype newtype,fromMaybe mbhint newhint,False))
+	where
+		restore (mbtype,mbhint,True)
+			# typeChange =  maybe [DelAttribute HINT_TYPE_ATTRIBUTE] (\e -> [SetAttribute HINT_TYPE_ATTRIBUTE e]) mbtype
+			# hintChange =  maybe [DelAttribute HINT_ATTRIBUTE] (\e -> [SetAttribute HINT_ATTRIBUTE e]) mbhint
+			= ChangeUI (typeChange ++ hintChange) []
+		restore _
+			= NoChange
+
+	maskErrorInfo msg change (mbtype,mbhint,masked)
+		# (newtype,newhint) = errorInfoChange change
+		= (mergeUIChanges change (mask msg), (fromMaybe mbtype newtype, fromMaybe mbhint newhint, True))
+	where
+		mask msg = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID), SetAttribute HINT_ATTRIBUTE (JSONString msg)] []
+
+	unique Enter = Enter
+	unique (View x) = View x
+	unique (Update x) = View x
 
 mapEditorWriteWithValue :: !((Maybe r) wb -> w) !(Editor r wb) -> Editor r w
 mapEditorWriteWithValue fromf editor=:{Editor|genUI=editorGenUI,onEdit=editorOnEdit,onRefresh=editorOnRefresh,valueFromState=editorValueFromState}

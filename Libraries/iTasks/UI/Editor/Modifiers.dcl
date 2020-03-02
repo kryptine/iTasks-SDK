@@ -82,6 +82,11 @@ surjectEditorValue :: !(ra (Maybe rb) -> rb) !(rb (Maybe ra) -> ra) !(Editor rb 
 * Map editor writes to a different domain
 */
 mapEditorWrite :: !(wb -> w) !(Editor r wb) -> Editor r w
+/**
+* Map editor writes to a different domain with potential errors
+* If the mapped editor returns an error, the write is not propagated and
+* a hint-type error and hint attribute are set on the editor.
+*/
 mapEditorWriteError :: !(wb -> MaybeErrorString w) !(Editor r wb) -> Editor r w
 mapEditorWriteWithValue :: !((Maybe r) wb -> w) !(Editor r wb) -> Editor r w
 
