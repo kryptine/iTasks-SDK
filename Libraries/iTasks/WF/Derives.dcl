@@ -9,7 +9,7 @@ from iTasks.WF.Combinators.Core import :: Action, :: TaskListItem, :: TaskListFi
 from iTasks.Internal.IWorld import :: ClockParameter
 from iTasks.SDS.Sources.System import :: TaskInstance, :: ValueStatus
 
-import Data.Either.GenJSON, Data.Error.GenJSON
+import Data.Either.GenJSON, Data.Error.GenJSON, Data.Map.GenJSON
 import Text.HTML.GenJSON
 import System.Time.GenJSON
 

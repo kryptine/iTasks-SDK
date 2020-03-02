@@ -86,6 +86,16 @@ where
 dropdown :: Editor ([ChoiceText], [Int]) [Int]
 dropdown = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIDropdown
 
+dropdownWithGroups :: Editor ([(ChoiceText, Maybe String)], [Int]) [Int]
+dropdownWithGroups = choiceComponent (const 'DM'.newMap) id toOptionText (checkBoundsText o fmap fst) UIDropdown
+where
+	toOptionText :: !(!ChoiceText, !Maybe String) -> JSONNode
+	toOptionText ({ChoiceText|id,text}, groupLabel) =
+		JSONObject
+			[ ("id",JSONInt id),("text",JSONString text)
+			: maybe [] (\label -> [("grouplabel", JSONString label)]) groupLabel
+			]
+
 checkGroup :: Editor ([ChoiceText], [Int]) [Int]
 checkGroup = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UICheckGroup
 
@@ -238,8 +248,8 @@ where
 
 	valueFromState (Just val, sel, multiple)
 		// Non-multi select choice are only valid with a single selected item
-		| not multiple && lengthSel <> 1 = Nothing
-		| otherwise                      = Just (val, sel)
+		| not multiple && lengthSel > 1 = Nothing
+		| otherwise                     = Just (val, sel)
 	where
 		lengthSel = length sel
 	valueFromState _               = Nothing

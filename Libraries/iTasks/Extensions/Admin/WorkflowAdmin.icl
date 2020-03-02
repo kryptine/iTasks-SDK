@@ -127,28 +127,33 @@ loginAndManageWork applicationName loginMessage welcomeMessage allowGuests
 		(((	identifyApplication applicationName loginMessage
 			||-
 			(anyTask [
-	 				Title "Authenticated access" @>> Hint "Enter your credentials and login" @>> enterInformation [] @ Just
-				>>* [OnAction (Action "Login")  (hasValue return)]
+					(Title "Authenticated access" @>>
+					( (Title "Authenticated access" @>> Hint "Enter your credentials and login" @>> enterInformation []) -&&-
+					  (Label "Remember login" @>> enterInformation [])
+					)
+				>>* [OnAction (Action "Login") (hasValue (\c -> authenticate c @ Left))])
+				, authenticateUsingToken @ Left
 				:if allowGuests
 					[
 						Title "Guest access" @>>
 						Hint "Alternatively, you can continue anonymously as guest user" @>>
-						viewInformation [] ()
-						>!| return Nothing
+						viewInformation [] () >!| (return (Right ()))
 					]
 					[]
 				] <<@ ArrangeHorizontal)
 	 	   )  <<@ ApplyLayout layout
-		>>- browse) //Compact layout before login, full screen afterwards
+		>>- browse
+		>-| clearAuthenticationToken) //Compact layout before login, full screen afterwards
 		) <<@ Title applicationName
 where
-	browse (Just {Credentials|username,password})
-		= authenticateUser username password
-		>>- \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorkOfCurrentUser welcomeMessage)
-			Nothing		= (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >!| return ()) <<@ ApplyLayout frameCompact
-	browse Nothing
-		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorkOfCurrentUser welcomeMessage)
+	authenticate ({Credentials|username,password},persistent)
+		= authenticateUser username password persistent
+
+	browse (Left Nothing) = (Title "Login failed" @>> viewInformation [] "Your username or password is incorrect" >!| return ()) <<@ ApplyLayout frameCompact
+	browse (Left (Just user)) = workAs user main
+	browse (Right ()) = workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) main
+
+	main = manageWorkOfCurrentUser welcomeMessage
 
 	identifyApplication name welcomeMessage = viewInformation [] html
 	where

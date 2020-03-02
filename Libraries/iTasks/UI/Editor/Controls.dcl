@@ -102,6 +102,11 @@ progressBar   :: Editor (Maybe Int,Maybe String) a //Percentage, description
 */
 dropdown      :: Editor ([ChoiceText], [Int]) [Int]
 /**
+* A dropdown box with grouped items
+* Supported attributes:
+*/
+dropdownWithGroups :: Editor ([(ChoiceText, Maybe String)], [Int]) [Int]
+/**
 * A group of checkboxes or radiobuttons depending on whether the multiple 
 * attribute is set or not
 * Supported attributes:

@@ -10,7 +10,7 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.SDS.Definition import :: SimpleSDSLens, :: SDSLens, :: SDSSequence
 from iTasks.Util.DeferredJSON import :: DeferredJSON
 from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: TaskEvalOpts, :: Event
-from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: Cookies
 from iTasks.WF.Definition import class iTask
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.WF.Combinators.Core import :: TaskListFilter, :: TaskListItem
@@ -70,12 +70,14 @@ derive gText ExtendedTaskListFilter
 	, firstEvent            :: !Maybe Timespec      //* When was the first work done on this task
 	, lastEvent             :: !Maybe Timespec      //* When was the latest event on this task (excluding Refresh events)
 	, lastIO                :: !Maybe Timespec      //* Last network event or ping
+	, cookies               :: !Cookies             //* Browser cookies passed when the task was created (only set for sessions)
 	//Identification and classification information
 	, managementAttributes  :: !TaskAttributes      //* Arbitrary writable attributes for managing collections of task instances
 	// Control information (used only internally)
 	, change                :: !Maybe TaskChange    //* Changes like removing or replacing a parallel task are only done when the
 	, initialized           :: !Bool
 	, unsyncedAttributes    :: !Set String          //* When the `managementAttributes` are written they need to be synced to the UI on the next evaluation
+	, unsyncedCookies       :: ![(String,String,Maybe Int)] //* When cookies are written they need to be synced to the UI on the next evaluation
 	}
 
 /**
@@ -129,9 +131,9 @@ taskListTypedTaskData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskL
 //== Filtered views on the task state for different purposes ==//
 
 //Interface used during evaluation of parallel combinator
-taskInstanceParallelTaskList       :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
-taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
-taskInstanceParallelTaskListTasks  :: SDSLens (TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
+taskInstanceParallelTaskList       :: SDSLens (TaskId,TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
+taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+taskInstanceParallelTaskListTasks  :: SDSLens (TaskId,TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 
 taskInstanceParallelTaskListItem    :: SDSLens (TaskId,TaskId,Bool) TaskMeta TaskMeta
 taskInstanceParallelTaskListValue   :: SDSLens (TaskId,TaskId) (TaskValue a) (TaskValue a) | iTask a
@@ -161,7 +163,7 @@ createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeEr
 
 createStartupTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException InstanceNo, !*IWorld) | iTask a
 
-createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createSessionTaskInstance :: !(Task a) !Cookies !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 
 /**
 * Create a stored task instance in the task store (lazily without evaluating it)

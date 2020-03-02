@@ -432,42 +432,35 @@ itasks.Viewport = class extends itasks.Component {
 		var me = this;
 
 		//Create a temporary root element
-		me.insertChild(0,{type:'Loader', parentCmp: me});
-
-		me.parentViewport = me.getViewport();
-
-		//Get a connection
-		me.taskUrl = me.determineTaskEndpoint();
-		me.connection = itasks.ConnectionPool.getConnection(me.taskUrl);
-
-		var uiChangeCallback = me.onInstanceUIChange.bind(me);
-		var exceptionCallback = me.onException.bind(me);
+		me.insertChild(0,{type:'Loader'});
 
 		me.changeListeners = [];
+		me.parentViewport = me.getViewport();
 
-		if('instanceNo' in me.attributes) {
+		if(me.parentViewport == null) {
+			window.addEventListener('resize',me.onResize.bind(me));
+		}
+		//Connect the viewport to a task url
+		me.connect();
+	}
+	connect() {
+		//Get a connection
+		this.taskUrl = this.determineTaskEndpoint();
+		this.connection = itasks.ConnectionPool.getConnection(this.taskUrl);
+
+		const startCallback = this.onSessionStart.bind(this);
+		const uiChangeCallback = this.onTaskUIChange.bind(this);
+		const removedCallback = this.onTaskRemoved.bind(this);
+		const exceptionCallback = this.onException.bind(this);
+
+		if('instanceNo' in this.attributes && 'instanceKey' in this.attributes) {
 			//Connect to an existing task instance
-			me.connection.attachTaskInstance(
-				me.attributes['instanceNo'],
-				me.attributes['instanceKey'],
-				uiChangeCallback,
-				exceptionCallback);	
+			this.connection.attachTaskInstance(this.attributes['instanceNo'],this.attributes['instanceKey'],
+				uiChangeCallback,removedCallback,exceptionCallback);
 		} else {
 			//Create a new session
-			me.connection.newSession(
-				function(instanceNo) { me.attributes['instanceNo'] = instanceNo;},
-				uiChangeCallback,
-				exceptionCallback);	
+			this.connection.newSession(startCallback,uiChangeCallback,removedCallback,exceptionCallback);
 		}
-
-		me.addWindowResizeListener();
-	}
-	addWindowResizeListener() {
-		var me = this;
-		if(me.parentViewport !== null) { //Only listen to window changes as the top level
-			return;
-		}
-		window.addEventListener('resize',me.onResize.bind(me));
 	}
 	determineTaskEndpoint() {
 		var me = this;
@@ -493,7 +486,11 @@ itasks.Viewport = class extends itasks.Component {
 			me.connection.sendActionEvent(me.attributes.instanceNo, taskNo, value);
 		}
 	}
-	onInstanceUIChange(change) {
+	onSessionStart(instanceNo,instanceKey) {
+		this.attributes['instanceNo'] = instanceNo;
+		this.attributes['instanceKey'] = instanceKey;
+	}
+	onTaskUIChange(change) {
 		var me = this;
 
 		me.children[0].onUIChange(change);
@@ -515,6 +512,30 @@ itasks.Viewport = class extends itasks.Component {
 			cl.onViewportChange(change);
 		});
 	}
+	onTaskRemoved(instanceNo) {
+		//Remove all children
+		for(var i = this.children.length - 1; i >= 0; i--) {
+			this.removeChild(i);
+		}
+		//Make sure we don't try to restore the current task instance
+		delete this.attributes['instanceNo'];
+		delete this.attributes['instanceKey'];
+
+		//Create a temporary loader element
+		this.insertChild(0,{type:'Loader'});
+
+		//Reconnect
+		this.connect();
+	}
+	onException(exception) {
+		var me = this;
+		//Remove all children and show the exception message
+		for(var i = me.children.length - 1; i >= 0; i--) {
+			me.removeChild(i);
+		}
+		me.insertChild(0,{type:'ExceptionView', attributes: { value : exception}});
+	}
+
 	addChangeListener(cmp) {
 		var me = this;
 		me.changeListeners.push(cmp);
@@ -524,14 +545,6 @@ itasks.Viewport = class extends itasks.Component {
 		me.changeListeners = me.changeListeners.filter(function(el) {
 			return el != cmp;
 		});
-	}
-	onException(exception) {
-		var me = this;
-		//Remove all children and show the exception message
-		for(var i = me.children.length - 1; i >= 0; i--) {
-			me.removeChild(i);
-		}
-		me.insertChild(0,{type:'ExceptionView', parentCmp: me, attributes: { value : exception}});
 	}
 	beforeRemove() {
 		var me = this, instanceNo = me.attributes['instanceNo'];
@@ -612,22 +625,24 @@ itasks.Connection = class {
 	_isConnected() {
 		return (this.wsock !== null && this.wsock.readyState == 1)
 	}
-	newSession(onStart, onUIChange, onException) {
+	newSession(onStart, onUIChange, onRemoved, onException) {
 		var me = this, reqId = me.reqId++;
 			
 		me.newSessionCallbacks[reqId] = 
 			{ 'onStart' : onStart
 			, 'onUIChange' : onUIChange
+			, 'onRemoved' : onRemoved
 			, 'onException' : onException
 			};
 
 		me._send([parseInt(reqId),'new',{}]);
 	}
-	attachTaskInstance(instanceNo, instanceKey, onUIChange, onException) {
+	attachTaskInstance(instanceNo, instanceKey, onUIChange, onRemoved, onException) {
 		var me = this, reqId = me.reqId++;
 
 		me.taskInstanceCallbacks[instanceNo] =
 			{ 'onUIChange' : onUIChange
+			, 'onRemoved' : onRemoved
 			, 'onException' : onException
 			};
 
@@ -682,31 +697,46 @@ itasks.Connection = class {
 						var callbacks = me.newSessionCallbacks[reqId];
 
 						callbacks.onStart(reqArgs.instanceNo, reqArgs.instanceKey);
-						me.attachTaskInstance(reqArgs.instanceNo, reqArgs.instanceKey, callbacks.onUIChange,callbacks.onException);
+						me.attachTaskInstance(reqArgs.instanceNo, reqArgs.instanceKey, callbacks.onUIChange, callbacks.onRemoved, callbacks.onException);
 
 						delete me.newSessionCallbacks[reqId];
 					}
 					break;
-				case 'attach':
+				case 'removed':
+					if ('instanceNo' in reqArgs && reqArgs.instanceNo in me.taskInstanceCallbacks) {
+						me.taskInstanceCallbacks[reqArgs.instanceNo].onRemoved(reqArgs.instanceNo);
+						delete me.taskInstanceCallbacks[reqArgs.instanceNo];
+					}
 					break;
-				case 'detach':
-					break;
-				case 'ping':
+				case 'revoked':
+					if ('instanceNo' in reqArgs && reqArgs.instanceNo in me.taskInstanceCallbacks) {
+						me.taskInstanceCallbacks[reqArgs.instanceNo].onRemoved(reqArgs.instanceNo);
+						delete me.taskInstanceCallbacks[reqArgs.instanceNo];
+					}
 					break;
 				case 'ui-change':
 					if('instanceNo' in reqArgs && 'change' in reqArgs && reqArgs.instanceNo in me.taskInstanceCallbacks) {
 						me.taskInstanceCallbacks[reqArgs.instanceNo].onUIChange(reqArgs.change);
 					} 
 					break;
+				case 'set-cookie':
+					if('name' in reqArgs && 'value' in reqArgs && 'max-age' in reqArgs) {
+						document.cookie = reqArgs['name'] + '=' + reqArgs['value'] + (reqArgs['max-age'] === null ? '' : ';max-age='+reqArgs['max-age']);
+					}
+					break;
 				case 'exception':
 					if('instanceNo' in reqArgs && 'description' in reqArgs) {
-						//The exception targeted at one task instance, so notify all viewports
+						//The exception targeted at one task instance, notify its viewport
 						if (reqArgs.instanceNo in me.taskInstanceCallbacks) {
 							me.taskInstanceCallbacks[reqArgs.instanceNo].onException(reqArgs.description);
+							delete me.taskInstanceCallbacks[req.instanceNo];
 						} 
 					} else {
 						//The exception is not specific for one task instance, so notify all viewports
-						Object.values(me.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(reqArgs.description);});
+						for(let instanceNo in me.taskInstanceCallbacks) {
+							me.taskInstanceCallbacks[instanceNo].onException(reqArgs.description);
+							delete me.taskInstanceCallbacks[instanceNo];
+						}
 					}
 					break;
 			}

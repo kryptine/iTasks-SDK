@@ -4,7 +4,7 @@ definition module iTasks.SDS.Sources.System
 */
 
 import iTasks.SDS.Definition
-from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes
+from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes, :: Cookies
 from iTasks.WF.Combinators.Core import :: TaskList, :: SharedTaskList, :: TaskListFilter, :: TaskListItem 
 from iTasks.Extensions.DateTime import :: DateTime, :: Date, :: Time 
 from iTasks.Engine import :: EngineOptions
@@ -57,6 +57,7 @@ currentTopTask :: SDSLens () TaskId ()
 //Task instances
 currentTaskInstanceNo           :: SDSSource () InstanceNo ()
 currentTaskInstanceAttributes   :: SDSSequence () TaskAttributes TaskAttributes
+currentTaskInstanceCookies      :: SDSSequence () Cookies (String,String,Maybe Int)
 allTaskInstances                :: SDSSequence () [TaskInstance] ()
 detachedTaskInstances           :: SDSSequence () [TaskInstance] () //Exclude sessions
 taskInstanceByNo                :: SDSSequence InstanceNo TaskInstance TaskAttributes

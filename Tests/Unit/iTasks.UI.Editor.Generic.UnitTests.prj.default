@@ -37,7 +37,7 @@ Global
 	Link
 		LinkMethod:	Static
 		GenerateRelocations:	False
-		GenerateSymbolTable:	False
+		GenerateSymbolTable:	True
 		GenerateLinkMap:	False
 		LinkResources:	False
 		ResourceSource:	

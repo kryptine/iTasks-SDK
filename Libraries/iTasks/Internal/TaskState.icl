@@ -56,8 +56,8 @@ derive gDefault InstanceType, TaskId, TaskListFilter
 gDefault{|TaskMeta|}
 	= {taskId= TaskId 0 0,instanceType=PersistentInstance,build="",createdAt=gDefault{|*|},nextTaskNo=1,nextTaskTime=1
 		,detachedFrom=Nothing,status=Right False,attachedTo=[],connectedTo=Nothing,instanceKey=Nothing
-		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing
-		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet
+		,firstEvent=Nothing,lastEvent=Nothing, lastIO = Nothing, cookies = 'DM'.newMap
+		,taskAttributes='DM'.newMap,managementAttributes='DM'.newMap,unsyncedAttributes = 'DS'.newSet, unsyncedCookies = []
 		,change = Nothing, initialized = False}
 
 gDefault{|ExtendedTaskListFilter|} = fullExtendedTaskListFilter
@@ -139,13 +139,13 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
 	`b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
-createSessionTaskInstance :: !(Task a) !TaskAttributes !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createSessionTaskInstance task attributes iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createSessionTaskInstance :: !(Task a) !Cookies !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+createSessionTaskInstance task cookies iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (ApplyLayout defaultSessionLayout @>> task) task
 	# (Ok instanceNo,iworld) = newInstanceNo iworld
 	# (instanceKey,iworld)  = newInstanceKey iworld
 	# meta = {defaultValue & taskId= TaskId instanceNo 0,instanceType=SessionInstance
-		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock,taskAttributes=attributes}
+		,instanceKey = Just instanceKey,build=appVersion,createdAt=clock, cookies = cookies}
 	= 'SDS'.write meta (sdsFocus (instanceNo,False,False) taskInstance) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write NoValue (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
 	`b` \iworld -> 'SDS'.write (task @ DeferredJSON) (sdsFocus instanceNo taskInstanceTask) 'SDS'.EmptyContext iworld
@@ -249,7 +249,7 @@ where
 		check ppred qpred rel [] [] = False //We haven't found a reason to notify
 		check ppred qpred rel [(i,o):os] [n:ns]
 			| o.TaskMeta.taskId == n.TaskMeta.taskId //Potential update
-				| ppred (i,o) && qpred (i,o) = rel //This item would be updated, and matches the registered filter
+				| ppred (i,o) && qpred (i,o) && rel = True//This item would be updated, and matches the registered filter
 				| otherwise  = check ppred qpred rel os ns
 			| o.TaskMeta.taskId < n.TaskMeta.taskId //The taskId of the old item is not in the written set
 				| ppred (i,o) && qpred (i,o) = True //This item would be deleted, and matches the registered filter
@@ -417,27 +417,27 @@ where
 		,("lastEvent",toJSON lastEvent)
 		]
 
-taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
+taskInstanceParallelTaskList :: SDSLens (TaskId,TaskId,TaskListFilter) (TaskId,[TaskMeta]) [TaskMeta]
 taskInstanceParallelTaskList = sdsTranslate "taskInstanceParallelTaskList" param taskListMetaData
 where
-	param (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
-taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
+taskInstanceParallelTaskListValues :: SDSLens (TaskId,TaskId,TaskListFilter) (Map TaskId (TaskValue a)) (Map TaskId (TaskValue a)) | iTask a
 taskInstanceParallelTaskListValues
 	= sdsTranslate "taskInstanceParallelTaskListValues" param taskListTypedValueData
 where
-	param (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
-taskInstanceParallelTaskListTasks :: SDSLens (TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
+taskInstanceParallelTaskListTasks :: SDSLens (TaskId,TaskId,TaskListFilter) (Map TaskId (Task a)) (Map TaskId (Task a)) | iTask a
 taskInstanceParallelTaskListTasks
 	= sdsTranslate "taskInstanceParallelTaskListTasks" param taskListTypedTaskData
 where
-	param (listId,listfilter) = (listId,listId,listfilter,defaultValue)
+	param (listId,selfId,listfilter) = (listId,selfId,listfilter,defaultValue)
 
 taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId,Bool) TaskMeta TaskMeta
 taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskInstanceParallelTaskList
 where
-	param (listId,taskId,includeValue) = (listId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId], includeValue = includeValue})
+	param (listId,taskId,includeValue) = (listId,taskId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId], includeValue = includeValue})
 	read p=:(_,taskId,_) (listId,[x]) = Ok x
 	read p=:(listId,taskId,_) (_,_) = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
 
@@ -451,7 +451,7 @@ taskInstanceParallelTaskListValue
 		(Just reducer) taskInstanceParallelTaskListValues
 where
 	param (listId,taskId)
-		= (listId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId],includeValue=True})
+		= (listId,taskId,{TaskListFilter|fullTaskListFilter & onlyTaskId=Just [taskId],includeValue=True})
 	read p=:(listId,taskId) values = case 'DM'.get taskId values of
 		(Just x) = (Ok x)
 		_        = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))

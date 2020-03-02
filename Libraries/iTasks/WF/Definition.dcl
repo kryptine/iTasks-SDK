@@ -110,6 +110,9 @@ instance toInstanceNo TaskId
 
 fullTaskListFilter :: TaskListFilter
 
+//Session tasks have acess to persistent data stored in clients
+:: Cookies :== Map String String
+
 //The iTask context restriction contains all generic functions that need to
 //be available for a type to be used in tasks
 class iTask a
