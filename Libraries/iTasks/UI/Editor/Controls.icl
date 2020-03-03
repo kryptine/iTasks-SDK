@@ -57,7 +57,7 @@ checkBox
 slider :: Editor Int Int
 slider
 	= mapEditorWrite (fromMaybe 0)
-	$ fieldComponent UISlider Nothing (\_ _ -> True)
+	$ fieldComponent UISlider (Just 50) (\_ _ -> True)
 
 button :: Editor Bool Bool
 button

@@ -1,6 +1,9 @@
 # Creating Custom Editors #
 
+NOTE: The editors in iTasks are in a transition to a new API. Some of the examples in this guide may seem unnecessarily complex because of this. They will become simpler again in future versions.
+
 ## Introduction ##
+
 In this guide we assume you are already familiar with writing programs with iTasks and have used the common task definitions for user interaction such as `updateInformation` and `viewInformation`, but find that the automagically generated GUI's are not working for your application.
 
 In this guide we'll walk you through the process of creating an `Editor`. This is the construct that is used by tasks like `updateInformation` to render the GUI and handle user events. Editors are typed GUI building blocks that can be composed to create any GUI you like. Editors abstract away all UI concerns into a single opaque value. These building blocks define how the GUI is rendered, how events are handled and how the GUI is synchronized with the (task) value it represents.
@@ -13,15 +16,15 @@ The first thing you need to know to work with custom editors is how you can use 
 
 ```Clean
 myTask :: Task Int
-myTask = updateInformation "Change the magic number" [] 42
+myTask = Hint "Change the magic number" @>> updateInformation [] 42
 ```
 
 When rendered, this will give you a simple input box that allows you to update the value. But what if we wanted to use a slider component to edit the integer? We can do this with the following code:
 
 ```Clean
 myTask :: Task Int
-myTask = updateInformation "Change the magic number"
-           [UpdateUsing (\x -> x) (\_ x -> x) slider] 42
+myTask = Hint "Change the magic number" @>>  updateInformation
+           [UpdateUsing (\x -> x) (\_ x -> x) (mapEditorWrite Just slider)] 42
 ```
 
 The GUI will now be rendered as a nice slider. Let's look a little closer at what's going on here.
@@ -30,13 +33,15 @@ The GUI will now be rendered as a nice slider. Let's look a little closer at wha
 
    ```Clean
    ...
-   | E.v: UpdateUsing  (a -> v) (a v -> b) (Editor v) & iTask v
+   | E.v: UpdateUsing (a -> v) (a v -> a) (Editor v (Maybe v)) & iTask v
    ...
    ```
 
-   The option consists of three parts. The last is the most important one. We need to specify some value of type `Editor v`. The other two functions define how to map between the task value and the value that is being edited (of type ` v`). When we look at editor combinators later on we'll see that the mapping to the  `v` domain is not strictly necessary. By passing the identity mapping `(\x -> x) (\x _ -> x)` we stay in the same domain as the task value, so the editor we are using needs to be of type `Editor Int`. 
+   The option consists of three parts. The last is the most important one. We need to specify some value of type `Editor v (Maybe v)`. The other two functions define how to map between the task value and the value that is being edited (of type ` v`). When we look at editor combinators later on we'll see that the mapping to the  `v` domain is not strictly necessary. By passing the identity mapping `(\x -> x) (\x _ -> x)` we stay in the same domain as the task value, so the editor we are using needs to be of type `Editor Int (Maybe Int)`. 
 
-2. So when using  `UpdateUsing` (or `EnterUsing`,`ViewUsing` etc.) we pass a value of type `Editor v`. If we are lazy we can simply call `gEditor{|*|}` to create a the generic version that is used by default, but the goal in this guide is to specify a custom GUI. In this example we therefore use the `slider` function, which is a builtin function that returns a value of type `Editor Int`.
+2. So when using  `UpdateUsing` (or `EnterUsing`,`ViewUsing` etc.) we pass a value of type `Editor v (Maybe v)`. If we are lazy we can simply call `gEditor{|*|}` to create a the generic version that is used by default, but the goal in this guide is to specify a custom GUI. In this example we therefore use the `slider` function, which is a builtin function that returns a value of type `Editor Int Int`.
+
+3. The final piece of the puzzle is `mapEditorWrite`. Editors have two type parameters. The first defines the type of data that is passed into the editor. The second type parameter defines the type of values the editor produces. In most interactions these types are `a` together with `Maybe a`. The `Maybe` allows editors to specify that the editor in its current state can't produce a value. An editor like `slider` is guaranteed to always have value. Therefore it has the type `Editor Int Int` instead of `Editor Int (Maybe Int)`. By applying `mapEditorWrite Just` to a `slider` we make it fit the expected type.
 
 So to use a custom task UI we need to do two things: We need to specify an editor of the right type, and then pass it in the option list of the interaction task we are using. In the next section we'll look at the builtin editors and how we can use them to replace the generic editor function.
 
@@ -52,30 +57,19 @@ Creating editors for basic values is useful, but more often we want to construct
 
 ```Clean
 myTask :: Task Int
-myTask = updateInformation "Change the magic number"
-    [UpdateUsing (\x -> ("Mylabel",x)) (\_ (_,x) -> x) editor] 42
-where
-    editor :: Editor (String,Int)
-    editor = (container2 label slider) <<@ classAttr ["itasks-horizontal"]
-```
-
-When you run this example, you'll see the same slider as before, but this time with a label "Mylabel" to the left of it. There are a few things going on here. The first new thing is the `label` builtin editor that we are using. This is an editor of type `String` and simply displays its value. The next new thing is the `container2` combinator. This is where the composition happens. This combinator takes two editors and puts them together in a container. The values are combined into a tuple, so the type of the combined editor in this case is `(String,Int)`.  There are combinators for different kinds of containers, such as `panel`, `window` or `tabset`. Because grouping editors with these combinators creates tuples, we need different versions of each depending on how many items we group together. In this case we are using `container2` to group two editors. The last thing we are doing in this example is providing the actual label. We are using the model-to-view mapping of `UpdateUsing` to add the static label to the value.
-
-If we want to create more complex editors, it will quickly become very messy if we pass all labels and other static elements in the mapping of `UpdateUsing`. Luckily, there is a way we can embed this mapping in the editor itself. Let's take a look:
-
-```Clean
-myTask :: Task Int
-myTask = updateInformation "Change the magic number"
+myTask = Hint "Change the magic number" @>> updateInformation
     [UpdateUsing (\x -> x) (\_ x -> x) editor] 42
 where
-    editor :: Editor Int
-    editor = bijectEditorValue (\x -> ("Mylabel",x)) snd
-        (panel2 label slider <<@ classAttr ["itasks-horizontal"])
+    editor :: Editor Int (Maybe Int)
+    editor = lensEditor (\_ x -> ("MyLabel",x))
+    		(\_ (_,mbx) -> fmap Just mbx)
+    		(container2 label slider) <<@ classAttr ["itasks-horizontal"]
+
 ```
 
-In this revision, we have used a new combinator from `iTasks.UI.Editor.Modifiers`: The `bijectEditorValue` combinator. With this function we can change the type of the editor. In this case the two functions `(\x -> "Mylabel",x))` and `snd` define a bijection between the domain of the composed editor (of type `(String,Int)`) and the domain we would like our editor to work on (of type `Int`).
+When you run this example, you'll see the same slider as before, but this time with a label "Mylabel" to the left of it. There are a few things going on here. The first new thing is the `label` builtin editor that we are using. This is an editor of type `String a` and simply displays its value. The next new thing is the `container2` combinator. This is where the composition happens. This combinator takes two editors and puts them together in a container. The values are combined into a tuple, so the type of the combined editor in this case is `(String,Int) (Maybe a,Maybe Int)`.  There are combinators for different kinds of containers, such as `panel`, `window` or `tabset`. The 'write' type parameter is a tuple of `Maybe` values because, when editing, one of the editors or both can be changed. Because grouping editors with these combinators creates tuples, we need different versions of each depending on how many items we group together. In this case we are using `container2` to group two editors. The last thing we are doing in this example is providing the actual label. We are using the `lensEditor` combinator to map both the input and output of the combined editor to values of the right types. 
 
-We now have a composed editor with a nice label, but it's still of type `Editor Int`, so we can use it as drop-in replacement for our original editor.
+We now have a composed editor with a nice label that is still of type `Editor Int`, so we can use it as drop-in replacement for our original editor.
 
 In the next example, we'll take it one step further and create a nice little form for a custom record:
 
@@ -87,18 +81,24 @@ In the next example, we'll take it one step further and create a nice little for
 derive class iTask MyRecord
 
 myTask :: Task MyRecord
-myTask = enterInformation "Enter your data" [EnterUsing id editor]
+myTask = Hint "Enter your data" @>> enterInformation [EnterUsing id editor]
 where
-    editor = bijectEditorValue (\{foo,bar} -> (foo,bar)) (\(foo,bar) -> {foo=foo,bar=bar})
+    editor
+        = bijectEditorValue tof fromf
+        $ mapEditorWriteWithValue (\mbr _ -> fmap fromf mbr)
                 (panel2
                     (row "Footastic:" passwordField)
                     (row "Barmagic:" slider)
                 ) <<@ classAttr ["itasks-wrap-height"]
-    row l e = bijectEditorValue (\x -> ((),x)) snd
-                ((container2 (viewConstantValue l label) e) <<@ classAttr ["itasks-horizontal"])
+
+    tof {foo,bar} = (foo,bar)
+    fromf (foo,bar) = {foo=foo,bar=bar}
+
+    row l e = mapEditorWrite snd $ bijectEditorValue (\x -> ((),x)) snd
+        (container2 (viewConstantValue l label) e) <<@ classAttr ["itasks-horizontal"]
 ```
 
-This example is a little more complex, but uses only things we have already seen. By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
+This example is a little more complex, but is similar to things we have already seen. In this case we are using `bijectEditorValue` and `mapEditorWrite` instead of `lensEditor` to split the mapping of the inputs and outputs in two steps.  By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
 
 ## Creating dynamic editors ##
 
@@ -111,21 +111,29 @@ When you choose between different constructors of an ADT, the editor for the fie
 derive class iTask MyList
 
 myTask :: Task (MyList String)
-myTask = enterInformation "Enter the list" [EnterUsing id editor]
+myTask = Hint "Enter the list" @>> enterInformation [EnterUsing id editor]
 where
-    editor = injectEditorValue (\x -> (0,x)) (Ok o snd)
-        (containerc (chooseWithDropdown ["Nil","Cons"])
-            [(const MyNil, emptyEditor MyNil)
+    editor
+        = mapEditorWrite right
+        $ injectEditorValue (\x -> (0,x)) (Ok o snd)
+        (containerc
+            (chooseWithDropdown ["Nil","Cons"])
+            [(const MyNil, emptyEditorWithDefaultInEnterMode MyNil)
             ,(const (MyCons gDefault{|*|} MyNil), consEditor)
             ] <<@ heightAttr WrapSize)
 
-    consEditor = bijectEditorValue (\(MyCons x xs) -> (x,xs)) (\(x,xs) -> MyCons x xs)
-        (container2 gEditor{|*|} editor)
+    right (Right x) = Just x
+    right _ = Nothing
+
+    consEditor
+        = mapEditorWriteWithValue (\mbr _ -> fromMaybe MyNil mbr)
+        $ bijectEditorValue (\(MyCons x xs) -> (x,xs)) (\(x,xs) -> MyCons x xs)
+            (container2 gEditor{|*|} editor)
 ```
 
-There is quite a lot going on in this example, but the central combinator making this work is `containerc`. This combinator groups an editor for making a selection (of type `Editor Int`) with a list of editors. Based on the value of the selection editor an from the list is selected to edit the value.
+There is quite a lot going on in this example, but the central combinator making this work is `containerc`. This combinator groups an editor for making a selection (of type `Editor Int Int`) with a list of editors. Based on the value of the selection editor an from the list is selected to edit the value.
 
-The type of the list of possible editors is not `[Editor a]` but `[(a -> a, Editor a)]`. The function in the tuple is applied whenever the selection changes. This function let's the underlying value be changed based on what we choose. So in this example, if we choose `"Nil"` in our selector dropdown, the `const MyNil` function makes sure that the value is changed to `MyNil`. If we would not do this, we would only change to using another editor for the same value. When changing from `"Cons"` to `"Nil"` we would simply use the first editor (`emptyEditor`) for the `MyCons` value. This is not what you would expect. Therefore the function let's you modify the editor's value to be consistent with the selection. An additional benefit is that we can safely use partial functions when mapping to the alternative editors. In `consEditor` we can safely map between a tuple and the `MyCons` constructor with lambda's because we know that this editor will not be used with the `MyNil` constructor.
+The type of the list of possible editors is not `[Editor a w]` but `[(a -> a, Editor a w)]`. The function in the tuple is applied whenever the selection changes. This function let's the underlying value be changed based on what we choose. So in this example, if we choose `"Nil"` in our selector dropdown, the `const MyNil` function makes sure that the value is changed to `MyNil`. If we would not do this, we would only change to using another editor for the same value. When changing from `"Cons"` to `"Nil"` we would simply use the first editor (`emptyEditor`) for the `MyCons` value. This is not what you would expect. Therefore the function let's you modify the editor's value to be consistent with the selection. An additional benefit is that we can safely use partial functions when mapping to the alternative editors. In `consEditor` we can safely map between a tuple and the `MyCons` constructor with lambda's because we know that this editor will not be used with the `MyNil` constructor.
 
 This example shows that with these combinators you can also make dynamic editors for recursive types. You can even plug in in the generic editors to create editors for higher order-types.
 
