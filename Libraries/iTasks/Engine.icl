@@ -55,42 +55,52 @@ doTasksWithOptions initFun world
 		# (Left (err, world)) = mbIWorld
 		= show [err] (setReturnCode 1 world)
 	# (Right iworld)             = mbIWorld
-	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
+	| isNothing options.distributed && options.distributedChild
+		= show ["Conflicting options, distributedChild and distributed"] (setReturnCode 1 (destroyIWorld iworld))
+	# (symbolsResult, iworld)    = initSymbolsShare options iworld
 	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld = if (hasDup (requestPaths startable))
 		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
 		iworld
-	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
+	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options) (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
 	requestPaths startable = [path\\{path}<-webTasks startable]
 	webTasks startable = [t \\ WebTask t <- toStartable startable]
-	startupTasks startable {distributed, sdsPort}
-		=  if (webTasks startable) =:[]
-		   //if there are no webtasks: stop when stable
-		   [systemTask (startTask stopOnStable)]
-		   //if there are: show instructions andcleanup old sessions
-		   [startTask viewWebServerInstructions
-		   ,systemTask (startTask removeOutdatedSessions)]
-		//If distributed, start sds service task
-		++ (if distributed [systemTask (startTask (sdsServiceTask sdsPort))] [])
-		++ [systemTask (startTask flushWritesWhenIdle)
-		//Start all startup tasks
-		   :[t \\ StartupTask t <- toStartable startable]]
+	startupTasks startable options
+		| options.distributedChild = systemTasks $ distributedTasks []
+		= systemTasks $ distributedTasks $ backgroundTasks userTasks
+	where
+		systemTasks c = [systemTask (startTask flushWritesWhenIdle):c]
+		backgroundTasks c
+			| (webTasks startable) =: []
+				= [systemTask (startTask stopOnStable):c]
+			= [startTask viewWebServerInstructions
+		      ,systemTask (startTask removeOutdatedSessions):c]
+		distributedTasks c
+			| isNothing options.distributed = []
+			= [ systemTask (startTask (asyncTaskListener))
+			  , systemTask (startTask (sdsServiceTask (fromJust options.distributed)))]
+		userTasks = [t \\ StartupTask t <- toStartable startable]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
 	systemTask t = {StartupTask|t&attributes='DM'.put "system" (JSONBool True) t.StartupTask.attributes}
 
-	initSymbolsShare False _ iworld = (Ok (), iworld)
-	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
+	initSymbolsShare {distributed=Nothing} iworld = (Ok (), iworld)
+	initSymbolsShare options iworld = case storeSymbols (IF_WINDOWS (options.appName +++ ".exe") options.appName) iworld of
 		(Error (e, s), iworld) = (Error s, iworld)
-		(Ok noSymbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString noSymbols] iworld.world})
+		(Ok noSymbols, iworld)
+			# msg = if (noSymbols == 0)
+				["No symbols found, did you compile with GenerateSymbolTable: True?."
+				,"Async tasks and shares will probably not work."]
+				["Read number of symbols: " +++ toString noSymbols]
+			= (Ok (),  {iworld & world = show msg iworld.world})
 
-	//Only run a webserver if there are tasks that are started through the web
-	tcpTasks startable serverPort keepaliveTime
-		| (webTasks startable)=: [] = []
-		| otherwise
-			= [(serverPort,httpServer serverPort keepaliveTime (engineWebService (webTasks startable)) taskOutput)]
+	//Only run a webserver if there are tasks that are started through the web and we are not a child
+	tcpTasks startable {distributedChild,serverPort,keepaliveTime}
+		| distributedChild = []
+		| (webTasks startable) =: [] = []
+		= [(serverPort,httpServer serverPort keepaliveTime (engineWebService (webTasks startable)) taskOutput)]
 
 	// The iTasks engine consist of a set of HTTP Web services
 	engineWebService :: [WebTask] -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)]
@@ -149,10 +159,10 @@ where
 			("Specify the folder containing the temporary files\ndefault: " +++ defaults.tempDirPath)
 		, Option [] ["bytecodepath"] (ReqArg (\p->fmap \o->{o & byteCodePath=p}) "PATH")
 			("Specify the app's bytecode file\ndefault: " +++ defaults.byteCodePath)
-		, Option [] ["distributed"] (NoArg (fmap \o->{o & distributed=True}))
-			"Enable distributed mode (populate the symbols share)"
-		, Option ['s'] ["sdsPort"] (ReqArg (\p->fmap \o->{o & sdsPort=toInt p}) "SDSPORT")
-			("Specify the SDS port (default: " +++ toString defaults.sdsPort +++ ")")
+		, Option [] ["distributed"] (ReqArg (\p->fmap \o->{o & distributed=Just (toInt p)}) "PORT")
+			"Enable distributed mode (populate the symbols share, start the sds and task service)"
+		, Option [] ["distributedChild"] (NoArg (fmap \o->{o & distributedChild=True}))
+			"Enable distributed child mode (only sds and task service)"
 		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & showInstructions=False}))
 			"Don't show instructions to open the browser"
 		]
@@ -225,9 +235,9 @@ defaultEngineOptions world
 		, sessionTime      = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
 		, persistTasks     = False
 		, autoLayout       = True
-		, distributed      = False
 		, maxEvents        = 5
-		, sdsPort          = 9090
+		, distributed      = Just 9090
+		, distributedChild = False
 		, timeout          = Nothing//Just 500
 		, webDirPath       = appDir </> appName +++ "-www"
 		, storeDirPath     = appDir </> appName +++ "-data" </> "stores"
