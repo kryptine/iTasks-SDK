@@ -50,29 +50,29 @@ where
 	reducer p ws = Ok (fromMaybe 'DQ'.newQueue ('DM'.get p ws))
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-queueEvent instanceNo event iworld
-	# (_,iworld) = 'SDS'.modify
-		(\q -> fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q))
-		taskEvents
-		'SDS'.EmptyContext
-		iworld
-	= iworld
+queueEvent ino event iworld = snd (write (ino, event) queueEventShare EmptyContext iworld)
+
+queueEventShare :: SDSLens () () (InstanceNo, Event)
+queueEventShare = mapReadWrite (const (), writer) Nothing taskEvents
 where
-	// merge multiple refresh events for same instance
-	queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
-	queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
-		RefreshEvent refreshTasks =
-			((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
-			((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
-		where
-			queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
-			queueWithMergedRefreshEventList [] = Nothing
-			queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
-				RefreshEvent refreshTasks` | instanceNo` == instanceNo =
-					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`)) : tl]
-				_ =
-					(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
-		_ = Nothing
+	writer :: (InstanceNo, Event) TaskInput -> Maybe TaskInput
+	writer (instanceNo, event) q = Just (fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q))
+	where
+		// merge multiple refresh events for same instance
+		queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
+		queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
+			RefreshEvent refreshTasks =
+				((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
+				((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
+			where
+				queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
+				queueWithMergedRefreshEventList [] = Nothing
+				queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
+					RefreshEvent refreshTasks` | instanceNo` == instanceNo =
+						Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`)) : tl]
+					_ =
+						(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
+			_ = Nothing
 
 queueRefresh :: !TaskId !*IWorld -> *IWorld
 queueRefresh task iworld = queueRefreshes ('DS'.singleton task) iworld
@@ -83,6 +83,9 @@ queueRefreshes tasks iworld
 	# iworld = 'SDS'.clearTaskSDSRegistrations tasks iworld
 	# iworld = 'Foldable'.foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
 	= iworld
+
+queueRefreshesShare :: SDSLens () () (Set TaskId)
+queueRefreshesShare 
 
 dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
 dequeueEvent iworld
