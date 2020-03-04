@@ -7,7 +7,7 @@ from Data.Func import $
 from StdMisc import abort, undef
 import StdArray
 
-import iTasks.Extensions.Distributed._Formatter
+import iTasks.Internal.Distributed.Formatter
 import iTasks.SDS.Definition
 import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Distributed.Symbols
@@ -77,6 +77,15 @@ where
 				NoChange
 				(Task eval)
 				, iworld)
+		eval ResetEvent {lastEval} iworld
+			= (ValueResult
+				(Value () False)
+				(mkTaskEvalInfo lastEval)
+				NoChange
+				(Task eval)
+				, iworld)
+		eval event _ iworld
+			= (ExceptionResult (dynamic event, "Unknown event in sdsServiceTask"), iworld)
 
 		handlers =
 			{ ConnectionHandlersIWorld
