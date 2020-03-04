@@ -12,6 +12,7 @@ import iTasks.Internal.SDS
 import iTasks.Internal.AsyncSDS
 import iTasks.Internal.Task
 import iTasks.Internal.IWorld
+import iTasks.Internal.Util
 
 symbolsShare :: SimpleSDSLens String
 symbolsShare = sharedStore "symbols" ""
@@ -31,4 +32,4 @@ readSymbols :: String -> {#Symbol}
 readSymbols shareValue = fst (copy_from_string (base64Decode shareValue))
 
 withSymbols :: ({#Symbol} -> Task a) -> Task a | iTask a
-withSymbols taskfun = Task (readCompletely symbolsShare NoValue (unTask o taskfun o readSymbols))
+withSymbols taskfun = Task (readCompletely symbolsShare NoValue (\e->mkUIIfReset e (asyncSDSLoaderUI Read)) (unTask o taskfun o readSymbols))

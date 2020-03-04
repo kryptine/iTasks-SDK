@@ -12,10 +12,10 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 
 get :: !(sds () a w) -> Task a | TC a & Readable sds & TC w
-get sds = Task (readCompletely sds NoValue (unTask o return))
+get sds = Task (readCompletely sds NoValue (\e->mkUIIfReset e (asyncSDSLoaderUI Read)) (unTask o return))
 
 set :: !a !(sds () r a)  -> Task a | TC a & TC r & Writeable sds
-set val sds = Task (writeCompletely val sds NoValue (unTask (return val)))
+set val sds = Task (writeCompletely val sds NoValue (\e->mkUIIfReset e (asyncSDSLoaderUI Write)) (unTask (return val)))
 
 upd :: !(r -> w) !(sds () r w) -> Task w | TC r & TC w & RWShared sds
 upd fun sds = Task (modifyCompletely fun sds NoValue (\e->mkUIIfReset e (asyncSDSLoaderUI Modify)) (unTask o return))
