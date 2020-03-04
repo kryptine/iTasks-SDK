@@ -45,6 +45,7 @@ Global
 		Path:	{Application}*lib*Dynamics
 		Path:	{Application}*lib*Platform
 		Path:	{Application}*lib*StdEnv
+		Path:	{Application}*lib*Gast
 	Precompile:	
 	Postlink:	
 MainModule
