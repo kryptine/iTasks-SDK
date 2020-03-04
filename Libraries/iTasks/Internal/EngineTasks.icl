@@ -1,9 +1,12 @@
 implementation module iTasks.Internal.EngineTasks
 
 import Data.Error
+import Data.Func
 import Data.Queue
 import StdEnv
+import Text
 import iTasks.Engine
+import iTasks.Internal.AsyncTask
 import iTasks.Internal.IWorld
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskIO
@@ -12,14 +15,13 @@ import iTasks.Internal.TaskState
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.UI.Definition
+import iTasks.WF.Combinators.Common
 import iTasks.WF.Definition
-import Text
+import iTasks.WF.Tasks.SDS
 
 from Data.Map import newMap, member, del
 
-derive gText TaskId, TaskListFilter
-derive JSONEncode TaskId, TaskListFilter
-derive gDefault TaskId, TaskListFilter
+derive gDefault TaskListFilter, TaskId
 
 everyTick :: (*IWorld -> *(MaybeError TaskException (), *IWorld)) -> Task ()
 everyTick f = Task eval
@@ -89,3 +91,28 @@ where
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
 printStdErr v iw=:{world}
 	= {iw & world=snd (fclose (stderr <<< toSingleLineText v <<< "\n") world)}
+
+asyncTaskListener :: Task ()
+asyncTaskListener
+	=   withTaskId (return ())
+	>>- \((), TaskId ino _)->set (Just ino) asyncITasksHostInstance
+	>-| parallel
+		[(Embedded, \stl->forever $
+			     watch asyncITasksQueueInt @ dequeue
+			>>* [OnValue $ ifValue (isJust o fst) \(Just (tid, TaskWrapper task), q)->
+				    set q asyncITasksQueueInt
+				>-| appendTask Embedded (\_->Task (wrapTask tid task)) stl
+			]
+	)] [] @! ()
+where
+	wrapTask :: !TaskId !(Task a) !Event !TaskEvalOpts !*IWorld -> *(TaskResult TaskId,*IWorld) | iTask a
+	wrapTask taskId (Task teval) event opts iworld
+		= case teval event {TaskEvalOpts|opts & taskId=taskId} iworld of
+			(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
+			(DestroyedResult, iworld) = (DestroyedResult, iworld)
+			(ValueResult tv tei uic newtask, iworld)
+				= case modify (enqueue (tv, uic)) (sdsFocus taskId asyncITasksValues) EmptyContext iworld of
+					(Ok (ModifyingDone _), iworld)
+						= (ValueResult NoValue tei (mkUIIfReset event (ui UIEmpty))
+							$ Task (wrapTask taskId newtask), iworld)
+					(Ok _, iworld) = (ExceptionResult $ exception "wrapTask async share????", iworld)

@@ -1,14 +1,25 @@
 implementation module iTasks.WF.Combinators.Core
 
-import iTasks.WF.Tasks.Core
 import StdEnv
 
-import iTasks.WF.Derives
-import iTasks.WF.Definition
-import iTasks.UI.Definition
+import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
+import iTasks.SDS.Sources.Store
+import iTasks.SDS.Sources.System
+import iTasks.UI.Definition
+import iTasks.UI.Editor.Common
+import iTasks.UI.Layout.Common
+import iTasks.UI.Tune
+import iTasks.WF.Combinators.SDS
+import iTasks.WF.Definition
+import iTasks.WF.Derives
+import iTasks.WF.Tasks.Core
+import iTasks.WF.Tasks.IO
+import iTasks.WF.Tasks.SDS
+import iTasks.WF.Tasks.System
 
 import iTasks.Engine
+
 import iTasks.Internal.EngineTasks
 import iTasks.Internal.DynamicUtil
 import iTasks.Internal.Task
@@ -18,19 +29,20 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.IWorld
 import iTasks.Internal.Util
 import iTasks.Internal.AsyncSDS
+import iTasks.Internal.AsyncTask
+import iTasks.Internal.Serialization
+
 import iTasks.Util.DeferredJSON
+import Data.Queue
 
-from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle, removeMaybe, |*|
-import iTasks.WF.Combinators.Common
-from iTasks.Internal.SDS import write, read, readRegister, modify
-
-import iTasks.WF.Tasks.System
+import iTasks.Extensions.DateTime
 
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 
 import Data.Maybe, Data.Either, Data.Error, Data.Func
+import Text
 import Text.GenJSON
 from Data.Functor import <$>, class Functor(fmap)
 from Data.Map import qualified instance Functor (Map k)
@@ -420,6 +432,8 @@ where
 		# (Task evala) = directResult (fromOk mbTask)
 		//Evaluate new branches with a reset event, other with the event
 		= case evala (if initialized event ResetEvent) {TaskEvalOpts|evalOpts&taskId=taskId} iworld of
+			(DestroyedResult, iworld)
+				= (Ok DestroyedResult, iworld)
 			//If an exception occured, check if we can handle it at this level
 			(ExceptionResult e, iworld)
 				//TODO Check exception
@@ -775,3 +789,59 @@ where
 	eval tosignal (Task orig) ev opts iw
 		# (val, iw) = orig ev opts iw
 		= (wrapTaskContinuation (eval tosignal) val, iw)
+
+asyncTask :: !String !Int !(Task a) -> Task a | iTask a
+asyncTask host port t
+	//Get the remote instance number
+	=   watch asyncITasksHostInstance <<@ pbar
+	>>* [OnValue $ ifValue isJust $ return o fromJust]
+	//Generate a remote task id
+	>>- \ino->get (sdsFocus ino getNextTaskIdForInstance) <<@ pbar
+	>>- \tno->
+		let tid     = TaskId ino tno
+		    rvalue  = remoteShare (sdsFocus tid asyncITasksValues) {domain=host,port=port}
+		    revents = remoteShare queueEventShare {domain=host,port=port}
+		//Queue the task
+		in  set (tid, TaskWrapper t) (remoteShare asyncITasksQueue {domain=host, port=port}) <<@ pbar
+		//Monitor the output
+		>-| withCleanupHook (set (ino, DestroyEvent) revents)
+			(Task (proxy tid revents NoValue rvalue))
+where
+	pbar = ApplyLayout $ sequenceLayouts
+		[ setUIType UIProgressBar 
+		, setUIAttributes (textAttr "Communicating with the async host")
+		]
+	proxy _ _ _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	proxy rTaskId=:(TaskId ino tno) eventShare lastVal valueShare event opts=:{taskId,lastEval} iworld
+		//Determine whether to propagate the event
+		# propfun = case event of
+			(EditEvent tid a b) = writeCompletely (ino, EditEvent (patchInstance ino tid) a b) eventShare lastVal \e->mkUIIfReset e $ ui UIEmpty
+			(ActionEvent tid a) = writeCompletely (ino, ActionEvent (patchInstance ino tid) a) eventShare lastVal \e->mkUIIfReset e $ ui UIEmpty
+			ResetEvent = writeCompletely (ino, ResetEvent) eventShare lastVal  \e->mkUIIfReset e $ ui UIEmpty
+			//Refresh is always just for us, read is not used and destroy is handled by the cleanup hook
+			_ = id
+		= propfun
+			(readRegisterCompletely
+				valueShare
+				lastVal
+				(\e->mkUIIfReset e $ ui UIEmpty)
+				\r event opts iworld->case dequeue r of
+					(Nothing, _)
+						= (ValueResult lastVal (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty))
+							$ Task (proxy rTaskId eventShare lastVal valueShare)
+						, iworld)
+					(Just (tv, nui), queue)
+						= case write queue valueShare (TaskContext taskId) iworld of
+							(Ok _, iworld)
+								= (ValueResult tv (mkTaskEvalInfo lastEval) nui
+									$ Task (proxy rTaskId eventShare tv valueShare)
+								, iworld)
+							(Error e, iworld) = (ExceptionResult e, iworld)
+			) event opts iworld
+
+	/*
+	* The instance needs to be translated to match the remote intsance
+	*/
+	patchInstance :: !InstanceNo !TaskId -> TaskId
+	patchInstance newInstance (TaskId _ taskNo) = TaskId newInstance taskNo
