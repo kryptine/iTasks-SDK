@@ -35,13 +35,15 @@ taskEvents :: SimpleSDSLens TaskInput
 taskOutput :: SimpleSDSLens (Map InstanceNo TaskOutput)
 taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 
+
 /**
-* Queue an event for a task instance
+* Writing in this share queues an event for a task instance
 * events are applied in FIFO order when the task instance is evaluated
 *
 * By splitting up event queuing and instance evaluation, events can come in asynchronously without
 * the need to directly processing them.
 */
+queueEventShare :: SDSLens () () (InstanceNo, Event)
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 
 /**

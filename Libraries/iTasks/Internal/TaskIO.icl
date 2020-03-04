@@ -48,32 +48,32 @@ where
 	reducer p ws = Ok (fromMaybe 'DQ'.newQueue ('DM'.get p ws))
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-queueEvent instanceNo event iworld
-	# (_,iworld) = 'SDS'.modify
-		(\q -> fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q))
-		taskEvents
-		'SDS'.EmptyContext
-		iworld
-	= iworld
-where
-	// merge multiple refresh events for same instance
-	queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
-	queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
-		RefreshEvent refreshTasks reason =
-			((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
-			((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
-		where
-			queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
-			queueWithMergedRefreshEventList [] = Nothing
-			queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
-				RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
-					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
-				_ =
-					(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
+queueEvent ino event iworld = snd (write (ino, event) queueEventShare EmptyContext iworld)
 
-			mergeReason :: !String !String -> String
-			mergeReason x y = concat [x , "; " , y]
-		_ = Nothing
+queueEventShare :: SDSLens () () (InstanceNo, Event)
+queueEventShare = mapReadWrite (const (), writer) Nothing taskEvents
+where
+	writer :: (InstanceNo, Event) TaskInput -> Maybe TaskInput
+	writer (instanceNo, event) q = Just (fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q))
+	where
+		// merge multiple refresh events for same instance
+		queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
+		queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
+			RefreshEvent refreshTasks reason =
+				((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
+				((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
+			where
+				queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
+				queueWithMergedRefreshEventList [] = Nothing
+				queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
+					RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
+						Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
+					_ =
+						(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
+	
+				mergeReason :: !String !String -> String
+				mergeReason x y = concat [x , "; " , y]
+			_ = Nothing
 
 queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
 queueRefresh [] iworld = iworld
