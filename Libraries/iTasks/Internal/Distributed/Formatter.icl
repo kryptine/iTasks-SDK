@@ -1,4 +1,4 @@
-implementation module iTasks.Extensions.Distributed._Formatter
+implementation module iTasks.Internal.Distributed.Formatter
 
 import graph_copy_with_names
 import symbols_in_program
