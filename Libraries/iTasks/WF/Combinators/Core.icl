@@ -407,7 +407,7 @@ where
 			syncAttr = 'DM'.filterWithKey (\k v -> 'DS'.member k syncKeys) localAttr
 
 	evalEmbeddedParallelTask :: !TaskId !Event !TaskEvalOpts !TaskMeta (TaskValue a) !*IWorld -> *(MaybeError TaskException (TaskResult a), *IWorld) | iTask a
-	evalEmbeddedParallelTask listId event evalOpts meta=:{TaskMeta|taskId,createdAt,change,initialized} value iworld=:{current={taskTime}}
+	evalEmbeddedParallelTask listId event evalOpts meta=:{TaskMeta|taskId=taskId=:(TaskId ino tno),createdAt,change,initialized} value iworld=:{current={taskTime}}
 		//Check if we need to destroy the branch
 		| change === Just RemoveTask
 			# (result, iworld) = destroyEmbeddedParallelTask listId taskId iworld
@@ -418,6 +418,7 @@ where
 		# (mbTask,iworld) = read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
+		# iworld = if initialized iworld (queueEvent ino event iworld)
 		//Evaluate new branches with a reset event, other with the event
 		= case evala (if initialized event ResetEvent) {TaskEvalOpts|evalOpts&taskId=taskId} iworld of
 			//If an exception occured, check if we can handle it at this level
