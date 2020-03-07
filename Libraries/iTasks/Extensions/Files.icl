@@ -20,13 +20,13 @@ import qualified System.Directory as SD
 import iTasks
 
 deleteFile :: !FilePath -> Task ()
-deleteFile path = accWorldError ('SF'.deleteFile path) snd
+deleteFile path = accWorldError ('SF'.deleteFile path) (addExplanation ["Failed to delete ",path])
 
 moveFile :: !FilePath !FilePath -> Task ()
-moveFile srcPath dstPath = accWorldError ('SF'.moveFile srcPath dstPath) snd
+moveFile srcPath dstPath = accWorldError ('SF'.moveFile srcPath dstPath) (addExplanation ["Failed to move ",srcPath," to ",dstPath])
 
 copyFile :: !FilePath !FilePath -> Task ()
-copyFile srcPath dstPath = accWorldError (copyFile` srcPath dstPath) id
+copyFile srcPath dstPath = accWorldError (copyFile` srcPath dstPath) (\e -> concat ["Failed to copy ",srcPath," to ",dstPath,": ",e])
 
 copyFile` :: !FilePath !FilePath !*World -> (MaybeError String (), !*World)
 copyFile` srcPath dstPath w
@@ -50,7 +50,7 @@ where
 		= actuallyCopy src dst
 
 createDirectory :: !FilePath !Bool -> Task ()
-createDirectory path False = accWorldError ('SD'.createDirectory path) snd
+createDirectory path False = accWorldError ('SD'.createDirectory path) (addExplanation ["Failed to create directory ",path])
 createDirectory path True = accWorldError (createWithParents path) id
 where
 	createWithParents path world = create [] (split {pathSeparator} path) world
@@ -63,56 +63,65 @@ where
 		# (exists,world) = 'SF'.fileExists path world
 		| exists = create next rest world //This part exists, continue
 		| otherwise = case 'SD'.createDirectory path world of
-			(Error e,world) = (Error (snd e),world)
+			(Error e,world) = (Error (addExplanation ["Failed to create directory ",path] e),world)
 			(Ok (),world) = create next rest world
 
 deleteDirectory :: !FilePath !Bool -> Task ()
-deleteDirectory path False = accWorldError ('SD'.removeDirectory path) snd
+deleteDirectory path False = accWorldError ('SD'.removeDirectory path) (addExplanation ["Failed to delete directory ",path])
 deleteDirectory path True = accWorldError (deleteDirectoryRecursive path) id
 
 deleteDirectoryRecursive path world = case 'SD'.readDirectory path world of
-	(Error e,world) = (Error (snd e), world)
+	(Error e,world) = (Error (addExplanation expl e), world)
 	(Ok content,world) = case deleteContent content world of
 		(Error e,world) = (Error e,world)
 		(Ok (),world) = case 'SD'.removeDirectory path world of
-			(Error e,world) = (Error (snd e),world)
+			(Error e,world) = (Error (addExplanation expl e),world)
 			(Ok (),world) = (Ok (),world)
 where
+	expl = ["Failed to delete directory ",path]
+
 	deleteContent [] world = (Ok (),world)
 	deleteContent [".":rest] world = deleteContent rest world
 	deleteContent ["..":rest] world = deleteContent rest world
-	deleteContent [entry:rest] world = case getFileInfo (path </> entry) world of
-		(Error e,world) = (Error (snd e), world)
+	deleteContent [entry:rest] world = case getFileInfo thispath world of
+		(Error e,world) = (Error (addExplanation expl e), world)
 		(Ok {FileInfo|directory},world)
-		| directory = case deleteDirectoryRecursive (path </> entry) world of
+		| directory = case deleteDirectoryRecursive thispath world of
 			(Error e,world) = (Error e,world)
 			(Ok (),world) = deleteContent rest world
-		| otherwise = case 'SF'.deleteFile (path </> entry) world of
-			(Error e,world) = (Error (snd e),world)
+		| otherwise = case 'SF'.deleteFile thispath world of
+			(Error e,world) = (Error (addExplanation expl e),world)
 			(Ok (),world) = deleteContent rest world
+	where
+		thispath = path </> entry
+		expl = ["Failed to delete directory ",path," while checking ",thispath]
 
 copyDirectory :: !FilePath !FilePath -> Task ()
 copyDirectory  srcPath dstPath = accWorldError (copyDirectory` srcPath dstPath) id
 
 copyDirectory` srcPath dstPath world = case readDirectory srcPath world of
-		(Error e,world) = (Error (snd e), world)
-		(Ok content,world) = case 'SD'.createDirectory dstPath world of
-			(Error e,world) = (Error (snd e),world)
-			(Ok (),world) = copyContent content world
+	(Error e,world) = (Error (addExplanation expl e), world)
+	(Ok content,world) = case 'SD'.createDirectory dstPath world of
+		(Error e,world) = (Error (addExplanation expl e),world)
+		(Ok (),world) = copyContent content world
 where
+	expl = ["Failed to copy directory ",srcPath," to ",dstPath]
+
 	copyContent [] world  = (Ok (),world)
 	copyContent [".":rest] world = copyContent rest world
 	copyContent ["..":rest] world = copyContent rest world
 	copyContent [entry:rest] world = case getFileInfo (srcPath </> entry) world of
-		(Error e,world) = (Error (snd e), world)
+		(Error e,world) = (Error (addExplanation expl e), world)
 		(Ok {FileInfo|directory},world)
 			| directory = case copyDirectory` (srcPath </> entry) (dstPath </> entry) world of
-				(Error e,world) = (Error e,world)
+				(Error e,world) = (Error (concat (expl ++ [e])),world)
 				(Ok (),world) = copyContent rest world
 			| otherwise = case copyFile` (srcPath </> entry) (dstPath </> entry) world of
-				(Error e,world) = (Error (toString e), world)
+				(Error e,world) = (Error (concat (expl ++ [e])), world)
 				(Ok (),world) = copyContent rest world
 
+addExplanation :: ![String] !OSError -> String
+addExplanation expl (_,msg) = concat (expl ++ [": ", msg])
 
 //Why is this necessary?!?!?!?
 derive class iTask RTree, FileInfo, Tm
