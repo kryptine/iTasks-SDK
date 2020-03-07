@@ -55,7 +55,7 @@ accWorld :: !(*World -> *(a,*World))	-> Task a
 *
 * @return A  task that evaluates the function
 */
-accWorldError   :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC, toString err
+accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC e & toString err
 
 /**
 * Evaluate a "World" function that also returns a MaybeOSError value.
