@@ -27,7 +27,7 @@ where
 
 // some efficient order to be able to put notify requests in sets
 instance < SDSNotifyRequest where
-	< x y =
+	(<) x y =
 			((x.reqTaskId, x.reqSDSId, dynamic_to_string $ hyperstrict x.cmpParam), x.remoteOptions)
 		<
 			((y.reqTaskId, y.reqSDSId, dynamic_to_string $ hyperstrict y.cmpParam), y.remoteOptions)
