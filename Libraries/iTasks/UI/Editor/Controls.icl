@@ -57,7 +57,7 @@ icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,may
                      UIIcon
 
 textView :: Editor String
-textView = viewComponent (valueAttr o JSONString o escapeStr) UITextView
+textView = viewComponent (valueAttr o JSONString o escapeForAttribute) UITextView
 
 htmlView :: Editor HtmlTag
 htmlView = viewComponent (valueAttr o JSONString o toString) UIHtmlView

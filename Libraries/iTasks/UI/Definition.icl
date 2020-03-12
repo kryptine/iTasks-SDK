@@ -164,7 +164,7 @@ isOptional :: !UI -> Bool
 isOptional (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr)
 
 stringDisplay :: !String -> UI
-stringDisplay value = uia UITextView (valueAttr (JSONString (escapeStr value)))
+stringDisplay value = uia UITextView (valueAttr (JSONString (escapeForAttribute value)))
 
 //Encoding of UI definitions to the JSON format expected by the client
 class encodeUI a :: a -> JSONNode
