@@ -31,7 +31,7 @@ instance fromTuple TileEdge TileEdge TraxTile
 instance toTuple   TileEdge TileEdge TraxTile
    where toTuple   tile    = (tile.end1, tile.end2)
 instance == TraxTile
-   where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
+   where (==) {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
 instance toString TraxTile
    where toString tile = lookup1 tile [(horizontal,"horizontal")
 	                                  ,(vertical,  "vertical"  )
@@ -75,9 +75,9 @@ derive   JSEncode   TileEdge
 derive   JSDecode   TileEdge
 derive   gFDomain   TileEdge
 derive   gLexOrd    TileEdge
-instance ==         TileEdge where == e1 e2 = e1 === e2
-instance <          TileEdge where <  e1 e2 = (e1 =?= e2) === LT
-instance ~          TileEdge where ~  e     = case e of
+instance ==         TileEdge where (==) e1 e2 = e1 === e2
+instance <          TileEdge where (<)  e1 e2 = (e1 =?= e2) === LT
+instance ~          TileEdge where ~    e     = case e of
                                                  North = South
                                                  South = North
                                                  West  = East
@@ -85,7 +85,7 @@ instance ~          TileEdge where ~  e     = case e of
 
 derive class iTask  LineColor
 derive   gFDomain   LineColor
-instance ==         LineColor where == c1 c2 = c1 === c2
+instance ==         LineColor where (==) c1 c2 = c1 === c2
 instance ~          LineColor where ~ RedLine    = WhiteLine
                                     ~ WhiteLine  = RedLine
 
@@ -93,9 +93,9 @@ derive class iTask  Coordinate
 derive   JSEncode   Coordinate
 derive   JSDecode   Coordinate
 derive   gLexOrd    Coordinate
-instance ==         Coordinate where == c1 c2 = c1 === c2
-instance <          Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero       Coordinate where zero     = {col=zero, row=zero}
+instance ==         Coordinate where (==) c1 c2 = c1 === c2
+instance <          Coordinate where (<)  c1 c2 = (c1 =?= c2) === LT
+instance zero       Coordinate where zero       = {col=zero, row=zero}
 derive   gPrint     Coordinate
 
 instance toString   Coordinate where toString c = printToString c
@@ -139,7 +139,7 @@ derive   gEditor    Trax
 derive   gText      Trax
 gEq{|Trax|} t1 t2 = t1 == t2
 instance == Trax
-   where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
+   where (==) t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
 instance zero Trax
    where zero = {tiles = []}
 

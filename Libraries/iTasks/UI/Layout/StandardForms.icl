@@ -93,7 +93,7 @@ where
 			,layoutSubUIs (SelectByPath [0,0]) (modifyUIAttributes (SelectKeys ["hint"]) promptToValue)
 			]
 		where
-			promptToValue attr = 'DM'.fromList [("value",JSONString (maybe "" (\(JSONString s) -> escapeStr s) ('DM'.get "hint" attr)))]
+			promptToValue attr = 'DM'.fromList [("value",JSONString (maybe "" (\(JSONString s) -> escapeForAttribute s) ('DM'.get "hint" attr)))]
 
 //Different types of editor containers
 layoutRecord :: LayoutRule
