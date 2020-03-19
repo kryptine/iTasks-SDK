@@ -38,7 +38,6 @@ gText{|SDSIdentity|} f (Just id) =
 	]
 
 instance < SDSIdentity where (<) a b = a.id_hash < b.id_hash
-instance == SDSIdentity where (==) a b = a.id_hash == b.id_hash
 
 instance toString SDSIdentity where toString sdsId = toSingleLineText sdsId
 

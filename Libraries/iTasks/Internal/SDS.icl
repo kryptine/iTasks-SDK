@@ -942,10 +942,6 @@ readSDSRemoteService sds=:(SDSRemoteService Nothing opts) p (TaskContext taskId)
 		(Ok connectionId, iworld)
 			= (AsyncRead (SDSRemoteService (Just connectionId) opts), iworld)
 
-instance == RemoteNotifyOptions
-where
-	(==) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) == (right.hostToNotify, right.portToNotify, right.remoteSdsId)
-
 instance Identifiable SDSDebug
 where
 	sdsIdentity (SDSDebug name sds) = sdsIdentity sds

@@ -35,7 +35,6 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	}
 
 instance < SDSIdentity
-instance == SDSIdentity
 instance toString SDSIdentity
 derive JSONEncode SDSIdentity
 derive JSONDecode SDSIdentity
