@@ -22,17 +22,10 @@ LEAFLET_CSS_WINDOW   :== "leaflet-window.css"
     { iconUrl   :: !String
     , iconSize  :: ![Int]
     }
-:: MapOptions =
-    { attributionControl    :: !Bool
-    , zoomControl           :: !Bool
-    , editable              :: !Bool
-    }
 
 derive JSONEncode IconOptions
 
 derive gToJS MapOptions, LeafletLatLng
-
-MAP_OPTIONS     :== {attributionControl = False, zoomControl = True, editable = True}
 
 leafletObjectIdOf :: !LeafletObject -> LeafletObjectID
 leafletObjectIdOf (Marker m)    = m.markerId
@@ -68,14 +61,18 @@ where
     svg = concat ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
 		, toString width, "\" height=\"", toString height, "\">", toString svgelt, "</svg>"]
 
-openStreetMapTiles :: String
-openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+openStreetMapTiles :: TileLayer
+openStreetMapTiles =
+	{ url         = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+	, attribution = Just $ Html "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
+	}
 
 leafletEditor :: Editor LeafletMap
-leafletEditor = leafEditorToEditor (leafletEditor` (const id))
+leafletEditor =
+	leafEditorToEditor (leafletEditor` {attributionControl = True, zoomControl = True, editable = True} (const id))
 
-leafletEditor` :: !(JSVal *JSWorld -> *JSWorld) -> LeafEditor [LeafletEdit] LeafletMap LeafletMap
-leafletEditor` postInitUI =
+leafletEditor` :: !MapOptions !(JSVal *JSWorld -> *JSWorld) -> LeafEditor [LeafletEdit] LeafletMap LeafletMap
+leafletEditor` mapOptions postInitUI =
 	{ LeafEditor
     | genUI          = withClientSideInit initUI genUI
     , onEdit         = onEdit
@@ -89,7 +86,16 @@ where
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
-			,("tilesUrls", toJSON tilesUrls)
+			,("tilesUrls"
+			 , JSONArray $
+				(\tile ->
+					JSONObject
+						[ ("url", toJSON tile.url)
+						: maybe [] (\attr -> [("attribution", toJSON $ toString attr)]) tile.attribution
+						]
+				) <$>
+					tilesUrls
+			 )
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
 		# attr = 'DM'.unions [ mapAttr
@@ -140,7 +146,7 @@ where
 		# (viewMode, world) = me .# "attributes.viewMode" .? world
 		# viewMode          = jsValToBool` False viewMode
 		//Create the map
-		# (mapObj,world)    = (l .# "map" .$ (domEl,MAP_OPTIONS)) world
+		# (mapObj,world)    = (l .# "map" .$ (domEl,mapOptions)) world
 		# world 			= (me .# "map" .= mapObj) world
 		//Set perspective
 		# (center,world)    = me .# "attributes.center" .? world
@@ -349,11 +355,15 @@ where
 		# world     = (mapObj .# "panTo" .$! center) world
 		= world
 
-	addMapTilesLayer me mapObj _ tilesUrl world
-		| jsIsNull tilesUrl = world
-		# (l, world)      	= jsGlobal "L" .? world
-        # (layer,world)     = (l .# "tileLayer" .$ tilesUrl) world
-        # world             = (layer .# "addTo" .$! mapObj) world
+	addMapTilesLayer me mapObj _ tiles world
+		# (tilesUrl, world)    = tiles .# "url" .? world
+		| jsIsNull tilesUrl    = world
+		# (attribution, world) = tiles .# "attribution" .? world
+		# (options, world)     = jsEmptyObject world
+		# world                = (options .# "attribution" .= attribution) world
+		# (l, world)           = jsGlobal "L" .? world
+        # (layer,world)        = (l .# "tileLayer" .$ (tilesUrl, options)) world
+        # world                = (layer .# "addTo" .$! mapObj) world
 		= world
 
 	setMapIcons me mapObj icons world
@@ -734,11 +744,12 @@ where
 	toggle (LeafletObjectID "cursor") xs = xs //The cursor can't be selected
 	toggle x xs = if (isMember x xs) (removeMember x xs) ([x:xs])
 
-customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
-customLeafletEditor handlers initial = leafEditorToEditor (customLeafletEditor` handlers initial)
+customLeafletEditor :: !MapOptions !(LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor mapOptions handlers initial = leafEditorToEditor (customLeafletEditor` mapOptions handlers initial)
 
-customLeafletEditor` ::(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
-customLeafletEditor` handlers initial =
+customLeafletEditor` ::
+	!MapOptions !(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) | iTask s
+customLeafletEditor` mapOptions handlers initial =
 	{ LeafEditor
     | genUI          = genUI
     , onEdit         = onEdit
@@ -746,7 +757,7 @@ customLeafletEditor` handlers initial =
     , valueFromState = valueFromState
     }
 where
-	baseEditor = leafletEditor` case [h \\ OnMapDblClick h <- handlers] of
+	baseEditor = leafletEditor` mapOptions $ case [h \\ OnMapDblClick h <- handlers] of
 		[_:_] -> \me -> me .# "doubleClickZoom" .# "disable" .$! ()
 		[]    -> const id
 
@@ -785,10 +796,10 @@ where
 instance == LeafletObjectID where (==) (LeafletObjectID x) (LeafletObjectID y) = x == y
 instance == LeafletIconID where (==) (LeafletIconID x) (LeafletIconID y) = x == y
 
-derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
-derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng, TileLayer
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng, TileLayer
 derive gDefault   LeafletLatLng
-derive gEq        LeafletMap, LeafletPerspective
-derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
+derive gEq        LeafletMap, LeafletPerspective, TileLayer
+derive gText      LeafletMap, LeafletPerspective, LeafletLatLng, TileLayer
 derive gEditor    LeafletPerspective, LeafletLatLng
 derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletAreaStyle, LeafletObjectID, CSSClass, LeafletIconID, LeafletCircle, LeafletObjectUpdate, LeafletRectangle, LeafletSimpleState

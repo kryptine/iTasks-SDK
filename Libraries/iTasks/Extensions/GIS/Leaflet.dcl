@@ -9,16 +9,22 @@ leafletEditor :: Editor LeafletMap
 /*
  * Customization of editors
  *
+ * @param map options
  * @param handlers
  * @param initial value
  * @result editor
  */
-customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
+customLeafletEditor :: !MapOptions !(LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iTask s
 
+:: MapOptions =
+	{ attributionControl :: !Bool
+	, zoomControl        :: !Bool
+	, editable           :: !Bool
+	}
 
 :: LeafletMap =
     { perspective   :: !LeafletPerspective
-	, tilesUrls     :: ![String]
+	, tilesUrls     :: ![TileLayer]
 	, objects       :: ![LeafletObject]    //Markers, lines and polygon
     , icons         :: ![LeafletIcon]      //Custom icons used by markers. They are referenced using their 'iconId' string.
     }
@@ -28,6 +34,8 @@ customLeafletEditor :: (LeafletEventHandlers s) s -> Editor (LeafletMap, s) | iT
     , zoom          :: !Int
     , bounds        :: !Maybe LeafletBounds
     }
+
+:: TileLayer = {url :: !String, attribution :: !Maybe HtmlTag}
 
 :: LeafletIconID =: LeafletIconID String
 :: LeafletIcon =
@@ -145,7 +153,7 @@ simpleStateEventHandlers :: LeafletEventHandlers LeafletSimpleState
 svgIconURL :: !SVGElt !(!Int,!Int) -> String
 
 //Public tileserver of openstreetmaps
-openStreetMapTiles :: String
+openStreetMapTiles :: TileLayer
 
 instance == LeafletObjectID
 instance == LeafletIconID

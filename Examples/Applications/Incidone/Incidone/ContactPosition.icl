@@ -139,7 +139,7 @@ toLeafletMap {ContactMap|perspective,layers}
 	  ,objects = []
       }
 where
-	tilesUrls layers = [url \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
+	tilesUrls layers = [{url = url, attribution = Nothing} \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
 
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers | hasLatLng position]
     conv {ContactMapMarker|markerId,title,position,heading,type}
