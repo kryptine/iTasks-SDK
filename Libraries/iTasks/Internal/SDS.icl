@@ -84,15 +84,15 @@ mbRegister p sds mbRegister context iworld=:{sdsNotifyRequests,sdsNotifyReqsByTa
 	ReadAndRegister taskId reqSDSId
 		# (ts, world) = nsTime world
 		# req = buildRequest context taskId reqSDSId p
-		# sdsId = sdsIdentity sds
+		# {id_hash} = sdsIdentity sds
 		= { iworld
 			& world = world
-			, sdsNotifyRequests = 'DM'.alter (Just o maybe ('DM'.singleton req ts) ('DM'.put req ts)) sdsId sdsNotifyRequests
+			, sdsNotifyRequests = 'DM'.alter (Just o maybe ('DM'.singleton req ts) ('DM'.put req ts)) id_hash sdsNotifyRequests
 			, sdsNotifyReqsByTask = case context of
 				// We do not store remote requests in the tasks map, the task ID's are not local to this instance.
 				RemoteTaskContext _ _ _ _ _
 					= sdsNotifyReqsByTask
-					= 'DM'.alter (Just o maybe ('Set'.singleton sdsId) ('Set'.insert sdsId)) taskId sdsNotifyReqsByTask
+					= 'DM'.alter (Just o maybe ('Set'.singleton id_hash) ('Set'.insert id_hash)) taskId sdsNotifyReqsByTask
 			}
 where
 	buildRequest :: !TaskContext TaskId !SDSIdentity !p -> SDSNotifyRequest | TC p
@@ -135,8 +135,8 @@ checkRegistrations sdsId pred iworld
 where
 	//Find all notify requests for the given share id
 	lookupRegistrations :: !SDSIdentity !*IWorld -> (!Map SDSNotifyRequest Timespec, !*IWorld)
-	lookupRegistrations sdsId iworld=:{sdsNotifyRequests} =
-		('DM'.findWithDefault 'DM'.newMap sdsId sdsNotifyRequests, iworld)
+	lookupRegistrations {id_hash} iworld=:{sdsNotifyRequests} =
+		('DM'.findWithDefault 'DM'.newMap id_hash sdsNotifyRequests, iworld)
 
 	match {reqTaskId,cmpParam,remoteOptions} reqTimespec (match,nomatch) = case cmpParam of
 		(p :: p^)
@@ -178,9 +178,9 @@ clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyRe
 	  , sdsNotifyReqsByTask = foldl (flip 'DM'.del) sdsNotifyReqsByTask taskIds
 	  }
 where
-	clearRegistrationRequests :: (Map SDSIdentity (Map SDSNotifyRequest Timespec))
-								 SDSIdentity
-							  -> Map SDSIdentity (Map SDSNotifyRequest Timespec)
+	clearRegistrationRequests :: (Map SDSIdentityHash (Map SDSNotifyRequest Timespec))
+								 SDSIdentityHash
+							  -> Map SDSIdentityHash (Map SDSNotifyRequest Timespec)
 	clearRegistrationRequests requests sdsId
 		| 'DM'.null filteredReqsForSdsId = 'DM'.del sdsId requests
 		| otherwise                      = 'DM'.put sdsId filteredReqsForSdsId requests
@@ -188,7 +188,7 @@ where
 		reqsForSdsId         = fromJust $ 'DM'.get sdsId requests
 		filteredReqsForSdsId = 'DM'.filterWithKey (\req _ -> not $ 'Set'.member req.reqTaskId taskIds) reqsForSdsId
 
-listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
+listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentityHash)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList ('DM'.foldrWithKey addRegs 'DM'.newMap sdsNotifyRequests),iworld)
 where
 	addRegs cmpSDSId reqs list = 'DM'.foldlWithKey addReg list reqs
@@ -196,7 +196,7 @@ where
 		addReg list {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _)} _
 			= 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
-formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
+formatRegistrations :: [(InstanceNo,[(TaskId,SDSIdentityHash)])] -> String
 formatRegistrations list = 'Text'.join "\n" lines
 where
 	lines = [toString instanceNo +++ " -> " +++
@@ -954,7 +954,7 @@ instance Writeable SDSDebug
 where
 	writeSDS (SDSDebug name sds) p context w iworld=:{sdsNotifyRequests}
 		# iworld = iShow ['Text'.concat ["Writing to share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
-		# iworld = iShow [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds) sdsNotifyRequests))] iworld
+		# iworld = iShow [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds).id_hash sdsNotifyRequests))] iworld
 		= db (writeSDS sds p context w iworld)
 		where
 			db (WriteResult notify sds, iworld) =

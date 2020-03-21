@@ -164,7 +164,7 @@ where
 			newlines [x: xs] = newlines xs
 	
 			refreshRemoteTasks sdsId iworld=:{sdsNotifyRequests}
-				= case 'Map'.get sdsId sdsNotifyRequests of
+				= case 'Map'.get sdsId.id_hash sdsNotifyRequests of
 					Nothing = (Ok (Left ("No requests available")), iworld)
 					Just requestsToTime =
 						( Ok (Left "Requests re-queued")

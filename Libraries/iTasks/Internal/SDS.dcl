@@ -133,7 +133,7 @@ clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 queueNotifyEvents :: !SDSIdentity !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
-listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
+listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentityHash)])],!*IWorld)
 
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)

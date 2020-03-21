@@ -27,11 +27,14 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
 	| Child !SDSIdentity
 
 //* This type is for internal purposes only.
+:: SDSIdentityHash :== Int
+
+//* This type is for internal purposes only.
 :: SDSIdentity =
 	{ id_name    :: !String
 	, id_child_a :: !MaybeSDSIdentityChild
 	, id_child_b :: !MaybeSDSIdentityChild
-	, id_hash    :: !Int
+	, id_hash    :: !SDSIdentityHash
 	}
 
 instance < SDSIdentity
