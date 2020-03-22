@@ -71,7 +71,7 @@ generateRandomString length iworld=:{IWorld|random}
 	= (toString (take length [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop length random})
 
 isRefreshForTask :: !Event !TaskId -> Bool
-isRefreshForTask (RefreshEvent taskIds _) taskId = 'DS'.member taskId taskIds
+isRefreshForTask (RefreshEvent taskIds) taskId = 'DS'.member taskId taskIds
 isRefreshForTask ResetEvent _ = True
 isRefreshForTask _ _ = False
 
@@ -81,3 +81,47 @@ mkTaskEvalInfo ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[]}
 mkUIIfReset :: !Event !UI -> UIChange
 mkUIIfReset ResetEvent ui = ReplaceUI ui
 mkUIIfReset _ ui = NoChange
+
+M :== 0xc6a4a7935bd1e995
+R :== 47
+
+murmurHash :: !String -> Int
+murmurHash s
+	# h = seed bitxor (len*M)
+	# mainlen = (len>>3)<<3
+	# h = runblocks 0 mainlen h
+	# restlen = len bitand 7
+	# rest = get_int_from_string mainlen s
+	# rest = if (restlen<=3)
+		(if (restlen<=1)
+			(if (restlen==0) 0 (rest bitand 0xff))
+			(if (restlen==2) (rest bitand 0xffff) (rest bitand 0xffffff)))
+		(if (restlen<=5)
+			(if (restlen==4) (rest bitand 0xffffffff) (rest bitand 0xffffffffff))
+			(if (restlen==6) (rest bitand 0xffffffffffff) rest))
+	# h = (h bitxor rest) * M
+	# h = h bitxor (h >> R)
+	# h = h * M
+	# h = h bitxor (h >> R)
+	= h
+where
+	seed = 0
+	len = size s
+
+	// NB: this is for 64-bit only
+	runblocks :: !Int !Int !Int -> Int
+	runblocks i end h
+		| i >= end = h
+		# k = get_int_from_string i s
+		# k = k * M
+		# k = k bitxor (k >> R)
+		# h = (h bitxor (k * M)) * M
+		= runblocks (i+8) end h
+
+	get_int_from_string :: !Int !String -> Int
+	get_int_from_string offset s = code inline {
+		push_a_b 0
+		pop_a 1
+		addI
+		load_i 16
+	}

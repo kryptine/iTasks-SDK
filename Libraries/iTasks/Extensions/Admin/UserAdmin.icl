@@ -26,10 +26,10 @@ ROOT_USER :==
 AUTHENTICATION_COOKIE_TTL :== 3600 * 24 * 7 //One week validity
 
 userAccounts :: SDSLens () [StoredUserAccount] [StoredUserAccount]
-userAccounts = sdsFocus "UserAccounts" (storeShare NS_APPLICATION_SHARES False InJSONFile (Just [ROOT_USER]))
+userAccounts =: sdsFocus "UserAccounts" (storeShare NS_APPLICATION_SHARES False InJSONFile (Just [ROOT_USER]))
 
 users :: SDSLens () [User] ()
-users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.StoredUserAccount.credentials.StoredCredentials.username) a.StoredUserAccount.roles a.StoredUserAccount.title
+users =: mapReadWrite (\accounts -> [AuthenticatedUser (toString a.StoredUserAccount.credentials.StoredCredentials.username) a.StoredUserAccount.roles a.StoredUserAccount.title
 									\\ a <- accounts]
 					 , \() _ -> Nothing) (Just \_ _ -> Ok ()) userAccounts
 
@@ -40,7 +40,7 @@ where
 	hasRole _ _ = False
 
 userAccount :: SDSLens UserId (Maybe StoredUserAccount) (Maybe StoredUserAccount)
-userAccount = sdsLens "userAccount" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing userAccounts
+userAccount =: sdsLens "userAccount" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) Nothing userAccounts
 where
 	read userId accounts = Ok $ listToMaybe [a \\ a <- accounts | identifyUserAccount a == userId]
 	write userId accounts Nothing = Ok Nothing
@@ -48,7 +48,7 @@ where
 	notify p _ t q = p == q
 
 userToken :: SDSLens String (Maybe StoredUserAccount) ()
-userToken = sdsLens "userToken" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing userAccounts
+userToken =: sdsLens "userToken" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing userAccounts
 where
 	read token accounts = Ok $ listToMaybe [a \\ a <- accounts | maybe False (checkToken (split ":" token)) a.StoredUserAccount.token]
 

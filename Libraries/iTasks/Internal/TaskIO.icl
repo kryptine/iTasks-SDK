@@ -2,6 +2,7 @@ implementation module iTasks.Internal.TaskIO
 
 import StdEnv
 from Control.Applicative import class Alternative(<|>)
+import qualified Data.Foldable as Foldable
 import Data.Func
 import Data.Error
 import Data.Maybe
@@ -12,6 +13,7 @@ import qualified Data.Map as DM
 import Data.Map.GenJSON
 import qualified Data.Queue as DQ
 import qualified Data.Set as DS
+from Data.Set import :: Set, instance Foldable Set
 import Data.Set.GenJSON
 import iTasks.WF.Definition
 import iTasks.Internal.SDSService
@@ -34,13 +36,13 @@ rawInstanceOutput    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.ne
 
 //Event queues of task instances
 taskEvents :: SimpleSDSLens TaskInput
-taskEvents = sdsFocus "events" rawInstanceEvents
+taskEvents =: sdsFocus "events" rawInstanceEvents
 
 taskOutput :: SimpleSDSLens (Map InstanceNo TaskOutput)
-taskOutput = sdsFocus "taskOutput" rawInstanceOutput
+taskOutput =: sdsFocus "taskOutput" rawInstanceOutput
 
 taskInstanceOutput :: SDSLens InstanceNo TaskOutput TaskOutput
-taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskOutput
+taskInstanceOutput =: sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (Just reducer) taskOutput
 where
 	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs))
 	write instanceNo outputs output = Ok (Just ('DM'.put instanceNo output outputs))
@@ -59,28 +61,27 @@ where
 	// merge multiple refresh events for same instance
 	queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
 	queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
-		RefreshEvent refreshTasks reason =
+		RefreshEvent refreshTasks =
 			((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
 			((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
 		where
 			queueWithMergedRefreshEventList :: [(InstanceNo, Event)] -> Maybe [(InstanceNo, Event)]
 			queueWithMergedRefreshEventList [] = Nothing
 			queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
-				RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
-					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
+				RefreshEvent refreshTasks` | instanceNo` == instanceNo =
+					Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`)) : tl]
 				_ =
 					(\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
-
-			mergeReason :: !String !String -> String
-			mergeReason x y = concat [x , "; " , y]
 		_ = Nothing
 
-queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
-queueRefresh [] iworld = iworld
-queueRefresh tasks iworld
+queueRefresh :: !TaskId !*IWorld -> *IWorld
+queueRefresh task iworld = queueRefreshes ('DS'.singleton task) iworld
+
+queueRefreshes :: !(Set TaskId) !*IWorld -> *IWorld
+queueRefreshes tasks iworld
 	//Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
-	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
+	# iworld = 'SDS'.clearTaskSDSRegistrations tasks iworld
+	# iworld = 'Foldable'.foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)

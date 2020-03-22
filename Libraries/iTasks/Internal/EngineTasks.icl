@@ -41,12 +41,10 @@ where
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: Task ()
 removeOutdatedSessions = everyTick \iworld=:{IWorld|options} ->
-	case read (sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, onlySessions) taskListMetaData) EmptyContext iworld of
+	case read outdatedSessionsShare EmptyContext iworld of
 		(Ok (ReadingDone (_,index)), iworld) = checkAll (removeIfOutdated options) index iworld
 		(Error e, iworld)                = (Error e, iworld)
 where
-	onlySessions = {ExtendedTaskListFilter|defaultValue &includeSessions=True,includeDetached=False,includeStartup=False}
-
 	checkAll f [] iworld = (Ok (),iworld)
 	checkAll f [x:xs] iworld = case f x iworld of
 		(Ok (),iworld) = checkAll f xs iworld
@@ -60,6 +58,11 @@ where
 		| otherwise
 			= (Ok (), iworld)
 
+/* CAF for efficiency */
+outdatedSessionsShare =: sdsFocus (TaskId 0 0,TaskId 0 0, defaultValue, onlySessions) taskListMetaData
+where
+	onlySessions = {ExtendedTaskListFilter|defaultValue &includeSessions=True,includeDetached=False,includeStartup=False}
+
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: Task ()
 flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworld of
@@ -70,7 +73,7 @@ flushWritesWhenIdle = everyTick \iworld->case read taskEvents EmptyContext iworl
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all non-system tasks are stable
 stopOnStable :: Task ()
-stopOnStable = everyTick \iworld->case read (sdsFocus selection taskListMetaData) EmptyContext iworld of
+stopOnStable = everyTick \iworld -> case read stopOnStableShare EmptyContext iworld of
 		(Ok (ReadingDone (_,index)), iworld)
 			# iworld = if (isNothing iworld.shutdown && all isStable (filter (not o isSystem) index))
 				{IWorld | iworld & shutdown=Just 0}
@@ -80,11 +83,14 @@ stopOnStable = everyTick \iworld->case read (sdsFocus selection taskListMetaData
 			= (Error (exception "Unexpeced SDS state"),iworld)
 		(Error e, iworld)  = (Error e, iworld)
 where
-	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
-		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
-
 	isStable {TaskMeta|status} = fromRight False status 
 	isSystem {TaskMeta|taskAttributes} = member "system" taskAttributes
+
+/* CAF for efficiency */
+stopOnStableShare =: sdsFocus selection taskListMetaData
+where
+	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
+		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
 
 printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
 printStdErr v iw=:{world}

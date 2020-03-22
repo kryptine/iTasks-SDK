@@ -415,7 +415,8 @@ where
 				(Ok res) = (Ok res,iworld)
 				(Error e) = (Error (exception (ExceptionList e)), iworld)
 		//Lookup task evaluation function, and task evaluation state
-		# (mbTask,iworld) = read (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
+		# thisTask = sdsFocus (listId,taskId) taskInstanceParallelTaskListTask
+		# (mbTask,iworld) = read thisTask EmptyContext iworld
 		| mbTask =:(Error _) = (Error (fromError mbTask),iworld)
 		# (Task evala) = directResult (fromOk mbTask)
 		//Evaluate new branches with a reset event, other with the event
@@ -442,7 +443,7 @@ where
 				//Check if the value changed
 				# valueChanged = val =!= value
 				//Write the new reduct
-				# (mbError, iworld) = write task (sdsFocus (listId,taskId) taskInstanceParallelTaskListTask) EmptyContext iworld
+				# (mbError, iworld) = write task thisTask EmptyContext iworld
 				| mbError =:(Error _) = (Error (fromError mbError), iworld)
 				//Write meta data
                 # (mbError,iworld) = modify
@@ -771,7 +772,7 @@ withCleanupHook patch orig
 where
 	eval tosignal (Task orig) DestroyEvent opts iw
 		# (tr, iw) = orig DestroyEvent opts iw
-		= (tr, queueRefresh [(tosignal, "Cleanup")] iw)
+		= (tr, queueRefresh tosignal iw)
 	eval tosignal (Task orig) ev opts iw
 		# (val, iw) = orig ev opts iw
 		= (wrapTaskContinuation (eval tosignal) val, iw)

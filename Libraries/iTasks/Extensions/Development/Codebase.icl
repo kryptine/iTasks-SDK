@@ -70,13 +70,13 @@ where
 	
 
 moduleDefinition :: SDSLens (FilePath,ModuleName) [String] [String]
-moduleDefinition = mapReadWrite mapToLines Nothing (sdsTranslate "moduleDefinition" (\(p,m) -> modulePath p m "dcl") (removeMaybe (Just "") fileShare))
+moduleDefinition =: mapReadWrite mapToLines Nothing (sdsTranslate "moduleDefinition" (\(p,m) -> modulePath p m "dcl") (removeMaybe (Just "") fileShare))
 
 moduleImplementation :: SDSLens (FilePath,ModuleName) [String] [String]
-moduleImplementation = mapReadWrite mapToLines Nothing (sdsTranslate "moduleImplementation" (\(p,m) -> modulePath p m "icl") (removeMaybe (Just "") fileShare))
+moduleImplementation =: mapReadWrite mapToLines Nothing (sdsTranslate "moduleImplementation" (\(p,m) -> modulePath p m "icl") (removeMaybe (Just "") fileShare))
 
 moduleDocumentation :: SDSLens (FilePath,ModuleName) [String] [String]
-moduleDocumentation = mapReadWrite mapToLines Nothing (sdsTranslate "moduleDocumentation" (\(p,m) -> modulePath p m "md") (removeMaybe (Just "") fileShare))
+moduleDocumentation =: mapReadWrite mapToLines Nothing (sdsTranslate "moduleDocumentation" (\(p,m) -> modulePath p m "md") (removeMaybe (Just "") fileShare))
 
 mapToLines = (split "\n",\w _ -> Just (join "\n" w))
 

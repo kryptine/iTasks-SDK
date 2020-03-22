@@ -200,4 +200,4 @@ where
 	mbResetUIState _ _ iworld = iworld
 
 currentInstanceShare :: SDSSource () InstanceNo ()
-currentInstanceShare = createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))
+currentInstanceShare =: createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))
