@@ -400,6 +400,12 @@ readSDSLens sds=:(SDSLens sds1 opts=:{SDSLensOptions|param,read}) p c mbNotify i
 			(ReadException e, iworld) = (ReadException e, iworld)
 		SDSReadConst f = (ReadResult (f p) sds, iworld)
 
+sdsCacheKey :: !(sds p r w) !p -> SDSCacheKey | Identifiable sds
+sdsCacheKey sds p =
+	{ sdsIdHash      = (sdsIdentity sds).id_hash
+	, cacheParamHash = murmurHash (copy_to_string (hyperstrict p))
+	}
+
 // SDSCache
 instance Identifiable SDSCache
 where
@@ -412,7 +418,7 @@ where
 instance Writeable SDSCache
 where
 	writeSDS sds=:(SDSCache sds1 opts=:{SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
-	# key = (sdsIdentity sds, copy_to_string (hyperstrict p))
+	# key = sdsCacheKey sds p
 	//Check cache
 	# mbr = case 'DM'.get key readCache of
 		Just (val :: r^) = Just val
@@ -456,7 +462,7 @@ readSDSCache :: !(SDSCache p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
              -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 	# iworld = mbRegister p sds mbNotify c iworld
-	# key = (sdsIdentity sds, copy_to_string (hyperstrict p))
+	# key = sdsCacheKey sds p
 	//First check cache
 	= case 'DM'.get key readCache of
 		Just (val :: r^)

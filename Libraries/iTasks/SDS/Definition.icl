@@ -111,3 +111,10 @@ instance < SDSNotifyRequest where
 instance < RemoteNotifyOptions where
 	(<) left right = (left.hostToNotify, left.portToNotify, left.remoteSdsId) <
 	                 (right.hostToNotify, right.portToNotify, right.remoteSdsId)
+
+instance < SDSCacheKey
+where
+	(<) a b
+		| a.sdsIdHash < b.sdsIdHash = True
+		| a.sdsIdHash > b.sdsIdHash = False
+		| otherwise                 = a.cacheParamHash < b.cacheParamHash

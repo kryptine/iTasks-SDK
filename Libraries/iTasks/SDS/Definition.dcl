@@ -327,6 +327,14 @@ required type w. The reducer has the job to turn this ws into w.
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
 
+//* Used in the `IWorld`.
+:: SDSCacheKey =
+	{ sdsIdHash      :: !SDSIdentityHash
+	, cacheParamHash :: !Int
+	}
+
+instance < SDSCacheKey
+
 /**
  * A SDSRemoteSource with no parameter and equal read and write type.
  */

@@ -21,7 +21,7 @@ from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceN
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem
 from iTasks.Internal.SDS import :: DeferredWrite
 from iTasks.SDS.Definition import :: SDSIdentity, :: SDSIdentityHash, :: SDSNotifyRequest,
-	:: SDSSource, :: SDSLens, :: SDSParallel,
+	:: SDSSource, :: SDSLens, :: SDSParallel, :: SDSCacheKey,
 	class RWShared, class Registrable, class Modifiable, class Identifiable, class Readable, class Writeable
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
@@ -42,8 +42,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, sdsNotifyRequests     :: !Map SDSIdentityHash (Map SDSNotifyRequest Timespec) //* Notification requests from previously read sds's
 	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentityHash)                //* Allows to efficiently find notification by taskID for clearing notifications
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
-	, readCache             :: !Map (SDSIdentity,String) Dynamic                // Cached share reads
-	, writeCache            :: !Map (SDSIdentity,String) (Dynamic,DeferredWrite) // Cached deferred writes
+	, readCache             :: !Map SDSCacheKey Dynamic                         //* Cached share reads
+	, writeCache            :: !Map SDSCacheKey (Dynamic,DeferredWrite)         //* Cached deferred writes
 	, abcInterpreterEnv     :: !PrelinkedInterpretationEnvironment              // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
