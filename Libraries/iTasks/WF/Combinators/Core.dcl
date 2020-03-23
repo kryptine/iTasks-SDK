@@ -162,11 +162,3 @@ withCleanupHook :: (Task a) (Task b) -> Task b | iTask a & iTask b
  * @param Task
  */
 asyncTask :: !String !Int !(Task a) -> Task a | iTask a
-
-/**
- * Infix version of {{asyncTask}}
- *
- * @type !(Task a) !String !Int -> Task a | iTask a
- */
-(@.) infix 9
-(@.) l (h, p) :== asyncTask h p l
