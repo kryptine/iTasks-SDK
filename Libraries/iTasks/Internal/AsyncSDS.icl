@@ -398,84 +398,78 @@ asyncSDSLoaderUI Modify = uia UIProgressBar (textAttr "Modifying data")
 
 readCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
-readCompletely _ _ _ _ DestroyEvent _ iworld
-	= (DestroyedResult, iworld)
 readCompletely sds tv ui cont origevent evalOpts iworld
-	= readC [] sds tv ui cont origevent evalOpts iworld
+	= readC sds tv ui cont origevent evalOpts iworld
 where
-	readC :: [Event] (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	readC :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 		-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
-	readC queue sds tv ui cont event {taskId=taskId=:(TaskId ino _),lastEval} iworld
+	readC _ _ _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	readC sds tv ui cont event evalOpts=:{taskId,lastEval} iworld
 		| not (isRefreshForTask event taskId)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC queue sds tv ui cont)), iworld)
-		| not (event =: RefreshEvent _ _ || event =: ResetEvent)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC [event:queue] sds tv ui cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC sds tv ui cont)), iworld)
+		| not (event =: RefreshEvent _ || event =: ResetEvent)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC sds tv ui cont)), iworld)
 		= case read sds (TaskContext taskId) iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (ReadingDone r), iworld)
-				= cont r origevent evalOpts $ foldr (queueEvent ino) iworld (reverse queue)
+				= cont r origevent evalOpts iworld
 			(Ok (Reading sds), iworld)
-				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC queue sds tv ui cont)), iworld)
+				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readC sds tv ui cont)), iworld)
 
 writeCompletely :: w (sds () r w) (TaskValue a) (Event -> UIChange) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
-writeCompletely _ _ _ _ _ DestroyEvent _ iworld
-	= (DestroyedResult, iworld)
 writeCompletely w sds tv ui cont origevent evalOpts iworld
-	= writeC [] w sds tv ui cont origevent evalOpts iworld
+	= writeC w sds tv ui cont origevent evalOpts iworld
 where
-	writeC :: [Event] w (sds () r w) (TaskValue a) (Event -> UIChange) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	writeC :: w (sds () r w) (TaskValue a) (Event -> UIChange) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 		-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
-	writeC queue w sds tv ui cont event {taskId=taskId=:(TaskId ino _),lastEval} iworld
+	writeC _ _ _ _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	writeC w sds tv ui cont event evalOpts=:{taskId,lastEval} iworld
 		| not (isRefreshForTask event taskId)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (writeC queue w sds tv ui cont)), iworld)
-		| not (event =: RefreshEvent _ _ || event =: ResetEvent)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (writeC [event:queue] w sds tv ui cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (writeC w sds tv ui cont)), iworld)
 		= case write w sds (TaskContext taskId) iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (WritingDone), iworld)
-				= cont origevent evalOpts $ foldr (queueEvent ino) iworld (reverse queue)
+				= cont origevent evalOpts iworld
 			(Ok (Writing sds), iworld)
-				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (writeC queue w sds tv ui cont)), iworld)
+				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (writeC w sds tv ui cont)), iworld)
 
 modifyCompletely :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
-modifyCompletely _ _ _ _ cont DestroyEvent evalOpts iworld
-	= (DestroyedResult, iworld)
 modifyCompletely modfun sds tv ui cont origevent evalOpts iworld
-	= modifyC [] modfun sds tv ui cont origevent evalOpts iworld
+	= modifyC modfun sds tv ui cont origevent evalOpts iworld
 where
-	modifyC :: [Event] (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	modifyC :: (r -> w) (sds () r w) (TaskValue a) (Event -> UIChange) (w Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 		-> *(TaskResult a, *IWorld) | TC r & TC w & Modifiable sds
-	modifyC queue modfun sds tv ui cont event {taskId=taskId=:(TaskId ino _),lastEval} iworld
+	modifyC _ _ _ _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	modifyC modfun sds tv ui cont event evalOpts=:{taskId,lastEval} iworld
 		| not (isRefreshForTask event taskId)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyC queue modfun sds tv ui cont)), iworld)
-		| not (event =: RefreshEvent _ _ || event =: ResetEvent)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyC [event:queue] modfun sds tv ui cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyC modfun sds tv ui cont)), iworld)
 		= case modify modfun sds (TaskContext taskId) iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (ModifyingDone w), iworld)
-				= cont w origevent evalOpts $ foldr (queueEvent ino) iworld (reverse queue)
+				= cont w origevent evalOpts iworld
 			(Ok (Modifying sds modfun), iworld)
-				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyC queue modfun sds tv ui cont)), iworld)
+				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (modifyC modfun sds tv ui cont)), iworld)
 
 readRegisterCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds
-readRegisterCompletely _ _ _ cont DestroyEvent evalOpts iworld
-	= (DestroyedResult, iworld)
 readRegisterCompletely sds tv ui cont origevent evalOpts iworld
-	= readRegisterC [] sds tv ui cont origevent evalOpts iworld
+	= readRegisterC sds tv ui cont origevent evalOpts iworld
 where
-	readRegisterC :: [Event] (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+	readRegisterC :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 		-> *(TaskResult a, *IWorld) | TC r & TC w & Registrable sds
-	readRegisterC queue sds tv ui cont event {taskId=taskId=:(TaskId ino _),lastEval} iworld
+	readRegisterC _ _ _ _ DestroyEvent _ iworld
+		= (DestroyedResult, iworld)
+	readRegisterC sds tv ui cont event {taskId,lastEval} iworld
 		| not (isRefreshForTask event taskId)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC queue sds tv ui cont)), iworld)
-		| not (event =: RefreshEvent _ _ || event =: ResetEvent)
-			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC [event:queue] sds tv ui cont)), iworld)
+			= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC sds tv ui cont)), iworld)
 		= case readRegister taskId sds iworld of
 			(Error e, iworld) = (ExceptionResult e, iworld)
 			(Ok (ReadingDone r), iworld)
-				= cont r origevent evalOpts $ foldr (queueEvent ino) iworld $ reverse queue
+				= cont r origevent evalOpts iworld
 			(Ok (Reading sds), iworld)
-				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC queue sds tv ui cont)) , iworld)
+				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC sds tv ui cont)) , iworld)
