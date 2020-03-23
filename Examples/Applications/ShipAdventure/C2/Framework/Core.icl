@@ -14,7 +14,7 @@ import iTasks.UI.Layout
 
 derive class iTask TaskPrio
 
-instance == TaskPrio where == u1 u2 = u1 === u2
+instance == TaskPrio where (==) u1 u2 = u1 === u2
 ccMain :: (User -> [User -> Task Entity])
           (User -> [         User [Entity] -> Task ()])
           (User -> [(String, User [Entity] -> Task ())])

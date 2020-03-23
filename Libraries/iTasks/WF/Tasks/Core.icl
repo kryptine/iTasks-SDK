@@ -29,15 +29,18 @@ appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = accWorld $ tuple () o fun
 
 accWorld :: !(*World -> *(a, *World)) -> Task a
-accWorld fun = accWorldError (appFst Ok o fun) \_->""
+accWorld fun = accWorldError (appFst ok o fun) id
+where
+	ok :: !a -> MaybeError String a
+	ok x = Ok x
 
-accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC, toString err
+accWorldError :: !(*World -> (MaybeError e a, *World)) !(e -> err) -> Task a | TC e & toString err
 accWorldError fun errf = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|world}
 		# (res,world) = fun world
 		= case res of
-			Error e = (Error (exception (errf e)), {IWorld|iworld & world = world})
+			Error e = (Error (dynamic e, toString (errf e)), {IWorld|iworld & world = world})
 			Ok v    = (Ok v, {IWorld|iworld & world = world})
 
 accWorldOSError :: !(*World -> (MaybeOSError a, *World)) -> Task a
@@ -150,7 +153,7 @@ evalInteract r mst mode sds handlers editor writefun event=:(EditEvent eTaskId n
 evalInteract r mst mode sds handlers editor writefun ResetEvent evalOpts iworld
 	# v = maybe Nothing editor.Editor.valueFromState mst
 	= evalInteractInitWithValue r v mode sds handlers editor writefun evalOpts iworld
-evalInteract r mst mode sds handlers editor writefun event=:(RefreshEvent taskIds _) evalOpts=:{taskId,lastEval} iworld
+evalInteract r mst mode sds handlers editor writefun event=:(RefreshEvent taskIds) evalOpts=:{taskId,lastEval} iworld
 	| isNothing mst = (ExceptionResult (exception "corrupt editor state"), iworld)
 	# st = fromJust mst
 	# v = editor.Editor.valueFromState st

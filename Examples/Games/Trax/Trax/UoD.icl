@@ -23,7 +23,7 @@ derive   JSONDecode TraxTile
 gFDomain{|TraxTile|} = map fromTuple [(West,East),(North,South),(North,West),(North,East),(South,East),(South,West)]
 instance fromTuple TileEdge TileEdge TraxTile where fromTuple (e1,e2) = {end1 = e1, end2 = e2}
 instance toTuple   TileEdge TileEdge TraxTile where toTuple   tile    = (tile.end1, tile.end2)
-instance == TraxTile where == {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
+instance == TraxTile where (==) {end1=a1,end2=a2} {end1=b1,end2=b2} = (a1,a2) == (b1,b2) || (a2,a1) == (b1,b2)
 gEq{|TraxTile|} t1 t2 = t1 == t2
 instance toString TraxTile where
 	toString tile = lookup1 tile [(horizontal,"horizontal")
@@ -65,23 +65,23 @@ instance ~ TraxTile where ~ tile = lookup1 tile [(horizontal,vertical  )
 
 derive   gFDomain  TileEdge
 derive   gLexOrd   TileEdge
-instance ==        TileEdge where == e1 e2 = e1 === e2
-instance <         TileEdge where <  e1 e2 = (e1 =?= e2) === LT
-instance ~         TileEdge where ~  e     = case e of
+instance ==        TileEdge where (==) e1 e2 = e1 === e2
+instance <         TileEdge where (<)  e1 e2 = (e1 =?= e2) === LT
+instance ~         TileEdge where ~    e     = case e of
                                                 North = South
                                                 South = North
                                                 West  = East
                                                 East  = West
 
 derive   gFDomain  LineColor
-instance ==        LineColor where == c1 c2 = c1 === c2
+instance ==        LineColor where (==) c1 c2 = c1 === c2
 instance ~         LineColor where ~ RedLine    = WhiteLine
                                    ~ WhiteLine  = RedLine
 
 derive   gLexOrd   Coordinate
-instance ==        Coordinate where == c1 c2 = c1 === c2
-instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero      Coordinate where zero     = {col=zero, row=zero}
+instance ==        Coordinate where (==) c1 c2 = c1 === c2
+instance <         Coordinate where (<)  c1 c2 = (c1 =?= c2) === LT
+instance zero      Coordinate where zero       = {col=zero, row=zero}
 derive   gPrint    Coordinate
 
 instance toString  Coordinate where toString c = printToString c
@@ -120,7 +120,7 @@ derive   gEditor    Trax
 derive   gText      Trax
 derive   JSONEncode Trax
 derive   JSONDecode Trax
-instance == Trax where == t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
+instance == Trax where (==) t1 t2 = sortBy fst_smaller t1.tiles == sortBy fst_smaller t2.tiles
 gEq{|Trax|} t1 t2 = t1 == t2
 instance zero Trax where zero = { tiles = [] }
 
@@ -333,7 +333,7 @@ where
 	| IllegalMove		//	an  illegal move (more than two identical edge colors)
 	| UnforcedMove		//	an unforced move (less than two identical edge colors, for both line colors)
 derive gEq MoveStatus
-instance == MoveStatus where == s1 s2 = s1 === s2
+instance == MoveStatus where (==) s1 s2 = s1 === s2
 
 /** tiles_status @trax @coordinate = @tiles:
        @tiles are the immediate, free, neighbours of the tile at @coordinate in @trax

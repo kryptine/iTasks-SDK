@@ -124,32 +124,41 @@ where
 (>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wx          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & Registrable sds2
 (>*|) l r = SDSParallelWriteLeft l r opts
 where
-  opts = {SDSParallelOptions| name = ">*|"
-         , param = \p. (p,p)
-         , read = id
-         , writel = SDSWriteConst (\_ w. Ok (Just w))
-         , writer = SDSWriteConst (\_ _. Ok Nothing)
-       }
+	opts =
+		{ SDSParallelOptions
+		| id     = createSDSIdentity ">*|" (Child (sdsIdentity l)) (Child (sdsIdentity r))
+		, name   = ">*|"
+		, param  = \p -> (p,p)
+		, read   = id
+		, writel = SDSWriteConst (\_ w -> Ok (Just w))
+		, writer = SDSWriteConst (\_ _ -> Ok Nothing)
+		}
 
 (|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) wy          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & RWShared sds2
 (|*<) l r = SDSParallelWriteRight l r opts
 where
-  opts = {SDSParallelOptions| name = "|*<"
-         , param = \p. (p,p)
-         , read = id
-         , writel = SDSWriteConst (\_ _. Ok Nothing)
-         , writer = SDSWriteConst (\_ w. Ok (Just w))
-       }
+	opts =
+		{ SDSParallelOptions
+		| id     = createSDSIdentity "|*<" (Child (sdsIdentity l)) (Child (sdsIdentity r))
+		, name   = "|*<"
+		, param  = \p -> (p,p)
+		, read   = id
+		, writel = SDSWriteConst (\_ _ -> Ok Nothing)
+		, writer = SDSWriteConst (\_ w -> Ok (Just w))
+		}
 
 (|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) ()          | gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & Registrable sds1 & Registrable sds2
 (|*|) l r = SDSParallelWriteNone l r opts
 where
-  opts = {SDSParallelOptions| name = "|*|"
-         , param = \p. (p, p)
-         , read = id
-         , writel = SDSWriteConst (\_ _. Ok Nothing)
-         , writer = SDSWriteConst (\_ _. Ok Nothing)
-        }
+	opts =
+		{ SDSParallelOptions
+		| id     = createSDSIdentity "|*|" (Child (sdsIdentity l)) (Child (sdsIdentity r))
+		, name   = "|*|"
+		, param  = \p -> (p,p)
+		, read   = id
+		, writel = SDSWriteConst (\_ _ -> Ok Nothing)
+		, writer = SDSWriteConst (\_ _ -> Ok Nothing)
+		}
 
 symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 & RWShared sds2
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)

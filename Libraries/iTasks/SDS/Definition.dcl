@@ -2,6 +2,9 @@ definition module iTasks.SDS.Definition
 /**
 * This module provides the types that define a shared data source
 */
+
+from StdOverloaded import class <, class ==, class toString
+
 from iTasks.WF.Definition import :: TaskException, class iTask, :: TaskId
 from iTasks.Internal.IWorld import :: IWorld, :: ConnectionId
 
@@ -9,6 +12,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
 import Data.GenEq, Internet.HTTP, Data.Maybe.Ord
+from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
@@ -17,10 +21,33 @@ from Data.Set import :: Set
 
 derive gText SDSNotifyRequest, RemoteNotifyOptions
 
-:: SDSIdentity  :== String
+//* This type is for internal purposes only.
+:: MaybeSDSIdentityChild
+	= NoChild
+	| Child !SDSIdentity
+
+//* This type is for internal purposes only.
+:: SDSIdentityHash :== Int
+
+//* This type is for internal purposes only.
+:: SDSIdentity =
+	{ id_name    :: !String
+	, id_child_a :: !MaybeSDSIdentityChild
+	, id_child_b :: !MaybeSDSIdentityChild
+	, id_hash    :: !SDSIdentityHash
+	}
+
+instance < SDSIdentity
+instance toString SDSIdentity
+derive JSONEncode SDSIdentity
+derive JSONDecode SDSIdentity
+
+createSDSIdentity :: !String !MaybeSDSIdentityChild !MaybeSDSIdentityChild -> SDSIdentity
+
+dependsOnShareWithName :: !String !SDSIdentity -> Bool
 
 :: TaskContext = EmptyContext // Used in the internals of the iTasks system
-               | TaskContext TaskId // Used when a local task is reading from a share
+               | TaskContext !TaskId // Used when a local task is reading from a share
                // Used when a remote task is reading from a share locally
                | RemoteTaskContext !TaskId  // The id of the original task reading the share
                                    !TaskId // The id of the current task handling the request
@@ -28,45 +55,49 @@ derive gText SDSNotifyRequest, RemoteNotifyOptions
                                    !String // The host to which to send a refresh notification
                                    !Int  // The port to which to send a refresh notification
 
-:: ReadResult p r w =
+:: ReadResult p r w
 	/**
 	 * Reading from the share has yielded a result. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: ReadResult !r !(sds p r w) & RWShared sds & TC r & TC w
+	= E. sds: ReadResult !r !(sds p r w) & RWShared sds & TC r & TC w
 	/**
 	 * Reading from the share has not yet yielded a result because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next read operation.
 	 */
 	| E. sds: AsyncRead !(sds p r w) & RWShared sds & TC r & TC w
+	| ReadException !TaskException
 
-:: WriteResult p r w =
+:: WriteResult p r w
 	/**
 	 * Writing to the share has succeeded. Where applicable, all asynchronous operations have finished.
 	 */
-	E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
+	= E. sds: WriteResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Denotes that writing to a SDS had lead to some asynchronous action.
 	 * We return a new version of the share, which MUST be used for the next write operation.
 	 * The SDS is required to be a Readable AND Writeable, because writing to a SDS may require reading from another.
 	 */
 	| E. sds: AsyncWrite !(sds p r w) & RWShared sds & TC r & TC w
+	| WriteException !TaskException
 
-:: ModifyResult p r w =
+:: ModifyResult p r w
 	/**
 	 * Modifying the share has succeeded, all asynchronous operations have finished.
 	 */
-	E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
+	= E.sds: ModifyResult !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !r !w !(sds p r w) & TC r & TC w & RWShared sds
 	/**
 	 * Modifying has not yet succeeded because some asynchronous operation has not finished.
 	 * We return a new version of the share, which MUST be used for the next modify operation.
 	 */
 	| E. sds: AsyncModify !(sds p r w) !(r -> MaybeError TaskException w) & RWShared sds
+	| ModifyException !TaskException
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
 	{ reqTaskId     :: !TaskId       //* Id of the task that read the SDS. This Id also connects a chain of notify requests that were registered together
 	, reqSDSId      :: !SDSIdentity  //* Id of the actual SDS used to create this request (may be a derived one)
 	, cmpParam      :: !Dynamic      //* Parameter we are saving for comparison
+	, cmpParamHash  :: !Int          //* A hash of the `cmpParam` for fast comparison
 	, remoteOptions :: !Maybe RemoteNotifyOptions //* When the notify request is made from another client, this field
 												  //* include the information to send a refresh event to that client.
 	}
@@ -76,15 +107,12 @@ instance < SDSNotifyRequest, RemoteNotifyOptions
 :: RemoteNotifyOptions =
 	{ hostToNotify :: !String
 	, portToNotify :: !Int
-	, remoteSdsId  :: !String
+	, remoteSdsId  :: !SDSIdentity
 	}
 
 class Identifiable sds
 where
-	/**
-	 * Identify the shared datasource
-	 */
-	nameSDS :: !(sds p r w) ![String] -> [String]
+	sdsIdentity :: !(sds p r w) -> SDSIdentity
 
 class Readable sds | Identifiable sds
 where
@@ -95,7 +123,7 @@ where
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
 	 */
 	readSDS :: !(sds p r w) !p !TaskContext !*IWorld
-	        -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	        -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Readable sds
 where
@@ -108,7 +136,7 @@ where
 	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
 	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !SDSIdentity !*IWorld
-	                -> *(!MaybeError TaskException (ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	                -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Writeable sds | Identifiable sds
 where
@@ -120,7 +148,7 @@ where
 	 * @param value which to write to the sds.
 	 */
 	writeSDS :: !(sds p r w) !p !TaskContext !w !*IWorld
-	         -> *(!MaybeError TaskException (WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	         -> *(!WriteResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Modifiable sds | Readable, Writeable sds
 where
@@ -132,7 +160,7 @@ where
 	 * @param The context in which to read/write to the SDS
 	 */
 	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) !p !TaskContext !*IWorld
-	          -> *(!MaybeError TaskException (ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	          -> *(!ModifyResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class RWShared sds | Modifiable, Registrable sds
 
@@ -181,8 +209,9 @@ instance toString (WebServiceShareOptions p r w)
 :: SDSLens p r w  = E. ps rs ws sds: SDSLens !(sds ps rs ws) !(SDSLensOptions p r w ps rs ws)
                   & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
 
-:: SDSLensOptions p r w ps rs ws =
-	{ name    :: !String
+:: SDSLensOptions p r w ps rs ws = !
+	{ id      :: !SDSIdentity
+	, name    :: !String
 	, param   :: !p -> ps
 	, read    :: !SDSLensRead p r rs
 	, write   :: !SDSLensWrite p w rs ws
@@ -224,8 +253,9 @@ required type w. The reducer has the job to turn this ws into w.
 :: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !(sds1 p1 r w) !(sds2 p2 r w) !(SDSSelectOptions p r w p1 p2)
                    & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
 
-:: SDSSelectOptions p r w p1 p2 =
-	{ name    :: !String
+:: SDSSelectOptions p r w p1 p2 = !
+	{ id      :: !SDSIdentity
+	, name    :: !String
 	, select  :: !p -> Either p1 p2
 	, notifyl :: !SDSLensNotify p1 p2 w r
 	, notifyr :: !SDSLensNotify p2 p1 w r
@@ -251,8 +281,9 @@ required type w. The reducer has the job to turn this ws into w.
 	  SDSParallelWriteNone !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
 	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
-:: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
-	{ name   :: !String
+:: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w = !
+	{ id     :: !SDSIdentity
+	, name   :: !String
 	, param  :: !p -> (p1, p2)
 	, read   :: !(!r1, !r2) -> r
 	, writel :: !SDSLensWrite p w r1 w1
@@ -273,8 +304,9 @@ required type w. The reducer has the job to turn this ws into w.
 	            !(SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w)
 	& RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
-:: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w =
-	{ name   :: !String
+:: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w = !
+	{ id     :: !SDSIdentity
+	, name   :: !String
 	, paraml :: !p -> p1
 	, paramr :: !p r1 -> p2
 	, read   :: !p r1 -> Either r ((r1,r2) -> r)
@@ -289,7 +321,8 @@ required type w. The reducer has the job to turn this ws into w.
 
 :: SDSCache p r w = SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & gText{|*|}, TC p & TC r & TC w
 :: SDSCacheOptions p r w  =
-	{ write :: !p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
+	{ id    :: !SDSIdentity
+	, write :: !p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite

@@ -125,12 +125,12 @@ where
 derive class iTask		Credentials
 
 currentUser :: SimpleSDSLens User
-currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing currentTaskInstanceAttributes
+currentUser =: sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing currentTaskInstanceAttributes
 where
 	notify _ _ _ _ = False
 
 taskInstanceUser :: SDSLens InstanceNo User User
-taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing taskInstanceAttributesByNo
+taskInstanceUser =: sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotifyConst notify) Nothing taskInstanceAttributesByNo
 where
 	notify _ _ _ _ = False
 
@@ -160,7 +160,7 @@ processesForUser :: User -> SDSLens () [TaskListItem ()] ()
 processesForUser user = mapRead (filter (forWorker user)) currentProcesses
 
 processesForCurrentUser	:: SDSLens () [TaskListItem ()] ()
-processesForCurrentUser = mapRead readPrj ((currentProcesses >*| currentUser))
+processesForCurrentUser =: mapRead readPrj ((currentProcesses >*| currentUser))
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
@@ -175,7 +175,7 @@ forWorker user {TaskListItem|managementAttributes} = case 'DM'.get "user" manage
         Nothing = True
 
 taskInstancesForUser :: SDSLens User [TaskInstance] ()
-taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing detachedTaskInstances
+taskInstancesForUser =: sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) Nothing detachedTaskInstances
 where
 	read u instances = Ok (filter (forUser u) instances)
 	write _ () = Ok Nothing
@@ -196,7 +196,7 @@ where
 
 taskInstancesForCurrentUser :: SDSSequence () [TaskInstance] ()
 taskInstancesForCurrentUser
-	= sdsSequence "taskInstancesForCurrentUser"
+	=: sdsSequence "taskInstancesForCurrentUser"
 		id
 		(\() u -> u)
 		(\_ _ -> Right snd)
