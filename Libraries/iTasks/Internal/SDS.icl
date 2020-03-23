@@ -206,9 +206,10 @@ where
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 flushDeferredSDSWrites iworld=:{writeCache}
 	# (errors,iworld) = flushAll ('DM'.toList writeCache) iworld
-	| errors =: [] = (Ok (), {iworld & writeCache = 'DM'.newMap})
+	# iworld & writeCache = 'DM'.newMap
+	| errors =: [] = (Ok (), iworld)
 	# msg = 'Text'.join OS_NEWLINE ["Could not flush all deferred SDS writes, some data may be lost":map snd errors]
-	= (Error (exception msg),{iworld & writeCache = 'DM'.newMap})
+	= (Error (exception msg), iworld)
 where
 	flushAll [] iworld = ([],iworld)
 	flushAll [(_,(_,DeferredWrite p w sds)):rest] iworld
@@ -429,18 +430,18 @@ where
 	//Determine what to do
 	# (mbr,policy) = write p mbr mbw w
 	//Update read cache
-	# readCache = case mbr of
+	# iworld & readCache = case mbr of
 		Just r = 'DM'.put key (dynamic r :: r^) readCache
 		Nothing  = 'DM'.del key readCache
 	= case policy of
-		NoWrite = (WriteResult 'Set'.newSet sds, {iworld & readCache = readCache})
-		WriteNow = case writeSDS sds1 p c w {iworld & readCache = readCache} of
-			(WriteResult r ssds, iworld) = (WriteResult r sds, iworld)
+		NoWrite = (WriteResult 'Set'.newSet sds, iworld)
+		WriteNow = case writeSDS sds1 p c w iworld of
+			(WriteResult r _, iworld)  = (WriteResult r sds, iworld)
 			(WriteException e, iworld) = (WriteException e, iworld)
 		WriteDelayed
 			//FIXME: Even though write is delayed, the notification should still happen
-			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
-			= (WriteResult 'Set'.newSet sds, {iworld & readCache = readCache, writeCache = writeCache})
+			# iworld & writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
+			= (WriteResult 'Set'.newSet sds, iworld)
 
 instance Modifiable SDSCache
 where
