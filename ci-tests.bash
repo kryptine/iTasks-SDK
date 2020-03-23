@@ -5,8 +5,6 @@ set -e
 if [ -w "$CLEAN_HOME"/etc/IDEEnvs ]; then
 	cp -v "$CLEAN_HOME"/etc/IDEEnvs{,.bak2}
 	trap 'mv -v "$CLEAN_HOME"/etc/IDEEnvs{.bak2,}' EXIT
-	sed -n -i.bak '/EnvironmentName:\tiTasks/q;p' "$CLEAN_HOME"/etc/IDEEnvs
-	tail -n +3 Config/linux-x64/iTasks.env >> "$CLEAN_HOME"/etc/IDEEnvs
 	sed -i.bak "s|{Application}/lib/iTasks|$(pwd)/Libraries|g" "$CLEAN_HOME"/etc/IDEEnvs
 	sed -i.bak 's#EnvironmentLinker:\s\+/usr/bin/gcc::#& -lmysqlclient -lsqlite3 #g' "$CLEAN_HOME"/etc/IDEEnvs
 	sed -i.bak 's|EnvironmentCompiler:\s\+lib/exe/cocl-itasks:|&-h 2048m|g' "$CLEAN_HOME"/etc/IDEEnvs
