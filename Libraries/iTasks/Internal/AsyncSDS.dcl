@@ -7,7 +7,7 @@ from iTasks.Internal.SDS import :: SDSIdentity, :: SDSNotifyRequest
 
 :: AsyncAction = Read | Write | Modify
 
-:: SDSRequest p r w = E. sds: SDSReadRequest !(sds p r w) p & gText{|*|} p & TC p & TC r & TC w & Readable sds
+:: SDSRequest p r w = E. sds: SDSReadRequest !(sds p r w) p & TC p & TC r & TC w & Readable sds
 	/*
 	 * sds: SDS to read
 	 * p: parameter with which to read the SDS
@@ -16,9 +16,9 @@ from iTasks.Internal.SDS import :: SDSIdentity, :: SDSNotifyRequest
 	 * taskId: taskId of the task on the current instance
 	 * port: Port which to send refresh messages on
 	 */
-	| E. sds: SDSRegisterRequest !(sds p r w) !p !SDSIdentity !SDSIdentity !TaskId !Int & gText{|*|} p & TC p & TC r & TC w & Registrable sds & Readable sds
-	| E. sds: SDSWriteRequest !(sds p r w) !p !w & gText{|*|} p & TC p & TC r & TC w & Writeable sds
-	| E. sds: SDSModifyRequest !(sds p r w) !p (r -> MaybeError TaskException w) & gText{|*|} p & TC p & TC r & TC w & Modifiable sds
+	| E. sds: SDSRegisterRequest !(sds p r w) !p !SDSIdentity !SDSIdentity !TaskId !Int & TC p & TC r & TC w & Registrable sds & Readable sds
+	| E. sds: SDSWriteRequest !(sds p r w) !p !w & TC p & TC r & TC w & Writeable sds
+	| E. sds: SDSModifyRequest !(sds p r w) !p (r -> MaybeError TaskException w) & TC p & TC r & TC w & Modifiable sds
 	| SDSRefreshRequest TaskId SDSIdentity
 
 /**
@@ -29,7 +29,7 @@ from iTasks.Internal.SDS import :: SDSIdentity, :: SDSNotifyRequest
  * @param should we register?
  * @param the identity of the original sds
  */
-queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r & TC w
 
 /**
  * Queue a read to an external service.
@@ -37,7 +37,7 @@ queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (
  * @param the parameter
  * @param the taskId which queues the operation
  */
-queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
+queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r
 
 queueServiceWriteRequest :: !(SDSRemoteService p r w) !p !w !TaskId !*IWorld -> (MaybeError TaskException (Maybe ConnectionId), !*IWorld) | TC p & TC w
 
@@ -54,7 +54,7 @@ queueRemoteRefresh :: ![(TaskId, RemoteNotifyOptions)] !*IWorld -> *IWorld
  * @param the parameter
  * @param the taskId which queues the operation
  */
-queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r & TC w
 
 /**
  * Queue a modify operation to a remote sds.
@@ -63,7 +63,7 @@ queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError Tas
  * @param the parameter
  * @param the taskId which queues the operation
  */
-queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r & TC w
 
 /**
  * Queries IOStates to see whether a read operation has yielded a result.

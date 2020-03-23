@@ -70,7 +70,7 @@ instance Writeable SDSNoNotify
 instance Modifiable SDSNoNotify
 instance Registrable SDSNoNotify
 
-:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & gText{|*|}, TC p & TC r & TC w & RWShared sds
+:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & TC p & TC r & TC w & RWShared sds
 
 //Internal creation functions:
 

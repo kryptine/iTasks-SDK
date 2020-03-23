@@ -412,7 +412,7 @@ where
 instance Writeable SDSCache
 where
 	writeSDS sds=:(SDSCache sds1 opts=:{SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
-	# key = (sdsIdentity sds, toSingleLineText p)
+	# key = (sdsIdentity sds, copy_to_string (hyperstrict p))
 	//Check cache
 	# mbr = case 'DM'.get key readCache of
 		Just (val :: r^) = Just val
@@ -456,7 +456,7 @@ readSDSCache :: !(SDSCache p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
              -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 readSDSCache sds=:(SDSCache sds1 opts) p c mbNotify iworld=:{readCache}
 	# iworld = mbRegister p sds mbNotify c iworld
-	# key = (sdsIdentity sds,toSingleLineText p)
+	# key = (sdsIdentity sds, copy_to_string (hyperstrict p))
 	//First check cache
 	= case 'DM'.get key readCache of
 		Just (val :: r^)
@@ -849,7 +849,7 @@ where
 		readSDSRemoteSource sds p context (ReadAndRegister taskId reqSDSId) iworld
 
 readSDSRemoteSource :: !(SDSRemoteSource p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
-                     -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+                     -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 readSDSRemoteSource _ _ EmptyContext _ iworld =
 	(ReadException (exception "Cannot read remote SDS without task id"), iworld)
 
@@ -924,7 +924,7 @@ where
 		readSDSRemoteService sds p context (ReadAndRegister taskId reqSDSId) iworld
 
 readSDSRemoteService :: !(SDSRemoteService p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
-                     -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+                     -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 readSDSRemoteService _ _ EmptyContext _ iworld =
 	(ReadException (exception "Cannot read remote service without task id"), iworld)
 readSDSRemoteService sds=:(SDSRemoteService (Just connectionId) opts) p (TaskContext taskId) _ iworld=:{ioStates}
@@ -994,7 +994,7 @@ where
 			(ModifyException e, iShow [snd e] iworld)
 
 readSDSDebug :: !(SDSDebug p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
-             -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+             -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 readSDSDebug (SDSDebug name sds) p context mbRegister iworld
 	# iworld = iShow ["Reading from share " +++ name] iworld
 	= db (readAndMbRegisterSDS sds p context mbRegister iworld)

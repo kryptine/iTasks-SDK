@@ -98,7 +98,7 @@ where
 	| size textResponse == 0 = (Error ("queueWriteRequest: Server" +++ host +++ " disconnected without responding"), Nothing)
 	= (Ok $ Right $ deserializeFromBase64 textResponse symbols, Nothing)
 
-queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
+queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r
 queueServiceRequest (SDSRemoteService (Just _) _) _ _ _ iworld = (Error (exception "SDSRemoteService queing request while still a connection id"), iworld)
 queueServiceRequest service=:(SDSRemoteService _ (HTTPShareOptions {host, port, createRequest, fromResponse})) p taskId _ iworld
 = case addConnection taskId host port Nothing connectionTask iworld of
@@ -224,7 +224,7 @@ where
 
 queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld
 	-> (!MaybeError TaskException ConnectionId, !*IWorld)
-	| gText{|*|} p & TC p & TC r & TC w
+	| TC p & TC r & TC w
 queueRead rsds=:(SDSRemoteSource sds (Just _) _) _ _ _ _ iworld = (Error $ exception "queueRead while already a connection id", iworld)
 queueRead rsds=:(SDSRemoteSource sds Nothing {SDSShareOptions|domain, port}) p taskId register reqSDSId iworld
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
@@ -248,7 +248,7 @@ where
 	reqq :: !TaskId !SDSIdentity -> SDSRequest () String ()
 	reqq taskId sdsId = SDSRefreshRequest taskId sdsId
 
-queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r & TC w
 queueWrite w rsds=:(SDSRemoteSource sds (Just _) _) _ _ iworld = (Error $ exception "queueWrite while already a connection id", iworld)
 queueWrite w rsds=:(SDSRemoteSource sds Nothing share=:{SDSShareOptions|domain, port}) p taskId iworld
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
@@ -256,7 +256,7 @@ queueWrite w rsds=:(SDSRemoteSource sds Nothing share=:{SDSShareOptions|domain, 
 # request = SDSWriteRequest sds p w
 = queueWriteRequest request domain port taskId symbols iworld
 
-queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC p & TC r & TC w
 queueModify f rsds=:(SDSRemoteSource sds (Just _)_) _ _ iworld = (Error $ exception "queueModify while already a connection id", iworld)
 queueModify f rsds=:(SDSRemoteSource sds Nothing share=:{SDSShareOptions|domain, port}) p taskId iworld
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of

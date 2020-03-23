@@ -123,7 +123,7 @@ where
 	 * @param context in which to read. Async sdss use the context to retrieve the task id.
 	 */
 	readSDS :: !(sds p r w) !p !TaskContext !*IWorld
-	        -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	        -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 
 class Registrable sds | Readable sds
 where
@@ -136,7 +136,7 @@ where
 	 * @param Identity of the sds to read at the top of the tree, can be different from the sds given as parameter.
 	 */
 	readRegisterSDS :: !(sds p r w) !p !TaskContext !TaskId !SDSIdentity !*IWorld
-	                -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	                -> *(!ReadResult p r w, !*IWorld) | TC p & TC r & TC w
 
 class Writeable sds | Identifiable sds
 where
@@ -148,7 +148,7 @@ where
 	 * @param value which to write to the sds.
 	 */
 	writeSDS :: !(sds p r w) !p !TaskContext !w !*IWorld
-	         -> *(!WriteResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	         -> *(!WriteResult p r w, !*IWorld) | TC p & TC r & TC w
 
 class Modifiable sds | Readable, Writeable sds
 where
@@ -160,7 +160,7 @@ where
 	 * @param The context in which to read/write to the SDS
 	 */
 	modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) !p !TaskContext !*IWorld
-	          -> *(!ModifyResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+	          -> *(!ModifyResult p r w, !*IWorld) | TC p & TC r & TC w
 
 class RWShared sds | Modifiable, Registrable sds
 
@@ -207,7 +207,7 @@ instance toString (WebServiceShareOptions p r w)
 
 //Lenses select and transform data
 :: SDSLens p r w  = E. ps rs ws sds: SDSLens !(sds ps rs ws) !(SDSLensOptions p r w ps rs ws)
-                  & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
+                  & RWShared sds & TC ps & TC rs & TC ws
 
 :: SDSLensOptions p r w ps rs ws = !
 	{ id      :: !SDSIdentity
@@ -251,7 +251,7 @@ required type w. The reducer has the job to turn this ws into w.
 
 //Merge two sources by selecting one based on the parameter
 :: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect !(sds1 p1 r w) !(sds2 p2 r w) !(SDSSelectOptions p r w p1 p2)
-                   & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r & TC w
+                   & RWShared sds1 & RWShared sds2 & TC p1 & TC p2 & TC r & TC w
 
 :: SDSSelectOptions p r w p1 p2 = !
 	{ id      :: !SDSIdentity
@@ -270,16 +270,16 @@ required type w. The reducer has the job to turn this ws into w.
 :: SDSParallel p r w
 	= E. p1 r1 w1 p2 r2 w2 sds1 sds2:
 	  SDSParallel !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
-	  & RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	  & RWShared sds1 & RWShared sds2 & TC p1 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 	| E. p1 r1 p2 r2 w2 sds1 sds2:
 	  SDSParallelWriteLeft !(sds1 p1 r1 w) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w p2 r2 w2 p r w)
-	  & RWShared sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
+	  & RWShared sds1 & Registrable sds2 & TC p1 & TC p2 & TC r1 & TC r2 & TC w2 & TC w
 	| E. p1 r1 w1 p2 r2 sds1 sds2:
 	  SDSParallelWriteRight !(sds1 p1 r1 w1) !(sds2 p2 r2 w) !(SDSParallelOptions p1 r1 w1 p2 r2 w p r w)
-	  & Registrable sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
+	  & Registrable sds1 & RWShared sds2 & TC p1 & TC p2 & TC r1 & TC r2 & TC w1 & TC w
 	| E. p1 r1 w1 p2 r2 w2 sds1 sds2:
 	  SDSParallelWriteNone !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) !(SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w)
-	  & Registrable sds1 & Registrable sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	  & Registrable sds1 & Registrable sds2 & TC p1 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w = !
 	{ id     :: !SDSIdentity
@@ -302,7 +302,7 @@ required type w. The reducer has the job to turn this ws into w.
 	SDSSequence !(sds1 p1 r1 w1)
 	            !(sds2 p2 r2 w2)
 	            !(SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w)
-	& RWShared sds1 & RWShared sds2 & gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
+	& RWShared sds1 & RWShared sds2 & TC p1 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2
 
 :: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w = !
 	{ id     :: !SDSIdentity
@@ -319,7 +319,7 @@ required type w. The reducer has the job to turn this ws into w.
  */
 :: SimpleSDSCache a :== SDSCache () a a
 
-:: SDSCache p r w = SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & gText{|*|}, TC p & TC r & TC w
+:: SDSCache p r w = SDSCache !(SDSSource p r w) !(SDSCacheOptions p r w) & TC p & TC r & TC w
 :: SDSCacheOptions p r w  =
 	{ id    :: !SDSIdentity
 	, write :: !p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
