@@ -19,8 +19,10 @@ from iTasks.Util.DeferredJSON  import :: DeferredJSON
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo, :: TaskException
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite, :: SDSIdentity
-from iTasks.SDS.Definition import :: SDSSource, :: SDSLens, :: SDSParallel, class RWShared, class Registrable, class Modifiable, class Identifiable, class Readable, class Writeable
+from iTasks.Internal.SDS import :: DeferredWrite
+from iTasks.SDS.Definition import :: SDSIdentity, :: SDSIdentityHash, :: SDSNotifyRequest,
+	:: SDSSource, :: SDSLens, :: SDSParallel,
+	class RWShared, class Registrable, class Modifiable, class Identifiable, class Readable, class Writeable
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from System.Signal import :: SigHandler
@@ -30,18 +32,18 @@ from ABC.Interpreter import :: PrelinkedInterpretationEnvironment
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld =
+:: *IWorld = !
 	{ options               :: !EngineOptions                                   // Engine configuration
 	, clock                 :: !Timespec                                        // Server side clock
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
 	, random                :: [Int]                                            // Infinite random stream
 
-	, sdsNotifyRequests     :: !Map SDSIdentity (Map SDSNotifyRequest Timespec) // Notification requests from previously read sds's
-	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentity)                    // Allows to efficiently find notification by taskID for clearing notifications
+	, sdsNotifyRequests     :: !Map SDSIdentityHash (Map SDSNotifyRequest Timespec) //* Notification requests from previously read sds's
+	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentityHash)                //* Allows to efficiently find notification by taskID for clearing notifications
 	, memoryShares          :: !Map String Dynamic                              // Run-time memory shares
-	, readCache             :: !Map (String,String) Dynamic                     // Cached share reads
-	, writeCache            :: !Map (String,String) (Dynamic,DeferredWrite)     // Cached deferred writes
+	, readCache             :: !Map (SDSIdentity,String) Dynamic                // Cached share reads
+	, writeCache            :: !Map (SDSIdentity,String) (Dynamic,DeferredWrite) // Cached deferred writes
 	, abcInterpreterEnv     :: !PrelinkedInterpretationEnvironment              // Used to serialize expressions for the client
 
 	, ioTasks               :: !*IOTasks                                        // The low-level input/output tasks
@@ -116,8 +118,8 @@ destroyIWorld :: !*IWorld -> *World
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
 :: ClockParameter a =
-	{ start :: a
-	, interval :: a
+	{ start    :: !a
+	, interval :: !a
 	}
 
 iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec

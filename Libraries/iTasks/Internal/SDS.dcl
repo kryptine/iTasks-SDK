@@ -95,9 +95,6 @@ createReadOnlySDSError ::
 // Helper to immediately get the read value from a share. Use only when reading in an EmptyContext.
 directResult :: (AsyncRead r w) -> r
 
-//Internal access functions
-sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
-
 :: AsyncRead r w = ReadingDone r
 	| E. sds: Reading (sds () r w) & TC r & TC w & Readable sds & Registrable sds
 
@@ -133,10 +130,10 @@ modify :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError
 //for evaluation anyway, it no longer make sense to notify it again.
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 
-queueNotifyEvents :: !String !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
+queueNotifyEvents :: !SDSIdentity !(Set (!TaskId, !Maybe RemoteNotifyOptions)) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
-listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
+listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentityHash)])],!*IWorld)
 
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)

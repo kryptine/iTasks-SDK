@@ -13,6 +13,7 @@ from Data.Error import :: MaybeError
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Data.Queue import :: Queue
+from Data.Set import :: Set
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 
 //When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
@@ -44,10 +45,11 @@ taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 */
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 
-/**
-* Convenience function for queueing multiple refresh multiple refresh events at once
-*/
-queueRefresh :: ![(TaskId, String)] !*IWorld -> *IWorld
+//* Queue a `RefreshEvent` for a single task.
+queueRefresh :: !TaskId !*IWorld -> *IWorld
+
+//* Convenience function for queueing multiple refresh multiple refresh events at once.
+queueRefreshes :: !(Set TaskId) !*IWorld -> *IWorld
 
 /**
 * Dequeue a task event

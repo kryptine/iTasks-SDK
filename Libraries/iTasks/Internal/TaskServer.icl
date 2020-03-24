@@ -199,12 +199,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
 					# (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
 					# (mbr,iworld) = read sds EmptyContext {iworld & ioTasks={done=done,todo=todo},world=world}
 					| mbr =:(Error _)
-						# iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(taskId,"IO Exception for instance "<+++instanceNo)] iworld) iworld
+						# iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 						# ioStates = put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
 						# world = closeRChannel listener world
 						= process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
 					# (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (maxListInc (keys conStates)) (toString ip) (directResult (fromOk mbr)) iworld
-					# iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++taskId)] iworld) iworld
+					# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 					# (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
 					| mbConState =:(Error _)
 						# ioStates = put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
@@ -336,7 +336,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			// get task state
 			# mbTaskState = get connectionId taskStates
 			| isNothing mbTaskState
-				# iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+				# iworld   = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 				# ioStates = put taskId (IOException "Missing IO task state for task ") ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# taskState = fst (fromJust mbTaskState)
@@ -390,10 +390,10 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 							= put taskId (IOException e) ioStates
 					# (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
 					| isError mbSdsErr
-						# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+						# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 						# ioStates = put taskId (IOException (snd (fromError mbSdsErr))) ioStates
 						= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
-					# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "IO closed for " <+++ instanceNo)] iworld) iworld
+					# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 					= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 				IODNoData
 					// persist connection
@@ -401,7 +401,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 					= {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
 				IODData data
 					# (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
-					# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
+					# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 					# (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
 					// write data
 					# (ioChannels, iworld) = foldl (flip ioOps.writeData) (ioChannels, iworld) out
@@ -418,7 +418,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			// get task state one last time
 			# mbTaskState = get connectionId taskStates
 			| isNothing mbTaskState
-				# iworld   = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+				# iworld   = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 				# ioStates = put taskId (IOException "Missing IO task state for task ") ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# (Just (taskState, _)) = mbTaskState
@@ -446,7 +446,7 @@ where
 					   -> *IWorld
 	taskStateException mbTaskState instanceNo ioStates closeIO (ioChannels, iworld)
 		# iworld = iShow ["Exception in TaskServer: taskStateException: " <+++ fromError mbTaskState <+++ " " <+++ instanceNo] iworld
-		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+		# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 		# ioStates = put taskId (IOException (fromError mbTaskState)) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
 
@@ -458,7 +458,7 @@ where
 					-> *IWorld
 	sdsException mbSdsErr instanceNo ioStates closeIO (ioChannels, iworld)
 		# iworld = iShow ["Exception in TaskServer: sdsException: " <+++ snd (fromError mbSdsErr) <+++ " " <+++ instanceNo] iworld
-		# iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
+		# iworld = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
 		# ioStates = put taskId (IOException (snd (fromError mbSdsErr))) ioStates
 		= closeIO (ioChannels, {iworld & ioStates = ioStates})
 
@@ -606,5 +606,8 @@ updateClock iworld=:{IWorld|clock,world}
 	# (timespec,world) = nsTime world
 	# iworld & world   = world
 	//Write SDS if necessary
-	# (mbe,iworld)     = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext iworld
+	# (mbe,iworld)     = write timespec focusedTimeSpec EmptyContext iworld
 	= (() <$ mbe, iworld)
+
+/* CAF for efficiency */
+focusedTimeSpec =: sdsFocus {start=zero,interval=zero} iworldTimespec

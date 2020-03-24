@@ -25,13 +25,13 @@ from StdOverloaded import class ==
 // Task definition:
 :: Task a =: Task (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld))
 
-:: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
-			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id
-			| RefreshEvent	!(Set TaskId) !String     //Recalcalutate the tasks with given IDs,
-                                                      //using the current SDS values (the string is the reason for the refresh)
-			| ResetEvent                              //Nop event, recalculate the entire task and reset output stream
-			| ReadEvent
-			| DestroyEvent                            //Cleanup and remove a task
+:: Event
+	= EditEvent    !TaskId !String !JSONNode //* Update something in an interaction: Task id, edit name, value
+	| ActionEvent  !TaskId !String           //* Progress in a step combinator: Task id, action id
+	| RefreshEvent !(Set TaskId)             //* Recalcalutate the tasks with given IDs, using the current SDS values
+	| ResetEvent                             //* Nop event, recalculate the entire task and reset output stream
+	| ReadEvent
+	| DestroyEvent                           //* Cleanup and remove a task
 
 :: TaskResult a
    //If all goes well, a task computes its current value, a ui effect and a new task state

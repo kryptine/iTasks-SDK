@@ -24,7 +24,7 @@ testCallFastProcess = IF_WINDOWS
 	(testTaskOutput "Test call fast process" sut events exp (\_ _ -> Passed)) //Only check if it does not crash
 where
 	sut = callProcess [] "/bin/date" [] Nothing Nothing
-	events = [Left ResetEvent,Right 1,Left (RefreshEvent 'DS'.newSet "Update")]
+	events = [Left ResetEvent,Right 1,Left (RefreshEvent 'DS'.newSet)]
 	exp = TOUIChange <$> [ReplaceUI initialUI,ReplaceUI finishedUI]
 
 	initialUI = uia UIProgressBar (textAttr "Running /bin/date...")
@@ -35,7 +35,7 @@ testCallSlowProcess = IF_WINDOWS
 	(testTaskOutput "Test call slow process" sut events exp (\_ _ -> Passed))
 where
 	sut = callProcess [] "/bin/sleep" ["2"] Nothing Nothing
-	events = [Left ResetEvent ,Right 1 ,Left (RefreshEvent 'DS'.newSet "Update"),Right 2,Left (RefreshEvent 'DS'.newSet "Update") ,Left (RefreshEvent 'DS'.newSet "Update")]
+	events = [Left ResetEvent ,Right 1 ,Left (RefreshEvent 'DS'.newSet),Right 2,Left (RefreshEvent 'DS'.newSet) ,Left (RefreshEvent 'DS'.newSet)]
 	exp = TOUIChange <$> [ReplaceUI initialUI, ReplaceUI finishedUI]
 
 	initialUI = uia UIProgressBar (textAttr "Running /bin/sleep...")
