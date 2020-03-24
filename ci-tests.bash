@@ -26,6 +26,7 @@ if [ $(uname) = "Linux" ]; then
 	errors="$(
 		cd Examples
 		cp BasicAPIExamples.prj{.default,}
+		cpm project BasicAPIExamples.prj path add $CLEAN_HOME/lib/Gast >/dev/null 2>&1
 		find ../Libraries/ -name "*.dcl" -exec head -n 1 {} \; \
 			|  sed 's/definition module //g' \
 			|  xargs cpm project BasicAPIExamples.prj compile \
