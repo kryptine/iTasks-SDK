@@ -47,7 +47,8 @@ where
 		_       = Nothing
 	valueFromState _ = Nothing
 
-	mapRes touched (mbRes, vst) = ((\(ui, st) -> (ui, LeafState {touched = touched, state = toJSON` st})) <$> mbRes, vst)
+	mapRes touched (Ok (ui,st,mbw), vst) = (Ok (ui, LeafState {touched = touched, state = toJSON` st}, mbw), vst)
+	mapRes touched (Error e, vst) = (Error e, vst)
 
 	toJSON` x = case (jsonEncode False x) of
 		[node] = node
@@ -84,9 +85,8 @@ where
 		_ = Nothing
 	valueFromState _ = Nothing
 
-	mapRes :: !(!MaybeErrorString (!ui, !st, ![EditState]), !*VSt) -> (!MaybeErrorString (!ui, !EditState), !*VSt)
-	        | JSONEncode{|*|} st
-	mapRes (mbRes, vst) = ((\(ui, st, childSts) -> (ui, CompoundState (toJSON st) childSts)) <$> mbRes, vst)
+	mapRes (Ok (ui, st, childSts, mbw), vst) = (Ok (ui, CompoundState (toJSON st) childSts, mapMaybe id mbw), vst)
+	mapRes (Error e, vst) = (Error e, vst)
 
 editorModifierWithStateToEditor :: !(EditorModifierWithState st r w) -> Editor r w | JSONDecode{|*|}, JSONEncode{|*|} st
 editorModifierWithStateToEditor modifier =
@@ -117,9 +117,8 @@ where
 		_ = Nothing
 	valueFromState _ = Nothing
 
-	mapRes :: !(!MaybeErrorString (!ui, !st, !EditState), !*VSt) -> (!MaybeErrorString (!ui, !EditState), !*VSt)
-	        | JSONEncode{|*|} st
-	mapRes (mbRes, vst) = ((\(ui, st, childSt) -> (ui, AnnotatedState (toJSON st) childSt)) <$> mbRes, vst)
+	mapRes (Ok (ui, st, childSt, mbw), vst) = (Ok (ui, AnnotatedState (toJSON st) childSt, mapMaybe id mbw), vst)
+	mapRes (Error e, vst) = (Error e, vst)
 
 	mapResWrite :: !(!MaybeErrorString (!ui, !st, !EditState,!Maybe w), !*VSt) -> (!MaybeErrorString (!ui, !EditState, !Maybe w), !*VSt)
 	        | JSONEncode{|*|} st
@@ -171,15 +170,15 @@ isCompound (CompoundState _ _)        = True
 
 withClientSideInit ::
 	!(JSVal *JSWorld -> *JSWorld)
-	!(UIAttributes DataPath a *VSt -> *(MaybeErrorString (!UI, !st), *VSt))
-	!UIAttributes !DataPath !a !*VSt -> *(!MaybeErrorString (!UI, !st), !*VSt)
+	!(UIAttributes DataPath a *VSt -> *(*MaybeErrorString (!UI, !st, !*Maybe w), *VSt))
+	!UIAttributes !DataPath !a !*VSt -> *(!*MaybeErrorString (!UI, !st, !*Maybe w), !*VSt)
 withClientSideInit initUI genUI attr dp val vst=:{VSt| taskId} = case genUI attr dp val vst of
-	(Ok (UI type attr items,mask),vst)
+	(Ok (UI type attr items,mask, mbw),vst)
 		# (initUI, vst) = serializeForClient (wrapInitFunction initUI) vst
 		# extraAttr = 'DM'.fromList
 			[("taskId",  JSONString taskId)
 			,("editorId",JSONString (editorId dp))
 			,("initUI",  JSONString initUI)
 			]
-		= (Ok (UI type ('DM'.union extraAttr attr) items,mask), vst)
+		= (Ok (UI type ('DM'.union extraAttr attr) items,mask,mbw), vst)
 	e = e

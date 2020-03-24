@@ -166,7 +166,7 @@ where
 		                        , valueAttr $ maybe JSONNull toJSON mbVal
 		                        , attr
 		                        ]
-		= (Ok (uia type attr, (mbVal, attr)), vst)
+		= (Ok (uia type attr, (mbVal, attr),maybe Nothing (\x -> Just (Just x)) mbEditModeInitValue), vst)
 
 	onEdit _ (_, mbVal) (_, attrs) vst
 		= (Ok (ChangeUI [SetAttribute "value" valJSON] [], (mbVal`, attrs), Just mbVal`), vst)
@@ -191,7 +191,7 @@ where
 	leafEditor = {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 
 	genUI attr dp mode vst = case editModeValue mode of
-		Just val = (Ok (uia type ('DM'.union attr $ toAttributes val), val), vst)
+		Just val = (Ok (uia type ('DM'.union attr $ toAttributes val), val, Nothing), vst)
 		_        = (Error "View components cannot be used in enter mode", vst)
 
 	onEdit _ (_, ()) _ vst = (Error "Edit event for view component",vst)
@@ -224,7 +224,7 @@ where
 		# attr = 'DM'.unions [attrs, maybe 'DM'.newMap attr mbVal, choiceAttrs taskId (editorId dp) sel $ mbValToOptions mbVal]
 
 		# multiple = maybe False (\(JSONBool b) -> b) ('DM'.get "multiple" attr)
-		= (Ok (uia type attr, (mbVal, sel, multiple)), vst)
+		= (Ok (uia type attr, (mbVal, sel, multiple), Nothing), vst)
 
 	onEdit dp (tp, selection) (mbVal, sel, multiple) vst=:{VSt|optional}
 		# options = maybe [] getOptions mbVal

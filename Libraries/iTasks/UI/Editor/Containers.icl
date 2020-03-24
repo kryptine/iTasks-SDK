@@ -16,7 +16,7 @@ import StdBool, StdList, StdTuple, StdFunc
 group :: !UIType -> Editor () ()
 group type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
-	genUI attr _ _ vst   = (Ok (uia type attr, CompoundState JSONNull []),vst)
+	genUI attr _ _ vst   = (Ok (uia type attr, CompoundState JSONNull [], Just ()),vst)
 	onEdit _ _ st vst    = (Ok (NoChange,st, Nothing),vst)
 	onRefresh _ _ st vst = (Ok (NoChange, st, Nothing),vst)
 	valueFromState _     = Just ()
@@ -27,17 +27,17 @@ groupl type {Editor|genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFro
 		{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst = case editModeValue mode of
-		Nothing = (Ok (UI type attr [], viewMode, []), vst)
+		Nothing = (Ok (UI type attr [], viewMode, [],Just []), vst)
 		Just val = case genUIAll viewMode dp 0 val vst of
 			(Error e,vst)            = (Error e,vst)
-			(Ok (uis, childSts),vst) = (Ok (UI type attr uis, viewMode, childSts),vst)
+			(Ok (uis, childSts),vst) = (Ok (UI type attr uis, viewMode, childSts, Nothing),vst)
 	where
 		viewMode = mode =: View _
 
 	genUIAll _ _ _ [] vst = (Ok ([],[]),vst)
 	genUIAll viewMode dp i [v:vs] vst = case genUI_a emptyAttr (dp ++ [i]) (if viewMode View Update $ v) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (ui, st), vst) = case genUIAll viewMode dp (i + 1) vs vst of
+		(Ok (ui, st, _), vst) = case genUIAll viewMode dp (i + 1) vs vst of
 			(Error e,      vst) = (Error e,                  vst)
 			(Ok (uis, sts),vst) = (Ok ([ui: uis], [st: sts]),vst)
 
@@ -82,15 +82,15 @@ groupL type editors = compoundEditorToEditor
 	{CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst = case editModeValue mode of
-		Nothing = (Ok (UI type attr [], mode =: View _, []), vst)
+		Nothing = (Ok (UI type attr [], mode =: View _, [], Nothing), vst)
 		Just val = case genUIAll (mode =: View _) 0 editors dp val vst of
 			(Error e,vst)            = (Error e,vst)
-			(Ok (uis, childSts),vst) = (Ok (UI type attr uis, mode =: View _, childSts),vst)
+			(Ok (uis, childSts),vst) = (Ok (UI type attr uis, mode =: View _, childSts, Nothing),vst)
 
 	genUIAll viewMode i [ed:eds] dp [v:vs] vst
 		= case ed.Editor.genUI emptyAttr (dp ++ [i]) (if viewMode View Update $ v) vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui,st),vst) = case genUIAll viewMode (i + 1) eds dp vs vst of
+			(Ok (ui,st,_),vst) = case genUIAll viewMode (i + 1) eds dp vs vst of
 				(Error e,vst) = (Error e,vst)
 				(Ok (uis, sts),vst) = (Ok ([ui:uis],[st: sts]),vst)
 	genUIAll viewMode _ _ _ _ vst = (Ok ([], []), vst)
@@ -143,7 +143,7 @@ group1 type {Editor |genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFr
 where
 	genUI attr dp mode vst = case genUI_a emptyAttr (dp ++ [0]) (mapEditMode id mode) vst of
 		(Error e,vst)        = (Error e,vst)
-		(Ok (ui1,mask1),vst) = (Ok (UI type attr [ui1], (), [mask1]),vst)
+		(Ok (ui1,mask1,mbw),vst) = (Ok (UI type attr [ui1], (), [mask1], mbw),vst)
 
 	onEdit dp ([0:tp],e) _ [m1] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
 		(Error e,vst)              = (Error e,vst)
@@ -169,9 +169,11 @@ group2 type {Editor |genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFr
 where
 	genUI attr dp mode vst = case genUI_a emptyAttr (dp ++ [0]) (mapEditMode fst mode) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (ui1,m1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode snd mode) vst of
+		(Ok (ui1,m1,mbw1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode snd mode) vst of
 			(Error e,vst)     = (Error e,vst)
-			(Ok (ui2,m2),vst) = (Ok (UI type attr [ui1,ui2], (), [m1,m2]),vst)
+			(Ok (ui2,m2,mbw2),vst) 
+				# mbw = if (mbw1 =: Nothing && mbw2 =: Nothing) Nothing (Just (mbw1,mbw2))
+				= (Ok (UI type attr [ui1,ui2], (), [m1,m2],mbw),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
 		(Error e,vst)               = (Error e,vst)
@@ -210,11 +212,13 @@ group3 type {Editor |genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFr
 where
 	genUI attr dp mode vst = case genUI_a emptyAttr (dp ++ [0]) (mapEditMode fst3 mode) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (ui1,m1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode snd3 mode) vst of
+		(Ok (ui1,m1,mbw1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode snd3 mode) vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui2,m2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode thd3 mode) vst of
+			(Ok (ui2,m2,mbw2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode thd3 mode) vst of
 				(Error e,vst) = (Error e,vst)
-				(Ok (ui3,m3),vst) =(Ok (UI type attr [ui1,ui2,ui3], (), [m1,m2,m3]),vst)
+				(Ok (ui3,m3,mbw3),vst)
+					# mbw = if (mbw1 =: Nothing && mbw2 =: Nothing && mbw3 =: Nothing) Nothing (Just (mbw1,mbw2,mbw3))
+					=(Ok (UI type attr [ui1,ui2,ui3], (), [m1,m2,m3],mbw),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
 		(Error e,vst)               = (Error e,vst)
@@ -260,13 +264,15 @@ group4 type {Editor |genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFr
 where
 	genUI attr dp mode vst = case genUI_a emptyAttr (dp ++ [0]) (mapEditMode (\(a, _, _, _) -> a) mode) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (ui1,m1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode (\(_, b, _, _) -> b) mode) vst of
+		(Ok (ui1,m1,mbw1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode (\(_, b, _, _) -> b) mode) vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui2,m2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode (\(_, _, c, _) -> c) mode) vst of
+			(Ok (ui2,m2,mbw2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode (\(_, _, c, _) -> c) mode) vst of
 				(Error e,vst) = (Error e,vst)
-				(Ok (ui3,m3),vst) = case genUI_d emptyAttr (dp ++ [3]) (mapEditMode (\(_, _, _, d) -> d) mode) vst of
+				(Ok (ui3,m3,mbw3),vst) = case genUI_d emptyAttr (dp ++ [3]) (mapEditMode (\(_, _, _, d) -> d) mode) vst of
 					(Error e,vst) = (Error e,vst)
-					(Ok (ui4,m4),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4], (), [m1,m2,m3,m4]),vst)
+					(Ok (ui4,m4,mbw4),vst) 
+						# mbw = if (mbw1 =:Nothing && mbw2 =:Nothing && mbw3 =:Nothing && mbw4 =:Nothing) Nothing (Just (mbw1,mbw2,mbw3,mbw4))
+						= (Ok (UI type attr [ui1,ui2,ui3,ui4], (), [m1,m2,m3,m4],mbw),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3,m4] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
 		(Error e,vst)               = (Error e,vst)
@@ -322,15 +328,18 @@ group5 type {Editor |genUI=genUI_a,onEdit=onEdit_a,onRefresh=onRefresh_a,valueFr
 where
 	genUI attr dp mode vst = case genUI_a emptyAttr (dp ++ [0]) (mapEditMode (\(a, _, _, _, _) -> a) mode) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (ui1,m1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode (\(_, b, _, _, _) -> b) mode) vst of
+		(Ok (ui1,m1,mbw1),vst) = case genUI_b emptyAttr (dp ++ [1]) (mapEditMode (\(_, b, _, _, _) -> b) mode) vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui2,m2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode (\(_, _, c, _, _) -> c) mode) vst of
+			(Ok (ui2,m2,mbw2),vst) = case genUI_c emptyAttr (dp ++ [2]) (mapEditMode (\(_, _, c, _, _) -> c) mode) vst of
 				(Error e,vst) = (Error e,vst)
-				(Ok (ui3,m3),vst) = case genUI_d emptyAttr (dp ++ [3]) (mapEditMode (\(_, _, _, d, _) -> d) mode) vst of
+				(Ok (ui3,m3,mbw3),vst) = case genUI_d emptyAttr (dp ++ [3]) (mapEditMode (\(_, _, _, d, _) -> d) mode) vst of
 					(Error e,vst) = (Error e,vst)
-					(Ok (ui4,m4),vst) = case genUI_e emptyAttr (dp ++ [4]) (mapEditMode (\(_, _, _, _, e) -> e) mode) vst of
+					(Ok (ui4,m4,mbw4),vst) = case genUI_e emptyAttr (dp ++ [4]) (mapEditMode (\(_, _, _, _, e) -> e) mode) vst of
 						(Error e,vst) = (Error e,vst)
-						(Ok (ui5,m5),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4,ui5], (), [m1,m2,m3,m4,m5]),vst)
+						(Ok (ui5,m5,mbw5),vst) 
+							# mbw = if (mbw1 =:Nothing && mbw2 =:Nothing && mbw3 =:Nothing && mbw4 =:Nothing && mbw5 =:Nothing)
+								Nothing (Just (mbw1,mbw2,mbw3,mbw4,mbw5))
+							= (Ok (UI type attr [ui1,ui2,ui3,ui4,ui5], (), [m1,m2,m3,m4,m5],mbw),vst)
 
 	onEdit dp ([0:tp],e) _ [m1,m2,m3,m4,m5] vst = case onEdit_a (dp ++ [0]) (tp,e) m1 vst of
 		(Error e,vst)               = (Error e,vst)
@@ -389,17 +398,17 @@ groupc type {Editor|genUI=choiceEditorGenUI,onEdit=choiceEditorOnEdit,onRefresh=
 where
 	genUI attr dp mode vst = case choiceEditorGenUI emptyAttr (dp ++ [0]) (mapEditMode fst mode) vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (uiSelector, stSelector),vst) = case choiceEditorValueFromState stSelector of
+		(Ok (uiSelector, stSelector,_),vst) = case choiceEditorValueFromState stSelector of
 			//Only generate the field UI if no selection has been made
-			Nothing = (Ok (UI type attr [uiSelector], mode =: View _, [stSelector]),vst)
+			Nothing = (Ok (UI type attr [uiSelector], mode =: View _, [stSelector], Nothing),vst)
 			Just choice = case fieldEditors !? choice of
 				//Only generate the field UI if selection is out of bounds
-				Nothing = (Ok (UI type attr [uiSelector], mode =: View _, [stSelector]),vst)
+				Nothing = (Ok (UI type attr [uiSelector], mode =: View _, [stSelector], Nothing),vst)
 				Just (selectFun, editor)
 					= case editor.Editor.genUI emptyAttr (dp ++ [1]) (mapEditMode (selectFun o Just o snd) mode) vst of
 						(Error e,vst) = (Error e,vst)
-						(Ok (uiField, stField),vst)
-							 = (Ok (UI type attr [uiSelector, uiField], mode =: View _, [stSelector, stField]),vst)
+						(Ok (uiField, stField,mbw),vst)
+							 = (Ok (UI type attr [uiSelector, uiField], mode =: View _, [stSelector, stField],fmap Right mbw),vst)
 	
 	//Handle choice changes
 	onEdit dp ([0:tp],choiceEdit) viewMode st=:[stateSelector:optStateField] vst
@@ -417,7 +426,7 @@ where
 						# val = selectFun val
 						= case editor.Editor.genUI emptyAttr (dp ++ [1]) (if viewMode View Update $ val) vst of
 							(Error e,vst) = (Error e,vst)
-							(Ok (uiField, stateField),vst)
+							(Ok (uiField, stateField,_),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
 								= (Ok (change,viewMode,[stateSelector, stateField], Just (Left newChoice)), vst)
 					//Previously no choice was made and still no choice has been made
@@ -434,7 +443,7 @@ where
 							# val = selectFun val
 							= case editor.Editor.genUI emptyAttr (dp ++ [1]) (if viewMode View Update $ val) vst of
 								(Error e,vst) = (Error e,vst)
-								(Ok (uiField,stateField),vst)
+								(Ok (uiField,stateField,_),vst)
 									# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
 									= (Ok (change,viewMode,[stateSelector, stateField], Just (Left newChoice)), vst)
 					//The selection has been cleared or an invalid choice is made
@@ -471,9 +480,9 @@ where
 						# newField = selectFun $ Just newField
 						= case editor.Editor.genUI emptyAttr (dp ++ [1]) (if viewMode View Update $ newField) vst of
 							(Error e,vst) = (Error e,vst)
-							(Ok (uiField,stateField),vst)
+							(Ok (uiField,stateField,mbw),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
-								= (Ok (change,viewMode,[stateSelector,stateField],Nothing), vst)
+								= (Ok (change,viewMode,[stateSelector,stateField],fmap Right mbw), vst)
 				| otherwise // Previously an editor was chosen
 					# mbOldChoice = fst <$> valueFromState viewMode st
 					//The selection has been cleared or the choice is out of bounds
@@ -493,9 +502,9 @@ where
 						# newField = selectFun $ Just newField
 						= case editor.Editor.genUI emptyAttr (dp ++ [1]) (if viewMode View Update $ newField) vst of
 							(Error e,vst) = (Error e,vst)
-							(Ok (uiField,stateField),vst)
+							(Ok (uiField,stateField,mbw),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
-								= (Ok (change,viewMode,[stateSelector,stateField],Nothing), vst)
+								= (Ok (change,viewMode,[stateSelector,stateField],fmap Right mbw), vst)
 
 	valueFromState _ st = case valAndChoiceFromState st of
 		(Just choice, Just val) = Just (choice, val)

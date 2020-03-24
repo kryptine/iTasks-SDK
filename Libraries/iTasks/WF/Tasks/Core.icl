@@ -117,21 +117,31 @@ evalInteract mbr (Just st) sds editor modefun writefun event=:(EditEvent eTaskId
 					change
 					(Task (evalInteract mbr (Just st) sds editor modefun writefun))
 				, iworld)
-
 		Error e = (ExceptionResult (exception e), iworld)
 evalInteract mbr mst sds editor modefun writefun ResetEvent evalOpts=:{taskId,lastEval} iworld
 	= case modefun mbr of
 		Just mode
 			= case withVSt taskId (editor.Editor.genUI 'DM'.newMap [] (mapEditMode id mode)) iworld of //We use (mapEditMode id) to force uniqueness
 				(Error e, iworld) = (ExceptionResult (exception e), iworld)
-				(Ok (UI type attr items, st), iworld)
+				(Ok (UI type attr items, st, mbw), iworld)
 					# change = ReplaceUI (UI type (addClassAttr "interact" attr) items)
-					= (ValueResult
-						(maybe NoValue (\r -> Value r False) mbr)
-						(mkTaskEvalInfo lastEval)
-						change
-						(Task (evalInteract mbr (Just st) sds editor modefun writefun))
-					, iworld)
+					= case mbw of
+						Just w = writefun w sds NoValue
+							(\event {TaskEvalOpts|lastEval} iworld ->
+								(ValueResult
+									(maybe NoValue (\r -> Value r False) mbr)
+									(mkTaskEvalInfo lastEval)
+									change
+									(Task (evalInteract mbr (Just st) sds editor modefun writefun))
+								, iworld))
+							ResetEvent evalOpts iworld
+						Nothing
+							= (ValueResult
+								(maybe NoValue (\r -> Value r False) mbr)
+								(mkTaskEvalInfo lastEval)
+								change
+								(Task (evalInteract mbr (Just st) sds editor modefun writefun))
+							, iworld)
 		Nothing
 			= (ValueResult
 				NoValue

@@ -38,7 +38,7 @@ from Control.GenBimap import generic bimap
 :: Editor r w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath *(EditMode r) *VSt ->
-		*(MaybeErrorString (!UI, !EditState), *VSt)
+		*(*MaybeErrorString *(!UI, !EditState, !*Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) EditState *VSt ->
 		*(*MaybeErrorString *(!UIChange, !EditState, !*Maybe w), *VSt)
@@ -61,7 +61,7 @@ from Control.GenBimap import generic bimap
 :: LeafEditor edit st r w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
-		*(MaybeErrorString (!UI, !st), *VSt)
+		*(*MaybeErrorString *(!UI, !st, !*Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !edit) st *VSt ->
 		*(*MaybeErrorString *(!UIChange, !st, !*Maybe w), *VSt)
@@ -91,7 +91,7 @@ leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, 
 :: CompoundEditor st r w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
-		*(MaybeErrorString (!UI, !st, ![EditState]), *VSt)
+		*(MaybeErrorString (!UI, !st, ![EditState], !Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st [EditState] *VSt ->
 		*(MaybeErrorString (!UIChange, !st, ![EditState], !Maybe w), *VSt)
@@ -117,7 +117,7 @@ compoundEditorToEditor :: !(CompoundEditor st r w) -> Editor r w | JSONDecode{|*
 :: EditorModifierWithState st r w =
 	//Generating the initial UI
 	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
-		*(MaybeErrorString (!UI, !st, !EditState), *VSt)
+		*(MaybeErrorString (!UI, !st, !EditState, !Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st EditState *VSt ->
 		*(MaybeErrorString (!UIChange, !st, !EditState, !Maybe w), *VSt)
@@ -178,6 +178,6 @@ isCompound :: !EditState -> Bool
 //Add client-side initialization to the generation of an initial UI
 withClientSideInit ::
 	!(JSVal *JSWorld -> *JSWorld)
-	!(UIAttributes DataPath a *VSt -> *(MaybeErrorString (!UI, !st), *VSt))
+	!(UIAttributes DataPath a *VSt -> *(*MaybeErrorString (!UI, !st, !*Maybe w), *VSt))
 	!UIAttributes !DataPath !a !*VSt ->
-		*(!MaybeErrorString (!UI, !st), !*VSt)
+		*(!*MaybeErrorString (!UI, !st, !*Maybe w), !*VSt)

@@ -11,7 +11,7 @@ emptyEditor :: Editor a w | JSONEncode{|*|}, JSONDecode{|*|} a
 emptyEditor = leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
-	genUI attr _ mode vst      = (Ok (uia UIEmpty attr, editModeValue mode),vst)
+	genUI attr _ mode vst      = (Ok (uia UIEmpty attr, editModeValue mode, Nothing),vst)
 	onEdit _ (_, ()) mbVal vst = (Ok (NoChange, mbVal, Nothing),vst)   // ignore edit events
 	onRefresh _ val _ vst      = (Ok (NoChange, Just val, Nothing),vst)   // just use new value
 	valueFromState mbVal       = mbVal
@@ -25,7 +25,7 @@ emptyEditorWithDefaultInEnterMode_ jsonEncode jsonDecode defaultValue = leafEdit
 	{LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// store initial value in state
-	genUI attr _ mode vst    = (Ok (uia UIEmpty attr, fromMaybe defaultValue $ editModeValue mode),vst)
+	genUI attr _ mode vst    = (Ok (uia UIEmpty attr, fromMaybe defaultValue $ editModeValue mode, Nothing),vst)
 	onEdit _ (_, ()) val vst = (Ok (NoChange, val, Nothing),vst)   // ignore edit events
 	onRefresh _ val _ vst    = (Ok (NoChange, val, Nothing),vst)   // just use new value
 	valueFromState val       = Just val
@@ -41,7 +41,7 @@ where
 	// store initial value in state
 	genUI attr _ mode vst = case editModeValue mode of
         Nothing  = (Error error, vst)
-		Just val = (Ok (uia UIEmpty attr, val),vst)
+		Just val = (Ok (uia UIEmpty attr, val, Nothing),vst)
 	onEdit _ (_, ()) val vst = (Ok (NoChange, val, Nothing),vst)   // ignore edit events
 	onRefresh _ val _ vst    = (Ok (NoChange, val, Nothing),vst)   // just use new value
 	valueFromState val       = Just val
@@ -106,7 +106,7 @@ where
 			//Add the add button
 			# items = if (not viewMode && add =: Just _) (items ++ [addItemControl val]) items
 			//All item UI's have a unique id that is used in the data-paths of that UI
-			= (Ok (uiac UIList attr items, (viewMode, indexList val), childSts), vst)
+			= (Ok (uiac UIList attr items, (viewMode, indexList val), childSts, Just []), vst)
 		(Error e,vst)  = (Error e,vst)
 	where
 		viewMode = mode =: View _
@@ -114,7 +114,7 @@ where
 
 		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
 		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI emptyAttr (dp++[i]) (if viewMode View Update $ c) vst of
-			(Ok (u,m),vst) = genChildUIs dp (i+1) cs [(u,m):us] vst
+			(Ok (u,m,_),vst) = genChildUIs dp (i+1) cs [(u,m):us] vst
 			(Error e,vst)  = (Error e,vst)
 
 		addItemControl val
@@ -177,7 +177,7 @@ where
             // use enter mode if no value for new item is given; otherwise use update mode
 			= case itemEditor.Editor.genUI emptyAttr (dp++[nid]) (maybe Enter Update mbNx) vst of
 				(Error e,vst) = (Error e, vst)
-				(Ok (ui,nm),vst)
+				(Ok (ui,nm,_),vst)
 					# nChildSts = childSts ++ [nm]
 					# nitems = itemEditor.Editor.valueFromState <$> nChildSts
 					# nids = ids ++ [nid]
@@ -220,7 +220,7 @@ where
 		//TODO: Determine small UI change
 		| otherwise
 			= case genUI emptyAttr dp (if viewMode View Update $ new) vst of
-				(Ok (ui, internalSt, childSts),vst) = (Ok (ReplaceUI ui, internalSt, childSts, Nothing), vst)
+				(Ok (ui, internalSt, childSts,_),vst) = (Ok (ReplaceUI ui, internalSt, childSts, Nothing), vst)
 				(Error e,vst)                       = (Error e, vst)
 
     valueFromState _ childSts = valuesFromState childSts [] //Only return a value if all child values are valid

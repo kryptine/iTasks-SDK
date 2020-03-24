@@ -98,7 +98,7 @@ where
 		                     , attr
 		                     ]
 		# children = map encodeUI objects
-		= (Ok (uiac UIHtmlView attr children, val), world)
+		= (Ok (uiac UIHtmlView attr children, val, Nothing), world)
 
 	encodeUI (Marker o) = let (JSONObject attr) = toJSON o
                               dataMap = 'DM'.fromList [("type",JSONString "marker"):attr]
@@ -754,7 +754,7 @@ where
 
 	genUI attributes datapath mode vst = case baseEditor.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
 		(Error e, vst) = (Error e, vst)
-		(Ok (ui,mapState),vst) = (Ok (ui,(mapState, initial)),vst)
+		(Ok (ui,mapState,_),vst) = (Ok (ui,(mapState, initial), Nothing),vst)
 
 	onEdit datapath edit (mapState,customState) vst = case baseEditor.LeafEditor.onEdit datapath edit mapState vst of
 		(Error e, vst) = (Error e, vst)

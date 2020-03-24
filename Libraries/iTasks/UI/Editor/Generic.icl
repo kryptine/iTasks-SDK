@@ -28,29 +28,29 @@ where
 		Enter
 			| optional //Just show the ui to enable the remaining fields
 				# (enableUI,enableSt) = genEnableUI taskId dp False
-				= (Ok (uiac UIContainer (addClassAttr "record" attr) [enableUI], (False, optional), [enableSt]), vst)
+				= (Ok (uiac UIContainer (addClassAttr "record" attr) [enableUI], (False, optional), [enableSt], Nothing), vst)
 			| otherwise
 				= case exGenUI emptyAttr (pairPath grd_arity dp) Enter {VSt|vst & optional = False} of
-					(Ok viz, vst)
-						# (ui, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity viz
-						= (Ok (ui, (False, optional), childSts), vst)
+					(Ok (ui, childSts, mbw) , vst)
+						# (ui, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity (ui,childSts)
+						= (Ok (ui, (False, optional), childSts, (mapMaybe RECORD) <$> mbw), vst)
 					(Error e,vst) = (Error e,vst)
 		Update (RECORD x)
 			= case exGenUI emptyAttr (pairPath grd_arity dp) (Update x) {VSt|vst & optional = False} of
-				(Ok viz,vst)
-					# (UI type attr items, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity viz
+				(Ok (ui,childSts,mbw),vst)
+					# (UI type attr items, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity (ui,childSts)
 					//When optional we add a checkbox to clear the record
 					| optional
 						# (enableUI, enableSt) = genEnableUI taskId dp True
-						= (Ok (UI type attr [enableUI:items], (False, optional), [enableSt: childSts]), vst)
+						= (Ok (UI type attr [enableUI:items], (False, optional), [enableSt: childSts], mapMaybe RECORD <$> mbw), vst)
 					| otherwise
-						= (Ok (UI type attr items, (False, optional), childSts),vst)
+						= (Ok (UI type attr items, (False, optional), childSts, mapMaybe RECORD <$> mbw), vst)
 				(Error e,vst) = (Error e,vst)
 		View  (RECORD x)
 			= case exGenUI emptyAttr (pairPath grd_arity dp) (View x) {VSt|vst & optional = False} of
-				(Ok viz,vst)
-					# (ui, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity viz
-					= (Ok (ui, (True, optional), childSts),vst)
+				(Ok (ui, childSts, mbw),vst)
+					# (ui, childSts) = fromPairUI UIContainer (addClassAttr "record" attr) grd_arity (ui,childSts)
+					= (Ok (ui, (True, optional), childSts, mapMaybe RECORD <$> mbw),vst)
 				(Error e,vst) = (Error e,vst)
 
 	genEnableUI taskId dp enabled = (uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool enabled))),newLeafState)
@@ -61,11 +61,11 @@ where
 			= (Error "Enabling non-optional record",vst)
 		//Create and add the fields
 		= case exGenUI emptyAttr (pairPath grd_arity dp) Enter {vst & optional = False} of
-			(Ok viz,vst)
-				# (UI type attr items, childSts) = fromPairUI UIContainer (classAttr ["record"]) grd_arity viz
+			(Ok (ui,childSts,mbw),vst)
+				# (UI type attr items, childSts) = fromPairUI UIContainer (classAttr ["record"]) grd_arity (ui,childSts)
 				# change = ChangeUI [] [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
 				# enableSt = LeafState {touched=True,state=JSONBool True}
-				= (Ok (change, (viewMode, optional), [enableSt:childSts],Nothing), vst)
+				= (Ok (change, (viewMode, optional), [enableSt:childSts],mapMaybe RECORD <$> mbw), vst)
 			(Error e,vst) = (Error e, vst)
 
 	//Disabling an optional record
@@ -131,7 +131,8 @@ gEditor{|FIELD of {gfd_name}|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=e
 	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	genUI attr dp mode vst = case exGenUI attr dp (mapEditMode (\(FIELD x) -> x) mode) vst of //Just add the field name as a label
-		(Ok (UI type attr items, childSt),vst) = (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, childSt),vst)
+		(Ok (UI type attr items, childSt, mbw),vst)
+			= (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, childSt, mapMaybe (mapMaybe (\x -> FIELD x)) mbw),vst)
 		(Error e,vst)                          = (Error e,vst)
 
 	onEdit dp (tp,e) childSt vst         = case exOnEdit dp (tp,e) childSt vst of
@@ -161,21 +162,21 @@ where
 		Enter
 			//Only generate a UI to select the constructor
 			# (consChooseUI, consChooseSt) = genConsChooseUI taskId dp gcd_names Nothing
-			= (Ok (UI UIContainer (addClassAttr "var-cons" attr) [consChooseUI], False, [consChooseSt]),{vst & selectedConsIndex = selectedConsIndex})
+			= (Ok (UI UIContainer (addClassAttr "var-cons" attr) [consChooseUI], False, [consChooseSt],Nothing),{vst & selectedConsIndex = selectedConsIndex})
 		Update (OBJECT x)
 			//Generate the ui for the current value
 			= case exGenUI emptyAttr dp (Update x) vst of
-				(Ok (consUI=:(UI _ attr` items), childSt),vst)
+				(Ok (consUI=:(UI _ attr` items), childSt,mbw),vst)
 					//Add the UI to select the constructor and change the type to UIVarCons
 					# (consChooseUI, consChooseSt) = genConsChooseUI taskId dp gcd_names (Just vst.selectedConsIndex)
-					= (Ok (UI UIContainer (addClassAttr "var-cons" ('DM'.union attr attr`)) [consChooseUI:items], False, [consChooseSt, childSt])
+					= (Ok (UI UIContainer (addClassAttr "var-cons" ('DM'.union attr attr`)) [consChooseUI:items], False, [consChooseSt, childSt], mapMaybe (mapMaybe (\x -> OBJECT x)) mbw)
 							,{vst & selectedConsIndex = selectedConsIndex})
 				(Error e,vst) = (Error e, vst)
 		View (OBJECT x)
 			= case exGenUI emptyAttr dp (View x) vst of
-				(Ok (consUI=:(UI _ attr` items), childSt),vst)
+				(Ok (consUI=:(UI _ attr` items), childSt, mbw),vst)
 					# (consViewUI,consViewSt) = genConsViewUI gcd_names vst.selectedConsIndex
-					= (Ok (UI UIContainer (addClassAttr "var-cons" ('DM'.union attr attr`)) [consViewUI:items], True, [consViewSt, childSt])
+					= (Ok (UI UIContainer (addClassAttr "var-cons" ('DM'.union attr attr`)) [consViewUI:items], True, [consViewSt, childSt], mapMaybe (mapMaybe (\x -> OBJECT x)) mbw)
 						,{vst & selectedConsIndex = selectedConsIndex})
 				(Error e,vst) = (Error e,vst)
 
@@ -196,7 +197,7 @@ where
 		# (ui, vst) = exGenUI emptyAttr dp Enter {vst & pathInEditMode = consCreatePath consIdx gtd_num_conses}
 		# vst = {vst & pathInEditMode = pathInEditMode}
 		= case ui of
-			Ok (UI _ attr items, childSt)
+			Ok (UI _ attr items, childSt, mbw)
 				//Construct a UI change that does the following: 
 				//1: If necessary remove the fields of the previously selected constructor
 				# removals = case state of
@@ -207,7 +208,7 @@ where
 				# change = ChangeUI [] (removals ++ inserts)
 				//Create a new state for the constructor selection
 				# consChooseSt = LeafState {touched=True,state=JSONInt consIdx}
-				= (Ok (change, viewMode, [consChooseSt, childSt], Just Nothing), vst)
+				= (Ok (change, viewMode, [consChooseSt, childSt], maybe (Just Nothing) (\w -> Just $ mapMaybe (\x -> OBJECT x) w) mbw), vst)
 			Error e = (Error e, vst)
 
 	//Other events targeted directly at the ADT 
@@ -263,12 +264,12 @@ where
 	genUI _ dp mode vst=:{pathInEditMode} = case (mode, pathInEditMode) of
 		(Enter, [nextChoiceIsRight: restOfPath])
 			# vst = {vst & pathInEditMode = restOfPath}
-			| nextChoiceIsRight = attachInfoToGenUIChildResult True  viewMode $ ey.Editor.genUI emptyAttr dp Enter vst
-			| otherwise         = attachInfoToGenUIChildResult False viewMode $ ex.Editor.genUI emptyAttr dp Enter vst
-		(Update (LEFT x),  _) = attachInfoToGenUIChildResult False viewMode $ ex.Editor.genUI emptyAttr dp (Update x) vst
-		(Update (RIGHT y), _) = attachInfoToGenUIChildResult True  viewMode $ ey.Editor.genUI emptyAttr dp (Update y) vst
-		(View   (LEFT x),  _) = attachInfoToGenUIChildResult False viewMode $ ex.Editor.genUI emptyAttr dp (View x)   vst
-		(View   (RIGHT y), _) = attachInfoToGenUIChildResult True  viewMode $ ey.Editor.genUI emptyAttr dp (View y)   vst
+			| nextChoiceIsRight = attachInfoToChildResult True  viewMode $ fmapChildResult RIGHT $ ey.Editor.genUI emptyAttr dp Enter vst
+			| otherwise         = attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.genUI emptyAttr dp Enter vst
+		(Update (LEFT x),  _) = attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.genUI emptyAttr dp (Update x) vst
+		(Update (RIGHT y), _) = attachInfoToChildResult True  viewMode $ fmapChildResult RIGHT $ey.Editor.genUI emptyAttr dp (Update y) vst
+		(View   (LEFT x),  _) = attachInfoToChildResult False viewMode $ fmapChildResult LEFT $ ex.Editor.genUI emptyAttr dp (View x)   vst
+		(View   (RIGHT y), _) = attachInfoToChildResult True  viewMode $ fmapChildResult RIGHT $ ey.Editor.genUI emptyAttr dp (View y)   vst
 	where
 		viewMode = mode =: View _
 
@@ -299,11 +300,11 @@ where
 	//A different constructor is selected -> generate a new UI
 	//We use a negative selConsIndex to encode that the constructor was changed
 	onRefresh dp (RIGHT new) (False, viewMode) _ vst = case ey.Editor.genUI emptyAttr dp (if viewMode View Update $ new) vst of
-		(Ok (ui,childSt),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (True, viewMode), [childSt], Nothing),{vst & selectedConsIndex = -1 - selectedConsIndex})
+		(Ok (ui,childSt,mbw),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (True, viewMode), [childSt], Nothing),{vst & selectedConsIndex = -1 - selectedConsIndex})
 		(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 
 	onRefresh dp (LEFT new) (True, viewMode) _ vst = case ex.Editor.genUI emptyAttr dp (if viewMode View Update $ new) vst of
-		(Ok (ui,childSt),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (False, viewMode), [childSt], Nothing),{vst & selectedConsIndex = -1 - selectedConsIndex})
+		(Ok (ui,childSt,mbw),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui, (False, viewMode), [childSt], Nothing),{vst & selectedConsIndex = -1 - selectedConsIndex})
 		(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 	onRefresh _ _ _ _ vst = (Error "Corrupt edit state in generic EITHER editor", vst)
 
@@ -311,15 +312,11 @@ where
 	valueFromState (True,  _) [childSt] = RIGHT <$> ey.Editor.valueFromState childSt
 	valueFromState _          _         = Nothing
 
-	attachInfoToGenUIChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState), !*VSt)
-	                             -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState]), !*VSt)
-	attachInfoToGenUIChildResult isRight viewMode (res, vst) =
-		((\(ui, childSt) -> (ui, (isRight, viewMode), [childSt])) <$> res, vst)
-
 	attachInfoToChildResult :: !Bool !Bool !(!MaybeErrorString (!ui, !EditState, !Maybe w), !*VSt)
 	                        -> (!MaybeErrorString (!ui, !(!Bool, !Bool), ![EditState], !Maybe w), !*VSt)
 	attachInfoToChildResult isRight viewMode (res, vst) =
 		((\(ui, childSt, mbw) -> (ui, (isRight, viewMode), [childSt], mbw)) <$> res, vst)
+
 
 	fmapChildResult :: (a -> b) !(!MaybeErrorString (!ui, !EditState, !Maybe (Maybe a)), !*VSt)
 	                -> *(!MaybeErrorString (ui, EditState, Maybe (Maybe b)), !*VSt)
@@ -329,9 +326,9 @@ gEditor{|CONS of {gcd_index,gcd_arity}|} {Editor|genUI=exGenUI,onEdit=exOnEdit,o
 	= compoundEditorToEditor {CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState}
 where
 	genUI attr dp mode vst = case exGenUI emptyAttr (pairPath gcd_arity dp) (mapEditMode (\(CONS x) -> x) mode) vst of
-		(Ok viz,vst)
-			# (ui, childSts) = fromPairUI UIContainer (addClassAttr "cons" attr) gcd_arity viz
-			= (Ok (ui, (), childSts), {VSt| vst & selectedConsIndex = gcd_index})
+		(Ok (ui, childSts, mbw),vst)
+			# (ui, childSts) = fromPairUI UIContainer (addClassAttr "cons" attr) gcd_arity (ui,childSts)
+			= (Ok (ui, (), childSts, mapMaybe (mapMaybe (\x -> CONS x)) mbw), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
 	onEdit dp ([d:ds],e) cst childSts vst
@@ -364,11 +361,16 @@ where
 	genUI attr dp mode vst
 		# (dpx, dpy)  = pairPathSplit dp
 		# (vizx, vst) = exGenUI emptyAttr dpx (mapEditMode (\(PAIR x _) -> x) mode) vst
-		| vizx =: (Error _) = (vizx,vst)
+		| vizx =: (Error _) = (liftError vizx,vst)
 		# (vizy, vst) = eyGenUI emptyAttr dpy (mapEditMode (\(PAIR _ y) -> y) mode) vst
-		| vizy =: (Error _) = (vizy,vst)
-		# ((vizx, stx), (vizy, sty)) = (fromOk vizx, fromOk vizy)
-		= (Ok (uiac UIContainer attr [vizx, vizy],CompoundState JSONNull [stx, sty]),vst)
+		| vizy =: (Error _) = (liftError vizy,vst)
+		# ((vizx, stx, mbwx), (vizy, sty, mbwy)) = (fromOk vizx, fromOk vizy)
+		# mbw = case (mbwx,mbwy) of
+			(Just (Just wx), Just (Just wy)) = Just (Just (PAIR wx wy))
+			(Just Nothing, _) = Just Nothing
+			(_,Just Nothing) = Just Nothing
+			_ = Nothing
+		= (Ok (uiac UIContainer attr [vizx, vizy], CompoundState JSONNull [stx, sty], mbw),vst)
 
 	onEdit dp ([0:ds],e) stX ust
 		# (dpx,_)   = pairPathSplit dp
@@ -403,12 +405,13 @@ gEditor{|Maybe|} {Editor|genUI=exGenUI,onEdit=exOnEdit,onRefresh=exOnRefresh,val
 	= compoundEditorToEditor {CompoundEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	// Viewing Nothing is always the empty UI
-	genUI attr _ (View Nothing) vst = (Ok (uia UIEmpty attr, (False, True), [newLeafState]), vst)
+	genUI attr _ (View Nothing) vst = (Ok (uia UIEmpty attr, (False, True), [newLeafState], Nothing), vst)
 	genUI attr` dp mode vst=:{VSt|optional} = case exGenUI emptyAttr dp childMode {VSt|vst & optional = True} of
-		(Ok (UI type attr items, childSt), vst) =
+		(Ok (UI type attr items, childSt, mbw), vst) =
 			( Ok ( UI type ('DM'.unions [optionalAttr True, attr`, attr]) items
 			     , (containsJustVal, mode =: View _)
 			     , [childSt]
+				 , fmap Just <$> mbw
 			     )
 			, {VSt|vst & optional = optional}
 			)
@@ -445,11 +448,11 @@ where
 		//Generate a UI and replace
 		| otherwise
 			# (ui, vst) = exGenUI emptyAttr dp (if viewMode View Update $ new) {VSt|vst & optional = True}
-			# ui = ( \(UI type attr items, childSt) ->
+			# ui = ( \(UI type attr items, childSt, mbw) ->
 			          ( ReplaceUI $ UI type ('DM'.union (optionalAttr True) attr) items
 			          , (True, viewMode)
 			          , [childSt]
-			          , Nothing
+			          , fmap Just <$> mbw
 			          )
 			       ) <$> ui
 			= (ui, {vst & optional = optional})

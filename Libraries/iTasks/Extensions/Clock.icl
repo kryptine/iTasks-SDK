@@ -30,7 +30,7 @@ where
 	genUI attr dp mode world
 		# time=:(AnalogClock {Time|hour,min,sec}) = fromMaybe (AnalogClock {Time|hour=0,min=0,sec=0}) $ editModeValue mode
 		# attr = 'DM'.unions [sizeAttr (ExactSize 100) (ExactSize 100),valueAttr (JSONString (toString (svgClock hour min sec))), attr]
-		= (Ok (uia UIHtmlView attr,time), world)
+		= (Ok (uia UIHtmlView attr,time,Nothing), world)
 	where
 		svgClock hour min sec 
 			= SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]

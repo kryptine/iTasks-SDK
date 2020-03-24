@@ -19,7 +19,7 @@ where
 		# val = editModeValue mode
 		# valAttr = maybe JSONNull JSONString val
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr valAttr, attr]
-		= (Ok (uia UITextField attr, val),vst)
+		= (Ok (uia UITextField attr, val, Nothing),vst)
 
 	initUI me world
 		//Load css
