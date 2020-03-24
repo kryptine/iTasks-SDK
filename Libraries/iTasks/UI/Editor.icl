@@ -20,9 +20,9 @@ leafEditorToEditor leafEditor = leafEditorToEditor_ JSONEncode{|*|} JSONDecode{|
 leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, [JSONNode])) !(LeafEditor edit st r w)
                     -> Editor r w | JSONDecode{|*|} edit
 leafEditorToEditor_ jsonEncode jsonDecode leafEditor =
-	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+	{Editor| onReset = onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
-	genUI attr dp val vst = mapRes False $ leafEditor.LeafEditor.genUI attr dp val vst
+	onReset attr dp val vst = mapRes False $ leafEditor.LeafEditor.onReset attr dp val vst
 
 	onEdit dp (tp, jsone) (LeafState {state}) vst = case fromJSON` state of
 		Just st = case fromJSON jsone of
@@ -58,9 +58,9 @@ where
 
 compoundEditorToEditor :: !(CompoundEditor st r w) -> Editor r w | JSONDecode{|*|}, JSONEncode{|*|} st
 compoundEditorToEditor compoundEditor =
-	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+	{Editor| onReset = onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
-	genUI attr dp val vst = mapRes $ compoundEditor.CompoundEditor.genUI attr dp val vst
+	onReset attr dp val vst = mapRes $ compoundEditor.CompoundEditor.onReset attr dp val vst
 
 	onEdit dp e (CompoundState jsonSt childSts) vst = case fromJSON jsonSt of
 		Just st = case compoundEditor.CompoundEditor.onEdit dp e st childSts vst of
@@ -90,9 +90,9 @@ where
 
 editorModifierWithStateToEditor :: !(EditorModifierWithState st r w) -> Editor r w | JSONDecode{|*|}, JSONEncode{|*|} st
 editorModifierWithStateToEditor modifier =
-	{Editor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+	{Editor| onReset = onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
-	genUI attr dp val vst = mapRes $ modifier.EditorModifierWithState.genUI attr dp val vst
+	onReset attr dp val vst = mapRes $ modifier.EditorModifierWithState.onReset attr dp val vst
 
 	onEdit dp e (AnnotatedState jsonSt childSt) vst = case fromJSON jsonSt of
 		Just st = case modifier.EditorModifierWithState.onEdit dp e st childSt vst of
@@ -172,7 +172,7 @@ withClientSideInit ::
 	!(JSVal *JSWorld -> *JSWorld)
 	!(UIAttributes DataPath a *VSt -> *(*MaybeErrorString (!UI, !st, !*Maybe w), *VSt))
 	!UIAttributes !DataPath !a !*VSt -> *(!*MaybeErrorString (!UI, !st, !*Maybe w), !*VSt)
-withClientSideInit initUI genUI attr dp val vst=:{VSt| taskId} = case genUI attr dp val vst of
+withClientSideInit initUI onReset attr dp val vst=:{VSt| taskId} = case onReset attr dp val vst of
 	(Ok (UI type attr items,mask, mbw),vst)
 		# (initUI, vst) = serializeForClient (wrapInitFunction initUI) vst
 		# extraAttr = 'DM'.fromList

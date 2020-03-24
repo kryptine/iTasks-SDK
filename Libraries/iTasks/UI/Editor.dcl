@@ -37,7 +37,7 @@ from Control.GenBimap import generic bimap
 */
 :: Editor r w =
 	//Generating the initial UI
-	{ genUI :: !UIAttributes DataPath *(EditMode r) *VSt ->
+	{ onReset :: !UIAttributes DataPath *(EditMode r) *VSt ->
 		*(*MaybeErrorString *(!UI, !EditState, !*Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) EditState *VSt ->
@@ -60,7 +60,7 @@ from Control.GenBimap import generic bimap
 */
 :: LeafEditor edit st r w =
 	//Generating the initial UI
-	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
+	{ onReset :: !UIAttributes DataPath (EditMode r) *VSt ->
 		*(*MaybeErrorString *(!UI, !st, !*Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !edit) st *VSt ->
@@ -90,7 +90,7 @@ leafEditorToEditor_ :: !(Bool st -> [JSONNode]) !(Bool [JSONNode] -> (Maybe st, 
 */
 :: CompoundEditor st r w =
 	//Generating the initial UI
-	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
+	{ onReset :: !UIAttributes DataPath (EditMode r) *VSt ->
 		*(MaybeErrorString (!UI, !st, ![EditState], !Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st [EditState] *VSt ->
@@ -116,7 +116,7 @@ compoundEditorToEditor :: !(CompoundEditor st r w) -> Editor r w | JSONDecode{|*
 */
 :: EditorModifierWithState st r w =
 	//Generating the initial UI
-	{ genUI :: !UIAttributes DataPath (EditMode r) *VSt ->
+	{ onReset :: !UIAttributes DataPath (EditMode r) *VSt ->
 		*(MaybeErrorString (!UI, !st, !EditState, !Maybe w), *VSt)
 	//React to edit events
 	, onEdit :: !DataPath (!DataPath, !JSONNode) st EditState *VSt ->

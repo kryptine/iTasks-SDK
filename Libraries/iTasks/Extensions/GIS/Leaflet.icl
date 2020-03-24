@@ -77,13 +77,13 @@ leafletEditor = leafEditorToEditor (leafletEditor` (const id))
 leafletEditor` :: !(JSVal *JSWorld -> *JSWorld) -> LeafEditor [LeafletEdit] LeafletMap LeafletMap LeafletMap
 leafletEditor` postInitUI =
 	{ LeafEditor
-    | genUI          = withClientSideInit initUI genUI
+    | onReset        = withClientSideInit initUI onReset
     , onEdit         = onEdit
     , onRefresh      = onRefresh
     , valueFromState = valueFromState
     }
 where
-	genUI attr dp mode world
+	onReset attr dp mode world
 		# val=:{LeafletMap|perspective={center,zoom},tilesUrls,objects,icons} =
 			fromMaybe gDefault{|*|} $ editModeValue mode
 		# mapAttr = 'DM'.fromList
@@ -742,7 +742,7 @@ customLeafletEditor handlers initial = leafEditorToEditor (customLeafletEditor` 
 customLeafletEditor` ::(LeafletEventHandlers s) s -> LeafEditor [LeafletEdit] (LeafletMap,s) (LeafletMap,s) (LeafletMap,s) | iTask s
 customLeafletEditor` handlers initial =
 	{ LeafEditor
-    | genUI          = genUI
+    | onReset        = onReset
     , onEdit         = onEdit
     , onRefresh      = onRefresh
     , valueFromState = valueFromState
@@ -752,7 +752,7 @@ where
 		[_:_] -> \me -> me .# "doubleClickZoom" .# "disable" .$! ()
 		[]    -> const id
 
-	genUI attributes datapath mode vst = case baseEditor.LeafEditor.genUI attributes datapath (mapEditMode fst mode) vst of
+	onReset attributes datapath mode vst = case baseEditor.LeafEditor.onReset attributes datapath (mapEditMode fst mode) vst of
 		(Error e, vst) = (Error e, vst)
 		(Ok (ui,mapState,_),vst) = (Ok (ui,(mapState, initial), Nothing),vst)
 

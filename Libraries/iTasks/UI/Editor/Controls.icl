@@ -155,9 +155,9 @@ fieldComponent
 fieldComponent type mbEditModeInitValue isValid = disableOnView $ editorWithJSONEncode (leafEditorToEditor o leafEditor)
 where 
 	leafEditor toJSON
-		= {LeafEditor|genUI=genUI toJSON,onEdit=onEdit,onRefresh=onRefresh toJSON,valueFromState=valueFromState}
+		= {LeafEditor|onReset=onReset toJSON,onEdit=onEdit,onRefresh=onRefresh toJSON,valueFromState=valueFromState}
 
-	genUI toJSON attr dp mode vst=:{VSt|taskId,optional}
+	onReset toJSON attr dp mode vst=:{VSt|taskId,optional}
 		# mbVal   = maybe mbEditModeInitValue Just $ editModeValue mode
 		# mbVal   = maybe Nothing (\val -> if (isValid attr val) (Just val) Nothing) mbVal
 		# attr    = 'DM'.unions [ optionalAttr optional
@@ -188,9 +188,9 @@ where
 viewComponent :: !(a -> UIAttributes) !UIType -> Editor a b | JSONEncode{|*|}, JSONDecode{|*|} a
 viewComponent toAttributes type = leafEditorToEditor leafEditor
 where
-	leafEditor = {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+	leafEditor = {LeafEditor|onReset=onReset,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 
-	genUI attr dp mode vst = case editModeValue mode of
+	onReset attr dp mode vst = case editModeValue mode of
 		Just val = (Ok (uia type ('DM'.union attr $ toAttributes val), val, Nothing), vst)
 		_        = (Error "View components cannot be used in enter mode", vst)
 
@@ -217,9 +217,9 @@ where
 choiceComponent :: !(a -> UIAttributes) !(a -> [o]) !(o -> JSONNode) !([o] Int -> Bool) !UIType -> Editor (!a, ![Int]) [Int]
                  | JSONEncode{|*|}, JSONDecode{|*|} a
 choiceComponent attr getOptions toOption checkBounds type = disableOnView $
-	leafEditorToEditor {LeafEditor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+	leafEditorToEditor {LeafEditor|onReset=onReset,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
-	genUI attrs dp mode vst=:{VSt|taskId}
+	onReset attrs dp mode vst=:{VSt|taskId}
 		# (mbVal, sel) = maybe (Nothing, []) (appFst Just) $ editModeValue mode
 		# attr = 'DM'.unions [attrs, maybe 'DM'.newMap attr mbVal, choiceAttrs taskId (editorId dp) sel $ mbValToOptions mbVal]
 

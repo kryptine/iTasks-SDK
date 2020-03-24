@@ -21,15 +21,15 @@ import qualified iTasks.Internal.SDS as SDS
 
 instance tune UIAttribute (Editor a w)
 where
-	tune (k,v) editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
+	tune (k,v) editor=:{Editor|onReset=editorOnReset} = {Editor|editor & onReset = onReset}
 	where
-		genUI attr dp mode vst = editorGenUI ('DM'.put k v attr) dp (mapEditMode id mode) vst
+		onReset attr dp mode vst = editorOnReset ('DM'.put k v attr) dp (mapEditMode id mode) vst
 
 instance tune UIAttributes (Editor a w)
 where
-	tune extra editor=:{Editor|genUI=editorGenUI} = {Editor|editor & genUI = genUI}
+	tune extra editor=:{Editor|onReset=editorOnReset} = {Editor|editor & onReset = onReset}
 	where
-		genUI attr dp mode vst = editorGenUI ('DM'.union extra attr) dp (mapEditMode id mode) vst
+		onReset attr dp mode vst = editorOnReset ('DM'.union extra attr) dp (mapEditMode id mode) vst
 
 instance tune UIAttribute (Task a)
 where

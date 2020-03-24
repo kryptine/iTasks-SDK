@@ -21,13 +21,13 @@ gEditor{|AnalogClock|} = analogClockEditor
 analogClockEditor :: Editor AnalogClock a
 analogClockEditor = leafEditorToEditor
 	{LeafEditor
-	|genUI          = withClientSideInit initUI genUI
+	|onReset        = withClientSideInit initUI onReset
 	,onEdit         = onEdit
 	,onRefresh      = onRefresh
 	,valueFromState = valueFromState
 	}
 where
-	genUI attr dp mode world
+	onReset attr dp mode world
 		# time=:(AnalogClock {Time|hour,min,sec}) = fromMaybe (AnalogClock {Time|hour=0,min=0,sec=0}) $ editModeValue mode
 		# attr = 'DM'.unions [sizeAttr (ExactSize 100) (ExactSize 100),valueAttr (JSONString (toString (svgClock hour min sec))), attr]
 		= (Ok (uia UIHtmlView attr,time,Nothing), world)

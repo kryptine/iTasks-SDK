@@ -13,9 +13,9 @@ PIKADAY_CSS_URL :== "/pikaday/css/pikaday.css"
 MOMENT_JS_URL :== "/momentjs/moment.min.js"
 
 pikadayField :: Editor String String
-pikadayField = leafEditorToEditor {LeafEditor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+pikadayField = leafEditorToEditor {LeafEditor|onReset = withClientSideInit initUI onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
-	genUI attr dp mode vst=:{VSt|taskId,optional}
+	onReset attr dp mode vst=:{VSt|taskId,optional}
 		# val = editModeValue mode
 		# valAttr = maybe JSONNull JSONString val
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr valAttr, attr]
