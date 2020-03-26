@@ -40,8 +40,8 @@ liftOSErr f iw = case (liftIWorld f) iw of
 	(Error (_, e), iw) = (Error (exception e), iw)
 	(Ok a, iw) = (Ok a, iw)
 
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
-externalProcess poll cmd args dir mopts sdsin sdsout = Task evalinit
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !Int !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
+externalProcess poll cmd args dir exitCode mopts sdsin sdsout = Task evalinit
 where
 	evalinit DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
@@ -53,7 +53,7 @@ where
 	eval (ph, pio) DestroyEvent {TaskEvalOpts|taskId} iworld
 		# iworld = clearTaskSDSRegistrations ('DS'.singleton taskId) iworld
 		= apIWTransformer iworld
-		$       liftOSErr (terminateProcess ph)
+		$       liftOSErr (terminateProcessCode ph exitCode)
 		>-= \_->liftOSErr (closeProcessIO pio)
 		>-= \_->tuple (Ok DestroyedResult)
 	//TODO: Support async sdss

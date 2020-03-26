@@ -51,13 +51,13 @@ where
 			# iworld = iShow ["SDSService exception during " +++ base +++ ": " +++ str] iworld
 			= (ExceptionResult taskException, iworld)
 
-		eval DestroyEvent evalOpts iworld=:{ioStates}
+		eval DestroyEvent {lastEval,taskId} iworld=:{ioStates}
 			# ioStates = case 'Map'.get taskId ioStates of
 				Just (IOActive values) = 'Map'.put taskId (IODestroyed values) ioStates
 				_                      = ioStates
         	= (DestroyedResult, {iworld & ioStates = ioStates})
-		eval (RefreshEvent taskIds) {lastEval} iworld
-			| not ('Set'.member taskId taskIds)
+		eval event {taskId,lastEval} iworld
+			| not (isRefreshForTask event taskId)
 				= (ValueResult
 					(Value () False)
 					(mkTaskEvalInfo lastEval)
@@ -71,13 +71,6 @@ where
 			| results=:(Error _) = showException "re-evaluating share values" (exception (fromError results)) iworld
 			# (writeResult, iworld) = write ('Map'.fromList (fromOk results)) sds EmptyContext iworld
 			| writeResult=:(Error _) = showException "writing result share values" (fromError writeResult) iworld
-			= (ValueResult
-				(Value () False)
-				(mkTaskEvalInfo lastEval)
-				NoChange
-				(Task eval)
-				, iworld)
-		eval ResetEvent {lastEval} iworld
 			= (ValueResult
 				(Value () False)
 				(mkTaskEvalInfo lastEval)
@@ -146,26 +139,38 @@ where
 			| size request == 0 = (Error "Received empty request", iworld)
 			| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 			= case deserializeFromBase64 request symbols of
-				SDSReadRequest sds p = case readSDS sds p (TaskContext taskId) iworld of
+				SDSReadRequest sds p
+					| not (trace_tn "received an SDSReadRequest") = undef
+					= case readSDS sds p (TaskContext taskId) iworld of
 					(ReadResult v _, iworld)       = (Ok (Left (serializeToBase64 (Ok v))), iworld)
 					(AsyncRead sds, iworld)        = (Ok (Right (serializeToBase64 (SDSReadRequest sds p))), iworld)
 					(ReadException (_, e), iworld) = (Error e, iworld)
-				SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port = case readRegisterSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) taskId reqSDSId iworld of
+				SDSRegisterRequest sds p reqSDSId remoteSDSId reqTaskId port
+					| not (trace_tn "received an SDSRegisterRequest") = undef
+					= case readRegisterSDS sds p (RemoteTaskContext reqTaskId taskId remoteSDSId host port) taskId reqSDSId iworld of
 					(ReadResult v _, iworld)       = (Ok (Left (serializeToBase64 (Ok v))), iworld)
 					(AsyncRead sds, iworld)        = (Ok (Right (serializeToBase64 (SDSRegisterRequest sds p reqSDSId remoteSDSId taskId port))), iworld)
 					(ReadException (_, e), iworld) = (Error e, iworld)
-				SDSWriteRequest sds p val = case writeSDS sds p (TaskContext taskId) val iworld of
+				SDSWriteRequest sds p val
+					| not (trace_tn ("received an SDSWriteRequest for: " +++ toString (sdsIdentity sds))) = undef
+					= case writeSDS sds p (TaskContext taskId) val iworld of
 					(WriteResult notify _, iworld)  = (Ok (Left (serializeToBase64 (Ok ()))), queueNotifyEvents (sdsIdentity sds) notify iworld)
 					(AsyncWrite sds, iworld)        = (Ok (Right (serializeToBase64 (SDSWriteRequest sds p val))), iworld)
 					(WriteException (_, e), iworld) = (Error e, iworld)
-				SDSModifyRequest sds p f = case modifySDS f sds p (TaskContext taskId) iworld of
+				SDSModifyRequest sds p f
+					| not (trace_tn "received an SDSModifyRequest") = undef
+					= case modifySDS f sds p (TaskContext taskId) iworld of
 					(ModifyResult notify r w _, iworld) = (Ok (Left (serializeToBase64 (Ok (r,w)))), queueNotifyEvents (sdsIdentity sds) notify iworld)
 					(AsyncModify sds f, iworld)         = (Ok (Right (serializeToBase64 (SDSModifyRequest sds p f))), iworld)
 					(ModifyException (_, e), iworld)    = (Error e, iworld)
 				SDSRefreshRequest refreshTaskId sdsId
 				// If we receive a request to refresh the sds service task, we find all remote
 				// registrations for the SDS id and send requests to refresh them to their respective clients.
-				| taskId == refreshTaskId = refreshRemoteTasks sdsId iworld
+				| not (trace_tn "received an SDSRefreshRequest") = undef
+				| taskId == refreshTaskId
+					| not (trace_tn "remote taskids") = undef
+					= refreshRemoteTasks sdsId iworld
+				| not (trace_tn "refresh local taskid") = undef
 				= (Ok (Left "Refresh queued"), queueRefresh refreshTaskId iworld)
 		where
 			newlines [] = 0
@@ -182,3 +187,5 @@ where
 							('Set'.fromList $ (\req -> (req.reqTaskId, req.remoteOptions)) <$> 'Map'.keys requestsToTime)
 							iworld
 						)
+
+import StdDebug

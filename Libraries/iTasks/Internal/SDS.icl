@@ -123,6 +123,7 @@ directResult :: (AsyncRead r w) -> r
 directResult (ReadingDone r) = r
 directResult _ = abort "No direct result!"
 
+import StdDebug
 //Check the registrations and find the set of id's for which the current predicate holds
 //and for which id's it doesn't
 checkRegistrations :: !SDSIdentity !(SDSNotifyPred p) !*IWorld
@@ -144,6 +145,8 @@ where
 				= ('Set'.insert (reqTaskId, remoteOptions) match,nomatch)
 				= (match, 'Set'.insert (reqTaskId, remoteOptions) nomatch)
 		_
+			| not (trace_tn ("cmpParam: " +++ toString (typeCodeOfDynamic cmpParam))) = undef
+			| not (trace_tn ("p: " +++ toString (typeCodeOfDynamic (dynamic pred)))) = undef
 			= abort "dynamic type error in checkRegistrations\n"
 
 modify :: !(r -> w) !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncModify r w), !*IWorld) | TC r & TC w & Modifiable sds

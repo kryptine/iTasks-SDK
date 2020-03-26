@@ -43,6 +43,8 @@ onDestroy s = (Ok s, [])
 
 queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols iworld
+# req = trace_stdout req
+| not (trace_tn (" for " +++ toSingleLineText taskId)) = undef
 = case addConnection taskId host port Nothing connectionTask iworld of
 	(Error e, iworld)  		= (Error e, iworld)
 	(Ok (id, _), iworld)     	= (Ok id, iworld)
@@ -473,3 +475,4 @@ where
 				= cont r origevent evalOpts iworld
 			(Ok (Reading sds), iworld)
 				= (ValueResult tv (mkTaskEvalInfo lastEval) (ui event) (Task (readRegisterC sds tv ui cont)) , iworld)
+import StdDebug, Debug.Trace

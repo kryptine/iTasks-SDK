@@ -337,7 +337,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			# mbTaskState = get connectionId taskStates
 			| isNothing mbTaskState
 				# iworld   = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
-				# ioStates = put taskId (IOException "Missing IO task state for task ") ioStates
+				# ioStates = put taskId (IOException "Active: Missing IO task state for task ") ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# taskState = fst (fromJust mbTaskState)
 
@@ -419,7 +419,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 			# mbTaskState = get connectionId taskStates
 			| isNothing mbTaskState
 				# iworld   = if (instanceNo > 0) (queueRefresh taskId iworld) iworld
-				# ioStates = put taskId (IOException "Missing IO task state for task ") ioStates
+				# ioStates = put taskId (IOException "Destroy: Missing IO task state for task ") ioStates
 				= ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
 			# (Just (taskState, _)) = mbTaskState
 			//Ondestroy handler
@@ -550,6 +550,7 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld=:{ioStates
 						# (connectionId, connectionMap) = case get taskId ioStates of
 							Nothing                             = (0, IOActive (fromList [(0,(l, False))]))
 							(Just (IOActive connectionMap))     = (newConnectionId, IOActive (put newConnectionId (l, False) connectionMap))
+    						(Just (IOException exc)) = abort ("IOException: " +++ exc)
 						# ioStates = put taskId connectionMap ioStates
 						# iworld = {iworld & ioStates = ioStates}
 						# {done, todo} = iworld.ioTasks

@@ -25,10 +25,7 @@ asyncITasksQueue :: SDSLens () () (TaskId, TaskWrapper)
 asyncITasksQueue = mapReadWrite (\_->(), \task queue->Just (enqueue task queue)) Nothing asyncITasksQueueInt
 
 asyncITasksValues :: SDSLens TaskId (Queue (TaskValue a, UIChange)) (Queue (TaskValue a, UIChange)) | TC, JSONEncode{|*|}, JSONDecode{|*|} a
-asyncITasksValues = sdsTranslate "" toString (memoryStore "asyncITasks-values" (Just newQueue))
-
-asyncITasksEvents :: SDSLens TaskId (Queue Event) (Queue Event)
-asyncITasksEvents = sdsTranslate "" toString (memoryStore "asyncITasks-events" (Just newQueue))
+asyncITasksValues = sdsTranslate "taskid-translation" toString (memoryStore "asyncITasks-values" (Just newQueue))
 
 asyncITasksQueueInt :: SimpleSDSLens (Queue (TaskId, TaskWrapper))
 asyncITasksQueueInt = sdsFocus "queue" (memoryStore "asyncITasks" (Just newQueue))
