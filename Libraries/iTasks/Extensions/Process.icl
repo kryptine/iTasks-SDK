@@ -29,7 +29,7 @@ callProcess vopts fp args wd pty
 				, stdout=concat stdout
 				, stderr=concat stderr
 				, status=RunningProcess}) out) in
-		externalProcess {tv_sec=0,tv_nsec=100000000} fp args wd pty stdin out
+		externalProcess {tv_sec=0,tv_nsec=100000000} fp args wd externalProcessGraceful pty stdin out
 		-|| viewSharedInformation vopts s
 		>>- \c->get s @ \s->{s & status=CompletedProcess c}
 
