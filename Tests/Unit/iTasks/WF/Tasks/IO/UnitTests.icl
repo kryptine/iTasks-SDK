@@ -18,4 +18,4 @@ Start world = runUnitTests
 where
 	test ts cmd args = (\w->(Passed, w)) o startEngine (onStartup $
 		withShared [] \stdin->withShared ([], []) \stdout->
-			externalProcess ts cmd args Nothing Nothing stdin stdout)
+			externalProcess ts cmd args Nothing externalProcessGraceful Nothing stdin stdout)

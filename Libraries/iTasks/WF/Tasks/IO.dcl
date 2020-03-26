@@ -6,6 +6,7 @@ definition module iTasks.WF.Tasks.IO
 from TCPIP import :: Timeout
 import iTasks.WF.Definition
 import iTasks.SDS.Definition
+import System.OS
 from iTasks.Internal.IWorld import :: ConnectionId
 from System.FilePath import :: FilePath
 from System.Process import :: ProcessPtyOptions
@@ -20,18 +21,25 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 	}
 
 /**
+ * On windows, a graceful exit has exitcode 0.
+ * On posix, the application can exit gracefully with signal 15 (SIGTERM)
+ */
+externalProcessGraceful :== IF_POSIX 15 0
+
+/**
  * Execute an external process. Data placed in the stdin sds is sent to the process, data received is placed in the (stdout, stderr) sds.
  *
  * @param Poll rate
  * @param Path to executable
  * @param Command line arguments
  * @param Startup directory
+ * @param Exit code (windows) or signal (posix) to send when destroying
+ * @param Pseudotty settings
  * @param Stdin queue
  * @param (stdout, stderr) queue
- * @param Pseudotty settings
  * @result Task returning the exit code on termination
  */
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !Int !(Maybe ProcessPtyOptions) !(Shared sds1 [String]) !(Shared sds2 ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
