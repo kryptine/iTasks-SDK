@@ -402,7 +402,7 @@ itasks.Loader = class extends itasks.Component {
 		me.domEl.classList.add(me.cssPrefix + 'flex-width');
 		me.domEl.classList.add(me.cssPrefix + 'flex-height');
 		if(me.attributes.taskId){
-			me.doEditEvent(me.attributes.taskId, me.attributes.editorId, true);
+			me.doEditEvent(me.attributes.taskId, me.attributes.editorId, Just (true));
 		}
 	}
 };
