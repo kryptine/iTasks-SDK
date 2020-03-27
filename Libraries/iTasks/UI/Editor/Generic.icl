@@ -569,8 +569,12 @@ gEditor{|Integer|} = selectByMode
 where
 	integerEditor = bijectEditorValue toString toInteger
 		$ fieldComponent UITextField Nothing \_ s
-			| size s == 0 = False
-			| size s == 1 = isDigit s.[0]
-			= isDigit s.[0] || s.[0] == '-' && isDigit s.[1]
+			| size s == 0  = False
+			| s.[0] == '-' = size s > 1 && allDigits 1 s
+			| otherwise    = allDigits 0 s
+
+	allDigits i s
+		| size s == i = True
+		| otherwise   = isDigit s.[i] && allDigits (i+1) s
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
