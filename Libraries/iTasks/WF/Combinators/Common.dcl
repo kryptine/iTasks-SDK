@@ -324,8 +324,28 @@ whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTa
 withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 
 /**
+ * Lets the user choose a task from a list to work on, i.e. only the chosen task's UI is visible.
+ *
+ * @param  Determines the UI to choose the task from.
+ *         Should be a constructor of `iTasks.WF.Tasks.Interaction.ChoiceOption`.
+ * @param  The list of tasks with labels.
+ * @result The chosen task's value.
  */
 workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
+
+/**
+ * Lets the user choose a task from a list to work on, i.e. only the chosen task's UI is visible.
+ * The index of the currently chosen task is shared.
+ *
+ * @param  Determines the UI to choose the task from.
+ *         Should be a constructor of `iTasks.WF.Tasks.Interaction.ChoiceOption`.
+ * @param  The shared currently chosen task's index.
+ * @param  The list of tasks with labels.
+ * @result The chosen task's value.
+ */
+workOnChosenTaskWithSharedChoice ::
+	!(((String, Int) -> String) -> ChoiceOption (String, Int)) !(Shared sds Int) ![(String, Task a)] -> Task a
+	| iTask a & RWShared sds
 
 /**
 * Append a task to the set of top level tasks
