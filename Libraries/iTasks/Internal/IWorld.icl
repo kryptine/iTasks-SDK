@@ -69,11 +69,8 @@ createIWorld options world
 where
 	initSymbols appName world
 		# (symbols, world) = accFiles (read_symbols (IF_WINDOWS (appName +++ ".exe") appName)) world
-		# msg = if (size symbols == 0)
-			["No symbols found, did you compile with GenerateSymbolTable: True?."
-			,"Async tasks and shares will probably not work."]
-			["Read number of symbols: " +++ toString (size symbols)]
-		= (symbols, show msg world)
+		# world = if (size symbols == 0) (show ["No symbols found, did you compile with GenerateSymbolTable: True?. Async tasks and shares will probably not work."] world) world
+		= (symbols, world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
