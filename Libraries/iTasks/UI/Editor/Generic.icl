@@ -14,7 +14,7 @@ import StdArray, StdBool, StdFunc, StdList, Data.Maybe, StdString
 import Text.GenJSON
 import Text.Language
 import System.Time
-import Data.GenEq, Data.Func, Control.GenBimap, Data.Functor, Data.Tuple
+import Data.GenEq, Data.Func, Control.GenBimap, Data.Functor, Data.Tuple, Data.Integer, Data.Integer.GenJSON
 
 generic gEditor a | gText a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor, MaybeError
@@ -561,5 +561,20 @@ gEditor{|{!}|} gtx jex jdx edx =
 	(\x->[x\\x<-:x])
 	(\x->{x\\x<-x})
 	(gEditor{|*->*|} gtx jex jdx edx)
+
+gEditor{|Integer|} = selectByMode
+	(bijectEditorValue toString toInteger textView)
+	(withDynamicHintAttributes "whole number" (withEditModeAttr integerEditor))
+	(withDynamicHintAttributes "whole number" (withEditModeAttr integerEditor))
+where
+	integerEditor = bijectEditorValue toString toInteger
+		$ fieldComponent UITextField Nothing \_ s
+			| size s == 0  = False
+			| s.[0] == '-' = size s > 1 && allDigits 1 s
+			| otherwise    = allDigits 0 s
+
+	allDigits i s
+		| size s == i = True
+		| otherwise   = isDigit s.[i] && allDigits (i+1) s
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
