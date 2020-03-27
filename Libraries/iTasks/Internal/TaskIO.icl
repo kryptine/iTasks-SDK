@@ -84,9 +84,6 @@ queueRefreshes tasks iworld
 	# iworld = 'Foldable'.foldl (\w t -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t)) w) iworld tasks
 	= iworld
 
-queueRefreshesShare :: SDSLens () () (Set TaskId)
-queueRefreshesShare 
-
 dequeueEvent :: !*IWorld -> (!MaybeError TaskException (Maybe (InstanceNo,Event)),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of

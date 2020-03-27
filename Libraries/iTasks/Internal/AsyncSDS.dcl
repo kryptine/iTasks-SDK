@@ -121,13 +121,14 @@ asyncSDSLoaderUI :: !AsyncAction -> UI
  *
  * @param sds
  * @param value during loading
+ * @param ui during loading
  * @param continuation
  * @param event
  * @param taskevalopts
  * @param iworld
  * @result taskresult and iworld with the continuation embedded
  */
-readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+readCompletely :: (sds () r w) (TaskValue a) (Event -> UIChange) (r Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Readable sds & TC r & TC w
 
 /**
@@ -136,13 +137,14 @@ readCompletely :: (sds () r w) (TaskValue a) (r Event TaskEvalOpts *IWorld -> *(
  * @param value to write
  * @param sds
  * @param value during loading
+ * @param ui during loading
  * @param continuation
  * @param event
  * @param taskevalopts
  * @param iworld
  * @result taskresult and iworld with the continuation embedded
  */
-writeCompletely :: w (sds () r w) (TaskValue a) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
+writeCompletely :: w (sds () r w) (TaskValue a) (Event -> UIChange) (Event TaskEvalOpts *IWorld -> *(TaskResult a, *IWorld)) Event TaskEvalOpts !*IWorld
 	-> *(TaskResult a, *IWorld) | Writeable sds & TC r & TC w
 
 /**
