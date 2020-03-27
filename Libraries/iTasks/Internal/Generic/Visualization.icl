@@ -5,6 +5,7 @@ import Data.Maybe, Data.Either, Data.Functor
 from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
+import Data.Integer
 import Text, Text.GenJSON, Text.HTML
 import System.Time
 import iTasks.Internal.Util
@@ -106,6 +107,8 @@ gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsHeader     _                       
 gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsRow        (Just (a,b,c,d,e,f,g,h))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e)),concat (ff AsSingleLine (Just f)),concat (fg AsSingleLine (Just g)),concat (fh AsSingleLine (Just h))]
 gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsSingleLine (Just (a,b,c,d,e,f,g,h))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e)),", ",concat (ff AsSingleLine (Just f)),", ",concat (fg AsSingleLine (Just g)),", ",concat (fh AsSingleLine (Just h))]
 gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh mode         (Just (a,b,c,d,e,f,g,h))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f) ++ fg mode (Just g) ++ fh mode (Just h)
+
+gText{|Integer|} _ val = [maybe "" toString val]
 
 derive gText Either, MaybeError, Timestamp, Map, Timespec, ClockParameter
 
