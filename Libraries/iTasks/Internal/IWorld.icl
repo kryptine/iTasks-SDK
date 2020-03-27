@@ -34,7 +34,7 @@ createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 createIWorld options world
 	# (ts=:{tv_nsec=seed}, world) = nsTime world
 	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.appPath options.byteCodePath world
-	# (symbols,            world) = if (isNothing options.distributed) ({}, world) (initSymbols options.appName world)
+	# (symbols,            world) = if (isNothing options.distributed) ({}, world) (initSymbols options world)
 	= case mbAbcEnv of
 		Just abcEnv = Right
 			{IWorld
@@ -67,8 +67,8 @@ createIWorld options world
 		Nothing =
 			Left ("Failed to parse bytecode, is ByteCode set in the project file?", world)
 where
-	initSymbols appName world
-		# (symbols, world) = accFiles (read_symbols (IF_WINDOWS (appName +++ ".exe") appName)) world
+	initSymbols {appPath} world
+		# (symbols, world) = accFiles (read_symbols appPath) world
 		# world = if (size symbols == 0) (show ["No symbols found, did you compile with GenerateSymbolTable: True?. Async tasks and shares will probably not work."] world) world
 		= (symbols, world)
 
