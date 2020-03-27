@@ -13,7 +13,6 @@ import System.FilePath
 import System.GetOpt
 import System.OS
 import Text
-import iTasks.Internal.Distributed.Symbols
 import iTasks.Internal.EngineTasks
 import iTasks.Internal.IWorld
 import iTasks.Internal.SDS
@@ -57,8 +56,6 @@ doTasksWithOptions initFun world
 	# (Right iworld)             = mbIWorld
 	| isNothing options.distributed && options.distributedChild
 		= show ["Conflicting options, distributedChild and distributed"] (setReturnCode 1 (destroyIWorld iworld))
-	# (symbolsResult, iworld)    = initSymbolsShare options iworld
-	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld = if (hasDup (requestPaths startable))
 		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
 		iworld
@@ -85,16 +82,6 @@ where
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
 	systemTask t = {StartupTask|t&attributes='DM'.put "system" (JSONBool True) t.StartupTask.attributes}
-
-	initSymbolsShare {distributed=Nothing} iworld = (Ok (), iworld)
-	initSymbolsShare options iworld = case storeSymbols (IF_WINDOWS (options.appName +++ ".exe") options.appName) iworld of
-		(Error (e, s), iworld) = (Error s, iworld)
-		(Ok noSymbols, iworld)
-			# msg = if (noSymbols == 0)
-				["No symbols found, did you compile with GenerateSymbolTable: True?."
-				,"Async tasks and shares will probably not work."]
-				["Read number of symbols: " +++ toString noSymbols]
-			= (Ok (),  {iworld & world = show msg iworld.world})
 
 	//Only run a webserver if there are tasks that are started through the web and we are not a child
 	tcpTasks startable {distributedChild,serverPort,keepaliveTime}
@@ -160,7 +147,7 @@ where
 		, Option [] ["bytecodepath"] (ReqArg (\p->fmap \o->{o & byteCodePath=p}) "PATH")
 			("Specify the app's bytecode file\ndefault: " +++ defaults.byteCodePath)
 		, Option [] ["distributed"] (ReqArg (\p->fmap \o->{o & distributed=Just (toInt p)}) "PORT")
-			"Enable distributed mode (populate the symbols share, start the sds and task service)"
+			"Enable distributed mode (start the sds and task service)"
 		, Option [] ["distributedChild"] (NoArg (fmap \o->{o & distributedChild=True}))
 			"Enable distributed child mode (only sds and task service)"
 		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & showInstructions=False}))

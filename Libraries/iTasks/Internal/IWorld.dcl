@@ -1,5 +1,6 @@
 definition module iTasks.Internal.IWorld
 
+from symbols_in_program        import :: Symbol
 from System.FilePath           import :: FilePath
 from Data.Map                  import :: Map
 from Data.Maybe                import :: Maybe
@@ -38,6 +39,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
 	, random                :: [Int]                                            // Infinite random stream
+	, symbols               :: !{#Symbol}                                       //* Symbols of the program
 
 	, sdsNotifyRequests     :: !Map SDSIdentityHash (Map SDSNotifyRequest Timespec) //* Notification requests from previously read sds's
 	, sdsNotifyReqsByTask   :: !Map TaskId (Set SDSIdentityHash)                //* Allows to efficiently find notification by taskID for clearing notifications

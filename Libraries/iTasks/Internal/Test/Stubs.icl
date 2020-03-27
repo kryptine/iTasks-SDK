@@ -23,6 +23,7 @@ toStubIWorld world
 			, nextTaskNo = 0
 			}
 		, random = []
+		, symbols = {}
 		, sdsNotifyRequests = newMap
 		, sdsNotifyReqsByTask = newMap
 		, memoryShares = newMap

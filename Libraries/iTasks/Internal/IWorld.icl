@@ -16,7 +16,9 @@ import System.CommandLine
 import System.Directory
 import System.File
 import System.FilePath
+import System.OS
 import System.Signal
+import symbols_in_program
 
 import iTasks.Engine
 import iTasks.Extensions.DateTime
@@ -32,6 +34,7 @@ createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 createIWorld options world
 	# (ts=:{tv_nsec=seed}, world) = nsTime world
 	# (mbAbcEnv,           world) = prepare_prelinked_interpretation options.appPath options.byteCodePath world
+	# (symbols,            world) = if (isNothing options.distributed) ({}, world) (initSymbols options.appName world)
 	= case mbAbcEnv of
 		Just abcEnv = Right
 			{IWorld
@@ -58,10 +61,19 @@ createIWorld options world
 			,signalHandlers       = []
 			,resources            = []
 			,random               = genRandInt seed
+			,symbols              = symbols
 			,onClient             = False
 			}
 		Nothing =
 			Left ("Failed to parse bytecode, is ByteCode set in the project file?", world)
+where
+	initSymbols appName world
+		# (symbols, world) = accFiles (read_symbols (IF_WINDOWS (appName +++ ".exe") appName)) world
+		# msg = if (size symbols == 0)
+			["No symbols found, did you compile with GenerateSymbolTable: True?."
+			,"Async tasks and shares will probably not work."]
+			["Read number of symbols: " +++ toString (size symbols)]
+		= (symbols, show msg world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)

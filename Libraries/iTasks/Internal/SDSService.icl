@@ -10,7 +10,6 @@ import StdArray
 import iTasks.Internal.Distributed.Formatter
 import iTasks.SDS.Definition
 import iTasks.Internal.AsyncSDS
-import iTasks.Internal.Distributed.Symbols
 
 import iTasks.Internal.TaskState 
 import iTasks.Internal.Util
@@ -32,11 +31,11 @@ import Text
 :: SDSEvaluations :== Map ConnectionId (Bool, String, String)
 
 sdsServiceTask :: Int -> Task ()
-sdsServiceTask port = withShared 'Map'.newMap \sds->withSymbols \symbols->Task (evalinit sds symbols)
+sdsServiceTask port = withShared 'Map'.newMap \sds->Task (evalinit sds)
 where
-	evalinit _ _ DestroyEvent _ iworld
+	evalinit _ DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
-	evalinit sds symbols event {taskId,lastEval} iworld
+	evalinit sds event {taskId,lastEval} iworld
 		# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask handlers sds) iworld
 		| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
 		# iworld = iShow ["SDS server listening on " +++ toString port] iworld
@@ -65,7 +64,7 @@ where
 					(Task eval)
 				, iworld)
 			# (readResult, iworld) = read sds EmptyContext iworld
-			| readResult=:(Error _) = showException "read from symbols share" (fromError readResult) iworld
+			| readResult=:(Error _) = showException "read from share value" (fromError readResult) iworld
 			# shareValue = 'Map'.toList (directResult (fromOk readResult))
 			# (results, iworld) = reevaluateShares shareValue iworld
 			| results=:(Error _) = showException "re-evaluating share values" (exception (fromError results)) iworld
@@ -142,7 +141,7 @@ where
 		// Left: Done
 		// Right: Still need to do work
 		performRequest :: !String !String !*IWorld -> (MaybeErrorString (Either String String), !*IWorld)
-		performRequest host request iworld
+		performRequest host request iworld=:{symbols}
 			| size request == 0 = (Error "Received empty request", iworld)
 			| newlines (fromString request) > 1 = (Error ("Received multiple requests (only one is allowed): " +++ request), iworld)
 			= case deserializeFromBase64 request symbols of
