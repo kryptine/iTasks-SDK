@@ -279,16 +279,24 @@ where
 		{TaskListFilter|onlyTaskId,notTaskId,onlyIndex,onlyAttribute}
 		{ExtendedTaskListFilter|includeSessions,includeDetached,includeStartup}
 		(index, {TaskMeta|taskId,instanceType,taskAttributes,managementAttributes})
-		=  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
-		&& maybe True (\taskIds -> not (isMember taskId taskIds)) notTaskId
-		&& maybe True (\indices -> isMember index indices) onlyIndex
-		&& maybe True (\(mk,mv) ->
-			(maybe False ((==) mv) ('DM'.get mk taskAttributes)
-			|| maybe False ((==) mv) ('DM'.get mk managementAttributes))) onlyAttribute
-		&& ((includeSessions && instanceType =: SessionInstance) ||
+	| not ((includeSessions && instanceType =: SessionInstance) ||
 		    (includeDetached && instanceType =: PersistentInstance) ||
-		    (includeStartup && instanceType =: StartupInstance)
-		   )
+		    (includeStartup && instanceType =: StartupInstance))
+		= False
+	| isJust onlyTaskId && not (isMember taskId (fromJust onlyTaskId))
+		= False
+	| isJust notTaskId && isMember taskId (fromJust notTaskId)
+		= False
+	| isJust onlyIndex && not (isMember index (fromJust onlyIndex))
+		= False
+	| isJust onlyAttribute
+		# (mk,mv) = fromJust onlyAttribute
+		# taskv = 'DM'.get mk taskAttributes
+		| isJust taskv && fromJust taskv == mv
+			= True
+		# managementv = 'DM'.get mk taskAttributes
+		= isJust managementv && fromJust managementv == mv
+		= True
 
 taskListDynamicValueData :: SDSLens (!TaskId,!TaskId,!TaskListFilter,!ExtendedTaskListFilter) (Map TaskId (TaskValue DeferredJSON)) (Map TaskId (TaskValue DeferredJSON))
 taskListDynamicValueData =: taskIdIndexedStore "taskListDynamicValueData" allTaskValues
@@ -313,9 +321,12 @@ where
 		= Ok $ Just $ 'DM'.union updates $ 'DM'.delList deletes values
 
 	//We only use the taskId to select
-	inFilter {TaskListFilter|onlyTaskId,notTaskId,onlyIndex,onlyAttribute} taskId
-		=  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
-		&& maybe True (\taskIds -> not (isMember taskId taskIds)) notTaskId
+	inFilter {TaskListFilter|onlyTaskId,notTaskId} taskId
+		| isJust onlyTaskId && not (isMember taskId (fromJust onlyTaskId))
+			= False
+		| isJust notTaskId && isMember taskId (fromJust notTaskId)
+			= False
+			= True
 
 	//We don't notify at all for these stores.
 	notify _ _ _ _ _ = False
