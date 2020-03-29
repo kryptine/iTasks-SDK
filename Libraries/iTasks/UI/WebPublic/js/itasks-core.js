@@ -463,17 +463,20 @@ itasks.Viewport = class extends itasks.Component {
 		}
 	}
 	determineTaskEndpoint() {
-		var me = this;
+		var me = this,
+			https = location.protocol.startsWith('https');
+
 		if(me.taskUrl) { //Something was configured explicitly
-			if(me.taskUrl.startsWith('ws://')) {
+			if(me.taskUrl.startsWith('ws://') || me.taskUrl.startsWith('wss://')) {
 				return me.taskUrl;
 			} else {
-				return 'ws://' + location.host + me.taskUrl + (me.taskUrl.endsWith('/') ? '' : '/') + 'gui-wsock';
+				
+				return (https ? 'wss://' : 'ws://') + location.host + me.taskUrl + (me.taskUrl.endsWith('/') ? '' : '/') + 'gui-wsock';
 			}
 		} 
 		if(me.parentViewport === null) {
 			//If there is no parent, use the default url
-			return 'ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock';
+			return (https ? 'wss://' : 'ws://') + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock';
 		} else {
 			return me.parentViewport.determineTaskEndpoint();
 		}
