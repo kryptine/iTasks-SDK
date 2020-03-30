@@ -66,6 +66,7 @@ Tests/Unit/iTasks.Internal.TaskStore.UnitTests
 Tests/Unit/iTasks.UI.Editor.Generic.UnitTests
 Tests/Unit/iTasks.UI.Layout.UnitTests
 Tests/Unit/iTasks.WF.Combinators.Common.UnitTests
+Tests/Unit/iTasks.WF.Combinators.Core.UnitTests
 Tests/Unit/iTasks.WF.Tasks.Core.UnitTests
 Tests/Unit/iTasks.WF.Tasks.IO.UnitTests
 Tools/CodeQualityMonitor
