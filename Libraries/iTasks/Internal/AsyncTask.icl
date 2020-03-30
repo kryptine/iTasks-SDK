@@ -17,17 +17,19 @@ gEq{|TaskWrapper|} _ _ = False
 gEditor{|TaskWrapper|} = emptyEditor
 gText{|TaskWrapper|} tf ma = maybe [] (\_->["TaskWrapper"]) ma
 
-derive class iTask Queue, Event
+derive JSONEncode AsyncTaskResult
+derive JSONDecode AsyncTaskResult
+derive class iTask Queue, Event, AsyncQueueItem
 derive gEditor Set
 gText{|Set|} m tf ms = gText{|*->*|} m tf ('Data.Set'.toList <$> ms)
 
-asyncITasksQueue :: SDSLens () () (TaskId, TaskWrapper)
+asyncITasksQueue :: SDSLens () () AsyncQueueItem
 asyncITasksQueue = mapReadWrite (\_->(), \task queue->Just (enqueue task queue)) Nothing asyncITasksQueueInt
 
-asyncITasksValues :: SDSLens TaskId (Queue (TaskValue a, UIChange)) (Queue (TaskValue a, UIChange)) | TC, JSONEncode{|*|}, JSONDecode{|*|} a
-asyncITasksValues = sdsTranslate "taskIdToString" toString (memoryStore "asyncITasks-values" (Just newQueue))
+asyncITasksResults :: SDSLens TaskId (Queue (AsyncTaskResult a)) (Queue (AsyncTaskResult a)) | TC, JSONEncode{|*|}, JSONDecode{|*|} a
+asyncITasksResults = sdsTranslate "taskIdToString" toString (memoryStore "asyncITasks-results" (Just newQueue))
 
-asyncITasksQueueInt :: SimpleSDSLens (Queue (TaskId, TaskWrapper))
+asyncITasksQueueInt :: SimpleSDSLens (Queue AsyncQueueItem)
 asyncITasksQueueInt = sdsFocus "queue" (memoryStore "asyncITasks" (Just newQueue))
 
 getNextTaskIdForInstance :: SDSSource InstanceNo TaskNo ()

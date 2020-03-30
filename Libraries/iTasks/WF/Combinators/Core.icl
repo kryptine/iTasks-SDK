@@ -800,45 +800,49 @@ asyncTask host port t
 	>>- \ino->get (sdsFocus ino getNextTaskIdForInstance) <<@ pbar
 	>>- \tno->
 		let tid     = TaskId ino tno
-		    rvalue  = remoteShare (sdsFocus tid asyncITasksValues) {domain=host,port=port}
+		    rresult = remoteShare (sdsFocus tid asyncITasksResults) {domain=host,port=port}
 		    revents = remoteShare queueEventShare {domain=host,port=port}
+			rqueue  = remoteShare asyncITasksQueue {domain=host, port=port}
 		//Queue the task
-		in  set (tid, TaskWrapper t) (remoteShare asyncITasksQueue {domain=host, port=port}) <<@ pbar
+		in  set (AsyncTaskAdd tid (TaskWrapper t)) rqueue <<@ pbar
 		//Monitor the output
-		>-| withCleanupHook (set (ino, DestroyEvent) revents)
-			(Task (proxy tid revents NoValue rvalue))
+		>-| withCleanupHook (set (AsyncTaskRemove tid) rqueue)
+			(Task (proxy tid revents NoValue rresult))
 where
 	pbar = ApplyLayout $ sequenceLayouts
-		[ setUIType UIProgressBar 
+		[ setUIType UIProgressBar
 		, setUIAttributes (textAttr "Communicating with the async host")
 		]
 	proxy _ _ _ _ DestroyEvent _ iworld
 		= (DestroyedResult, iworld)
-	proxy rTaskId=:(TaskId ino tno) eventShare lastVal valueShare event opts=:{taskId,lastEval} iworld
+	proxy rTaskId=:(TaskId ino tno) eventShare lastVal resultShare event opts iworld
 		//Determine whether to propagate the event
 		# propfun = case event of
-			(EditEvent tid a b) = writeCompletely (ino, EditEvent (patchInstance ino tid) a b) eventShare lastVal \e->mkUIIfReset e $ ui UIEmpty
-			(ActionEvent tid a) = writeCompletely (ino, ActionEvent (patchInstance ino tid) a) eventShare lastVal \e->mkUIIfReset e $ ui UIEmpty
-			ResetEvent = writeCompletely (ino, ResetEvent) eventShare lastVal  \e->mkUIIfReset e $ ui UIEmpty
+			(EditEvent tid a b) = writeCompletely (ino, EditEvent (patchInstance ino tid) a b) eventShare lastVal mkEmptyUI
+			(ActionEvent tid a) = writeCompletely (ino, ActionEvent (patchInstance ino tid) a) eventShare lastVal mkEmptyUI
+			ResetEvent = writeCompletely (ino, ResetEvent) eventShare lastVal mkEmptyUI
 			//Refresh is always just for us, read is not used and destroy is handled by the cleanup hook
 			_ = id
 		= propfun
-			(readRegisterCompletely
-				valueShare
-				lastVal
-				(\e->mkUIIfReset e $ ui UIEmpty)
-				\r event opts iworld->case dequeue r of
-					(Nothing, _)
-						= (ValueResult lastVal (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty))
-							$ Task (proxy rTaskId eventShare lastVal valueShare)
+			(readRegisterCompletely resultShare lastVal mkEmptyUI
+				\r event {lastEval,taskId} iworld
+					# (mtresult, queue) = dequeue r
+					| isNothing mtresult =
+						( ValueResult lastVal (mkTaskEvalInfo lastEval) (mkEmptyUI event)
+							$ Task (proxy rTaskId eventShare lastVal resultShare)
 						, iworld)
-					(Just (tv, nui), queue)
-						= case write queue valueShare (TaskContext taskId) iworld of
-							(Ok _, iworld)
-								= (ValueResult tv (mkTaskEvalInfo lastEval) nui
-									$ Task (proxy rTaskId eventShare tv valueShare)
-								, iworld)
-							(Error e, iworld) = (ExceptionResult e, iworld)
+					# (merr, iworld) = write queue resultShare (TaskContext taskId) iworld
+					| isError merr = (ExceptionResult (fromError merr), iworld)
+					= case fromJust mtresult of
+						//Remote produced a value, propagate
+						(AsyncTaskValue tv nui) =
+							( ValueResult tv (mkTaskEvalInfo lastEval) nui
+								$ Task (proxy rTaskId eventShare tv resultShare)
+							, iworld)
+						//Remote produced an exception, destroy it and propagate the exception
+						(AsyncException e)
+							= writeCompletely (ino, DestroyEvent) eventShare lastVal mkEmptyUI
+								(\event opts iworld->(ExceptionResult e, iworld)) event opts iworld
 			) event opts iworld
 
 	/*

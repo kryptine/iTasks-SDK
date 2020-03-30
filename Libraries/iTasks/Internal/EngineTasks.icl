@@ -8,6 +8,7 @@ import Text
 import iTasks.Engine
 import iTasks.Internal.AsyncTask
 import iTasks.Internal.IWorld
+import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskIO
 import iTasks.Internal.TaskServer
@@ -104,21 +105,30 @@ asyncTaskListener
 	>>- \((), TaskId ino _)->set (Just ino) asyncITasksHostInstance
 	>-| parallel
 		[(Embedded, \stl->forever $
-			     watch asyncITasksQueueInt @ dequeue
-			>>* [OnValue $ ifValue (isJust o fst) \(Just (tid, TaskWrapper task), q)->
-				    set q asyncITasksQueueInt
-				>-| appendTask Embedded (\_->Task (wrapTask tid task)) stl
-			]
-	)] [] @! ()
+			     wait (not o empty) asyncITasksQueueInt @ dequeue
+			>>- \(Just qitem, q)->set q asyncITasksQueueInt
+			>-| case qitem of
+				AsyncTaskAdd tid (TaskWrapper task)
+					= appendTask Embedded (\stl->Task (wrapTask stl tid task)) stl @! ()
+				AsyncTaskRemove tid
+					= removeTask tid stl
+		)
+		] [] @! ()
 where
-	wrapTask :: !TaskId !(Task a) !Event !TaskEvalOpts !*IWorld -> *(TaskResult TaskId,*IWorld) | iTask a
-	wrapTask taskId (Task teval) event opts iworld
-		= case teval event {TaskEvalOpts|opts & taskId=taskId} iworld of
-			(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
+	wrapTask :: !(SharedTaskList ()) !TaskId !(Task a) !Event !TaskEvalOpts !*IWorld -> *(TaskResult (), *IWorld) | iTask a
+	wrapTask stl ctaskId (Task teval) event opts=:{lastEval,taskId} iworld
+		#! resultShare = sdsFocus ctaskId asyncITasksResults
+		= case teval event {TaskEvalOpts|opts & taskId=ctaskId} iworld of
 			(DestroyedResult, iworld) = (DestroyedResult, iworld)
-			(ValueResult tv tei uic newtask, iworld)
-				= case modify (enqueue (tv, uic)) (sdsFocus taskId asyncITasksValues) EmptyContext iworld of
-					(Ok (ModifyingDone _), iworld)
-						= (ValueResult NoValue tei (mkUIIfReset event (ui UIEmpty))
-							$ Task (wrapTask taskId newtask), iworld)
-					(Ok _, iworld) = (ExceptionResult $ exception "wrapTask async share????", iworld)
+			(tresult, iworld)
+				# (ar, cont) = case tresult of
+					(ExceptionResult e) =
+						( AsyncException e
+						, ValueResult NoValue (mkTaskEvalInfo lastEval) (mkEmptyUI event) (removeTask taskId stl))
+					(ValueResult tv tei uic newtask) =
+						( AsyncTaskValue tv uic
+						, ValueResult NoValue tei (mkEmptyUI event) (Task (wrapTask stl ctaskId newtask)))
+				= case modify (enqueue ar) resultShare EmptyContext iworld of
+					(Ok (ModifyingDone _), iworld) = (cont, iworld)
+					(Error e, iworld)              = (ExceptionResult e, iworld)
+					(Ok _, iworld)                 = (ExceptionResult (exception "wrapTask async share not supported"), iworld)
