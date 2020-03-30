@@ -121,7 +121,7 @@ where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
 	eval event {taskId,lastEval} iworld
 		= case iworldfun taskId iworld of
-			(Ok a,iworld)     = (ValueResult (Value a True) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (treturn a), iworld)
+			(Ok a,iworld)     = (ValueResult (Value a True) (mkTaskEvalInfo lastEval) (mkEmptyUI event) (treturn a), iworld)
 			(Error e, iworld) = (ExceptionResult e, iworld)
 
 nopTask :: Task a | iTask a
@@ -129,4 +129,4 @@ nopTask = Task eval
 where
 	eval DestroyEvent _ iworld = (DestroyedResult, iworld)
 	eval event {lastEval} iworld
-		= (ValueResult NoValue (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task eval), iworld)
+		= (ValueResult NoValue (mkTaskEvalInfo lastEval) (mkEmptyUI event) (Task eval), iworld)

@@ -267,7 +267,7 @@ where
 		= (DestroyedResult, iworld)
 	eval param event {taskId,lastEval} iworld
 		# (Ok (ReadingDone now),iworld) = readRegister taskId (sdsFocus param iworldTimespec) iworld
-		= (ValueResult (Value now False) (mkTaskEvalInfo lastEval) (mkUIIfReset event (ui UIEmpty)) (Task (eval param)), iworld)
+		= (ValueResult (Value now False) (mkTaskEvalInfo lastEval) (mkEmptyUI event) (Task (eval param)), iworld)
 
 dateTimeStampedShare :: !(sds p b (DateTime,c)) -> SDSLens p b c | gText{|*|}, TC p & TC b & TC c & RWShared sds
 dateTimeStampedShare sds

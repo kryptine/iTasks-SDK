@@ -667,7 +667,7 @@ where
 			= (ValueResult
 				(Value () True)
 				(mkTaskEvalInfo lastEval)
-				(mkUIIfReset event (ui UIEmpty))
+				(mkEmptyUI event)
 				(return ()), iworld)
 		//Mark the task as removed, and update the indices of the tasks afterwards
 		# (mbError,iworld)      = modify (markAsRemoved removeId o snd) (sdsFocus (listId,listId,fullTaskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
@@ -676,9 +676,9 @@ where
 		| taskNo == 0 //(if the taskNo equals zero the instance is embedded)
 			# (mbe,iworld) = deleteTaskInstance instanceNo iworld
 			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
-			= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[]} (mkUIIfReset event (ui UIEmpty)) (return ()), iworld)
+			= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[]} (mkEmptyUI event) (return ()), iworld)
 		//Pass removal information up
-		= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[(listId,removeId)]} (mkUIIfReset event (ui UIEmpty)) (return ()), iworld)
+		= (ValueResult (Value () True) {lastEvent=lastEval,removedTasks=[(listId,removeId)]} (mkEmptyUI event) (return ()), iworld)
 
 	//When a task is marked as removed, the index of the tasks after that are decreased
 	markAsRemoved removeId [] = []

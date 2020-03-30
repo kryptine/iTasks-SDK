@@ -82,6 +82,9 @@ mkUIIfReset :: !Event !UI -> UIChange
 mkUIIfReset ResetEvent ui = ReplaceUI ui
 mkUIIfReset _ ui = NoChange
 
+mkEmptyUI :: !Event -> UIChange
+mkEmptyUI e = mkUIIfReset e (ui UIEmpty)
+
 M :== 0xc6a4a7935bd1e995
 R :== 47
 

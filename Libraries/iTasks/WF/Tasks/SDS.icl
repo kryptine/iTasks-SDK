@@ -21,13 +21,11 @@ upd :: !(r -> w) !(sds () r w) -> Task w | TC r & TC w & RWShared sds
 upd fun sds = Task (modifyCompletely fun sds NoValue (\e->mkUIIfReset e (asyncSDSLoaderUI Modify)) (unTask o return))
 
 watch :: !(sds () r w) -> Task r | TC r & TC w & Readable, Registrable sds
-watch sds = Task (readRegisterCompletely sds NoValue mkUi cont)
+watch sds = Task (readRegisterCompletely sds NoValue mkEmptyUI cont)
 where
 	cont r event {lastEval} iworld
 		= (ValueResult (Value r False)
 			(mkTaskEvalInfo lastEval)
-			(mkUi event)
-			(Task (readRegisterCompletely sds (Value r False) mkUi cont))
+			(mkEmptyUI event)
+			(Task (readRegisterCompletely sds (Value r False) mkEmptyUI cont))
 		, iworld)
-
-	mkUi event = mkUIIfReset event (ui UIEmpty)

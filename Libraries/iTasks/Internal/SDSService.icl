@@ -42,7 +42,7 @@ where
 		= (ValueResult
 			(Value () False)
 			(mkTaskEvalInfo lastEval)
-			(mkUIIfReset event (ui UIEmpty))
+			(mkEmptyUI event)
 			(Task eval)
 		, iworld)
 	where
