@@ -30,7 +30,6 @@ from StdOverloaded import class ==
 	| ActionEvent  !TaskId !String           //* Progress in a step combinator: Task id, action id
 	| RefreshEvent !(Set TaskId)             //* Recalcalutate the tasks with given IDs, using the current SDS values
 	| ResetEvent                             //* Nop event, recalculate the entire task and reset output stream
-	| ReadEvent
 	| DestroyEvent                           //* Cleanup and remove a task
 
 :: TaskResult a
