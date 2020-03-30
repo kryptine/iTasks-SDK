@@ -69,7 +69,7 @@ where
 		=  if (webTasks startable) =:[]
 		   //if there are no webtasks: stop when stable
 		   [systemTask (startTask stopOnStable)]
-		   //if there are: show instructions andcleanup old sessions
+		   //if there are: show instructions and cleanup old sessions
 		   [startTask viewWebServerInstructions
 		   ,systemTask (startTask removeOutdatedSessions)]
 		//If distributed, start sds service task
@@ -99,13 +99,6 @@ where
 		,documentService
 		,staticResourceService [path \\ {WebTask|path} <- webtasks]
 		]
-
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines console
-		# (_,world)			= fclose console world
-		= world
 
 defaultEngineCLIOptions :: a [String] EngineOptions -> MaybeError [String] (a, EngineOptions)
 defaultEngineCLIOptions tasks [argv0:argv] defaults

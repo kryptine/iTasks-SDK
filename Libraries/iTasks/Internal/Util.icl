@@ -16,8 +16,7 @@ from Data.Map import :: Map
 
 show :: ![String] !*World -> *World
 show lines world
-	# (console,world)	= stdio world
-	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# console			= seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines stderr
 	# (_,world)			= fclose console world
 	= world
 
