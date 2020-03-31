@@ -231,7 +231,7 @@ svgFontDefAttrs fontdef//{FontDef | fontfamily,fontysize,fontstyle,fontstretch,f
 fromSVGEditor :: !(SVGEditor s v) -> Editor s (Maybe s) | gEq{|*|}, gText{|*|}, JSONEncode{|*|}, JSONDecode{|*|} s
 fromSVGEditor svglet = leafEditorToEditor
     { LeafEditor
-    | genUI          = withClientSideInit (initClientSideUI svglet) initServerSideUI
+    | onReset        = withClientSideInit (initClientSideUI svglet) initServerSideUI
     , onEdit         = serverHandleEditFromClient  svglet
     , onRefresh      = serverHandleEditFromContext svglet
     , valueFromState = valueFromState
@@ -239,14 +239,14 @@ fromSVGEditor svglet = leafEditorToEditor
 where
 //	initServerSideUI is called first.
 //	Its sole purpose is to tell the client which model value is being manipulated.
-	initServerSideUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!MaybeErrorString (!UI,!ServerSVGState s), !*VSt)
+	initServerSideUI :: !UIAttributes !DataPath !(EditMode s) !*VSt -> *(!*MaybeErrorString *(!UI,!ServerSVGState s, Maybe w), !*VSt)
 	initServerSideUI uiAttrs dp mode world=:{VSt | taskId}
 	  = case editModeValue mode of
 	      Nothing    = (Error "Error in module SVGEditor (fromSVGEditor/initServerSideUI): SVG editors cannot be used in Enter EditMode.",world)
 	      Just model
 	          #! (serializedModel,world) = serializeForClient model world
 	          = trace_n` ("initServerSideUI of task with taskId = " +++ taskId)
-	                   (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (JSONString serializedModel)) (sizeAttr FlexSize FlexSize))),initServerSVGState model),world)
+	                   (Ok (uia UIComponent ('Data.Map'.union uiAttrs ('Data.Map'.union (valueAttr (JSONString serializedModel)) (sizeAttr FlexSize FlexSize))),initServerSVGState model,Nothing),world)
 
 //	initClientSideUI is called after initServerSideUI.
 //	Information exchange from server -> client occurs via the attributes of the client object.

@@ -17,16 +17,16 @@ gEditor{|ControlLight|} = controlLightEditlet
 controlLightEditlet :: Editor ControlLight a
 controlLightEditlet = leafEditorToEditor
 	{LeafEditor
-      |genUI  = withClientSideInit initUI genUI
+      |onReset = withClientSideInit initUI onReset
       ,onEdit = \_ (_,()) m vst -> (Ok (NoChange,m,Nothing),vst)
       ,onRefresh = \_ val st vst -> (Ok (if (valueFromState st === Just val) NoChange (ChangeUI [SetAttribute "value" (JSONString (color val))] []),st,Nothing),vst)
 	  ,valueFromState = valueFromState
       }
 where
-	genUI attr dp mode world
+	onReset attr dp mode world
 		# val = fromMaybe LightOff (editModeValue mode)
 		# attr = 'DM'.unions [sizeAttr (ExactSize 20) (ExactSize 20),valueAttr (JSONString (toString (svgLight (color val)))), attr]
-		= (Ok (uia UIHtmlView attr,val), world)
+		= (Ok (uia UIHtmlView attr,val,Nothing), world)
 
     initUI me world 
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) me world

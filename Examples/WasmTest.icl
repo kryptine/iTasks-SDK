@@ -15,13 +15,13 @@ where
 editor :: Editor () (Maybe ())
 editor = leafEditorToEditor
 	{ LeafEditor
-    | genUI          = withClientSideInit initUI genUI
+    | onReset        = withClientSideInit initUI onReset
     , onEdit         = onEdit
     , onRefresh      = onRefresh
     , valueFromState = valueFromState
     }
 where
-	genUI attributes datapath mode vst = (Ok (uia UITextView (valueAttr (JSONString "Check the browser console.")), ()), vst)
+	onReset attributes datapath mode vst = (Ok (uia UITextView (valueAttr (JSONString "Check the browser console.")), (), Nothing), vst)
 	onEdit datapath (_,()) st vst = (Ok (NoChange,st,Nothing), vst)
 	onRefresh datapath st _ vst = (Ok (NoChange,st,Nothing), vst)
 	valueFromState s = Just s

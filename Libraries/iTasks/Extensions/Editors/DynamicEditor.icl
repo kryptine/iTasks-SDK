@@ -13,16 +13,16 @@ parametrisedDynamicEditor ::
 	!(p -> DynamicEditor a) -> Editor (!p, !DynamicEditorValue a) (Maybe (!p, !DynamicEditorValue a)) | TC a & gEq{|*|}, JSONEncode{|*|}, JSONDecode{|*|} p
 parametrisedDynamicEditor editor =
 	compoundEditorToEditor
-		{CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+		{CompoundEditor| onReset = onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
-	genUI attr dp mode vst
+	onReset attr dp mode vst
 		= case editModeValue mode of
 			Nothing
 				= abort "Enter mode not supported by parametrisedDynamicEditor.\n"
 			Just (p, _)
 				= appFst
-					(fmap $ appSnd3 \st -> (p, st))
-					((dynamicCompoundEditor $ editor p).CompoundEditor.genUI attr dp (mapEditMode snd mode) vst)
+					(fmap \(ui,st,cst,mbw) -> (ui,(p,st),cst,fmap (fmap (\w -> (p,w))) mbw))
+					((dynamicCompoundEditor $ editor p).CompoundEditor.onReset attr dp (mapEditMode snd mode) vst)
 
 	onEdit dp event (p, mbSt) childSts vst
 		= appFst
@@ -30,17 +30,17 @@ where
 			((dynamicCompoundEditor $ editor p).CompoundEditor.onEdit dp event mbSt childSts vst)
 
 	onRefresh dp (p, new) st=:(p`, mbSt) childSts vst
-		# (uiForOldP, vst) = (dynamicCompoundEditor $ editor p`).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst
+		# (uiForOldP, vst) = (dynamicCompoundEditor $ editor p`).CompoundEditor.onReset 'Map'.newMap dp (Update new) vst
 		| isError uiForOldP = (liftError uiForOldP, vst)
-		# (uiForOldP, _, _) = fromOk uiForOldP
-		# (uiForNewP, vst) = (dynamicCompoundEditor $ editor p).CompoundEditor.genUI 'Map'.newMap dp (Update new) vst
+		# (uiForOldP, _, _, _) = fromOk uiForOldP
+		# (uiForNewP, vst) = (dynamicCompoundEditor $ editor p).CompoundEditor.onReset 'Map'.newMap dp (Update new) vst
 		| isError uiForNewP = (liftError uiForNewP, vst)
-		# (uiForNewP, newSt, newChildSts) = fromOk uiForNewP
+		# (uiForNewP, newSt, newChildSts, newMbW) = fromOk uiForNewP
 		| uiForOldP === uiForNewP =
 			appFst
 				(fmap \(change,st,cst,mbw) -> (change,(p,st),cst,fmap (fmap (\w -> (p,w))) mbw))
 				((dynamicCompoundEditor $ editor p).CompoundEditor.onRefresh dp new mbSt childSts vst)
-		| otherwise = (Ok (ReplaceUI uiForNewP, (p, newSt), newChildSts,Nothing), vst)
+		| otherwise = (Ok (ReplaceUI uiForNewP, (p, newSt), newChildSts,fmap (fmap (\w -> (p,w))) newMbW), vst)
 
 	valueFromState (p, st) childSts
 		= (\val -> (p, val)) <$> (dynamicCompoundEditor $ editor p).CompoundEditor.valueFromState st childSts
@@ -51,7 +51,7 @@ dynamicCompoundEditor :: !(DynamicEditor a) -> CompoundEditor
 dynamicCompoundEditor dynEditor=:(DynamicEditor elements)
 	| not $ isEmpty duplicateIds
 		= abort $ concat ["duplicate cons IDs in dynamic editor: ", printToString duplicateIds, "\n"]
-	= {CompoundEditor| genUI = genUI, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
+	= {CompoundEditor| onReset = onReset, onEdit = onEdit, onRefresh = onRefresh, valueFromState = valueFromState}
 where
 	// conses with optional group labels
 	conses = consesOf elements
@@ -64,17 +64,17 @@ where
 			| isMember x xs = [x: duplicateIds` xs]
 			| otherwise     = duplicateIds` xs
 
-	genUI ::
+	onReset ::
 		!UIAttributes !DataPath !(EditMode (DynamicEditorValue a)) !*VSt
-		-> *(!MaybeErrorString (!UI, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState]), !*VSt)
-	genUI attr dp mode vst=:{VSt|taskId} = case mode of
+		-> *(!MaybeErrorString (!UI, !Maybe (!DynamicConsId, !ConsType, !Bool), ![EditState], Maybe w), !*VSt)
+	onReset attr dp mode vst=:{VSt|taskId} = case mode of
 		Enter = case matchingConses of
 			[(onlyChoice, _)] | hideCons
 				# (mbUis, _, type, _, vst) = genChildEditors dp onlyChoice.consId Enter vst
 				# attrs = 'Map'.union (withContainerClassAttr onlyChoice.uiAttributes) attr
 				# mbUis =
 					( \(uis, childSts) ->
-						(uiContainer attrs uis, Just (onlyChoice.consId, type, True), [nullState: childSts])
+						(uiContainer attrs uis, Just (onlyChoice.consId, type, True), [nullState: childSts], Nothing)
 					) <$>
 						mbUis
 				= (mbUis, vst)
@@ -85,7 +85,7 @@ where
 					= case mbUis of
 						Ok (uis, childSts)
 							| hideCons =
-								( Ok (uiContainer attrs uis, Just (defaultChoice.consId, type, True), [nullState: childSts])
+								( Ok (uiContainer attrs uis, Just (defaultChoice.consId, type, True), [nullState: childSts], Nothing)
 								, vst
 								)
 							| otherwise
@@ -93,14 +93,15 @@ where
 								= ( Ok ( uiContainer attrs [consChooseUI: uis]
 									   , Just (defaultChoice.consId, type, True)
 									   , [chooseSt: childSts]
+									   , Nothing
 									   )
 								  , vst
 								  )
 						Error e = (Error e, vst)
 				_
 					# (consChooseUI, chooseSt) = genConsChooseUI taskId dp Nothing
-					= (Ok (uiContainer attr [consChooseUI], Nothing, [chooseSt]), vst)
-		Update Undefined = genUI attr dp Enter vst
+					= (Ok (uiContainer attr [consChooseUI], Nothing, [chooseSt], Nothing), vst)
+		Update Undefined = onReset attr dp Enter vst
 		Update (DynamicEditorValue cid val)
 			# (mbUis, idx, type, label, vst) = genChildEditors dp cid (Update val) vst
 			# (cons, _)                      = consWithId cid matchingConses
@@ -108,11 +109,11 @@ where
 				Ok (uis, childSts)
 					# attrs = 'Map'.union (withContainerClassAttr cons.uiAttributes) attr
 					| hideCons
-						= (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts]), vst)
+						= (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts], Nothing), vst)
 					| otherwise
 						# (consChooseUI, chooseSt) = genConsChooseUI taskId dp (Just idx)
 						=
-							( Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts])
+							( Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [chooseSt: childSts], Nothing)
 							, vst
 							)
 				Error e = (Error e, vst)
@@ -124,11 +125,11 @@ where
 				Ok (uis, childSts)
 					# attrs = 'Map'.union (withContainerClassAttr cons.uiAttributes) attr
 					| hideCons
-						= (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts]), vst)
+						= (Ok (uiContainer attrs uis, Just (cid, type, True), [nullState: childSts], Nothing), vst)
 					| otherwise
 						# consChooseUI = uia UITextView $ valueAttr $ JSONString label
 						=
-							( Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [nullState: childSts])
+							( Ok (uiContainer attrs [consChooseUI: uis], Just (cid, type, True), [nullState: childSts], Nothing)
 							, vst
 							)
 				Error e = (Error e, vst)
@@ -281,8 +282,8 @@ where
 	// TODO: fine-grained replacement
     onRefresh dp new st childSts vst
 		| isNotChanged (valueFromState st childSts) new = (Ok (NoChange, st, childSts, Nothing), vst)
-		# (res,vst) = genUI 'Map'.newMap dp (Update new) vst
-		= (fmap (\(ui,st,csts) -> (ReplaceUI ui, st, csts, Nothing)) res, vst)
+		# (res,vst) = onReset 'Map'.newMap dp (Update new) vst
+		= (fmap (\(ui,st,csts,mbw) -> (ReplaceUI ui, st, csts, mbw)) res, vst)
 	where
 		isNotChanged (Just (DynamicEditorValue consId val)) (DynamicEditorValue consId` val`) =
 			consId == consId` && val === val`
@@ -299,8 +300,8 @@ where
 		where
 			genChildEditors` [] accUi accSt vst = (Ok (accUi, accSt), vst)
 			genChildEditors` [(mbVal, E editor, mbLabel, i): children] accUi accSt vst =
-				case editor.Editor.genUI 'Map'.newMap (dp ++ [i]) (maybe Enter (if viewMode View Update) mbVal) vst of
-					(Ok (ui, st), vst) = genChildEditors` children [withLabel mbLabel ui: accUi] [st: accSt] vst
+				case editor.Editor.onReset 'Map'.newMap (dp ++ [i]) (maybe Enter (if viewMode View Update) mbVal) vst of
+					(Ok (ui, st, _), vst) = genChildEditors` children [withLabel mbLabel ui: accUi] [st: accSt] vst
 					(Error e,     vst) = (Error e, vst)
 			where
 				withLabel :: !(Maybe String) !UI -> UI
@@ -314,14 +315,14 @@ where
 				_                             = repeat Nothing
 		ListCons lbuilder
 			# listEditorMode = mapEditMode (\(DEApplication listElems) -> listElems) mode
-			# (mbUi, vst) = (listBuilderEditor lbuilder).Editor.genUI 'Map'.newMap (dp ++ [0]) listEditorMode vst
-			= ((\(ui, st) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst)
+			# (mbUi, vst) = (listBuilderEditor lbuilder).Editor.onReset 'Map'.newMap (dp ++ [0]) listEditorMode vst
+			= ((\(ui, st, mbw) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst) //FIXME: What to do with the write?
 		CustomEditorCons editor
 			# editorMode = mapEditMode
 				(\(DEJSONValue json) -> fromMaybe (abort "Invalid dynamic editor state") $ fromJSON json)
 				mode
-			# (mbUi, vst) = editor.Editor.genUI 'Map'.newMap (dp ++ [0]) editorMode vst
-			= ((\(ui, st) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst)
+			# (mbUi, vst) = editor.Editor.onReset 'Map'.newMap (dp ++ [0]) editorMode vst
+			= ((\(ui, st, mbw) -> ([ui], [st])) <$> mbUi, idx, type, cons.DynamicCons.label, vst) //FIXME: What to do with the write?
 	where
 		(cons, idx) = consWithId cid matchingConses
 		type = case cons.builder of
