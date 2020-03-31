@@ -7,7 +7,6 @@ from ABC.Interpreter import prepare_prelinked_interpretation, :: PrelinkedInterp
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
 import Data.Func
-import Data.Integer
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Maybe
@@ -96,17 +95,20 @@ where
 			| timestamp < start = False // Start time has not passed
 			= timestamp > iworldTimespecNextFire timestamp reg p
 
+
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 iworldTimespecNextFire now reg {start,interval}
+	//If called from the predicate in Internal.IWorld.iworldTimespec, start has passed, so when interval is zero, fire
+	//If called from Engine.timeout, interval is never zero because that is checked there
 	| interval == zero = now
 	# start = toI start
 	  interval = toI interval
 	  reg = toI reg
 	  passed = max (zero - interval) (reg - start)
-	= toT (start + ((passed / interval + one) * interval))
+	= toT (start + (passed / interval + one) * interval)
 where
-	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
-	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
+	toI x = x.tv_sec * 1000000000 + x.tv_nsec
+	toT x = {tv_sec=x / 1000000000, tv_nsec=x rem 1000000000}
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 

@@ -115,11 +115,10 @@ createIWorld :: !EngineOptions !*World -> Either (!String, !*World) *IWorld
 */
 destroyIWorld :: !*IWorld -> *World
 
-//Internally used clock share
-// (UTC time can be derived from timestamp, local time requires *World to determine time zone)
+//* Used as a parameter on clock shares
 :: ClockParameter a =
-	{ start    :: !a
-	, interval :: !a
+	{ start    :: !a //* At what time to start watching
+	, interval :: !a //* Watch with what interval
 	}
 
 iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
