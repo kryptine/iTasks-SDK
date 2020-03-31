@@ -59,7 +59,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	iTasks.WF.Tasks.Core.UnitTests
+	Name:	iTasks.WF.Tasks.IO.UnitTests
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

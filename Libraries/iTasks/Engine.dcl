@@ -75,7 +75,7 @@ instance Startable (a,b) | Startable a & Startable b
 	, storeDirPath     :: !FilePath  //* Location of the application's persistent data files
 	, tempDirPath      :: !FilePath  //* Location for temporary files used in tasks
 	, byteCodePath     :: !FilePath  //* Location of the application's bytecode
-	, showInstructions :: !Bool      //* Whether instructions to open the browser should be shown
+	, verboseOperation :: !Bool      //* Whether to show diagnostic information (webserver, sds server)
 	}
 derive class iTask EngineOptions
 

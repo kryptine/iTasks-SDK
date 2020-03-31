@@ -48,17 +48,17 @@ doTasksWithOptions initFun world
 	# (cli,world)                = getCommandLine world
 	# (options,world)            = defaultEngineOptions world
 	# mbOptions                  = initFun cli options
-	| mbOptions =:(Error _)      = show (fromError mbOptions) (setReturnCode 1 world)
+	| mbOptions =:(Error _)      = showErr (fromError mbOptions) (setReturnCode 1 world)
 	# (startable,options)        = fromOk mbOptions
 	# mbIWorld                   = createIWorld options world
 	| mbIWorld =: Left _
 		# (Left (err, world)) = mbIWorld
-		= show [err] (setReturnCode 1 world)
+		= showErr [err] (setReturnCode 1 world)
 	# (Right iworld)             = mbIWorld
 	# (symbolsResult, iworld)    = initSymbolsShare options.distributed options.appName iworld
-	| symbolsResult =: (Error _) = show ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
+	| symbolsResult =: (Error _) = showErr ["Error reading symbols while required: " +++ fromError symbolsResult] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld = if (hasDup (requestPaths startable))
-		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
+		(iShowErr ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
 		iworld
 	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 	= destroyIWorld iworld
@@ -69,7 +69,7 @@ where
 		=  if (webTasks startable) =:[]
 		   //if there are no webtasks: stop when stable
 		   [systemTask (startTask stopOnStable)]
-		   //if there are: show instructions andcleanup old sessions
+		   //if there are: show instructions and cleanup old sessions
 		   [startTask viewWebServerInstructions
 		   ,systemTask (startTask removeOutdatedSessions)]
 		//If distributed, start sds service task
@@ -84,7 +84,7 @@ where
 	initSymbolsShare False _ iworld = (Ok (), iworld)
 	initSymbolsShare True appName iworld = case storeSymbols (IF_WINDOWS (appName +++ ".exe") appName) iworld of
 		(Error (e, s), iworld) = (Error s, iworld)
-		(Ok noSymbols, iworld) = (Ok (),  {iworld & world = show ["Read number of symbols: " +++ toString noSymbols] iworld.world})
+		(Ok noSymbols, iworld) = (Ok (),  showWhenVerbose ["Read number of symbols: " +++ toString noSymbols] iworld)
 
 	//Only run a webserver if there are tasks that are started through the web
 	tcpTasks startable serverPort keepaliveTime
@@ -99,13 +99,6 @@ where
 		,documentService
 		,staticResourceService [path \\ {WebTask|path} <- webtasks]
 		]
-
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines console
-		# (_,world)			= fclose console world
-		= world
 
 defaultEngineCLIOptions :: a [String] EngineOptions -> MaybeError [String] (a, EngineOptions)
 defaultEngineCLIOptions tasks [argv0:argv] defaults
@@ -153,8 +146,8 @@ where
 			"Enable distributed mode (populate the symbols share)"
 		, Option ['s'] ["sdsPort"] (ReqArg (\p->fmap \o->{o & sdsPort=toInt p}) "SDSPORT")
 			("Specify the SDS port (default: " +++ toString defaults.sdsPort +++ ")")
-		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & showInstructions=False}))
-			"Don't show instructions to open the browser"
+		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & verboseOperation=False}))
+			"Don't show diagnostic information about (browser instructions, sds server)"
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
@@ -196,8 +189,8 @@ where
 viewWebServerInstructions :: Task ()
 viewWebServerInstructions
 	=   get applicationOptions
-	>>- \{EngineOptions|appName,serverPort,showInstructions}
-		| showInstructions ->
+	>>- \{EngineOptions|appName,serverPort,verboseOperation}
+		| verboseOperation ->
 			traceValue (join OS_NEWLINE
 				["*** " +++ appName +++ " HTTP server ***"
 				,""
@@ -233,7 +226,7 @@ defaultEngineOptions world
 		, storeDirPath     = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath      = appDir </> appName +++ "-data" </> "tmp"
 		, byteCodePath     = appDir </> appName +++ ".bc"
-		, showInstructions = True
+		, verboseOperation = True
 		}
 	= (options,world)
 

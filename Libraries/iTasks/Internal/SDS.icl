@@ -953,62 +953,62 @@ where
 instance Writeable SDSDebug
 where
 	writeSDS (SDSDebug name sds) p context w iworld=:{sdsNotifyRequests}
-		# iworld = iShow ['Text'.concat ["Writing to share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
-		# iworld = iShow [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds).id_hash sdsNotifyRequests))] iworld
+		# iworld = showWhenVerbose ['Text'.concat ["Writing to share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
+		# iworld = showWhenVerbose [(maybe "" ('Text'.join "\n" o map toSingleLineText o 'DM'.keys) ('DM'.get (sdsIdentity sds).id_hash sdsNotifyRequests))] iworld
 		= db (writeSDS sds p context w iworld)
 		where
 			db (WriteResult notify sds, iworld) =
 				( WriteResult notify (SDSDebug name sds)
-				, iShow ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map notifyToString ('Set'.toList notify))] iworld
+				, showWhenVerbose ["WriteResult from share " + name + " notifying: " +++ 'Text'.join " " (map notifyToString ('Set'.toList notify))] iworld
 				)
 			db (AsyncWrite sds, iworld) =
 				( AsyncWrite (SDSDebug name sds)
-				, iShow ["AsyncWrite from share " +++ name] iworld
+				, showWhenVerbose ["AsyncWrite from share " +++ name] iworld
 				)
 			db (WriteException e, iworld) =
-				(WriteException e, iShow [snd e] iworld)
+				(WriteException e, showWhenVerbose [snd e] iworld)
 
 instance Registrable SDSDebug
 where
 	readRegisterSDS (SDSDebug name sds) p context taskId reqSDSId iworld
-		# iworld = iShow ["Registering to share " +++ name] iworld
+		# iworld = showWhenVerbose ["Registering to share " +++ name] iworld
 		= readAndMbRegisterSDS sds p context (ReadAndRegister taskId reqSDSId) iworld
 
 instance Modifiable SDSDebug
 where
 	modifySDS f (SDSDebug name sds) p context iworld=:{sdsNotifyRequests}
-		# iworld = iShow ['Text'.concat ["Modifying share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
+		# iworld = showWhenVerbose ['Text'.concat ["Modifying share ",name,"(identity=",toString (sdsIdentity sds),")"]] iworld
 		# (regs, iworld) = listAllSDSRegistrations iworld
-		# iworld = iShow [formatRegistrations regs] iworld
+		# iworld = showWhenVerbose [formatRegistrations regs] iworld
 		= db (modifySDS f sds p context iworld)
 	where
 		db (ModifyResult notify r w sds, iworld) =
 			( ModifyResult notify r w (SDSDebug name sds)
-			, iShow ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map notifyToString ('Set'.toList notify))] iworld
+			, showWhenVerbose ["ModifyResult from share " + name + " notifying: " + 'Text'.join ", " (map notifyToString ('Set'.toList notify))] iworld
 			)
 		db (AsyncModify sds f, iworld) =
 			( AsyncModify (SDSDebug name sds) f
-			, iShow ["AsyncModify from share " + name] iworld
+			, showWhenVerbose ["AsyncModify from share " + name] iworld
 			)
 		db (ModifyException e, iworld) =
-			(ModifyException e, iShow [snd e] iworld)
+			(ModifyException e, showWhenVerbose [snd e] iworld)
 
 readSDSDebug :: !(SDSDebug p r w) !p !TaskContext !ReadAndMbRegister !*IWorld
              -> *(!ReadResult p r w, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 readSDSDebug (SDSDebug name sds) p context mbRegister iworld
-	# iworld = iShow ["Reading from share " +++ name] iworld
+	# iworld = showWhenVerbose ["Reading from share " +++ name] iworld
 	= db (readAndMbRegisterSDS sds p context mbRegister iworld)
 where
 	db (ReadResult v sds, iworld) =
 		( ReadResult v (SDSDebug name sds)
-		, iShow ["ReadResult from share " +++ name] iworld
+		, showWhenVerbose ["ReadResult from share " +++ name] iworld
 		)
 	db (AsyncRead sds, iworld) =
 		( AsyncRead (SDSDebug name sds)
-		, iShow ["AsyncRead " +++ name] iworld
+		, showWhenVerbose ["AsyncRead " +++ name] iworld
 		)
 	db (ReadException e, iworld) =
-		(ReadException e, iShow [snd e] iworld)
+		(ReadException e, showWhenVerbose [snd e] iworld)
 
 // toString instances for SDSDebug
 notifyToString :: (TaskId, Maybe RemoteNotifyOptions) -> String

@@ -120,7 +120,7 @@ where
 				(change,_) = (Ok value, queueOutput instanceNo [TOUIChange change:[TOSetCookie k v ttl \\ (k,v,ttl) <- reverse syncCookies]] iworld)
 		ExceptionResult (e,description)
 			# iworld = if (type =: StartupInstance)
-				(printStdErr description {iworld & shutdown=Just 1})
+				(iShowErr [description] {iworld & shutdown=Just 1})
 				 iworld
 			= exitWithException instanceNo description iworld
 		DestroyedResult
