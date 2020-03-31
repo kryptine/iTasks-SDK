@@ -16,14 +16,14 @@ import qualified Data.Map as DM
 //  and inner element and sets a CSS transform on the inner element.
 
 scaledEditor :: !Int !Int !(Editor a w) -> Editor a w
-scaledEditor width height editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
+scaledEditor width height editor = {Editor|onReset=onReset,onEdit=onEdit,onRefresh=onRefresh,valueFromState=valueFromState}
 where
 	fixedEditor = (sizeAttr (ExactSize width) (ExactSize height)) @>> editor
 
-	genUI attr datapath mode vst = case fixedEditor.Editor.genUI attr datapath (mapEditMode id mode) vst of
-		(Ok (editorUI,editorState),vst) 
+	onReset attr datapath mode vst = case fixedEditor.Editor.onReset attr datapath (mapEditMode id mode) vst of
+		(Ok (editorUI,editorState,mbw),vst) 
 			# (initUIString, vst) = serializeForClient (wrapInitFunction initUI) vst
-			= (Ok (wrapUI initUIString editorUI,editorState),vst)
+			= (Ok (wrapUI initUIString editorUI,editorState,mbw),vst)
 		(Error e,vst) = (Error e,vst)
 
 	onEdit datapath event state vst = case fixedEditor.Editor.onEdit datapath event state vst of
