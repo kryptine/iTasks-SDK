@@ -12,5 +12,3 @@ removeOutdatedSessions :: Task ()
 flushWritesWhenIdle:: Task ()
 
 stopOnStable :: Task ()
-
-printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v

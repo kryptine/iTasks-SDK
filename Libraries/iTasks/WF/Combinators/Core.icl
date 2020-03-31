@@ -71,7 +71,7 @@ where
 	evalinit event evalOpts iworld
 		# iworld = if (length (removeDupBy actionEq conts) == length conts)
 			iworld
-			(printStdErr "Duplicate actions in step" iworld)
+			(iShowErr ["Duplicate actions in step"] iworld)
 		# (taskIda, iworld) = getNextTaskId iworld
 		= evalleft lhs [] taskIda event evalOpts iworld
 	where
