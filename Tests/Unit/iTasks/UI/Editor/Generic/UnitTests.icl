@@ -57,8 +57,8 @@ genRequiredIntUI = assertEqualWorld "Generate UI for Editor of type Int"
 					] 
 				)
 			[]
-	    , LeafState {touched=False,state=JSONNull}))
-	(genUIWrapper [] Enter intEditor)
+	    , LeafState {touched=False,state=JSONNull}, Nothing))
+	(onResetWrapper [] Enter intEditor)
 where
 	intEditor :: Editor Int (Maybe Int)
 	intEditor = gEditor{|*|}
@@ -76,8 +76,8 @@ genOptionalIntUI = assertEqualWorld "Generate UI for Editor of type Maybe Int"
 					] 
 				)
 			[]
-	    , LeafState {touched=False,state=JSONNull}))
-	(genUIWrapper [] Enter intEditor)
+	    , LeafState {touched=False,state=JSONNull}, Nothing))
+	(onResetWrapper [] Enter intEditor)
 where
 	intEditor :: Editor (Maybe Int) (Maybe (Maybe Int))
 	intEditor = gEditor{|*|}
@@ -148,9 +148,10 @@ genRequiredTwoFieldRecordUI = assertEqualWorld "Generate UI for Editor of type T
 			[LeafState {touched=False,state=JSONNull}
 			,LeafState {touched=False,state=JSONNull}
 			]
+		, Nothing
 		)
 	)
-	(genUIWrapper [] Enter editor)
+	(onResetWrapper [] Enter editor)
 where
 	editor :: Editor TwoFieldRecord (Maybe TwoFieldRecord)
 	editor = gEditor{|*|}
@@ -190,13 +191,13 @@ where
 
 tupleEditorTests = []
 
-genUIWrapper datapath mode editor world
+onResetWrapper datapath mode editor world
 	# (options,world) = defaultEngineOptions world 
 	# mbIworld = createIWorld options world
 	| mbIworld =: Left _ = let (Left (err, world)) = mbIworld in (Error err, world)
 	# iworld = let (Right iworld) = mbIworld in iworld
 	# vst = {taskId = "4-2", optional = False,selectedConsIndex=0,pathInEditMode=[],abcInterpreterEnv=iworld.IWorld.abcInterpreterEnv}
-	# (res, _) = editor.Editor.genUI emptyAttr datapath (mapEditMode id mode) vst
+	# (res, _) = editor.Editor.onReset emptyAttr datapath (mapEditMode id mode) vst
 	= (res,iworld.world)
 
 onEditWrapper datapath edit state editor world

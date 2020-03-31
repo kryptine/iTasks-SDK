@@ -600,12 +600,12 @@ gEditor{|{!}|} gtx jex jdx edx =
 	(\x->{x\\x<-x})
 	(gEditor{|*->*|} gtx jex jdx edx)
 
-gEditor{|Integer|} = selectByMode
-	(bijectEditorValue toString toInteger textView)
-	(withDynamicHintAttributes "whole number" (withEditModeAttr integerEditor))
-	(withDynamicHintAttributes "whole number" (withEditModeAttr integerEditor))
+gEditor{|Integer|} = selectByMode view edit edit
 where
-	integerEditor = bijectEditorValue toString toInteger
+	view = ignoreEditorWrites $ bijectEditorValue toString toInteger textView
+	edit = withDynamicHintAttributes "whole number" (withEditModeAttr integerEditor)
+
+	integerEditor = mapEditorWrite (fmap toInteger) $ bijectEditorValue toString toInteger
 		$ fieldComponent UITextField Nothing \_ s
 			| size s == 0  = False
 			| s.[0] == '-' = size s > 1 && allDigits 1 s

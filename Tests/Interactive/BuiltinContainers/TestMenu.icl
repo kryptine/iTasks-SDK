@@ -3,7 +3,7 @@ import iTasks
 import qualified Data.Map as DM
 
 test :: Task String
-test = enterInformation () [EnterUsing id editor]
+test = enterInformation [EnterUsing id editor]
 	 //Remove prompt 
      <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI,setUIAttributes (textAttr "Sub menu")])
 where

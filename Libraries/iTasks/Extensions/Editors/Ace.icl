@@ -40,13 +40,13 @@ where
 aceEditor :: Editor (!AceOptions,!AceState) AceState
 aceEditor = leafEditorToEditor
     { LeafEditor
-    | genUI          = withClientSideInit initUI genUI
+    | onReset        = withClientSideInit initUI onReset
     , onEdit         = onEdit
     , onRefresh      = onRefresh
     , valueFromState = valueFromState
     }
 where
-	genUI attr dp mode vst=:{VSt|taskId,optional}
+	onReset attr dp mode vst=:{VSt|taskId,optional}
 		# (options,state) = fromMaybe gDefault{|*|} $ editModeValue mode
 		//Set both state and options as attributes
 		# aceAttr = 'DM'.fromList
@@ -58,7 +58,7 @@ where
 			,("mode",JSONString options.AceOptions.mode)
 			]
 		# attr = 'DM'.unions [aceAttr, optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), attr]
-		= (Ok (uia UIComponent attr, (options, state)),vst)
+		= (Ok (uia UIComponent attr, (options, state), Nothing),vst)
 
 	initUI me world
 		//Setup UI component
