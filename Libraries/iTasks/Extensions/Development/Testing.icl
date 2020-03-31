@@ -58,5 +58,5 @@ where
 
 runWithOutput :: FilePath [String] (Maybe FilePath) -> Task (Int,[String])
 runWithOutput prog args dir = withShared ([], []) \out->withShared [] \stdin->
-	externalProcess {tv_sec=0,tv_nsec=100000000} prog args dir Nothing stdin out
+	externalProcess {tv_sec=0,tv_nsec=100000000} prog args dir externalProcessGraceful Nothing stdin out
 	>>- \c->get out @ tuple c o fst

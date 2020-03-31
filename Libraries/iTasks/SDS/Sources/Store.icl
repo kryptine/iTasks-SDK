@@ -72,8 +72,9 @@ storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare
 	//Compute the filepath in the store from the key
 	//And decide if the store should be memory-only or can use a persistent version
 	(\key {EngineOptions|appVersion,storeDirPath,persistTasks} ->
-		(storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key))
-		,if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType))
+		( concatPaths [storeDirPath, namespace : if versionSpecific [appVersion, safeName key] [safeName key]]
+		, if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType)
+		)
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))
@@ -86,8 +87,9 @@ mbStoreShare namespace versionSpecific prefType = sdsSequence "mbStoreShare"
 	//Compute the filepath in the store from the key
 	//And decide if the store should be memory-only or can use a persistent version
 	(\key {EngineOptions|appVersion,storeDirPath,persistTasks} ->
-		(storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key))
-		,if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType))
+		( concatPaths [storeDirPath, namespace : if versionSpecific [appVersion, safeName key] [safeName key]]
+		, if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType)
+		)
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))
@@ -97,7 +99,7 @@ mbStoreShare namespace versionSpecific prefType = sdsSequence "mbStoreShare"
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDSSequence String {#Char} {#Char}
 blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 	(\key -> ())
-	(\key {storeDirPath,appVersion} -> storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key)))
+	(\key {storeDirPath,appVersion} -> concatPaths [storeDirPath, namespace : if versionSpecific [appVersion, safeName key] [safeName key]])
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))

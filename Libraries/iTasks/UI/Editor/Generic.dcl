@@ -7,6 +7,7 @@ import StdGeneric
 from Text.HTML import :: HtmlTag
 from Data.Error import :: MaybeError
 from System.Time import :: Timestamp
+from Data.Integer import :: Integer
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
 /**
@@ -24,6 +25,6 @@ derive gEditor
 	FIELD of {gfd_name} with ex _ _ _
 
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic, {}, {!}
-derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
+derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp, Integer
 
 derive bimap Editor

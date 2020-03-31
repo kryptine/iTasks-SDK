@@ -17,6 +17,7 @@ import iTasks.UI.Editor.Controls
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 import iTasks.UI.Tune
 import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.SDS
 import iTasks.WF.Derives
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.Interaction
@@ -238,7 +239,14 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 workOnChosenTask :: !(((String, Int) -> String) -> ChoiceOption (String, Int)) ![(String, Task a)] -> Task a | iTask a
 workOnChosenTask choiceOption options =
-	updateChoiceAs [choiceOption fst] [(label,n) \\ (label,_) <- options & n <- [1..]] snd 1 >&> \choiceIdx ->
+	withShared 0 \sharedChoice -> workOnChosenTaskWithSharedChoice choiceOption sharedChoice options
+
+workOnChosenTaskWithSharedChoice ::
+	!(((String, Int) -> String) -> ChoiceOption (String, Int)) !(Shared sds Int) ![(String, Task a)] -> Task a
+	| iTask a & RWShared sds
+workOnChosenTaskWithSharedChoice choiceOption sharedChoice options =
+	editSharedChoiceAs [choiceOption fst] [(label,n) \\ (label,_) <- options & n <- [1..]] snd sharedChoice`
+	>&> \choiceIdx ->
 		( parallel
 			[(Embedded, managementTask choiceIdx): [(Embedded, \_ -> task) \\ (_, task) <- options]]
 			[]
@@ -262,9 +270,12 @@ where
 	where
 		updateVisible choice = upd (setVisible choice) (sdsFocus fullTaskListFilter taskList) @? const NoValue
 		setVisible choice (_,items) =
-			[(taskId,'DM'.put "visible" (JSONBool (Just idx == choice)) managementAttributes)
-			 \\ {TaskListItem|taskId,managementAttributes} <- items & idx <- [0..]
+			[ (taskId,'DM'.put "visible" (JSONBool (Just idx == choice)) managementAttributes)
+			\\ {TaskListItem| taskId, managementAttributes} <- items & idx <- [0..]
 			]
+
+	// Increment/decrement indexes to make shared choice index starting at 0.
+	sharedChoice` = mapReadWrite (Just o inc, \idx _ -> dec <$> idx) Nothing sharedChoice
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = get applicationOptions
