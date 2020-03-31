@@ -60,7 +60,7 @@ doTasksWithOptions initFun world
 	# iworld = if (hasDup (requestPaths startable))
 		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
 		iworld
-	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
+	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options.serverPort options.keepaliveTime) timeout iworld
 	= destroyIWorld iworld
 where
 	requestPaths startable = [path\\{path}<-webTasks startable]
@@ -123,7 +123,7 @@ where
 		, Option ['p'] ["port"] (ReqArg (\p->fmap \o->{o & serverPort=toInt p}) "PORT")
 			("Specify the HTTP port (default: " +++ toString defaults.serverPort +++ ")")
 		, Option [] ["timeout"] (OptArg (\mp->fmap \o->{o & timeout=fmap toInt mp}) "MILLISECONDS")
-			"Specify the timeout in ms (default: 500)\nIf not given, use an indefinite timeout."
+			"Specify the timeout in ms (default: Nothing)\nIf not given, use an indefinite timeout."
 		, Option [] ["allowed-hosts"] (ReqArg (\p->fmap \o->{o & allowedHosts = if (p == "") [] (split "," p)}) "IPADRESSES")
 			("Specify a comma separated white list of hosts that are allowed to connected to this application\ndefault: "
 			 +++ join "," defaults.allowedHosts)
@@ -267,32 +267,38 @@ determineAppVersion appPath world
 	# version           = strfTime "%Y%m%d-%H%M%S" tm
 	= (version,world)
 
-timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout mt iworld = case read taskEvents EmptyContext iworld of
-	//No events
-	(Ok (ReadingDone (Queue [] [])),iworld=:{sdsNotifyRequests,world})
-		# (ts, world) = nsTime world
-		= ( minListBy lesser [mt:flatten (map (getTimeoutFromClock ts) ('DM'.elems sdsNotifyRequests))]
-		  , {iworld & world = world})
-	(Ok (ReadingDone (Queue _ _)), iworld)               = (Just 0,iworld)   //There are still events, don't wait
-	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
+timeout iworld = case read taskEvents EmptyContext iworld of
+	(Ok (ReadingDone q), iworld=:{nextTick,options})
+		//Events, continue immediately
+		| not (empty q)
+			= (Just 0, iworld)
+		//No events and no registrations, continue after the engine timeout
+		| isNothing nextTick
+			= (options.timeout, iworld)
+		//No events and registrations
+		# (Just nextTick) = nextTick
+		# (timestamp, iworld) = liftIWorld nsTime iworld
+		# regtimeout = toMs nextTick - toMs timestamp
+		# tm = maybe regtimeout (min regtimeout) options.timeout
+		= (Just (max 0 tm), iworld)
+	//Error, retry but not too fast
+	(Error _,iworld)
+		= (Just 500, iworld)
 where
-	lesser (Just x) (Just y) = x < y
-	lesser (Just _) Nothing  = True
-	lesser _        _        = False
-
-	getTimeoutFromClock :: Timespec (Map SDSNotifyRequest Timespec) -> [Maybe Timeout]
-	getTimeoutFromClock now requests = map getTimeoutFromClock` ('DM'.toList requests)
-	where
-		getTimeoutFromClock` :: (!SDSNotifyRequest, !Timespec) -> Maybe Timeout
-		getTimeoutFromClock` (snr, reqTimespec)
-			| dependsOnShareWithName "IWorld:timespec" snr.reqSDSId = case snr.cmpParam of
-				(ts :: ClockParameter Timespec) | ts.interval <> zero
-					# fire = iworldTimespecNextFire now reqTimespec ts
-					= Just (max 0 (toMs fire - toMs now))
-				_
-					= mt
-			| otherwise
-				= mt
-
+	/**
+	 * Convert a timespec to milliseconds for the select timeout
+	 */
+	toMs :: !Timespec -> Int
 	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
+
+	/**
+	 * Determine the timeout
+	 *
+	 * @param engineoptions timeout
+	 * @param calculated timeout according to the clock registrations
+	 * @result timeout
+	 */
+	ctimeout :: !(Maybe Int) !Int -> Int
+	ctimeout Nothing i = max 0 i
+	ctimeout (Just t) i = max 0 (min i t)

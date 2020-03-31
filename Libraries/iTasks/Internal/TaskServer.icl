@@ -594,7 +594,7 @@ where
 
 tick :: SDSSource () () ()
 tick = SDSSource
-	{SDSSourceOptions
+	{ SDSSourceOptions
 	| name  = "_ticker"
 	, read  = \p iw->(Ok (), iw)
 	, write = \p w iw->(Ok \_ _->True, iw)
@@ -607,7 +607,7 @@ updateClock iworld=:{IWorld|clock,world}
 	# iworld & world   = world
 	//Write SDS if necessary
 	# (mbe,iworld)     = write timespec focusedTimeSpec EmptyContext iworld
-	= (() <$ mbe, iworld)
+	= (() <$ mbe, {iworld & nextTick=maybe Nothing (\a->if (a > timespec) (Just a) Nothing) iworld.nextTick})
 
 /* CAF for efficiency */
 focusedTimeSpec =: sdsFocus {start=zero,interval=zero} iworldTimespec

@@ -9,6 +9,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 import Data.Func
 from Data.Map import :: Map
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import Data.Maybe
 import Math.Random
 import System.CommandLine
@@ -36,6 +37,7 @@ createIWorld options world
 			{IWorld
 			|options = options
 			,clock = ts
+			,nextTick = Nothing
 			,current =
 				{TaskEvalState
 				|taskTime				= 0
@@ -85,30 +87,55 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimespec :: SDSSource (ClockParameter Timespec) Timespec Timespec
-iworldTimespec =: createReadWriteSDS "IWorld" "timespec" read write
-where
-    read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
-    write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
-	where
-		pred reg p=:{start,interval}
-			| timestamp < start = False // Start time has not passed
-			= timestamp > iworldTimespecNextFire timestamp reg p
+//Ad hoc share to hook into the readRegister call (only used for the clock)
+:: SDSRegistered p r w
+	= SDSRegistered !(p *IWorld -> *(MaybeError TaskException (), *IWorld)) !(SDSSource p r w)
 
-
-iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
-iworldTimespecNextFire now reg {start,interval}
-	//If called from the predicate in Internal.IWorld.iworldTimespec, start has passed, so when interval is zero, fire
-	//If called from Engine.timeout, interval is never zero because that is checked there
-	| interval == zero = now
-	# start = toI start
-	  interval = toI interval
-	  reg = toI reg
-	  passed = max (zero - interval) (reg - start)
-	= toT (start + (passed / interval + one) * interval)
+instance Identifiable SDSRegistered
 where
-	toI x = x.tv_sec * 1000000000 + x.tv_nsec
-	toT x = {tv_sec=x / 1000000000, tv_nsec=x rem 1000000000}
+	sdsIdentity (SDSRegistered _ sds) = sdsIdentity sds
+instance Readable SDSRegistered
+where
+	readSDS (SDSRegistered _ sds) p c iworld = readSDS sds p c iworld
+instance Writeable SDSRegistered
+where
+	writeSDS (SDSRegistered _ sds) p c w iworld = writeSDS sds p c w iworld
+instance Modifiable SDSRegistered
+where
+	modifySDS f (SDSRegistered _ sds) p c iworld = modifySDS f sds p c iworld
+instance Registrable SDSRegistered
+where
+	readRegisterSDS (SDSRegistered rfun sds) p c t r iworld
+		= case rfun p iworld of
+			(Ok _, iworld) = readRegisterSDS sds p c t r iworld
+			(Error e, iworld) = (ReadException e, iworld)
+
+iworldTimespec :: SDSRegistered (ClockParameter Timespec) Timespec Timespec
+iworldTimespec =: SDSRegistered register
+	$ createReadWriteSDS "IWorld" "timespec"
+		(\_ iworld=:{IWorld|clock}->(Ok clock, iworld))
+		(\_ ts iworld->(Ok (pred ts), {iworld & clock=ts}))
+where
+	//Watchers are notified when the current time exceeded the nexttick time
+	pred :: !Timespec !Timespec !(ClockParameter Timespec) -> Bool
+	pred ts reg p = ts >= nexttick reg p
+
+	read :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException Timespec, !*IWorld)
+	read p iworld=:{IWorld|clock}
+		= (Ok clock, iworld)
+
+	write :: !(ClockParameter Timespec) !Timespec !*IWorld -> (!MaybeError TaskException (SDSNotifyPred (ClockParameter Timespec)), !*IWorld)
+	write p ts iworld
+		= (Ok pred, {iworld & clock=ts})
+
+	register :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+	register p iworld=:{IWorld|clock,nextTick}
+		# nt = nexttick clock p
+		= (Ok (), {iworld & nextTick=maybe (Just nt) (\ot->Just (if (nt < ot) nt ot)) nextTick})
+
+	//The next tick is either interval+reg (when start is zero) or start+interval
+	nexttick :: !Timespec !(ClockParameter Timespec) -> Timespec
+	nexttick reg {start,interval} = (if (start == zero) reg start) + interval
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 
@@ -116,7 +143,7 @@ iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)
 
 iworldLocalDateTime :: SDSParallel () DateTime ()
 iworldLocalDateTime =: sdsParallel "iworldLocalDateTime"
-    // ignore value, but use notifications for 'iworldTimestamp'
+	// ignore value, but use notifications for 'iworldTimestamp'
 	(\p -> (p,p)) fst
 	(SDSWriteConst \_ _ -> Ok Nothing) (SDSWriteConst \_ _ -> Ok Nothing)
 	(createReadOnlySDS \_ -> iworldLocalDateTime`)
@@ -124,8 +151,8 @@ iworldLocalDateTime =: sdsParallel "iworldLocalDateTime"
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 iworldLocalDateTime` iworld=:{clock={tv_sec}, world}
-    # (tm, world) = toLocalTime (Timestamp tv_sec) world
-    = (tmToDateTime tm, {iworld & world = world})
+	# (tm, world) = toLocalTime (Timestamp tv_sec) world
+	= (tmToDateTime tm, {iworld & world = world})
 
 iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
 iworldResource f iworld=:{IWorld|resources}

@@ -35,6 +35,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IWorld = !
 	{ options               :: !EngineOptions                                   // Engine configuration
 	, clock                 :: !Timespec                                        // Server side clock
+	, nextTick              :: !Maybe Timespec                                  // When is the next clock registration
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
 	, random                :: [Int]                                            // Infinite random stream
@@ -117,26 +118,32 @@ destroyIWorld :: !*IWorld -> *World
 
 //* Used as a parameter on clock shares
 :: ClockParameter a =
-	{ start    :: !a //* At what time to start watching
+	{ start    :: !a //* At what time to start watching, if it is zero, the time of registration is used
 	, interval :: !a //* Watch with what interval
 	}
 
-iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
+//Ad hoc share type to hook into the readRegister call (only used for the clock)
+:: SDSRegistered p r w
+instance Identifiable SDSRegistered
+instance Readable SDSRegistered
+instance Writeable SDSRegistered
+instance Modifiable SDSRegistered
+instance Registrable SDSRegistered
 
-/*
- * Calculate the next fire for the given timespec
- *
- * @param now
- * @param registration time
- * @param clock parameter
- * @result time to fire next
+/**
+ * Represents the current timespec (seconds and nanoseconds since the unix epoch)
  */
-iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+iworldTimespec          :: SDSRegistered (ClockParameter Timespec) Timespec Timespec
 
+/**
+ * Represents the current time (seconds since the unix epoch)
+ */
 iworldTimestamp         :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
-iworldLocalDateTime     :: SDSParallel () DateTime ()
 
-iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
+/**
+ * Represents the datetime in the local timezonse
+ */
+iworldLocalDateTime     :: SDSParallel () DateTime ()
 
 /*
  * Gives you possibly a matching resource while adhering to the uniqueness
