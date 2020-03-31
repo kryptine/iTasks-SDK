@@ -15,7 +15,7 @@ Write the following code in the new file (the yellow window).
 module myprogram
 import iTasks
 
-Start world = doTasks (viewInformation (Title "Hello") [] "Hello, world") world
+Start world = doTasks (Title "Hello" @>> viewInformation [] "Hello, world") world
 ```
 Save the file using `File -> Save myprogram.icl` from the main menu.
 
@@ -38,7 +38,7 @@ First create a Clean source module with a minimal program. Write the following c
 module myprogram
 import iTasks
 
-Start world = doTasks (viewInformation (Title "Hello") [] "Hello, world") world
+Start world = doTasks (Title "Hello" @>> viewInformation [] "Hello, world") world
 ```
 
 ### Step 2: Creating a project file ###
