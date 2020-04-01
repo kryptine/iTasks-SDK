@@ -37,7 +37,7 @@ createIWorld options world
 			{IWorld
 			|options = options
 			,clock = ts
-			,nextTick = Nothing
+			,nextTick = []
 			,current =
 				{TaskEvalState
 				|taskTime				= 0
@@ -118,7 +118,7 @@ iworldTimespec =: SDSRegistered register
 where
 	//Watchers are notified when the current time exceeded the nexttick time
 	pred :: !Timespec !Timespec !(ClockParameter Timespec) -> Bool
-	pred ts reg p = ts >= nexttick reg p
+	pred ts reg p = ts >= computeNextTick reg p
 
 	read :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException Timespec, !*IWorld)
 	read p iworld=:{IWorld|clock}
@@ -130,12 +130,11 @@ where
 
 	register :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 	register p iworld=:{IWorld|clock,nextTick}
-		# nt = nexttick clock p
-		= (Ok (), {iworld & nextTick=maybe (Just nt) (\ot->Just (if (nt < ot) nt ot)) nextTick})
+		= (Ok (), {iworld & nextTick=insert (<) (computeNextTick clock p) nextTick})
 
 	//The next tick is either interval+reg (when start is zero) or start+interval
-	nexttick :: !Timespec !(ClockParameter Timespec) -> Timespec
-	nexttick reg {start,interval} = (if (start == zero) reg start) + interval
+	computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
+	computeNextTick reg {start,interval} = (if (start == zero) reg start) + interval
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 

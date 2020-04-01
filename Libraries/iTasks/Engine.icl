@@ -274,14 +274,15 @@ timeout iworld = case read taskEvents EmptyContext iworld of
 		| not (empty q)
 			= (Just 0, iworld)
 		//No events and no registrations, continue after the engine timeout
-		| isNothing nextTick
+		| isEmpty nextTick
 			= (options.timeout, iworld)
 		//No events and registrations
-		# (Just nextTick) = nextTick
 		# (timestamp, iworld) = liftIWorld nsTime iworld
-		# regtimeout = toMs nextTick - toMs timestamp
+		# regtimeout = toMs (hd nextTick) - toMs timestamp
 		# tm = maybe regtimeout (min regtimeout) options.timeout
-		= (Just (max 0 tm), iworld)
+		= ( Just (max 0 tm)
+		//All passed registrations are removed
+		  , {iworld & nextTick=dropWhile ((>)timestamp) nextTick})
 	//Error, retry but not too fast
 	(Error _,iworld)
 		= (Just 500, iworld)

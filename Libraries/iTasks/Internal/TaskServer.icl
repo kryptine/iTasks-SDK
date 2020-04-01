@@ -607,7 +607,7 @@ updateClock iworld=:{IWorld|clock,world}
 	# iworld & world   = world
 	//Write SDS if necessary
 	# (mbe,iworld)     = write timespec focusedTimeSpec EmptyContext iworld
-	= (() <$ mbe, {iworld & nextTick=maybe Nothing (\a->if (a > timespec) (Just a) Nothing) iworld.nextTick})
+	= (() <$ mbe, iworld)
 
 /* CAF for efficiency */
 focusedTimeSpec =: sdsFocus {start=zero,interval=zero} iworldTimespec
