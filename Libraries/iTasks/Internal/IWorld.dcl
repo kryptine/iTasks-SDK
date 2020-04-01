@@ -131,6 +131,15 @@ instance Modifiable SDSRegistered
 instance Registrable SDSRegistered
 
 /**
+ * Computes the time of the next notification
+ *
+ * @param time of registration
+ * @param parameter
+ * @result time of next notification
+ */
+computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
+
+/**
  * Represents the current timespec (seconds and nanoseconds since the unix epoch)
  */
 iworldTimespec          :: SDSRegistered (ClockParameter Timespec) Timespec Timespec

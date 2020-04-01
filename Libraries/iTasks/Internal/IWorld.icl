@@ -132,9 +132,9 @@ where
 	register p iworld=:{IWorld|clock,nextTick}
 		= (Ok (), {iworld & nextTick=insert (<) (computeNextTick clock p) nextTick})
 
-	//The next tick is either interval+reg (when start is zero) or start+interval
-	computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
-	computeNextTick reg {start,interval} = (if (start == zero) reg start) + interval
+//The next tick is either interval+reg (when start is zero) or start+interval
+computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
+computeNextTick reg {start,interval} = (if (start == zero) reg start) + interval
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 

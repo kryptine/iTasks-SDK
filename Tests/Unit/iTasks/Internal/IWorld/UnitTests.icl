@@ -19,22 +19,44 @@ where
 		# world = destroyIWorld iworld
 		= (True,world)
 
-testIworldTimespecNextFireZero = assertEqual "Next Fire Zero" exp sut
+testComputeNextTickZeroZero = assertEqual "Next Fire start=zero interval=n" exp sut
 where
-	exp = {tv_sec=12319,tv_nsec=100}
-	sut = iworldTimespecNextFire
-			{tv_sec=12319,tv_nsec=100}
-			{tv_sec=12314,tv_nsec=50}
-			{start={tv_sec=0,tv_nsec=1},interval={tv_sec=0,tv_nsec=0}}
+	exp = {tv_sec=123,tv_nsec=123}
+	sut = computeNextTick reg {start=start,interval=interval}
+	reg = {tv_sec=123,tv_nsec=123}
+	start = zero
+	interval = zero
 
-testIworldTimespecNextFireOne= assertEqual "Next Fire One" exp sut
+testComputeNextTickZeroInt = assertEqual "Next Fire start=zero interval=n" exp sut
 where
-	exp = {tv_sec=12315,tv_nsec=1}
-	sut = iworldTimespecNextFire
-			{tv_sec=12319,tv_nsec=100}
-			{tv_sec=12314,tv_nsec=50}
-			{start={tv_sec=0,tv_nsec=1},interval={tv_sec=1,tv_nsec=0}}
+	exp = reg + interval
+	sut = computeNextTick reg {start=start,interval=interval}
+	reg = {tv_sec=123,tv_nsec=123}
+	start = zero
+	interval = {tv_sec=345,tv_nsec=345}
 
-tests = [testInitIWorld,testIworldTimespecNextFireZero, testIworldTimespecNextFireOne]
+testComputeNextTickIntZero = assertEqual "Next Fire start=n interval=zero" exp sut
+where
+	exp = start
+	sut = computeNextTick reg {start=start,interval=interval}
+	reg = {tv_sec=123,tv_nsec=123}
+	start = {tv_sec=345,tv_nsec=345}
+	interval = zero
+
+testComputeNextTickIntInt = assertEqual "Next Fire start=n interval=n" exp sut
+where
+	exp = start + interval
+	sut = computeNextTick reg {start=start,interval=interval}
+	reg = {tv_sec=123,tv_nsec=123}
+	start = {tv_sec=345,tv_nsec=345}
+	interval = zero
+
+tests =
+	[ testInitIWorld
+	, testComputeNextTickZeroZero
+	, testComputeNextTickZeroInt
+	, testComputeNextTickIntZero
+	, testComputeNextTickIntInt
+	]
 
 Start world = runUnitTests tests world
