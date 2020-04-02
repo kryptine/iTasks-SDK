@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.SDS
 
 import StdString, StdTuple, StdMisc, StdBool, StdInt, StdChar, StdFunctions, StdArray
-from StdList import flatten, map, take, drop, filter, instance toString [a], instance length []
+from StdList import flatten, map, take, drop, instance toString [a], instance length []
 from Text import class Text, instance Text String
 import qualified Text
 from Data.Map import :: Map
@@ -168,7 +168,7 @@ where
 		Nothing   = partition_notify rem ('Set'.insert taskId loc) rest
 
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
-clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask, nextTick}
+clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyReqsByTask}
 	# sdsIdsToClear = foldl
 		(\sdsIdsToClear taskId -> 'Set'.union ('DM'.findWithDefault 'Set'.newSet taskId sdsNotifyReqsByTask) sdsIdsToClear)
 		'Set'.newSet
@@ -176,7 +176,6 @@ clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests, sdsNotifyRe
 	= { iworld
 	  & sdsNotifyRequests   = foldl clearRegistrationRequests sdsNotifyRequests sdsIdsToClear
 	  , sdsNotifyReqsByTask = foldl (flip 'DM'.del) sdsNotifyReqsByTask taskIds
-	  , nextTick            = filter (flip 'Set'.member taskIds o snd) nextTick
 	  }
 where
 	clearRegistrationRequests :: (Map SDSIdentityHash (Map SDSNotifyRequest Timespec))

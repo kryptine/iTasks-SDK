@@ -35,7 +35,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IWorld = !
 	{ options               :: !EngineOptions                                   // Engine configuration
 	, clock                 :: !Timespec                                        // Server side clock
-	, nextTick              :: ![(Timespec, TaskId)]                            // When are the next clock registrations, sorted from low to high
+	, clockDependencies     :: ![#ClockDependency!]                              // When are the next clock registrations, sorted from low to high
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
 	, random                :: [Int]                                            // Infinite random stream
@@ -57,6 +57,11 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, resources             :: *[*Resource]
 	, onClient				:: !Bool									// "False" on the server, "True" on the client
 	, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
+	}
+
+:: ClockDependency =
+	{ nextFire :: !Timespec
+	, taskId   :: !TaskId
 	}
 
 :: TaskEvalState =
@@ -133,11 +138,12 @@ instance Registrable SDSRegistered
 /**
  * Computes the time of the next notification
  *
+ * @param current time
  * @param time of registration
  * @param parameter
  * @result time of next notification
  */
-computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
+computeNextFire :: !Timespec !Timespec !(ClockParameter Timespec) -> Maybe Timespec
 
 /**
  * Represents the current timespec (seconds and nanoseconds since the unix epoch)

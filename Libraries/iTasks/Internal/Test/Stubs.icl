@@ -15,7 +15,7 @@ toStubIWorld world
 		{ IWorld
 		| options = opts
 		, clock = zero
-		, nextTick = []
+		, clockDependencies = [|]
 		, current =
 			{ taskTime = 0
 			, taskInstance = 0

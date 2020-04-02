@@ -1,6 +1,7 @@
 implementation module iTasks.Internal.IWorld
 
 import StdEnv
+import StdOverloadedList
 from StdFunc import seqList, :: St
 
 from ABC.Interpreter import prepare_prelinked_interpretation, :: PrelinkedInterpretationEnvironment
@@ -37,7 +38,7 @@ createIWorld options world
 			{IWorld
 			|options = options
 			,clock = ts
-			,nextTick = []
+			,clockDependencies = [|]
 			,current =
 				{TaskEvalState
 				|taskTime				= 0
@@ -118,7 +119,9 @@ iworldTimespec =: SDSRegistered register
 where
 	//Watchers are notified when the current time exceeded the nexttick time
 	pred :: !Timespec !Timespec !(ClockParameter Timespec) -> Bool
-	pred ts reg p = ts >= computeNextTick reg p
+	pred ts reg p = case computeNextFire ts reg p of
+		Nothing = False
+		Just nextFire = ts >= nextFire
 
 	read :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException Timespec, !*IWorld)
 	read p iworld=:{IWorld|clock}
@@ -129,12 +132,19 @@ where
 		= (Ok pred, {iworld & clock=ts})
 
 	register :: !(ClockParameter Timespec) !TaskId !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-	register p tid iworld=:{IWorld|clock,nextTick}
-		= (Ok (), {iworld & nextTick=insert (on (<) fst) (computeNextTick clock p, tid) nextTick})
+	register p tid iworld=:{IWorld|clock,clockDependencies}
+		= case computeNextFire clock clock p of
+			Nothing = (Ok (), iworld)
+			Just nextFire =
+				( Ok ()
+				, {iworld & clockDependencies=Insert (\new old->new.nextFire < old.nextFire) {nextFire=nextFire,taskId=tid} clockDependencies}
+				)
 
-//The next tick is either interval+reg (when start is zero) or start+interval
-computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec
-computeNextTick reg {start,interval} = (if (start == zero) reg start) + interval
+computeNextFire :: !Timespec !Timespec !(ClockParameter Timespec) -> Maybe Timespec
+computeNextFire currentTime regTime {start,interval}
+	# start = if (start == zero) regTime start
+	//| start < regTime && interval == zero = Nothing
+	= Just (start + interval)
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 

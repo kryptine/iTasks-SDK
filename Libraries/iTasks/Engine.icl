@@ -6,6 +6,7 @@ import Data.List
 import Data.Queue
 import Internet.HTTP
 import StdEnv
+import StdOverloadedList
 import System.CommandLine
 import System.Directory
 import System.File
@@ -269,20 +270,20 @@ determineAppVersion appPath world
 
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout iworld = case read taskEvents EmptyContext iworld of
-	(Ok (ReadingDone q), iworld=:{nextTick,options})
+	(Ok (ReadingDone q), iworld=:{clockDependencies,options})
 		//Events, continue immediately
 		| not (empty q)
 			= (Just 0, iworld)
 		//No events and no registrations, continue after the engine timeout
-		| isEmpty nextTick
+		| IsEmpty clockDependencies
 			= (options.timeout, iworld)
-		//No events and registrations
+		//No events and some registrations
 		# (timestamp, iworld) = liftIWorld nsTime iworld
-		# regtimeout = toMs (fst (hd nextTick)) - toMs timestamp
+		# regtimeout = toMs (Hd clockDependencies).nextFire - toMs timestamp
 		# tm = maybe regtimeout (min regtimeout) options.timeout
 		= ( Just (max 0 tm)
 		//All passed registrations are removed
-		  , {iworld & nextTick=dropWhile ((>)timestamp o fst) nextTick})
+		  , {iworld & clockDependencies=DropWhile (\e->timestamp > e.nextFire) clockDependencies})
 	//Error, retry but not too fast
 	(Error _,iworld)
 		= (Just 500, iworld)
