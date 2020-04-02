@@ -35,7 +35,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IWorld = !
 	{ options               :: !EngineOptions                                   // Engine configuration
 	, clock                 :: !Timespec                                        // Server side clock
-	, nextTick              :: ![Timespec]                                      // When are the next clock registrations, sorted from low to high
+	, nextTick              :: ![(Timespec, TaskId)]                            // When are the next clock registrations, sorted from low to high
 	, current               :: !TaskEvalState                                   // Shared state during task evaluation
 
 	, random                :: [Int]                                            // Infinite random stream

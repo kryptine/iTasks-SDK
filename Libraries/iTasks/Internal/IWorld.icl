@@ -89,7 +89,7 @@ destroyIWorld iworld=:{IWorld|world} = world
 
 //Ad hoc share to hook into the readRegister call (only used for the clock)
 :: SDSRegistered p r w
-	= SDSRegistered !(p *IWorld -> *(MaybeError TaskException (), *IWorld)) !(SDSSource p r w)
+	= SDSRegistered !(p TaskId *IWorld -> *(MaybeError TaskException (), *IWorld)) !(SDSSource p r w)
 
 instance Identifiable SDSRegistered
 where
@@ -106,7 +106,7 @@ where
 instance Registrable SDSRegistered
 where
 	readRegisterSDS (SDSRegistered rfun sds) p c t r iworld
-		= case rfun p iworld of
+		= case rfun p t iworld of
 			(Ok _, iworld) = readRegisterSDS sds p c t r iworld
 			(Error e, iworld) = (ReadException e, iworld)
 
@@ -128,9 +128,9 @@ where
 	write p ts iworld
 		= (Ok pred, {iworld & clock=ts})
 
-	register :: !(ClockParameter Timespec) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-	register p iworld=:{IWorld|clock,nextTick}
-		= (Ok (), {iworld & nextTick=insert (<) (computeNextTick clock p) nextTick})
+	register :: !(ClockParameter Timespec) !TaskId !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+	register p tid iworld=:{IWorld|clock,nextTick}
+		= (Ok (), {iworld & nextTick=insert (on (<) fst) (computeNextTick clock p, tid) nextTick})
 
 	//The next tick is either interval+reg (when start is zero) or start+interval
 	computeNextTick :: !Timespec !(ClockParameter Timespec) -> Timespec

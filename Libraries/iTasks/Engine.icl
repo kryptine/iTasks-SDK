@@ -278,11 +278,11 @@ timeout iworld = case read taskEvents EmptyContext iworld of
 			= (options.timeout, iworld)
 		//No events and registrations
 		# (timestamp, iworld) = liftIWorld nsTime iworld
-		# regtimeout = toMs (hd nextTick) - toMs timestamp
+		# regtimeout = toMs (fst (hd nextTick)) - toMs timestamp
 		# tm = maybe regtimeout (min regtimeout) options.timeout
 		= ( Just (max 0 tm)
 		//All passed registrations are removed
-		  , {iworld & nextTick=dropWhile ((>)timestamp) nextTick})
+		  , {iworld & nextTick=dropWhile ((>)timestamp o fst) nextTick})
 	//Error, retry but not too fast
 	(Error _,iworld)
 		= (Just 500, iworld)
