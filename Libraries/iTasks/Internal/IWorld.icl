@@ -141,10 +141,42 @@ where
 				)
 
 computeNextFire :: !Timespec !Timespec !(ClockParameter Timespec) -> Maybe Timespec
-computeNextFire currentTime regTime {start,interval}
-	# start = if (start == zero) regTime start
-	//| start < regTime && interval == zero = Nothing
-	= Just (start + interval)
+computeNextFire currentTime regTime p=:{start,interval}
+	//If no start is given, regtime is used and we wait for interval
+	| start == zero
+		= Just (regTime + interval)
+	//If the interval is zero and start has passed, the registration is out of date
+	| interval == zero
+		| start < regTime = Nothing
+		//Otherwise just use start
+		| otherwise       = Just start
+	//Start was defined and a non-zero interval so we calculate how many intervals have passed
+	#! n = divTsInt (currentTime - start) interval + 1
+	//Add n*interval to start
+	= Just (start + scale n interval)
+where
+	divTs = IF_INT_64_OR_32 divTsInt divTsIt
+
+	divTsIt :: !Timespec !Timespec -> Int
+	divTsIt x y
+		| x < y = 0
+		        = 1 + divTsInt (x-y) y
+
+	divTsInt :: !Timespec !Timespec -> Int
+	divTsInt l r = toNS l / toNS r
+	where
+		toNS x = x.tv_sec*1000000000+x.tv_nsec
+
+	scale = IF_INT_64_OR_32 scaleInt scaleIt
+
+	scaleIt :: !Int !Timespec -> !Timespec
+	scaleIt 0 x = x
+	scaleIt s x = x + scale (s - 1) x
+
+	scaleInt :: !Int !Timespec -> !Timespec
+	scaleInt s x
+		# nsec = x.tv_nsec*s
+		= {tv_sec=x.tv_sec*s+nsec/1000000000, tv_nsec=nsec rem 1000000000}
 
 iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp =: mapReadWrite (timespecToStamp, \w r. Just (timestampToSpec w)) (Just \_ s. Ok (timespecToStamp s)) 

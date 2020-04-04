@@ -281,9 +281,8 @@ timeout iworld = case read taskEvents EmptyContext iworld of
 		# (timestamp, iworld) = liftIWorld nsTime iworld
 		# regtimeout = toMs (Hd clockDependencies).nextFire - toMs timestamp
 		# tm = maybe regtimeout (min regtimeout) options.timeout
-		= ( Just (max 0 tm)
-		//All passed registrations are removed
-		  , {iworld & clockDependencies=DropWhile (\e->timestamp > e.nextFire) clockDependencies})
+		# iworld & clockDependencies = DropWhile (\e->timestamp > e.nextFire) clockDependencies
+		= (Just (max 0 tm), iworld)
 	//Error, retry but not too fast
 	(Error _,iworld)
 		= (Just 500, iworld)
