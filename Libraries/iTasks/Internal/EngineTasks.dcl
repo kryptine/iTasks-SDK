@@ -13,8 +13,6 @@ flushWritesWhenIdle:: Task ()
 
 stopOnStable :: Task ()
 
-printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
-
 /**
  * The background task executing the async tasks ({{asyncTask}})
  */

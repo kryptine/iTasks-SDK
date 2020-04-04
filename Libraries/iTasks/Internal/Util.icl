@@ -3,6 +3,7 @@ implementation module iTasks.Internal.Util
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
 import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.GenJSON, Data.Error, Data.GenEq
 import Data.Error, System.OSError, System.File
+import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.WF.Definition
 import iTasks.Internal.TaskEval
@@ -14,15 +15,29 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 from Data.Map import :: Map
 
-show :: ![String] !*World -> *World
-show lines world
-	# (console,world)	= stdio world
-	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-	# (_,world)			= fclose console world
+showOut :: ![String] !*World -> *World
+showOut lines world
+	# (console, world) = stdio world
+	# console          = seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines console
+	# (_,world)        = fclose console world
 	= world
 
-iShow :: ![String] !*IWorld -> *IWorld
-iShow lines iworld = {iworld & world = show lines iworld.world}
+showErr :: ![String] !*World -> *World
+showErr lines world
+	# console          = seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines stderr
+	# (_,world)        = fclose console world
+	= world
+
+iShowOut :: ![String] !*IWorld -> *IWorld
+iShowOut lines iworld = {iworld & world = showOut lines iworld.world}
+
+iShowErr :: ![String] !*IWorld -> *IWorld
+iShowErr lines iworld = {iworld & world = showErr lines iworld.world}
+
+showWhenVerbose :: ![String] !*IWorld -> *IWorld
+showWhenVerbose lines iworld
+	| iworld.options.verboseOperation = iShowOut lines iworld
+	| otherwise                       = iworld
 
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm

@@ -47,17 +47,17 @@ doTasksWithOptions initFun world
 	# (cli,world)                = getCommandLine world
 	# (options,world)            = defaultEngineOptions world
 	# mbOptions                  = initFun cli options
-	| mbOptions =:(Error _)      = show (fromError mbOptions) (setReturnCode 1 world)
+	| mbOptions =:(Error _)      = showErr (fromError mbOptions) (setReturnCode 1 world)
 	# (startable,options)        = fromOk mbOptions
 	# mbIWorld                   = createIWorld options world
 	| mbIWorld =: Left _
 		# (Left (err, world)) = mbIWorld
-		= show [err] (setReturnCode 1 world)
+		= showErr [err] (setReturnCode 1 world)
 	# (Right iworld)             = mbIWorld
 	| isNothing options.distributed && options.distributedChild
-		= show ["Conflicting options, distributedChild and distributed"] (setReturnCode 1 (destroyIWorld iworld))
+		= showErr ["Conflicting options, distributedChild and distributed"] (setReturnCode 1 (destroyIWorld iworld))
 	# iworld = if (hasDup (requestPaths startable))
-		(iShow ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
+		(iShowErr ["Warning: duplicate paths in the web tasks: " +++ join ", " ["'" +++ p +++ "'"\\p<-requestPaths startable]] iworld)
 		iworld
 	# iworld                     = serve (startupTasks startable options) (tcpTasks startable options) (timeout options.timeout) iworld
 	= destroyIWorld iworld
@@ -96,13 +96,6 @@ where
 		,documentService
 		,staticResourceService [path \\ {WebTask|path} <- webtasks]
 		]
-
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ OS_NEWLINE) c) lines console
-		# (_,world)			= fclose console world
-		= world
 
 defaultEngineCLIOptions :: a [String] EngineOptions -> MaybeError [String] (a, EngineOptions)
 defaultEngineCLIOptions tasks [argv0:argv] defaults
@@ -150,8 +143,8 @@ where
 			"Enable distributed mode (start the sds and task service)"
 		, Option [] ["distributedChild"] (NoArg (fmap \o->{o & distributedChild=True}))
 			"Enable distributed child mode (only sds and task service)"
-		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & showInstructions=False}))
-			"Don't show instructions to open the browser"
+		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & verboseOperation=False}))
+			"Don't show diagnostic information about (browser instructions, sds server)"
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
@@ -193,8 +186,8 @@ where
 viewWebServerInstructions :: Task ()
 viewWebServerInstructions
 	=   get applicationOptions
-	>>- \{EngineOptions|appName,serverPort,showInstructions}
-		| showInstructions ->
+	>>- \{EngineOptions|appName,serverPort,verboseOperation}
+		| verboseOperation ->
 			traceValue (join OS_NEWLINE
 				["*** " +++ appName +++ " HTTP server ***"
 				,""
@@ -230,7 +223,7 @@ defaultEngineOptions world
 		, storeDirPath     = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath      = appDir </> appName +++ "-data" </> "tmp"
 		, byteCodePath     = appDir </> appName +++ ".bc"
-		, showInstructions = True
+		, verboseOperation = True
 		}
 	= (options,world)
 

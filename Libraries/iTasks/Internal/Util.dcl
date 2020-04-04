@@ -14,9 +14,13 @@ from StdOverloaded import class <
 from System.Time import :: Tm
 from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage, :: MaybeOSError
 
-show :: ![String] !*World -> *World
+showOut :: ![String] !*World -> *World
+showErr :: ![String] !*World -> *World
 
-iShow :: ![String] !*IWorld -> *IWorld
+iShowOut :: ![String] !*IWorld -> *IWorld
+iShowErr :: ![String] !*IWorld -> *IWorld
+
+showWhenVerbose :: ![String] !*IWorld -> *IWorld
 
 tmToDateTime :: !Tm -> DateTime
 

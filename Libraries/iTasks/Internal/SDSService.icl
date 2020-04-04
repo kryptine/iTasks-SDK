@@ -38,7 +38,7 @@ where
 	evalinit sds event {taskId,lastEval} iworld
 		# (mbError, iworld) = addListener taskId port True (wrapIWorldConnectionTask handlers sds) iworld
 		| mbError=:(Error _) = showException "initialization" (fromError mbError) iworld
-		# iworld = iShow ["SDS server listening on " +++ toString port] iworld
+		# iworld = showWhenVerbose ["SDS server listening on " +++ toString port] iworld
 		= (ValueResult
 			(Value () False)
 			(mkTaskEvalInfo lastEval)
@@ -47,7 +47,7 @@ where
 		, iworld)
 	where
 		showException base taskException=:(_, str) iworld
-			# iworld = iShow ["SDSService exception during " +++ base +++ ": " +++ str] iworld
+			# iworld = iShowErr ["SDSService exception during " +++ base +++ ": " +++ str] iworld
 			= (ExceptionResult taskException, iworld)
 
 		eval DestroyEvent evalOpts iworld=:{ioStates}

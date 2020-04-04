@@ -95,10 +95,6 @@ where
 	selection = (TaskId 0 0, TaskId 0 0,{TaskListFilter|fullTaskListFilter & includeProgress=True}
 		,{ExtendedTaskListFilter|fullExtendedTaskListFilter & includeStartup=True, includeSessions=False, includeDetached=False})
 
-printStdErr :: v !*IWorld -> *IWorld | gText{|*|} v
-printStdErr v iw=:{world}
-	= {iw & world=snd (fclose (stderr <<< toSingleLineText v <<< "\n") world)}
-
 asyncTaskListener :: Task ()
 asyncTaskListener
 	=   withTaskId (return ())

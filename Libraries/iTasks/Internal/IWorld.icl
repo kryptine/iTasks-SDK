@@ -69,7 +69,7 @@ createIWorld options world
 where
 	initSymbols {appPath} world
 		# (symbols, world) = accFiles (read_symbols appPath) world
-		# world = if (size symbols == 0) (show ["No symbols found, did you compile with GenerateSymbolTable: True?. Async tasks and shares will probably not work."] world) world
+		# world = if (size symbols == 0) (showErr ["No symbols found, did you compile with GenerateSymbolTable: True?. Async tasks and shares will probably not work."] world) world
 		= (symbols, world)
 
 // Determines the server executables path
