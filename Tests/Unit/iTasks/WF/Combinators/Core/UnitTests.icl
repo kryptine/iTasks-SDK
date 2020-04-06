@@ -12,7 +12,7 @@ Start world = runUnitTests
 	[ {name="blockSleep", test=testTask (allTasks (map test [8000..8005]))}
 	] world
 where
-	testTask task = (\w->(Passed, w)) o doTasks (onStartup task)
+	testTask task = (\w->(Passed, w)) o doTasksWithOptions \args eo->Ok (onStartup task, {eo&verboseOperation=False})
 
 	test port = get applicationOptions >>- \{appPath}->
 		withShared [] \stdin->
