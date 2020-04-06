@@ -150,7 +150,7 @@ aisPosition :: AIVDMCNB -> ContactPosition
 aisPosition {AIVDMCNB|lat,lon} = PositionLatLng (toReal lat / 600000.0, toReal lon / 600000.0)
 
 aisHeading :: AIVDMCNB -> ContactHeading
-aisHeading {AIVDMCNB|heading} = Degrees heading
+aisHeading {AIVDMCNB|heading} = Degrees (fromMaybe 0 heading)
 
 updAISContactPosition :: DateTime ContactPosition ContactHeading AISContact -> AISContact
 updAISContactPosition now nposition nheading c=:{AISContact|position,heading,track,positionUpdated}

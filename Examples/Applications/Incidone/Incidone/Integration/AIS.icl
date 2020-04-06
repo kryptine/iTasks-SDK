@@ -1,6 +1,6 @@
 implementation module Incidone.Integration.AIS
 import iTasks
-import Incidone.Util.AIS
+import Message.Encodings.AIS
 import Incidone.Configuration
 import Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.Util.TaskPatterns

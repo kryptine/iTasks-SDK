@@ -1,5 +1,5 @@
 definition module Incidone.Integration.AIS
-import iTasks, Incidone.Util.AIS
+import iTasks, Message.Encodings.AIS
 
 //Connect to an external AIS Server that streams AIVDM messages
 syncAISStream       :: Task ()
