@@ -153,10 +153,14 @@ where
 			("Specify the app's bytecode file\ndefault: " +++ defaults.byteCodePath)
 		, Option [] ["distributed"] (ReqArg (\p->fmap \o->{o & distributed=Just (toInt p)}) "PORT")
 			"Enable distributed mode (start the sds and task service)"
+		, Option [] ["no-distributed"] (NoArg (fmap \o->{o & distributed=Nothing}))
+			"Disable distributed mode (start the sds and task service)"
 		, Option [] ["distributedChild"] (NoArg (fmap \o->{o & distributedChild=True}))
 			"Enable distributed child mode (only sds and task service)"
 		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & verboseOperation=False}))
 			"Don't show diagnostic information about (browser instructions, sds server)"
+		, Option ['v'] ["verbose"] (NoArg (fmap \o->{o & verboseOperation=True}))
+			"Show diagnostic information about (browser instructions, sds server)"
 		]
 
 onStartup :: (Task a) -> StartableTask | iTask a
