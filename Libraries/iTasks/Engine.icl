@@ -65,20 +65,32 @@ where
 	requestPaths startable = [path\\{path}<-webTasks startable]
 	webTasks startable = [t \\ WebTask t <- toStartable startable]
 	startupTasks startable options
-		| options.distributedChild = systemTasks $ distributedTasks []
-		= systemTasks $ distributedTasks $ backgroundTasks userTasks
+		| options.distributedChild
+			= systemTasks $ distributedTasks []
+		| otherwise
+			= systemTasks $ distributedTasks $ backgroundTasks userTasks
 	where
+		//System tasks are always executed
 		systemTasks c = [systemTask (startTask flushWritesWhenIdle):c]
+		//Backgroundtasks are only needed when the server is not in child mode
 		backgroundTasks c
 			| (webTasks startable) =: []
 				= [systemTask (startTask stopOnStable):c]
-			= [startTask viewWebServerInstructions
-		      ,systemTask (startTask removeOutdatedSessions):c]
+			| otherwise
+				= [ startTask viewWebServerInstructions
+				  , systemTask (startTask removeOutdatedSessions)
+				  : c]
+		//DistributedTasks support distributed operation, e.g., hosting the sds service
 		distributedTasks c
-			| isNothing options.distributed = []
-			= [ systemTask (startTask (asyncTaskListener))
-			  , systemTask (startTask (sdsServiceTask (fromJust options.distributed)))]
-		userTasks = [t \\ StartupTask t <- toStartable startable]
+			| isNothing options.distributed
+				= c
+			| otherwise
+				= [ systemTask (startTask (asyncTaskListener))
+				  , systemTask (startTask (sdsServiceTask (fromJust options.distributed)))
+				  :c]
+		//Tasks specified by the user
+		userTasks
+			= [t \\ StartupTask t <- toStartable startable]
 
 	startTask t = {StartupTask|attributes=defaultValue,task=TaskWrapper t}
 	systemTask t = {StartupTask|t&attributes='DM'.put "system" (JSONBool True) t.StartupTask.attributes}
