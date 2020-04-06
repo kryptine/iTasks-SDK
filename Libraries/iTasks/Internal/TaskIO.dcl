@@ -45,6 +45,8 @@ taskInstanceOutput	:: SDSLens InstanceNo TaskOutput TaskOutput
 * the need to directly processing them.
 */
 queueEventShare :: SDSLens () () (InstanceNo, Event)
+
+//* Queue an event for a task instance by writing in {{queueEventShare}}
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 
 //* Queue a `RefreshEvent` for a single task.
