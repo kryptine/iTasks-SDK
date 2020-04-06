@@ -2,8 +2,8 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Project}*iTasks.WF.Combinators.Core.UnitTests
-	ByteCode:	{Project}*iTasks.WF.Combinators.Core.UnitTests.bc
+	Exec:	{Project}*TestAsyncTask
+	ByteCode:	{Project}*TestAsyncTask.bc
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -48,7 +48,7 @@ Global
 		PrelinkByteCode:	True
 	Paths
 		Path:	{Project}
-		Path:	{Project}*..*..*Libraries
+		Path:	{Project}*..*Libraries
 		Path:	{Application}*lib*Dynamics
 		Path:	{Application}*lib*GraphCopy
 		Path:	{Application}*lib*ABCInterpreter
@@ -59,7 +59,7 @@ Global
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	iTasks.WF.Combinators.Core.UnitTests
+	Name:	TestAsyncTask
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False

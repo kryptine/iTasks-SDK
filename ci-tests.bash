@@ -51,3 +51,6 @@ find . -name "*.prj" -not -name "IncidoneCCC.prj" -not -name "examples.prj" -not
 
 #Run the unit tests
 find Tests/Unit -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 -I@ cleantest -f human --junit @-junit.xml -r @
+
+#Run the non-unit iTasks tests
+find Tests -maxdepth 1 -name "*.prj.default" | sed "s/.prj.default//" | xargs -n 1 -I@ cleantest -f human --junit @-junit.xml -r @ -O -q
