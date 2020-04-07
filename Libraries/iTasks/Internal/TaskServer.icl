@@ -20,6 +20,7 @@ import iTasks.Internal.TaskIO
 import iTasks.Internal.Util
 import iTasks.SDS.Combinators.Common
 import iTasks.SDS.Definition
+import iTasks.SDS.Sources.System
 import iTasks.WF.Definition
 import iTasks.WF.Derives
 
@@ -570,16 +571,28 @@ checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
 
 halt :: !Int !*IWorld -> *IWorld
-halt exitCode iworld=:{ioTasks={todo=[]},world}
-	# world = setReturnCode exitCode world
-	= {IWorld|iworld & world = world}
-halt exitCode iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
-	# world = closeRChannel listener world
-	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}, world = world}
-halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
-	# world = closeRChannel rChannel world
-	# world = closeChannel sChannel world
-	= halt exitCode {iworld & ioTasks = {todo=todo,done=done}, world = world}
+halt exitCode iworld
+	# (merr, iworld) = read allTaskInstances EmptyContext iworld
+	| isError merr = iShowErr [snd (fromError merr)] (closeChannels iworld)
+	# iworld = foldr destroy iworld [i.instanceNo\\i<-directResult (fromOk merr)]
+	= closeChannels iworld
+where
+	destroy :: !InstanceNo !*IWorld -> *IWorld
+	destroy ino iworld = case evalTaskInstance ino DestroyEvent iworld of
+		(Error e, iworld) = iShowErr [e] iworld
+		(Ok _, iworld) = iworld
+
+	closeChannels :: !*IWorld -> *IWorld
+	closeChannels iworld=:{ioTasks={todo=[]},world}
+		# world = setReturnCode exitCode world
+		= {IWorld|iworld & world = world}
+	closeChannels iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
+		# world = closeRChannel listener world
+		= closeChannels {iworld & ioTasks = {todo=todo,done=done}, world = world}
+	closeChannels iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
+		# world = closeRChannel rChannel world
+		# world = closeChannel sChannel world
+		= closeChannels {iworld & ioTasks = {todo=todo,done=done}, world = world}
 
 ioStateString :: !IOStates -> String
 ioStateString ioStates
