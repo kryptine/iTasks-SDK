@@ -44,6 +44,8 @@
 
 	--choicegrid-up-color: #d9d9d9; /* lighten 5% */
 	--choicegrid-down-color: #f2f2f2; /* lighten 15% */
+
+	--flex-min-height: 3em; /* minimum height of flex elements with shrinked height */
 }
 
 /* Predefined themes: just add this class to the viewport or (any container) */
