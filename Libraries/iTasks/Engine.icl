@@ -155,8 +155,10 @@ where
 			"Enable distributed mode (start the sds and task service)"
 		, Option [] ["no-distributed"] (NoArg (fmap \o->{o & distributed=Nothing}))
 			"Disable distributed mode (start the sds and task service)"
-		, Option [] ["distributedChild"] (NoArg (fmap \o->{o & distributedChild=True}))
-			"Enable distributed child mode (only sds and task service)"
+		, Option [] ["distributedChild"] (ReqArg (\p->fmap \o->{o & distributedChild=True, distributed=Just (toInt p)}) "PORT")
+			"Enable distributed child mode (sds and task service)"
+		, Option [] ["no-distributedChild"] (NoArg (fmap \o->{o & distributedChild=False}))
+			"Disable distributed child mode (sds and task service)"
 		, Option ['q'] ["quiet"] (NoArg (fmap \o->{o & verboseOperation=False}))
 			"Don't show diagnostic information about (browser instructions, sds server)"
 		, Option ['v'] ["verbose"] (NoArg (fmap \o->{o & verboseOperation=True}))
@@ -232,7 +234,7 @@ defaultEngineOptions world
 		, persistTasks     = False
 		, autoLayout       = True
 		, maxEvents        = 5
-		, distributed      = Just 9090
+		, distributed      = Nothing
 		, distributedChild = False
 		, timeout          = Nothing//Just 500
 		, webDirPath       = appDir </> appName +++ "-www"

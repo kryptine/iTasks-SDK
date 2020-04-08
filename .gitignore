@@ -60,6 +60,7 @@ Tests/Interactive/GenericEditors/TestReal
 Tests/Interactive/GenericEditors/TestRecordWithADT
 Tests/Interactive/GenericEditors/TestSingleRecord
 Tests/Interactive/GenericEditors/TestString
+Tests/TestAsyncTask
 Tests/Unit/iTasks.Extensions.Process.UnitTests
 Tests/Unit/iTasks.Internal.IWorld.UnitTests
 Tests/Unit/iTasks.Internal.TaskStore.UnitTests

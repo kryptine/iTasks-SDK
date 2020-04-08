@@ -8,7 +8,8 @@ import iTasks
 
 Start world
 	# (start, world) = nsTime world
-	# world = doTasks task world
+	# world = flip doTasksWithOptions world \args eo->
+		defaultEngineCLIOptions task args {eo & distributed=Just 9090, verboseOperation=False}
 	# (done, world) = nsTime world
 	// this shouldn't take much longer than 5 seconds when done asynchronously
 	| done - start > {tv_sec=7,tv_nsec=0}
@@ -20,7 +21,7 @@ where
 	test port = get applicationOptions >>- \{appPath}->
 		withShared [] \stdin->
 		withShared ([], []) \stdout->
-			    externalProcess {tv_sec=0,tv_nsec=100000000} appPath ["--distributed", toString port, "--distributedChild"] Nothing 9 (Just defaultPtyOptions) stdin stdout
+			    externalProcess {tv_sec=0,tv_nsec=100000000} appPath ["-v","--distributedChild", toString port] Nothing 9 (Just defaultPtyOptions) stdin stdout
 			||- (
 				   wait (any (startsWith "SDS server listening on ") o split "\n" o concat o fst) stdout
 				>-| asyncTask "localhost" port (accWorld (blockSleep 5))
