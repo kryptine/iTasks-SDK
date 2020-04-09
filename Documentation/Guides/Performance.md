@@ -13,7 +13,9 @@
   allows the next optimization:
 
 - Think about which guards/patterns are the most common cases and put those
-  first.
+  first. For ADTs with two constructors, it does not matter which is matched
+  first: in either case, one descriptor equality check will be done (if
+  unequal, it is assumed that the value is of the other constructor).
 
 - Avoid unnecessary pointfree notation (e.g., do not write `const ((===) key)`
   but write `\_ k -> k == key`.
